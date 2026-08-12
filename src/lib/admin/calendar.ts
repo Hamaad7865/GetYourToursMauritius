@@ -164,8 +164,50 @@ export interface DayCustomLine {
   staffNote: string | null;
 }
 
-/** One row of the day sheet: either a real departure or a dated custom/rental line. Discriminated by `kind`. */
-export type DayEntry = DayDeparture | DayCustomLine;
+/**
+ * The DEPARTURE leg of a RETURN airport transfer, shown on its own date.
+ *
+ * A return transfer is ONE booking with a single `session_occurrence` on the ARRIVAL date; the
+ * departure lives only in `bookings.return_date` / `return_time` / `departure_flight_number`, with no
+ * occurrence of its own. The whole calendar is built from occurrences, so before this the departure
+ * appeared nowhere — the driver reading the return-date sheet never saw the pickup. This entry
+ * surfaces it: the arrival's pickup/drop-off are SWAPPED (collect FROM the hotel, drop AT the airport),
+ * timed by `return_time`. It holds no occurrence, no capacity and no seat, and can never be called off
+ * (that acts on the arrival occurrence) — the same shape as a {@link DayCustomLine}.
+ */
+export interface DayReturnLeg {
+  kind: 'return-leg';
+  bookingId: string;
+  ref: string;
+  /** return_date + return_time as a Mauritius ISO instant — orders the leg among the day's departures. */
+  startsAt: string;
+  status: BookingStatus;
+  paymentState: PaymentState;
+  counted: boolean;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string | null;
+  source: string;
+  bookedAt: string;
+  /** Headcount from the transfer's booking line (`pax ?? quantity`, summed). */
+  pax: number;
+  /** The vehicle sold, from the transfer line's price label (e.g. "Sedan"). */
+  vehicleLabel: string | null;
+  /** Collect FROM here — the hotel (the arrival leg's drop-off). */
+  pickup: string | null;
+  /** Drop AT here — the airport (the arrival leg's pickup). */
+  dropoff: string | null;
+  /** The departure time typed on the booking (`return_time`), e.g. "18:30". */
+  departureTime: string | null;
+  /** The outbound flight (`departure_flight_number`), e.g. "MK248". */
+  flightNumber: string | null;
+  roomOrCabin: string | null;
+  staffNote: string | null;
+}
+
+/** One row of the day sheet: a real departure, a dated custom/rental line, or a return transfer's
+ *  departure leg. Discriminated by `kind`. */
+export type DayEntry = DayDeparture | DayCustomLine | DayReturnLeg;
 
 export interface MoveTarget {
   occurrenceId: string;
@@ -294,6 +336,15 @@ const BOOKING_FIELDS = `
   pickup_location, dropoff_location, pickup_pending, child_seats, disruption,
   booking_supplements ( name, qty, position ),
   ${TRANSFER_SELECT}
+`;
+
+/** The columns the return-leg read pulls straight off `bookings`: its departure leg has NO occurrence,
+ *  so it is queried by `return_date`, not through `booking_items`. The transfer fields carry the leg
+ *  (return_time, departure_flight_number, …); the one booking line carries the vehicle + headcount. */
+const RETURN_LEG_SELECT = `
+  id, ref, status, payment_state, customer_name, customer_email, customer_phone,
+  source, created_at, notes, pickup_location, dropoff_location, ${TRANSFER_SELECT},
+  booking_items ( quantity, pax, price_label )
 `;
 
 /**
@@ -520,6 +571,95 @@ export function customLineLabel(description: string): string {
   return head || description.trim();
 }
 
+/** A `bookings` row read directly for a return transfer's departure leg (it has no occurrence). */
+export interface RawReturnLeg extends RawTransferFields {
+  id: string;
+  ref: string;
+  status: BookingStatus;
+  payment_state: PaymentState;
+  customer_name: string;
+  customer_email: string;
+  customer_phone: string | null;
+  source: string;
+  created_at: string;
+  notes: string | null;
+  pickup_location: string | null;
+  dropoff_location: string | null;
+  booking_items: Array<{ quantity: number; pax: number | null; price_label: string | null }> | null;
+}
+
+/** The Mauritius ISO instant of a return leg's departure, from its date + time. A missing/odd time
+ *  falls back to 00:00 so the leg still lands on its day; return_time is stored "HH:MM" ("18:30"). */
+function returnLegStartsAt(returnDate: string, returnTime: string | null): string {
+  const m = (returnTime ?? '').match(/^(\d{1,2}):(\d{2})/);
+  const time = m ? `${m[1]!.padStart(2, '0')}:${m[2]}` : '00:00';
+  return `${returnDate}T${time}:00+04:00`;
+}
+
+/**
+ * Shape the raw return-transfer bookings into departure-leg day-sheet entries. Pure, so the swap and
+ * visibility rules are testable without a database — a sibling of `mapDaySchedule` / `mapDayCustomLines`.
+ *
+ * Only a RETURN transfer has a second leg, and only a DATED one (`return_date`) belongs to a day. The
+ * same live/counted filter the other two mappers apply is applied here, so an unpaid-and-abandoned or
+ * cancelled transfer shows no leg. The arrival's pickup/drop-off are SWAPPED: the departure collects
+ * FROM the hotel (the arrival's drop-off) and drops AT the airport (the arrival's pickup).
+ */
+export function mapReturnLegs(rows: RawReturnLeg[]): DayReturnLeg[] {
+  const out: DayReturnLeg[] = [];
+  for (const raw of rows) {
+    if (raw.trip_direction !== 'return' || !raw.return_date) continue;
+    const counted = COUNTED_STATUSES.has(raw.status);
+    if (!counted && !PENDING_STATUSES.has(raw.status)) continue;
+
+    let pax = 0;
+    let vehicleLabel: string | null = null;
+    for (const item of raw.booking_items ?? []) {
+      pax += item.pax ?? item.quantity;
+      if (!vehicleLabel && item.price_label) vehicleLabel = item.price_label;
+    }
+
+    out.push({
+      kind: 'return-leg',
+      bookingId: raw.id,
+      ref: raw.ref,
+      startsAt: returnLegStartsAt(raw.return_date, raw.return_time),
+      status: raw.status,
+      paymentState: raw.payment_state,
+      counted,
+      customerName: raw.customer_name,
+      customerEmail: raw.customer_email,
+      customerPhone: raw.customer_phone,
+      source: raw.source,
+      bookedAt: raw.created_at,
+      pax,
+      vehicleLabel,
+      pickup: raw.dropoff_location, // collect FROM the hotel (arrival drop-off)
+      dropoff: raw.pickup_location, // drop AT the airport (arrival pickup)
+      departureTime: raw.return_time,
+      flightNumber: raw.departure_flight_number,
+      roomOrCabin: raw.room_or_cabin,
+      staffNote: raw.notes,
+    });
+  }
+  return out;
+}
+
+/** The visible return-transfer departure legs kept per Mauritius day — the by-day companion the month
+ *  grid unions in so a day whose ONLY entry is a return leg is clickable and named, exactly as
+ *  `customLinesByDay` does for converted-quote lines (the month RPC counts neither). */
+export function returnLegsByDay(rows: RawReturnLeg[]): Map<string, DayReturnLeg[]> {
+  const byDay = new Map<string, DayReturnLeg[]>();
+  for (const leg of mapReturnLegs(rows)) {
+    const key = mauritiusDayKey(leg.startsAt);
+    const bucket = byDay.get(key);
+    if (bucket) bucket.push(leg);
+    else byDay.set(key, [leg]);
+  }
+  for (const legs of byDay.values()) legs.sort((a, b) => a.startsAt.localeCompare(b.startsAt));
+  return byDay;
+}
+
 /* The typed browser client does not know `booking_custom_items`: it landed in 20260909000000 and the
  * generated src/lib/supabase/types.ts has not been regenerated (that needs a live database and would
  * sweep in every other pending schema change). Same narrow structural cast as src/lib/admin/quotes.ts,
@@ -555,7 +695,16 @@ export async function loadDaySchedule(day: string): Promise<DayEntry[]> {
     .order('starts_at', { ascending: true })
     .returns<RawDayCustomItem[]>();
 
-  const [occurrences, custom] = await Promise.all([
+  // A RETURN transfer's departure leg lives only on `bookings.return_date` — it has NO occurrence, so
+  // it is read straight off bookings by that date and folded in beside the occurrence departures.
+  const returnLegs = supabase
+    .from('bookings')
+    .select(RETURN_LEG_SELECT)
+    .eq('trip_direction', 'return')
+    .eq('return_date', day)
+    .returns<RawReturnLeg[]>();
+
+  const [occurrences, custom, legs] = await Promise.all([
     supabase
       .from('session_occurrences')
       .select(
@@ -569,13 +718,16 @@ export async function loadDaySchedule(day: string): Promise<DayEntry[]> {
       .order('starts_at', { ascending: true })
       .returns<RawDayRow[]>(),
     customItems,
+    returnLegs,
   ]);
   if (occurrences.error) throw occurrences.error;
   if (custom.error) throw custom.error;
+  if (legs.error) throw legs.error;
 
   const entries: DayEntry[] = [
     ...mapDaySchedule(occurrences.data ?? []),
     ...mapDayCustomLines(custom.data ?? []),
+    ...mapReturnLegs(legs.data ?? []),
   ];
   // Read the day in time order — a rental sitting between two departures reads where it belongs.
   entries.sort((a, b) => a.startsAt.localeCompare(b.startsAt));
@@ -615,6 +767,27 @@ export async function loadCustomLinesByDay(
     .returns<RawDayCustomItem[]>();
   if (error) throw error;
   return customLinesByDay(data ?? []);
+}
+
+/**
+ * The visible return-transfer departure legs across a month, keyed by Mauritius day — the month-wide
+ * companion to `loadCalendarMonth`, exactly like `loadCustomLinesByDay`. The month RPC counts only
+ * session_occurrences, so a return leg (whose departure date has none) would leave that day a dead
+ * cell; unioning these keys into the grid's clickable set makes it openable and names it.
+ */
+export async function loadReturnLegsByDay(
+  from: string,
+  to: string,
+): Promise<Map<string, DayReturnLeg[]>> {
+  const { data, error } = await getBrowserSupabase()
+    .from('bookings')
+    .select(RETURN_LEG_SELECT)
+    .eq('trip_direction', 'return')
+    .gte('return_date', from)
+    .lte('return_date', to)
+    .returns<RawReturnLeg[]>();
+  if (error) throw error;
+  return returnLegsByDay(data ?? []);
 }
 
 interface RawTargetRow {

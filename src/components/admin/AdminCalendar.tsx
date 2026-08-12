@@ -14,6 +14,7 @@ import {
   callOffDeparture,
   loadCalendarMonth,
   loadCustomLinesByDay,
+  loadReturnLegsByDay,
   loadDaySchedule,
   customLineLabel,
   loadMoveTargets,
@@ -24,6 +25,7 @@ import {
   type DayBooking,
   type DayCustomLine,
   type DayDeparture,
+  type DayReturnLeg,
   type DayEntry,
   type MoveTarget,
 } from '@/lib/admin/calendar';
@@ -60,6 +62,9 @@ const MAX_CELL_LABELS = 2;
 interface DayModel {
   info: CalendarDay | null;
   customLines: DayCustomLine[];
+  /** Return-transfer departure legs on this day (their departure date has no occurrence — see
+   *  `loadReturnLegsByDay`). Like `customLines`, they keep an otherwise-empty day clickable + named. */
+  returnLegs: DayReturnLeg[];
 }
 
 /**
@@ -111,12 +116,19 @@ function AdminMonthGrid({
           // A converted-quote-only day has pax 0 and no called-off departure, but still holds a
           // dated line the drawer can show — so it must be clickable like a called-off day is.
           const customLines = model?.customLines ?? [];
+          const returnLegs = model?.returnLegs ?? [];
           const hasCustomLines = customLines.length > 0;
-          const active = booked || calledOff || hasCustomLines;
+          const hasReturnLegs = returnLegs.length > 0;
+          const active = booked || calledOff || hasCustomLines || hasReturnLegs;
           // Two names at most: the cell is 64px tall and already carries the date and any headcount.
-          // De-duplicated because a day can hold the same label twice (an activity and its transfer
-          // both reduce to their own head, but two guests on one tour would repeat).
-          const customLabels = [...new Set(customLines.map((l) => customLineLabel(l.description)))];
+          // De-duplicated because a day can hold the same label twice. Names the day's non-occurrence
+          // lines — custom/rental lines AND return-transfer departures — so a month scan needs no clicks.
+          const customLabels = [
+            ...new Set([
+              ...customLines.map((l) => customLineLabel(l.description)),
+              ...(hasReturnLegs ? ['Transfer departure'] : []),
+            ]),
+          ];
           const extraCustom = Math.max(0, customLabels.length - MAX_CELL_LABELS);
           customLabels.length = Math.min(customLabels.length, MAX_CELL_LABELS);
           const dateEl = (
@@ -149,7 +161,9 @@ function AdminMonthGrid({
               aria-pressed={isSelected}
               aria-label={`${dayLabel(key)} — ${pax} guest${pax === 1 ? '' : 's'} booked${
                 calledOff ? ', has a called-off departure' : ''
-              }${hasCustomLines ? ', has a custom or rental line' : ''}`}
+              }${hasCustomLines ? ', has a custom or rental line' : ''}${
+                hasReturnLegs ? ', has a return transfer departure' : ''
+              }`}
               className={`min-h-[64px] rounded-xl border p-1.5 text-left transition ${
                 isSelected
                   ? 'border-teal bg-teal/10'
@@ -218,16 +232,24 @@ export function AdminCalendar() {
     Promise.all([
       loadCalendarMonth(from, to),
       loadCustomLinesByDay(from, to).catch(() => new Map<string, DayCustomLine[]>()),
+      loadReturnLegsByDay(from, to).catch(() => new Map<string, DayReturnLeg[]>()),
     ])
-      .then(([rows, customByDay]) => {
+      .then(([rows, customByDay, returnByDay]) => {
         if (!active) return;
         const map = new Map<string, DayModel>();
-        for (const r of rows)
-          map.set(r.day, { info: r, customLines: customByDay.get(r.day) ?? [] });
-        // A day with ONLY custom lines has no RPC row, so seed it here or it stays un-clickable.
-        for (const [day, lines] of customByDay) {
-          if (!map.has(day)) map.set(day, { info: null, customLines: lines });
-        }
+        // A day with ONLY custom lines or a return-transfer departure has no RPC row, so each source
+        // seeds its own day here or it stays un-clickable. `ensure` creates the empty model once.
+        const ensure = (day: string): DayModel => {
+          let m = map.get(day);
+          if (!m) {
+            m = { info: null, customLines: [], returnLegs: [] };
+            map.set(day, m);
+          }
+          return m;
+        };
+        for (const r of rows) ensure(r.day).info = r;
+        for (const [day, lines] of customByDay) ensure(day).customLines = lines;
+        for (const [day, legs] of returnByDay) ensure(day).returnLegs = legs;
         setByDay(map);
       })
       .catch((e: unknown) => {
@@ -330,6 +352,7 @@ function DayDrawer({
   // holds no seat. `pax`/`pendingPax` exist only on occurrence entries, so this narrowing is required.
   const departures = entries?.filter((e): e is DayDeparture => e.kind === 'occurrence') ?? [];
   const customLines = entries?.filter((e): e is DayCustomLine => e.kind === 'custom') ?? [];
+  const returnLegs = entries?.filter((e): e is DayReturnLeg => e.kind === 'return-leg') ?? [];
   const guests = departures.reduce((s, d) => s + d.pax, 0);
   const pendingPax = departures.reduce((s, d) => s + d.pendingPax, 0);
 
@@ -365,6 +388,12 @@ function DayDrawer({
                     · {customLines.length} other line{customLines.length === 1 ? '' : 's'}
                   </span>
                 )}
+                {returnLegs.length > 0 && (
+                  <span>
+                    {' '}
+                    · {returnLegs.length} transfer departure{returnLegs.length === 1 ? '' : 's'}
+                  </span>
+                )}
               </p>
             )}
           </div>
@@ -386,8 +415,10 @@ function DayDrawer({
                 departure={entry}
                 onChanged={reload}
               />
-            ) : (
+            ) : entry.kind === 'custom' ? (
               <CustomLineCard key={`ci-${entry.id}`} line={entry} />
+            ) : (
+              <ReturnLegCard key={`rl-${entry.bookingId}`} leg={entry} />
             ),
           )}
         </div>
@@ -629,6 +660,101 @@ function CustomLineCard({ line }: { line: DayCustomLine }) {
         </p>
         <Link
           href={`/admin/bookings?open=${line.bookingId}`}
+          className="font-bold text-teal underline underline-offset-2"
+        >
+          Open full booking →
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The DEPARTURE leg of a return airport transfer, shown on its return date. It has no occurrence, so
+ * like a custom line it shows none of the departure furniture (no capacity, no call-off). What the
+ * driver needs is the run sheet the other way round: collect FROM the hotel, drop AT the airport, with
+ * the departure time and outbound flight.
+ */
+function ReturnLegCard({ leg }: { leg: DayReturnLeg }) {
+  return (
+    <div
+      className={`rounded-2xl border p-4 ${
+        leg.counted ? 'border-[#EAEEF0] bg-white' : 'border-amber-200 bg-amber-50/40'
+      }`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-bold text-ink">Airport transfer — departure</p>
+          <p className="text-[12.5px] text-ink-muted">
+            {leg.departureTime || fmtTime(leg.startsAt)}
+            {leg.vehicleLabel && <> · {leg.vehicleLabel}</>}
+            {leg.pax > 0 && <> · {leg.pax} pax</>}
+          </p>
+        </div>
+        <span className="shrink-0 rounded-full bg-teal/10 px-2.5 py-1 text-[11px] font-bold text-teal-dark">
+          Departure
+        </span>
+      </div>
+
+      {/* The return run sheet: collect FROM the hotel, drop AT the airport, with the outbound flight. */}
+      <div className="mt-3 flex flex-col gap-2 border-t border-[#F2F4F6] pt-3 text-[12.5px]">
+        {leg.pickup && (
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-wide text-ink-muted">
+              Pickup (hotel)
+            </p>
+            <p className="text-ink">{leg.pickup}</p>
+          </div>
+        )}
+        {leg.dropoff && (
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-wide text-ink-muted">
+              Drop-off (airport)
+            </p>
+            <p className="text-ink">{leg.dropoff}</p>
+          </div>
+        )}
+        {(leg.flightNumber || leg.roomOrCabin) && (
+          <p className="text-ink-muted">
+            {leg.flightNumber && <>Flight {leg.flightNumber}</>}
+            {leg.flightNumber && leg.roomOrCabin && <> · </>}
+            {leg.roomOrCabin && <>Room {leg.roomOrCabin}</>}
+          </p>
+        )}
+      </div>
+
+      <div className="mt-3 flex flex-col gap-2 border-t border-[#F2F4F6] pt-3 text-[12.5px]">
+        <p className="text-ink">
+          <span className="font-bold">{leg.ref}</span> · {leg.customerName || 'Guest'}
+        </p>
+        {(!leg.counted || leg.staffNote) && (
+          <span className="flex flex-wrap gap-1">
+            {!leg.counted && <Chip tone="amber">Awaiting payment</Chip>}
+            {leg.staffNote && <Chip tone="ink">Note</Chip>}
+          </span>
+        )}
+        <div className="flex flex-col gap-0.5">
+          <a
+            href={`mailto:${leg.customerEmail}`}
+            className="block truncate text-teal underline underline-offset-2"
+          >
+            {leg.customerEmail}
+          </a>
+          {leg.customerPhone && (
+            <a
+              href={`tel:${leg.customerPhone.replace(/\s+/g, '')}`}
+              className="font-medium text-teal underline underline-offset-2"
+            >
+              {leg.customerPhone}
+            </a>
+          )}
+        </div>
+        {leg.staffNote && <p className="whitespace-pre-wrap text-ink/80">{leg.staffNote}</p>}
+        <p className="text-ink/80">
+          booked {fmtDateTime(leg.bookedAt)} · via {leg.source}
+        </p>
+        <Link
+          href={`/admin/bookings?open=${leg.bookingId}`}
           className="font-bold text-teal underline underline-offset-2"
         >
           Open full booking →

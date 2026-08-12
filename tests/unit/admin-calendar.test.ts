@@ -5,9 +5,12 @@ import {
   customLinesByDay,
   mapDayCustomLines,
   mapDaySchedule,
+  mapReturnLegs,
   notifiableCount,
+  returnLegsByDay,
   type RawDayCustomItem,
   type RawDayRow,
+  type RawReturnLeg,
 } from '@/lib/admin/calendar';
 
 /* The calendar's day sheet is what staff read before driving out to collect people, so the rules it
@@ -597,5 +600,93 @@ describe('customLineLabel', () => {
   it('never returns empty, whatever it is handed', () => {
     expect(customLineLabel('· leading separator')).toBe('· leading separator');
     expect(customLineLabel('   ')).toBe('');
+  });
+});
+
+/* A RETURN airport transfer is one booking with a single occurrence on the ARRIVAL date; its
+ * departure leg lives only in return_date/return_time and has no occurrence, so it must be surfaced
+ * on its own day with the pickup/drop-off swapped, or the driver never sees the return collection. */
+function returnLeg(over: Partial<RawReturnLeg> = {}): RawReturnLeg {
+  return {
+    id: 'b1',
+    ref: 'BMTRET1',
+    status: 'confirmed',
+    payment_state: 'paid',
+    customer_name: 'Paul Aubret',
+    customer_email: 'paul@example.com',
+    customer_phone: '+230 5 000 0000',
+    source: 'web',
+    created_at: '2026-08-12T12:00:00Z',
+    notes: null,
+    pickup_location: 'SSR International Airport (arrivals)',
+    dropoff_location: 'Tamassa',
+    trip_direction: 'return',
+    return_date: '2026-08-23',
+    return_time: '18:30',
+    arrival_time: '13:20',
+    flight_number: 'MK219',
+    departure_flight_number: 'MK248',
+    room_or_cabin: null,
+    luggage_details: null,
+    child_seat_age: null,
+    traveller_country: null,
+    traveller_company: null,
+    traveller_gender: null,
+    special_notes: null,
+    booking_items: [{ quantity: 1, pax: 2, price_label: 'Sedan' }],
+    ...over,
+  };
+}
+
+describe('mapReturnLegs', () => {
+  it('surfaces the departure leg on its return date, pickup/drop-off SWAPPED', () => {
+    const [leg] = mapReturnLegs([returnLeg()]);
+    expect(leg!.kind).toBe('return-leg');
+    // Collect FROM the hotel (arrival drop-off), drop AT the airport (arrival pickup).
+    expect(leg!.pickup).toBe('Tamassa');
+    expect(leg!.dropoff).toBe('SSR International Airport (arrivals)');
+    expect(leg!.startsAt).toBe('2026-08-23T18:30:00+04:00');
+    expect(leg!.departureTime).toBe('18:30');
+    expect(leg!.flightNumber).toBe('MK248');
+    expect(leg!.pax).toBe(2);
+    expect(leg!.vehicleLabel).toBe('Sedan');
+    expect(leg!.counted).toBe(true);
+  });
+
+  it('ignores a one-way transfer — an arrival has no second leg', () => {
+    expect(mapReturnLegs([returnLeg({ trip_direction: 'arrival' })])).toEqual([]);
+    expect(mapReturnLegs([returnLeg({ trip_direction: null })])).toEqual([]);
+  });
+
+  it('ignores a return transfer with no return_date (nothing to date)', () => {
+    expect(mapReturnLegs([returnLeg({ return_date: null })])).toEqual([]);
+  });
+
+  it('hides a leg whose booking is not live, mirroring the other mappers', () => {
+    expect(mapReturnLegs([returnLeg({ status: 'cancelled' })])).toEqual([]);
+    expect(mapReturnLegs([returnLeg({ status: 'expired' })])).toEqual([]);
+  });
+
+  it('shows an unpaid-but-live leg, flagged not counted', () => {
+    const [leg] = mapReturnLegs([
+      returnLeg({ status: 'payment_pending', payment_state: 'pending' }),
+    ]);
+    expect(leg!.counted).toBe(false);
+  });
+
+  it('defaults a missing time to midnight so the leg still lands on its day', () => {
+    const [leg] = mapReturnLegs([returnLeg({ return_time: null })]);
+    expect(leg!.startsAt).toBe('2026-08-23T00:00:00+04:00');
+  });
+});
+
+describe('returnLegsByDay', () => {
+  it('groups the departure legs under their return day', () => {
+    const map = returnLegsByDay([
+      returnLeg({ id: 'a', return_date: '2026-08-23' }),
+      returnLeg({ id: 'b', return_date: '2026-08-25' }),
+    ]);
+    expect([...map.keys()].sort()).toEqual(['2026-08-23', '2026-08-25']);
+    expect(map.get('2026-08-23')).toHaveLength(1);
   });
 });
