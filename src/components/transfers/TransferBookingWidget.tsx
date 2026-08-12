@@ -16,6 +16,7 @@ import {
   type AirportFareByZone,
   type TripType,
 } from '@/lib/services/pricing';
+import { pickVehicleSlot } from '@/lib/transfers/pick-vehicle-slot';
 import {
   IconArrowRight,
   IconCalendar,
@@ -159,10 +160,14 @@ export function TransferBookingWidget({
       const avail = await fetch(
         `/api/v1/activities/${SLUG}/availability?from=${date}&to=${date}`,
       ).then((r) =>
-        parseApiJson<Array<{ occurrenceId: string; startsAt: string; seatsLeft: number }>>(r),
+        parseApiJson<
+          Array<{ occurrenceId: string; startsAt: string; seatsLeft: number; optionName?: string }>
+        >(r),
       );
       const slots = avail.ok ? (avail.data ?? []) : [];
-      const slot = slots.find((s) => (s.seatsLeft ?? 0) >= 1) ?? slots[0];
+      // Reserve the occurrence for the CHOSEN vehicle's option — not whatever came back first, which is
+      // the bug that filed every transfer under "SUV" regardless of choice. See pickVehicleSlot.
+      const slot = pickVehicleSlot(slots, vehicle);
       if (!slot) {
         setError(
           t("That date isn't open yet — please try another day, or contact us to arrange it."),
