@@ -80,3 +80,6 @@ sourcemaps-out/
 .claude/skills/
 data/skills/
 skills-lock.json
+
+.vercel
+.env*
