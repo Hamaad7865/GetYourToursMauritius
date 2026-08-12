@@ -31,6 +31,15 @@ export interface BookingItemRow {
   activityTitle: string;
   optionName: string;
   startsAt: string | null;
+  /** The line's OWN round-trip transfer add-on in EUR — already inside the booking total, charged ON
+   *  this line but with no line of its own (the invoice itemises it as a nested add-on). 0 when the
+   *  line carries no transfer. The drawer nests it under the item and {@link bookingExtraCharges}
+   *  counts it, or the €150 it represents lands in "Unaccounted". */
+  transportFareEur: number;
+  /** Where that transfer collects from / returns to (its own pickup, not the booking's). Null when the
+   *  line carries no transfer. Shown beside the nested add-on so each activity shows its own pickup. */
+  transportPickupLabel: string | null;
+  transportDropoffLabel: string | null;
 }
 
 export interface BookingRow {
@@ -86,6 +95,12 @@ export interface BookingRow {
   dropoffLocation: string | null;
   /** "Pickup to be arranged" (TBD) — distinct from "no pickup at all" (false + no pickupLocation). */
   pickupPending: boolean;
+  /** The booking's round-trip transfer for the pickup panel — the FIRST line that carries one, folded
+   *  in so a quote booking whose only hotel is on its lines' transfers reads "<hotel> · Round-trip
+   *  transfer" instead of "No pickup" (mirrors the calendar's per-party fold; each line still shows its
+   *  own transfer in the item list). Null when no line has a transfer. See {@link resolvePickup}. */
+  transportPickup: string | null;
+  transportDropoff: string | null;
   /** Child seats on the booking (first free, €6 each extra; the charge is in the total). */
   childSeats: number;
   /** Region-based transport add-on in EUR — already inside totalEur, but it has NO booking_items
@@ -195,6 +210,9 @@ interface RawItem {
   pax: number | null;
   unit_amount_minor: number;
   subtotal_minor: number;
+  transport_fare_minor: number | null;
+  transport_pickup_label: string | null;
+  transport_dropoff_label: string | null;
   session_occurrences: { starts_at: string } | { starts_at: string }[] | null;
   activity_options:
     | { name: string; activities: { title: string } | { title: string }[] | null }
@@ -240,6 +258,9 @@ interface RawBooking extends RawTransferFields {
     quantity: number;
     subtotal_minor: number;
     position: number;
+    transport_fare_minor: number | null;
+    transport_pickup_label: string | null;
+    transport_dropoff_label: string | null;
   }> | null;
   payments: RawPaymentLite[] | null;
 }
@@ -250,11 +271,15 @@ const BOOKING_SELECT = `
   transport_minor, balance_due_minor, deposit_minor, ${TRANSFER_SELECT}, created_at,
   booking_items (
     price_label, quantity, pax, unit_amount_minor, subtotal_minor,
+    transport_fare_minor, transport_pickup_label, transport_dropoff_label,
     session_occurrences ( starts_at ),
     activity_options ( name, activities ( title ) )
   ),
   booking_supplements ( name, qty, total_minor, position ),
-  booking_custom_items ( description, quantity, subtotal_minor, position )
+  booking_custom_items (
+    description, quantity, subtotal_minor, position,
+    transport_fare_minor, transport_pickup_label, transport_dropoff_label
+  )
 `;
 
 function mapItem(raw: RawItem): BookingItemRow {
@@ -270,6 +295,9 @@ function mapItem(raw: RawItem): BookingItemRow {
     activityTitle: activity?.title ?? 'Activity',
     optionName: option?.name ?? '',
     startsAt: occ?.starts_at ?? null,
+    transportFareEur: (raw.transport_fare_minor ?? 0) / 100,
+    transportPickupLabel: raw.transport_pickup_label ?? null,
+    transportDropoffLabel: raw.transport_dropoff_label ?? null,
   };
 }
 
@@ -280,6 +308,26 @@ function mapBooking(raw: RawBooking): BookingRow {
   const grossPaidMinor = (raw.payments ?? []).reduce((sum, p) => sum + p.paid_minor, 0);
   const refundedMinor = (raw.payments ?? []).reduce((sum, p) => sum + p.refunded_minor, 0);
   const netPaidMinor = grossPaidMinor - refundedMinor;
+  // Ordered by `position`, like the supplements below and for the same reason: an embedded PostgREST
+  // relation arrives unordered, and `position` is the order the guest read the quote in.
+  const customItems: BookingCustomItemRow[] = (raw.booking_custom_items ?? [])
+    .slice()
+    .sort((a, b) => a.position - b.position)
+    .map((line) => ({
+      description: line.description,
+      quantity: line.quantity,
+      subtotalEur: line.subtotal_minor / 100,
+      transportFareEur: (line.transport_fare_minor ?? 0) / 100,
+      transportPickupLabel: line.transport_pickup_label ?? null,
+      transportDropoffLabel: line.transport_dropoff_label ?? null,
+    }));
+  // The booking-level pickup fold: the FIRST line (tour first, then custom) that carries a transfer.
+  // Each line still shows its own transfer in the item list; this only keeps the pickup panel from
+  // reading "No pickup" on a quote booking whose only hotel is on its lines. Mirrors the calendar.
+  const firstTransfer =
+    items.find((it) => it.transportPickupLabel) ??
+    customItems.find((c) => c.transportPickupLabel) ??
+    null;
   return {
     id: raw.id,
     ref: raw.ref,
@@ -304,6 +352,8 @@ function mapBooking(raw: RawBooking): BookingRow {
     pickupLocation: raw.pickup_location,
     dropoffLocation: raw.dropoff_location ?? null,
     pickupPending: raw.pickup_pending ?? false,
+    transportPickup: firstTransfer?.transportPickupLabel ?? null,
+    transportDropoff: firstTransfer?.transportDropoffLabel ?? null,
     childSeats: raw.child_seats ?? 0,
     transportEur: (raw.transport_minor ?? 0) / 100,
     balanceDueEur: (raw.balance_due_minor ?? 0) / 100,
@@ -318,16 +368,7 @@ function mapBooking(raw: RawBooking): BookingRow {
         qty: s.qty,
         totalEur: s.total_minor / 100,
       })),
-    // Ordered by `position`, like the supplements above and for the same reason: an embedded
-    // PostgREST relation arrives unordered, and `position` is the order the guest read the quote in.
-    customItems: (raw.booking_custom_items ?? [])
-      .slice()
-      .sort((a, b) => a.position - b.position)
-      .map((line) => ({
-        description: line.description,
-        quantity: line.quantity,
-        subtotalEur: line.subtotal_minor / 100,
-      })),
+    customItems,
     transfer: mapTransfer(raw),
   };
 }
@@ -338,22 +379,39 @@ export interface BookingCustomItemRow {
   description: string;
   quantity: number;
   subtotalEur: number;
+  /** The line's OWN round-trip transfer add-on (EUR) and where it collects from — the same per-line
+   *  transfer a tour line can carry (see {@link BookingItemRow}). 0 / null when the line has none. */
+  transportFareEur: number;
+  transportPickupLabel: string | null;
+  transportDropoffLabel: string | null;
 }
 
 /** A charge that is inside `totalEur` but has no `booking_items` row of its own. */
 export interface BookingChargeLine {
   label: string;
   amountEur: number;
+  /** A round-trip transfer that rides on the line above it — the drawer indents it, like the invoice's
+   *  nested add-on. Absent on ordinary charge lines. */
+  isAddon?: boolean;
 }
 
 function round2(n: number): number {
   return Math.round(n * 100) / 100;
 }
 
+/** The nested round-trip transfer's label, spelled exactly as `buildInvoice()` spells it so the drawer
+ *  and the VAT invoice never disagree: "Round-trip transfer · from <pickup>", or the bare phrase when
+ *  the line kept no pickup. */
+function transferLabel(pickup: string | null): string {
+  const p = pickup?.trim();
+  return p ? `Round-trip transfer · from ${p}` : 'Round-trip transfer';
+}
+
 /**
  * The charges that make up `totalEur` without a `booking_items` row behind them: the region
- * transport add-on (`bookings.transport_minor`) and the child-seat extra (folded straight into
- * `total_minor` by api_book, which persists only the seat *count*).
+ * transport add-on (`bookings.transport_minor`), the child-seat extra (folded straight into
+ * `total_minor` by api_book, which persists only the seat *count*), and the per-line round-trip
+ * transfer add-on (`transport_fare_minor`) that rides on a tour or custom line.
  *
  * Labels mirror `buildInvoice()` in `@/lib/invoice/model` on purpose — the staff drawer and the
  * customer's VAT invoice must never disagree about why a total is what it is.
@@ -368,13 +426,21 @@ export function bookingExtraCharges(booking: BookingRow): BookingChargeLine[] {
   // A quote booking's OWN lines. They are not an "extra charge" in the way transport is — they are
   // the itemisation itself — but this is the one list the drawer renders beside `items`, and a quote
   // booking has no `items` at all. Listed first, in `position` order, so the drawer reads in the
-  // order the guest read the offer.
+  // order the guest read the offer. A line's own round-trip transfer follows it as a nested add-on,
+  // exactly as the invoice itemises it.
   for (const line of booking.customItems) {
     const label = line.description.trim() || 'Quote line';
     lines.push({
       label: line.quantity > 1 ? `${label} (${line.quantity})` : label,
       amountEur: round2(line.subtotalEur),
     });
+    if (line.transportFareEur > 0) {
+      lines.push({
+        label: transferLabel(line.transportPickupLabel),
+        amountEur: round2(line.transportFareEur),
+        isAddon: true,
+      });
+    }
   }
 
   if (booking.transportEur > 0) {
@@ -396,10 +462,14 @@ export function bookingExtraCharges(booking: BookingRow): BookingChargeLine[] {
     });
   }
 
-  const accounted = lines.reduce(
-    (sum, line) => sum + line.amountEur,
-    booking.items.reduce((sum, it) => sum + it.subtotalEur, 0),
+  // A tour line's own transfer renders nested under the item in the drawer, NOT as an extra-charge
+  // line — but its fare is still inside the total, so it MUST be accounted here or it lands in
+  // "Unaccounted". The custom-line transfers pushed above are already counted via `lines`.
+  const itemsTotal = booking.items.reduce(
+    (sum, it) => sum + it.subtotalEur + it.transportFareEur,
+    0,
   );
+  const accounted = lines.reduce((sum, line) => sum + line.amountEur, itemsTotal);
   // round2 before comparing: both sides come from minor units, so a non-zero residue here is a real
   // missing charge, never float noise from summing cents.
   const residue = round2(booking.totalEur - accounted);

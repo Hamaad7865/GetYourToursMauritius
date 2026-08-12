@@ -703,38 +703,57 @@ function BookingDrawer({
               </h3>
               <ul className="mt-2 flex flex-col gap-3">
                 {booking.items.map((it, i) => (
-                  <li key={i} className="flex items-start justify-between gap-3 text-sm">
-                    <div className="min-w-0">
-                      <p className="font-bold text-ink">{it.activityTitle}</p>
-                      <p className="text-[13px] text-ink-muted">
-                        {/* On a single-option activity the option name IS the price label; printing
-                            both gives "X · 1 × X". */}
-                        {it.optionName && it.optionName !== it.priceLabel
-                          ? `${it.optionName} · `
-                          : ''}
-                        {it.quantity} × {it.priceLabel}
-                        {/* Unit price only when it differs from the line total, else it reads twice. */}
-                        {it.quantity > 1 ? ` · ${eur(it.unitAmountEur)} each` : ''}
-                      </p>
-                      <p className="mt-0.5 flex items-center gap-1.5 text-[12.5px] text-ink/70">
-                        <IconCalendar width={13} height={13} className="text-teal" />{' '}
-                        {fmtDate(it.startsAt)}
-                        <IconUsers width={13} height={13} className="ml-2 text-teal" />{' '}
-                        {it.pax ?? it.quantity}
-                      </p>
+                  <li key={i} className="text-sm">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-bold text-ink">{it.activityTitle}</p>
+                        <p className="text-[13px] text-ink-muted">
+                          {/* On a single-option activity the option name IS the price label; printing
+                              both gives "X · 1 × X". */}
+                          {it.optionName && it.optionName !== it.priceLabel
+                            ? `${it.optionName} · `
+                            : ''}
+                          {it.quantity} × {it.priceLabel}
+                          {/* Unit price only when it differs from the line total, else it reads twice. */}
+                          {it.quantity > 1 ? ` · ${eur(it.unitAmountEur)} each` : ''}
+                        </p>
+                        <p className="mt-0.5 flex items-center gap-1.5 text-[12.5px] text-ink/70">
+                          <IconCalendar width={13} height={13} className="text-teal" />{' '}
+                          {fmtDate(it.startsAt)}
+                          <IconUsers width={13} height={13} className="ml-2 text-teal" />{' '}
+                          {it.pax ?? it.quantity}
+                        </p>
+                      </div>
+                      <span className="shrink-0 font-semibold text-ink">{eur(it.subtotalEur)}</span>
                     </div>
-                    <span className="shrink-0 font-semibold text-ink">{eur(it.subtotalEur)}</span>
+                    {/* The line's OWN round-trip transfer, nested under it exactly like the invoice, so a
+                        multi-tour booking shows each activity's pickup instead of one booking-level line. */}
+                    {it.transportFareEur > 0 && (
+                      <div className="mt-1.5 ml-3 flex items-baseline justify-between gap-3 border-l-2 border-teal/25 pl-2.5 text-[12.5px]">
+                        <span className="text-ink-muted">
+                          Round-trip transfer
+                          {it.transportPickupLabel ? ` · from ${it.transportPickupLabel}` : ''}
+                        </span>
+                        <span className="shrink-0 font-semibold text-ink">
+                          {eur(it.transportFareEur)}
+                        </span>
+                      </div>
+                    )}
                   </li>
                 ))}
               </ul>
-              {/* Charges with no booking_items row (transport add-on, child seats). Without these the
-                  Total silently exceeds the lines above and staff cannot explain the amount charged. */}
+              {/* Charges with no booking_items row (quote lines + their transfers, region transport,
+                  child seats, supplements). Without these the Total silently exceeds the lines above
+                  and staff cannot explain the amount charged. An add-on transfer is indented under its
+                  line, like the invoice; keyed by index because two lines can share a transfer label. */}
               {extraCharges.length > 0 && (
                 <ul className="mt-2.5 flex flex-col gap-1.5 border-t border-ink/10 pt-2.5">
-                  {extraCharges.map((charge) => (
+                  {extraCharges.map((charge, i) => (
                     <li
-                      key={charge.label}
-                      className="flex items-baseline justify-between gap-3 text-[13px]"
+                      key={i}
+                      className={`flex items-baseline justify-between gap-3 text-[13px] ${
+                        charge.isAddon ? 'ml-3 border-l-2 border-teal/25 pl-2.5' : ''
+                      }`}
                     >
                       <span className="text-ink-muted">{charge.label}</span>
                       <span className="shrink-0 font-semibold text-ink">
@@ -778,6 +797,8 @@ function BookingDrawer({
                   pickupLocation={booking.pickupLocation}
                   dropoffLocation={booking.dropoffLocation}
                   pickupPending={booking.pickupPending}
+                  transportPickup={booking.transportPickup}
+                  transportDropoff={booking.transportDropoff}
                 />
               </div>
             </section>

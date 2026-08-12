@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { bookingExtraCharges } from '@/lib/admin/bookings';
-import type { BookingItemRow, BookingRow } from '@/lib/admin/bookings';
+import type { BookingCustomItemRow, BookingItemRow, BookingRow } from '@/lib/admin/bookings';
 
 function item(over: Partial<BookingItemRow> = {}): BookingItemRow {
   return {
@@ -12,6 +12,21 @@ function item(over: Partial<BookingItemRow> = {}): BookingItemRow {
     activityTitle: 'Private Full Day Catamaran Ile Aux Cerfs',
     optionName: 'Private Group up to 4 persons',
     startsAt: '2026-08-18T05:00:00Z',
+    transportFareEur: 0,
+    transportPickupLabel: null,
+    transportDropoffLabel: null,
+    ...over,
+  };
+}
+
+function customItem(over: Partial<BookingCustomItemRow> = {}): BookingCustomItemRow {
+  return {
+    description: 'Round-trip transfer · Dolphin swim',
+    quantity: 1,
+    subtotalEur: 60,
+    transportFareEur: 0,
+    transportPickupLabel: null,
+    transportDropoffLabel: null,
     ...over,
   };
 }
@@ -41,6 +56,8 @@ function booking(over: Partial<BookingRow> = {}): BookingRow {
     pickupLocation: null,
     dropoffLocation: null,
     pickupPending: false,
+    transportPickup: null,
+    transportDropoff: null,
     childSeats: 0,
     transportEur: 0,
     supplements: [],
@@ -65,11 +82,7 @@ function booking(over: Partial<BookingRow> = {}): BookingRow {
  * ("Test", €1.00), rendered as "Unaccounted €1.00".
  */
 describe('a quote booking, whose lines live in booking_custom_items', () => {
-  const custom = {
-    description: 'Round-trip transfer · Dolphin swim',
-    quantity: 1,
-    subtotalEur: 60,
-  };
+  const custom = customItem();
 
   it('names each line instead of lumping them into "Unaccounted"', () => {
     const charges = bookingExtraCharges(
@@ -84,7 +97,7 @@ describe('a quote booking, whose lines live in booking_custom_items', () => {
       booking({
         totalEur: 120,
         items: [],
-        customItems: [{ description: 'Dolphin swim', quantity: 2, subtotalEur: 120 }],
+        customItems: [customItem({ description: 'Dolphin swim', quantity: 2, subtotalEur: 120 })],
       }),
     );
     expect(charges[0]!.label).toContain('Dolphin swim');
@@ -107,6 +120,83 @@ describe('a quote booking, whose lines live in booking_custom_items', () => {
     );
     expect(charges.some((c) => c.label === 'Unaccounted')).toBe(false);
     expect(charges).toContainEqual({ label: 'Door-to-door transport', amountEur: 30 });
+  });
+});
+
+/**
+ * The per-line round-trip transfer add-on (`transport_fare_minor` on a booking_items / booking_custom_items
+ * row) is charged ON the line but has no line of its own. The invoice itemises it as a nested add-on;
+ * the drawer must account for it the same way or it lands in "Unaccounted".
+ *
+ * Observed on the real booking BMTDB3C935BB085C — three tour lines each carrying a €30/€60/€60 transfer
+ * (€150) from the same hotel, which the drawer reported as a flat "Unaccounted €150".
+ */
+describe('a per-line round-trip transfer add-on (transport_fare)', () => {
+  it('accounts for a transfer that rides on a tour line rather than "Unaccounted"', () => {
+    const charges = bookingExtraCharges(
+      booking({
+        totalEur: 760, // 700 tour + 60 transfer
+        items: [
+          item({ subtotalEur: 700, transportFareEur: 60, transportPickupLabel: 'Beau Rivage' }),
+        ],
+      }),
+    );
+    expect(charges.some((c) => c.label === 'Unaccounted')).toBe(false);
+    // A tour line's transfer renders nested under the item in the drawer, NOT as an extra-charge line.
+    expect(charges).toEqual([]);
+  });
+
+  it('adds up across several tour lines that each carry their own transfer', () => {
+    // 340 tours + 150 transfer + 126 custom lines = 616 (the real booking's makeup).
+    const charges = bookingExtraCharges(
+      booking({
+        totalEur: 616,
+        items: [
+          item({ subtotalEur: 100, transportFareEur: 30, transportPickupLabel: 'Quatre Cocos' }),
+          item({ subtotalEur: 120, transportFareEur: 60, transportPickupLabel: 'Quatre Cocos' }),
+          item({ subtotalEur: 120, transportFareEur: 60, transportPickupLabel: 'Quatre Cocos' }),
+        ],
+        customItems: [
+          customItem({ description: 'Nissan March', subtotalEur: 36 }),
+          customItem({ description: 'Private South Tour', subtotalEur: 90 }),
+        ],
+      }),
+    );
+    expect(charges.some((c) => c.label === 'Unaccounted')).toBe(false);
+  });
+
+  it('itemises a transfer that rides on a CUSTOM line as a nested add-on, like the invoice', () => {
+    const charges = bookingExtraCharges(
+      booking({
+        totalEur: 150,
+        items: [],
+        customItems: [
+          customItem({
+            description: 'Private South Tour',
+            subtotalEur: 90,
+            transportFareEur: 60,
+            transportPickupLabel: 'Trou d’Eau Douce',
+          }),
+        ],
+      }),
+    );
+    expect(charges).toEqual([
+      { label: 'Private South Tour', amountEur: 90 },
+      { label: 'Round-trip transfer · from Trou d’Eau Douce', amountEur: 60, isAddon: true },
+    ]);
+  });
+
+  it('labels a pickup-less transfer plainly', () => {
+    const charges = bookingExtraCharges(
+      booking({
+        totalEur: 150,
+        items: [],
+        customItems: [
+          customItem({ description: 'Private South Tour', subtotalEur: 90, transportFareEur: 60 }),
+        ],
+      }),
+    );
+    expect(charges).toContainEqual({ label: 'Round-trip transfer', amountEur: 60, isAddon: true });
   });
 });
 
