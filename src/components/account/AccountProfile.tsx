@@ -6,6 +6,7 @@ import { getBrowserSupabase } from '@/lib/supabase/browser';
 import { useT } from '@/components/site/PreferencesProvider';
 import { SignedOutPrompt, AccountSpinner } from './AccountChrome';
 import { DATE_TIME_INPUT } from '@/components/ui/date-input';
+import { PhoneField } from '@/components/phone/PhoneField';
 
 export function AccountProfile() {
   const t = useT();
@@ -86,16 +87,12 @@ export function AccountProfile() {
             className="rounded-xl border border-ink/15 bg-white px-3.5 py-2.5 text-sm text-ink outline-none focus:border-teal"
           />
         </label>
-        <label className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-1.5">
           <span className="text-[13px] font-bold text-ink">{t('Phone')}</span>
-          <input
-            type="tel"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="+230 …"
-            className="rounded-xl border border-ink/15 bg-white px-3.5 py-2.5 text-sm text-ink outline-none focus:border-teal"
-          />
-        </label>
+          {/* Dial-code picker + national digits, stored as one international string — same control as
+              checkout, so a home-format number never reaches the driver undiallable. */}
+          <PhoneField value={phone} onChange={setPhone} />
+        </div>
         <label className="flex flex-col gap-1.5">
           <span className="text-[13px] font-bold text-ink">{t('Date of birth')}</span>
           <input

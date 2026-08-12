@@ -3,6 +3,29 @@
 @tailwind utilities;
 
 /*
+ * Country-flag emoji render as flags on macOS / iOS / Android, but Windows and most Linux desktops
+ * have no flag glyphs — they fall back to the two bare regional-indicator letters ("MU", "GB"). This
+ * bundled Twemoji subset (flags only, scoped by unicode-range to the regional-indicator + tag ranges,
+ * so it never touches ordinary text) draws real flags everywhere. Apply via the .flag-emoji class.
+ * Font: Twemoji (CC-BY 4.0, Twitter) via country-flag-emoji-polyfill; attribution belongs on a credits page.
+ */
+@font-face {
+  font-family: 'Twemoji Country Flags';
+  unicode-range:
+    U+1F1E6-1F1FF, U+1F3F4, U+E0062-E0063, U+E0065, U+E0067, U+E006C, U+E006E, U+E0073-E0074,
+    U+E0077, U+E007F;
+  src: url('/fonts/TwemojiCountryFlags.woff2') format('woff2');
+  font-display: swap;
+}
+.flag-emoji {
+  font-family:
+    'Twemoji Country Flags', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', system-ui,
+    sans-serif;
+  font-weight: normal;
+  line-height: 1;
+}
+
+/*
  * Brand tokens as RGB channels so Tailwind opacity modifiers (text-ink/70,
  * border-ink/10, …) work. Single source of truth, mapped in tailwind.config.ts.
  * Verified against design-reference/BelleMareTours-handoff.zip.

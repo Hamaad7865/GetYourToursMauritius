@@ -809,6 +809,8 @@ export const fr: Record<string, string> = {
   Country: 'Pays',
   'Mobile phone number': 'Numéro de téléphone mobile',
   'Country calling code': 'Indicatif téléphonique du pays',
+  'Search country or code': 'Rechercher un pays ou un indicatif',
+  'No match': 'Aucun résultat',
   'Go to payment': 'Passer au paiement',
   'Add a phone number so your driver can reach you.':
     'Ajoutez un numéro de téléphone pour que votre chauffeur puisse vous joindre.',

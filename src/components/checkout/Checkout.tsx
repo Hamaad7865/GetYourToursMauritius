@@ -18,11 +18,11 @@ import { canAdvanceStep1, isVehiclePriced } from '@/lib/checkout/pickup';
 import { reportClientError } from '@/lib/client-error-report';
 import {
   DEFAULT_DIAL_CODE,
-  DIAL_CODES,
   composePhone,
   dialCodeForCountry,
   splitPhone,
 } from '@/lib/phone/dial-codes';
+import { DialCodeSelect } from '@/components/phone/DialCodeSelect';
 import { clearDraft, loadDraft, saveDraft } from '@/lib/checkout/draft';
 import { resolveIdemKey } from '@/lib/checkout/idempotency';
 import { PayProgress } from '@/components/checkout/PayProgress';
@@ -1961,25 +1961,16 @@ export function Checkout() {
                       visitor's home-format number ("07700 900123") never reaches the driver
                       undiallable — see src/lib/phone/dial-codes.ts. */}
                   <div className="mt-1 flex gap-2">
-                    <select
+                    {/* Custom picker (not a native <select>): flags render cross-platform via the
+                        Twemoji font and the ~90 codes are searchable — see DialCodeSelect. */}
+                    <DialCodeSelect
                       value={dialCode}
-                      onChange={(e) => {
+                      onChange={(code) => {
                         phoneTouchedRef.current = true;
-                        setDialCode(e.target.value);
+                        setDialCode(code);
                       }}
-                      // Named for screen readers: visually the label above covers the pair, but the
-                      // select on its own would just announce "+230".
-                      aria-label={t('Country calling code')}
-                      className="w-[7.5rem] shrink-0 rounded-xl border border-ink/15 bg-white px-2.5 py-2.5 text-sm font-normal outline-none focus:border-teal"
-                    >
-                      {DIAL_CODES.map((d) => (
-                        // Code before name: the control is narrow, and the code is the part that has
-                        // to stay readable when the label is clipped.
-                        <option key={d.code} value={d.code}>
-                          {d.flag} {d.code} {d.name}
-                        </option>
-                      ))}
-                    </select>
+                      ariaLabel={t('Country calling code')}
+                    />
                     <input
                       id={PHONE_INPUT_ID}
                       value={national}
