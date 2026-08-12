@@ -994,6 +994,109 @@ type BusinessSettingsInsert = {
   updated_by?: string | null;
 };
 
+/** 20260927000000 — the Documents module: standalone quotes/invoices/proformas/receipts + a
+ *  self-building bill-to list + the numbering counter. Staff-only (RLS). See src/lib/documents/. */
+type DocumentClientsRow = {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  street: string | null;
+  locality: string | null;
+  region: string | null;
+  country: string | null;
+  brn: string | null;
+  vat: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+type DocumentClientsInsert = {
+  id?: string;
+  name: string;
+  email?: string | null;
+  phone?: string | null;
+  street?: string | null;
+  locality?: string | null;
+  region?: string | null;
+  country?: string | null;
+  brn?: string | null;
+  vat?: string | null;
+  created_by?: string | null;
+  created_at?: string;
+  updated_at?: string;
+};
+
+type DocumentsRow = {
+  id: string;
+  type: string;
+  number: string | null;
+  status: string;
+  currency: string;
+  client_id: string | null;
+  client_snapshot: Json;
+  issuer_snapshot: Json;
+  lines: Json;
+  vat_mode: string;
+  vat_rate_pct: number;
+  subtotal_net_minor: number;
+  vat_minor: number;
+  total_minor: number;
+  amount_paid_minor: number;
+  payment_method: string | null;
+  payment_ref: string | null;
+  paid_at: string | null;
+  issue_date: string | null;
+  due_date: string | null;
+  valid_until: string | null;
+  notes: string | null;
+  internal_notes: string | null;
+  source_document_id: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+type DocumentsInsert = {
+  id?: string;
+  type: string;
+  number?: string | null;
+  status?: string;
+  currency: string;
+  client_id?: string | null;
+  client_snapshot?: Json;
+  issuer_snapshot?: Json;
+  lines?: Json;
+  vat_mode?: string;
+  vat_rate_pct?: number;
+  subtotal_net_minor?: number;
+  vat_minor?: number;
+  total_minor?: number;
+  amount_paid_minor?: number;
+  payment_method?: string | null;
+  payment_ref?: string | null;
+  paid_at?: string | null;
+  issue_date?: string | null;
+  due_date?: string | null;
+  valid_until?: string | null;
+  notes?: string | null;
+  internal_notes?: string | null;
+  source_document_id?: string | null;
+  created_by?: string | null;
+  created_at?: string;
+  updated_at?: string;
+};
+
+type DocumentCountersRow = {
+  doc_type: string;
+  year: number;
+  next_val: number;
+};
+type DocumentCountersInsert = {
+  doc_type: string;
+  year: number;
+  next_val?: number;
+};
+
 type TableDef<Row, Insert> = { Row: Row; Insert: Insert; Update: Partial<Insert>; Relationships: [] };
 
 export interface Database {
@@ -1045,6 +1148,9 @@ export interface Database {
       >;
       error_logs: TableDef<ErrorLogsRow, ErrorLogsInsert>;
       business_settings: TableDef<BusinessSettingsRow, BusinessSettingsInsert>;
+      document_clients: TableDef<DocumentClientsRow, DocumentClientsInsert>;
+      documents: TableDef<DocumentsRow, DocumentsInsert>;
+      document_counters: TableDef<DocumentCountersRow, DocumentCountersInsert>;
     };
     Views: { [_ in never]: never };
     Functions: {
@@ -1104,6 +1210,10 @@ export interface Database {
       api_list_card_tokens: { Args: { p: Json }; Returns: Json };
       api_upsert_fx_rate: { Args: { p: Json }; Returns: Json };
       api_fx_rate_status: { Args: { p: Json }; Returns: Json };
+      allocate_document_number: { Args: { p_type: string; p_year: number }; Returns: string };
+      issue_document: { Args: { p_id: string; p_issuer: Json }; Returns: DocumentsRow };
+      convert_document: { Args: { p_id: string }; Returns: DocumentsRow };
+      void_document: { Args: { p_id: string }; Returns: DocumentsRow };
     };
     Enums: {
       user_role: 'customer' | 'staff' | 'admin' | 'seo';

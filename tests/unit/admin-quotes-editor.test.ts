@@ -547,6 +547,7 @@ describe('the screen is reachable', () => {
   it('is in the admin nav, and every nav entry points at a route that exists', () => {
     const hrefs = navForRole('admin').map((item) => item.href);
     expect(hrefs).toContain('/admin/quotes');
+    expect(hrefs).toContain('/admin/documents');
     for (const href of hrefs) {
       const page = join(
         process.cwd(),
