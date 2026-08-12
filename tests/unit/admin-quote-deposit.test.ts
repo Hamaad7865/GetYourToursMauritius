@@ -106,6 +106,7 @@ function detail(over: Partial<QuoteDetail> = {}): QuoteDetail {
     customerName: 'Marie Dupont',
     customerEmail: 'marie@example.com',
     customerPhone: null,
+    roomOrCabin: null,
     status: 'draft',
     currency: 'EUR',
     totalMinor: 100000,

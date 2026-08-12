@@ -101,6 +101,23 @@ export function parseQuantity(input: string, label: string): number {
   return Number(raw);
 }
 
+/**
+ * The custom-tour headcount: a blank field is NULL (no headcount stated — legal, the run sheet just
+ * shows none), otherwise a whole number of at least 1, or a {@link ValidationError}. Mirrors the
+ * `guests int check (guests is null or guests > 0)` column. Unlike {@link parseQuantity} it accepts
+ * empty, because guests is optional operational detail, not the priced quantity.
+ */
+export function parseGuests(input: string, label: string): number | null {
+  const raw = String(input ?? '').trim();
+  if (!raw) return null;
+  if (!/^\d+$/.test(raw) || Number(raw) < 1) {
+    throw new ValidationError(
+      `${label} must be a whole number of at least 1, or left blank ("${input}").`,
+    );
+  }
+  return Number(raw);
+}
+
 /* ------------------------------------------------------------------------------------------- */
 /* Dates                                                                                         */
 /* ------------------------------------------------------------------------------------------- */
@@ -157,6 +174,15 @@ export interface QuoteLineDraft {
   quantityText: string;
   unitText: string;
   /**
+   * Custom lines only: the run-sheet facts the operations calendar needs for a bespoke tour but that
+   * the priced line does not carry — how many PEOPLE (not the quantity, which is 1 for a flat-priced
+   * private tour) and which HOTEL to collect from. Both held as the operator's own text; guests is
+   * parsed once by {@link parseGuests} in {@link quoteInputFromForm}, and never touches the total.
+   * `pickupLabel` is the guest's hotel, set on the line's own pickup control.
+   */
+  guests: string;
+  pickupLabel: string;
+  /**
    * The catalogue price this line was added at, in minor units. The line stays a CATALOGUE line
    * only while its typed price still equals this — see the module header.
    */
@@ -191,6 +217,9 @@ export interface QuoteFormValues {
   customerName: string;
   customerEmail: string;
   customerPhone: string;
+  /** The guest's hotel room / cabin, for the driver's gate pass. Guest-level (one guest, one room),
+   *  so it lives on the quote and is copied onto `bookings.room_or_cabin` at conversion. */
+  roomOrCabin: string;
   validUntil: string;
   /** The language the OFFER is written in — copied into the booking, the confirmation and the VAT
    *  invoice at conversion. Not the operator's own language. */
@@ -232,6 +261,8 @@ export function customLineDraft(): QuoteLineDraft {
     unitText: '',
     catalogueUnitMinor: null,
     rentalVehicleSlug: null,
+    guests: '',
+    pickupLabel: '',
     transport: null,
   };
 }
@@ -247,6 +278,7 @@ export function emptyQuoteForm(today: string = quoteTodayUtc()): QuoteFormValues
     customerName: '',
     customerEmail: '',
     customerPhone: '',
+    roomOrCabin: '',
     validUntil: defaultValidUntil(today),
     locale: 'en',
     introNote: '',
@@ -274,6 +306,7 @@ export function formFromQuote(quote: QuoteDetail): QuoteFormValues {
     customerName: quote.customerName,
     customerEmail: quote.customerEmail,
     customerPhone: quote.customerPhone ?? '',
+    roomOrCabin: quote.roomOrCabin ?? '',
     validUntil: quote.validUntil,
     locale: quote.locale === 'fr' ? 'fr' : 'en',
     introNote: quote.introNote ?? '',
@@ -295,6 +328,9 @@ export function formFromQuote(quote: QuoteDetail): QuoteFormValues {
       unitText: formatMinorAsEuros(item.unitAmountMinor),
       catalogueUnitMinor: item.kind === 'catalogue' ? item.unitAmountMinor : null,
       rentalVehicleSlug: item.rentalVehicleSlug,
+      // The stored run-sheet facts come back as text; a null headcount is a blank field, not "0".
+      guests: item.guests != null ? String(item.guests) : '',
+      pickupLabel: item.pickupLabel ?? '',
       // The stored transport add-on comes back as the line's own transfer, fare re-shown as text.
       transport:
         item.transportFareMinor != null
@@ -404,6 +440,10 @@ export function quoteInputFromForm(form: QuoteFormValues): QuoteInput {
       rentalVehicleSlug: line.kind === 'rental' ? line.rentalVehicleSlug : null,
       quantity,
       unitAmountMinor,
+      // Run-sheet facts, custom lines only — parsed HERE like every other typed field. guests never
+      // reaches the total; `quoteItemRows` clears both on catalogue/rental as a second guard.
+      guests: line.kind === 'custom' ? parseGuests(line.guests, `${label} guests`) : null,
+      pickupLabel: line.kind === 'custom' ? line.pickupLabel.trim() || null : null,
       ...transport,
     };
   });
@@ -413,6 +453,7 @@ export function quoteInputFromForm(form: QuoteFormValues): QuoteInput {
     customerName: form.customerName.trim(),
     customerEmail: form.customerEmail.trim(),
     customerPhone: form.customerPhone.trim() || null,
+    roomOrCabin: form.roomOrCabin.trim() || null,
     validUntil: form.validUntil,
     introNote: form.introNote.trim() || null,
     internalNotes: form.internalNotes.trim() || null,
@@ -536,6 +577,8 @@ export function tourLineDrafts(pick: TourPick): QuoteLineDraft[] {
       unitText: formatMinorAsEuros(tier.amountMinor),
       catalogueUnitMinor: tier.amountMinor,
       rentalVehicleSlug: null,
+      guests: '',
+      pickupLabel: '',
       transport: null,
     }));
 }
@@ -645,6 +688,8 @@ export function rentalLineDraft(pick: RentalPick): QuoteLineDraft {
     unitText: formatMinorAsEuros(pick.dailyRateMinor),
     catalogueUnitMinor: null,
     rentalVehicleSlug: pick.slug,
+    guests: '',
+    pickupLabel: '',
     transport: null,
   };
 }
@@ -732,6 +777,8 @@ export function transportLineDraft(pick: TransferPick): QuoteLineDraft {
     unitText: formatMinorAsEuros(pick.fareMinor),
     catalogueUnitMinor: null,
     rentalVehicleSlug: null,
+    guests: '',
+    pickupLabel: '',
     transport: null,
   };
 }

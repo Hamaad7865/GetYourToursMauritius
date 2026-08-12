@@ -84,24 +84,100 @@ export function paymentPill(state: PaymentState, status: BookingStatus): PillSpe
   }
 }
 
-/** Where to collect the guest and where to leave them. */
+/** How the pickup reads: nothing, "to be arranged", or an address (which for a round-trip transfer
+ *  is captioned as one). */
+export type PickupView =
+  | { kind: 'none' }
+  | { kind: 'pending' }
+  | { kind: 'text'; text: string; roundTrip: boolean };
+/** How the drop-off reads: a dash (no pickup at all), "same as pickup", or a distinct address. */
+export type DropoffView = { kind: 'dash' } | { kind: 'same' } | { kind: 'text'; text: string };
+
+/**
+ * ONE reading of "where do we collect this guest, and where do we leave them", shared by the day sheet
+ * and the bookings drawer so they can never disagree about the same driver's pickup.
+ *
+ * A round-trip TRANSPORT add-on (`transportPickup`) IS the pickup when the booking carries no explicit
+ * pickup of its own — a quote-converted booking has its hotel only on the line's transfer — and a round
+ * trip returns to that same place. Before this, the day sheet rendered the booking's own null pickup as
+ * "No pickup · customer makes own way" and "Drop-off: —" while ALSO printing a "Round-trip transfer"
+ * line beneath: a flat contradiction the operator reported. The transfer now resolves as the pickup,
+ * and the drop-off as "same as pickup", so the two agree.
+ *
+ * An explicit booking pickup still wins (and keeps its own distinct drop-off): that is a checkout guest
+ * who typed a hotel, not a quote transfer.
+ */
+export function resolvePickup(b: {
+  pickupLocation: string | null;
+  dropoffLocation: string | null;
+  pickupPending: boolean;
+  transportPickup?: string | null;
+  transportDropoff?: string | null;
+}): { pickup: PickupView; dropoff: DropoffView } {
+  const roundTrip = !b.pickupLocation && !!b.transportPickup;
+  const pickup: PickupView = b.pickupLocation
+    ? { kind: 'text', text: b.pickupLocation, roundTrip: false }
+    : b.transportPickup
+      ? { kind: 'text', text: b.transportPickup, roundTrip: true }
+      : b.pickupPending
+        ? { kind: 'pending' }
+        : { kind: 'none' };
+  // A round trip's own distinct drop-off is rare, but honour it if set; otherwise a null drop-off WITH
+  // a pickup means "same as pickup", and with no pickup at all it is a dash.
+  const explicitDropoff = b.dropoffLocation ?? (roundTrip ? (b.transportDropoff ?? null) : null);
+  const dropoff: DropoffView = explicitDropoff
+    ? { kind: 'text', text: explicitDropoff }
+    : pickup.kind === 'text' || pickup.kind === 'pending'
+      ? { kind: 'same' }
+      : { kind: 'dash' };
+  return { pickup, dropoff };
+}
+
+/**
+ * Where to collect the guest and where to leave them — plus the room for the driver's gate pass.
+ *
+ * `transportPickup`/`transportDropoff` fold a line's round-trip transfer into the reading (see
+ * {@link resolvePickup}); `roomOrCabin` prints the hotel room independent of the airport-transfer block
+ * (a plain activity pickup carries a room too). All three are optional, so the bookings drawer that
+ * passes none renders exactly as before.
+ */
 export function PickupFacts({
   pickupLocation,
   dropoffLocation,
   pickupPending,
+  transportPickup,
+  transportDropoff,
+  roomOrCabin,
 }: {
   pickupLocation: string | null;
   dropoffLocation: string | null;
   pickupPending: boolean;
+  transportPickup?: string | null;
+  transportDropoff?: string | null;
+  roomOrCabin?: string | null;
 }) {
+  const { pickup, dropoff } = resolvePickup({
+    pickupLocation,
+    dropoffLocation,
+    pickupPending,
+    transportPickup: transportPickup ?? null,
+    transportDropoff: transportDropoff ?? null,
+  });
   return (
     <dl className="flex flex-col gap-2.5">
       <div>
         <dt className="text-[11.5px] font-bold uppercase tracking-wide text-ink-muted">Pickup</dt>
         <dd className="mt-0.5 text-[13px] text-ink/80">
-          {pickupLocation ? (
-            pickupLocation
-          ) : pickupPending ? (
+          {pickup.kind === 'text' ? (
+            <>
+              {pickup.text}
+              {pickup.roundTrip && (
+                <span className="mt-0.5 block text-[12px] font-medium text-teal-dark">
+                  Round-trip transfer
+                </span>
+              )}
+            </>
+          ) : pickup.kind === 'pending' ? (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-[12px] font-bold text-amber-700">
               <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
               Pickup to be arranged
@@ -114,16 +190,23 @@ export function PickupFacts({
       <div>
         <dt className="text-[11.5px] font-bold uppercase tracking-wide text-ink-muted">Drop-off</dt>
         <dd className="mt-0.5 text-[13px] text-ink/80">
-          {dropoffLocation ? (
-            dropoffLocation
-          ) : pickupLocation || pickupPending ? (
-            // A null drop-off WITH a pickup means "same as pickup", not "no drop-off".
+          {dropoff.kind === 'text' ? (
+            dropoff.text
+          ) : dropoff.kind === 'same' ? (
             <span className="text-ink-muted">Same as pickup</span>
           ) : (
             '—'
           )}
         </dd>
       </div>
+      {roomOrCabin && (
+        <div>
+          <dt className="text-[11.5px] font-bold uppercase tracking-wide text-ink-muted">
+            Room / cabin
+          </dt>
+          <dd className="mt-0.5 text-[13px] text-ink/80">{roomOrCabin}</dd>
+        </div>
+      )}
     </dl>
   );
 }

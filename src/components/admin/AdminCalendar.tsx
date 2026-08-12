@@ -560,6 +560,14 @@ function CustomLineCard({ line }: { line: DayCustomLine }) {
           <p className="text-[12.5px] text-ink-muted">
             {fmtTime(line.startsAt)}
             {isRental && line.endsAt && <> · until {fmtDateShort(line.endsAt)}</>}
+            {/* The bespoke-tour headcount — the run-sheet fact the card never showed. A rental's
+                `quantity` is vehicles, so guests is null there and only the vehicle count shows. */}
+            {line.guests != null && (
+              <>
+                {' '}
+                · {line.guests} guest{line.guests === 1 ? '' : 's'}
+              </>
+            )}
             {line.quantity > 1 && (
               <>
                 {' '}
@@ -567,16 +575,27 @@ function CustomLineCard({ line }: { line: DayCustomLine }) {
               </>
             )}
           </p>
-          {line.transportPickup && (
-            <p className="mt-0.5 text-[12px] font-medium text-teal-dark">
-              Round-trip transfer · from {line.transportPickup}
-            </p>
-          )}
         </div>
         <span className="shrink-0 rounded-full bg-ink/[0.06] px-2.5 py-1 text-[11px] font-bold text-ink/70">
           {isRental ? 'Rental' : 'Custom line'}
         </span>
       </div>
+
+      {/* The run sheet: where to collect this tour from (its own pickup hotel, or the round-trip
+          transfer it carries) and the guest's room for the driver's gate pass. Rentals collect at the
+          depot, so they show none of this. */}
+      {!isRental && (line.pickupLabel || line.transportPickup || line.roomOrCabin) && (
+        <div className="mt-3 border-t border-[#F2F4F6] pt-3">
+          <PickupFacts
+            pickupLocation={line.pickupLabel}
+            dropoffLocation={null}
+            pickupPending={false}
+            transportPickup={line.transportPickup}
+            transportDropoff={line.transportDropoff}
+            roomOrCabin={line.roomOrCabin}
+          />
+        </div>
+      )}
 
       <div className="mt-3 flex flex-col gap-2 border-t border-[#F2F4F6] pt-3 text-[12.5px]">
         <p className="text-ink">
@@ -736,16 +755,17 @@ function GuestRow({
           </Fact>
 
           <Fact title="Pickup &amp; drop-off">
+            {/* PickupFacts folds the round-trip transfer INTO the reading: a booking whose only hotel is
+                on the line's transfer now reads "<hotel> · Round-trip transfer" + "Same as pickup",
+                never "No pickup · customer makes own way" beside a separate transfer line. */}
             <PickupFacts
               pickupLocation={booking.pickupLocation}
               dropoffLocation={booking.dropoffLocation}
               pickupPending={booking.pickupPending}
+              transportPickup={booking.transportPickup}
+              transportDropoff={booking.transportDropoff}
+              roomOrCabin={booking.roomOrCabin}
             />
-            {booking.transportPickup && (
-              <p className="mt-1 font-medium text-teal-dark">
-                Round-trip transfer · from {booking.transportPickup}
-              </p>
-            )}
           </Fact>
 
           {booking.childSeats > 0 && (

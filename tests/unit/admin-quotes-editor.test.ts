@@ -23,6 +23,7 @@ import {
   formatMinorAsEuros,
   moveLine,
   parseEurosToMinor,
+  parseGuests,
   previewEmailInput,
   quoteInputFromForm,
   refusalMessage,
@@ -258,6 +259,84 @@ describe('the line list', () => {
     );
   });
 
+  // The run-sheet facts a bespoke tour needs on the calendar (how many people, which hotel), plus the
+  // guest's room for the driver's gate pass — captured on the quote, carried to the booking.
+  it('parseGuests: blank is null (optional), a whole ≥1 is the count, else it throws', () => {
+    expect(parseGuests('', 'Guests')).toBeNull();
+    expect(parseGuests('  ', 'Guests')).toBeNull();
+    expect(parseGuests('2', 'Guests')).toBe(2);
+    expect(() => parseGuests('0', 'Guests')).toThrow();
+    expect(() => parseGuests('2.5', 'Guests')).toThrow();
+    expect(() => parseGuests('-1', 'Guests')).toThrow();
+  });
+
+  it('carries guests + pickup on a custom line, and the quote room, through quoteInputFromForm', () => {
+    const input = quoteInputFromForm(
+      form({
+        roomOrCabin: '  Room 214 ',
+        lines: [custom({ guests: '2', pickupLabel: '  Crystals Beach Resort ' })],
+      }),
+    );
+    expect(input.roomOrCabin).toBe('Room 214');
+    expect(input.items[0]!.guests).toBe(2);
+    expect(input.items[0]!.pickupLabel).toBe('Crystals Beach Resort');
+  });
+
+  it('round-trips the run-sheet facts through formFromQuote', () => {
+    const detail: QuoteDetail = {
+      id: 'q1',
+      ref: 'QAAAA',
+      customerName: 'Marie',
+      customerEmail: 'marie@example.com',
+      customerPhone: null,
+      roomOrCabin: 'Room 8',
+      status: 'draft',
+      currency: 'EUR',
+      totalMinor: 9000,
+      depositBps: 1000,
+      validUntil: '2026-12-01',
+      introNote: null,
+      internalNotes: null,
+      sentAt: null,
+      bookingId: null,
+      convertedAt: null,
+      locale: 'en',
+      createdAt: TODAY,
+      updatedAt: TODAY,
+      bookingStatus: null,
+      items: [
+        {
+          id: 'i1',
+          position: 0,
+          kind: 'custom',
+          sessionOccurrenceId: null,
+          activityOptionId: null,
+          priceLabel: null,
+          description: 'Private South Tour',
+          startsAt: DEPARTURE,
+          endsAt: null,
+          rentalVehicleSlug: null,
+          quantity: 1,
+          unitAmountMinor: 9000,
+          subtotalMinor: 9000,
+          guests: 2,
+          pickupLabel: 'Crystals Beach Resort',
+          transportPickupLabel: null,
+          transportDropoffLabel: null,
+          transportFareMinor: null,
+        },
+      ],
+    };
+    const form2 = formFromQuote(detail);
+    expect(form2.roomOrCabin).toBe('Room 8');
+    expect(form2.lines[0]!.guests).toBe('2');
+    expect(form2.lines[0]!.pickupLabel).toBe('Crystals Beach Resort');
+    // …and back out again unchanged.
+    const back = quoteInputFromForm(form2);
+    expect(back.items[0]!.guests).toBe(2);
+    expect(back.roomOrCabin).toBe('Room 8');
+  });
+
   it('stores a total the stored lines add up to, whatever the operator typed', () => {
     // api_convert_quote refuses to charge a quote whose total and lines disagree
     // (quote_total_mismatch), and the editor writes both. The one arithmetic they must share is
@@ -284,6 +363,7 @@ describe('re-opening a saved quote', () => {
     customerName: 'Marie Dupont',
     customerEmail: 'marie@example.com',
     customerPhone: '+230 5xxx',
+    roomOrCabin: null,
     status: 'sent',
     currency: 'EUR',
     totalMinor: 28500,
@@ -311,6 +391,8 @@ describe('re-opening a saved quote', () => {
         quantity: 2,
         unitAmountMinor: 5500,
         subtotalMinor: 11000,
+        guests: null,
+        pickupLabel: null,
         transportPickupLabel: null,
         transportDropoffLabel: null,
         transportFareMinor: null,
@@ -329,6 +411,8 @@ describe('re-opening a saved quote', () => {
         quantity: 1,
         unitAmountMinor: 12000,
         subtotalMinor: 12000,
+        guests: null,
+        pickupLabel: null,
         transportPickupLabel: null,
         transportDropoffLabel: null,
         transportFareMinor: null,
@@ -347,6 +431,8 @@ describe('re-opening a saved quote', () => {
         quantity: 5,
         unitAmountMinor: 1100,
         subtotalMinor: 5500,
+        guests: null,
+        pickupLabel: null,
         transportPickupLabel: null,
         transportDropoffLabel: null,
         transportFareMinor: null,
