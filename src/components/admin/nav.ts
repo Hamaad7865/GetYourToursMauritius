@@ -46,6 +46,10 @@ export const ADMIN_NAV: NavItem[] = [
   // own margin note on one row, and sending one emails a stranger on the company's behalf — so this
   // is staff-only for the same reason the send route refuses the 'seo' role outright.
   { href: '/admin/quotes', label: 'Quotes', icon: IconMail },
+  // Standalone documents (quotes/invoices/proformas/receipts) for any client, any currency, paid
+  // offline or unpaid. Staff-only for the same reason quotes are: they carry a client's name, address
+  // and the amounts billed, and the tables are is_staff()-only at the database.
+  { href: '/admin/documents', label: 'Documents', icon: IconDocument },
   // Financial — deliberately NOT seo-flagged; the seo content role is RLS-locked out of bookings/payments.
   { href: '/admin/reports', label: 'Reports', icon: IconChart },
   { href: '/admin/activities', label: 'Tours', icon: IconTag, seo: true },

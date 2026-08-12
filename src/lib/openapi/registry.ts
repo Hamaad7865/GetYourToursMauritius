@@ -909,6 +909,50 @@ export const apiPaths: ZodOpenApiPathsObject = {
       },
     },
   },
+  '/admin/documents/{id}/pdf': {
+    get: {
+      operationId: 'getDocumentPdf',
+      summary: 'Download a document (quote/invoice/proforma/receipt) PDF (staff only)',
+      description:
+        'Renders the stored document to a PDF on demand. Staff only, enforced by RLS: the read runs ' +
+        'as the caller and the documents table is is_staff()-only, so a non-staff caller gets no row ' +
+        'and this 404s. A draft (no issuer snapshot yet) falls back to the live business identity.',
+      tags: ['Documents'],
+      security: [{ bearerAuth: [] }],
+      requestParams: { path: idParam },
+      responses: {
+        '200': {
+          description: 'Document PDF',
+          content: { 'application/pdf': { schema: z.string() } },
+        },
+        '401': errorResponse('Authentication required'),
+        '404': errorResponse('Document not found'),
+      },
+    },
+  },
+  '/admin/documents/{id}/email': {
+    post: {
+      operationId: 'emailDocument',
+      summary: 'Email a document to its client with the PDF attached (staff only)',
+      description:
+        'Renders the document PDF and sends it to the client_snapshot email as an attachment, from the ' +
+        'monitored info@ inbox so a reply reaches a human. Staff only (RLS). Refuses a document with no ' +
+        'client email.',
+      tags: ['Documents'],
+      security: [{ bearerAuth: [] }],
+      requestParams: { path: idParam },
+      responses: {
+        '200': okJson(
+          z.object({ emailed: z.boolean(), recipient: z.string() }),
+          'The document was emailed',
+        ),
+        '400': errorResponse('The document has no client email'),
+        '401': errorResponse('Authentication required'),
+        '404': errorResponse('Document not found'),
+        '500': errorResponse('The email could not be sent'),
+      },
+    },
+  },
   '/admin/quotes/send': {
     post: {
       operationId: 'sendQuote',
