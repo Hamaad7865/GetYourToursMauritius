@@ -153,6 +153,26 @@ describe('mapDaySchedule', () => {
     expect(dep?.bookings[0]?.lines[0]?.label).toBe('Shared tour');
   });
 
+  it("surfaces a line's attached transfer pickup on the departure party, so it travels with the activity", () => {
+    const [dep] = mapDaySchedule([
+      row([
+        item({
+          price_label: 'Adult',
+          transport_pickup_label: 'Le Récif Hotel',
+          transport_dropoff_label: null,
+        }),
+        // a second band line on the SAME party carrying no transfer must not blank the first's pickup
+        item({ price_label: 'Child' }),
+      ]),
+    ]);
+    expect(dep?.bookings[0]?.transportPickup).toBe('Le Récif Hotel');
+  });
+
+  it('leaves transportPickup null when the line carries no transfer', () => {
+    const [dep] = mapDaySchedule([row([item()])]);
+    expect(dep?.bookings[0]?.transportPickup).toBeNull();
+  });
+
   describe('which bookings appear', () => {
     it.each<Status>(['confirmed', 'completed'])(
       'counts a %s booking in the headcount',
@@ -331,6 +351,12 @@ describe('mapDayCustomLines', () => {
     expect(line?.customerName).toBe('Ada Lovelace');
     expect(line?.customerEmail).toBe('ada@example.com');
     expect(line?.subtotalEur).toBe(200);
+    expect(line?.transportPickup).toBeNull(); // no transfer attached by default
+  });
+
+  it("surfaces a custom line's attached transfer pickup", () => {
+    const [line] = mapDayCustomLines([customItem({ transport_pickup_label: 'Le Récif Hotel' })]);
+    expect(line?.transportPickup).toBe('Le Récif Hotel');
   });
 
   it('surfaces a rental line, carries its return day, and folds no vehicle count into pax', () => {

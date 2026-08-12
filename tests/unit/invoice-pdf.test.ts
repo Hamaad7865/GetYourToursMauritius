@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import { PDFDocument } from 'pdf-lib';
 import { buildInvoice, type InvoiceBusiness } from '@/lib/invoice/model';
-import { renderInvoicePdf } from '@/lib/invoice/pdf';
+import { renderInvoicePdf, wrapText } from '@/lib/invoice/pdf';
+import { StandardFonts } from 'pdf-lib';
 
 /**
  * `renderInvoicePdf` turns the pure invoice model (Task 2) into an edge-safe combined
@@ -82,5 +84,119 @@ describe('renderInvoicePdf', () => {
     const bytes = await renderInvoicePdf(model);
     expect(magic(bytes)).toBe('%PDF');
     expect(bytes.length).toBeGreaterThan(800);
+  });
+
+  it('wraps long line descriptions and spills onto a second page rather than off the first', async () => {
+    // A converted quote: several dated tours + long transfer lines (excursion + pickup address), each
+    // shown in FULL and carrying its own date. Eight such rows outgrow one A4 sheet, so the totals and
+    // the PAID box must move to page 2 rather than render below the bottom margin.
+    const longFrom = '· from MU, Coastal Road, Quatre Cocos 41601, Mauritius';
+    const model = buildInvoice(
+      {
+        ref: 'BMT-WRAP',
+        customerName: 'Christophe',
+        customerEmail: 'c@x.com',
+        currency: 'EUR',
+        totalEur: 616,
+        balanceDueMinor: 30800,
+        activityTitle: 'Catamaran Cruise',
+        when: '2026-09-06T08:00:00Z',
+        pickupLocation: null,
+        dropoffLocation: null,
+        childSeats: 0,
+        transportEur: 0,
+        locale: 'fr',
+        items: [
+          {
+            title: 'Full day dolphin swimming Ile aux Bénitiers with lunch',
+            priceLabel: 'Adult',
+            quantity: 2,
+            pax: null,
+            subtotalEur: 120,
+            when: '2026-09-04T08:00:00Z',
+          },
+          {
+            title: 'Catamaran Cruise – Ile Aux Cerfs',
+            priceLabel: 'Adult',
+            quantity: 2,
+            pax: null,
+            subtotalEur: 110,
+            when: '2026-09-06T08:00:00Z',
+          },
+          {
+            title: 'Catamaran Cruise 3 Northern Island Adventure',
+            priceLabel: 'Adult',
+            quantity: 2,
+            pax: null,
+            subtotalEur: 110,
+            when: '2026-09-08T08:00:00Z',
+          },
+          {
+            title: null,
+            priceLabel: 'Private South Tour Mauritius - 02/09/2026',
+            quantity: 1,
+            pax: null,
+            subtotalEur: 90,
+            when: '2026-09-02T08:00:00Z',
+          },
+          {
+            title: null,
+            priceLabel: `Round-trip transfer · Private Full day dolphin swimming Ile aux Bénitiers with lunch ${longFrom}`,
+            quantity: 1,
+            pax: null,
+            subtotalEur: 60,
+            when: '2026-09-04T08:00:00Z',
+          },
+          {
+            title: null,
+            priceLabel: `Round-trip transfer · Catamaran Cruise – Ile Aux Cerfs ${longFrom}`,
+            quantity: 1,
+            pax: null,
+            subtotalEur: 30,
+            when: '2026-09-06T08:00:00Z',
+          },
+          {
+            title: null,
+            priceLabel: `Round-trip transfer · Catamaran Cruise 3 Northern Island Adventure ${longFrom}`,
+            quantity: 1,
+            pax: null,
+            subtotalEur: 60,
+            when: '2026-09-08T08:00:00Z',
+          },
+          {
+            title: null,
+            priceLabel: 'Nissan March · 09 Sept 2026 – 10 Sept 2026 · 1-day rental',
+            quantity: 1,
+            pax: null,
+            subtotalEur: 36,
+            when: '2026-09-09T08:00:00Z',
+          },
+        ],
+      },
+      {
+        chargedAmountMinor: 1674500,
+        chargedCurrency: 'MUR',
+        paidAt: '2026-08-11T19:42:36Z',
+        providerRef: 'x',
+      },
+      business,
+    );
+
+    const bytes = await renderInvoicePdf(model);
+    expect(magic(bytes)).toBe('%PDF');
+    const doc = await PDFDocument.load(bytes);
+    expect(doc.getPageCount()).toBe(2); // itinerary on page 1, totals + PAID box on page 2
+  });
+
+  it('wrapText breaks on words, keeps every word, and hard-splits a word wider than the column', async () => {
+    const pdf = await PDFDocument.create();
+    const font = await pdf.embedFont(StandardFonts.Helvetica);
+    const lines = wrapText('Round-trip transfer to the north coast resort', font, 10, 80);
+    expect(lines.length).toBeGreaterThan(1);
+    expect(lines.join(' ')).toBe('Round-trip transfer to the north coast resort'); // nothing dropped
+    for (const l of lines) expect(font.widthOfTextAtSize(l, 10)).toBeLessThanOrEqual(80);
+    // A single token longer than the column is split, never left to overflow.
+    const oneLong = wrapText('Quatre-Cocos-Coastal-Road-41601-Mauritius', font, 10, 40);
+    for (const l of oneLong) expect(font.widthOfTextAtSize(l, 10)).toBeLessThanOrEqual(40);
   });
 });

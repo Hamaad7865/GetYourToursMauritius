@@ -72,9 +72,49 @@ export function fitText(text: string, font: PDFFont, size: number, maxWidth: num
   return clean.slice(0, lo) + ellipsis;
 }
 
+/**
+ * Greedy word-wrap to fit `maxWidth`, returning one entry per visual line (each already WinAnsi-safe).
+ * A single word longer than the column is hard-split so it can never overflow the amount column. Used
+ * for line-item descriptions, which are shown in FULL now (a converted quote's transfer line names the
+ * excursion AND the pickup address), rather than truncated with an ellipsis.
+ */
+export function wrapText(value: string, font: PDFFont, size: number, maxWidth: number): string[] {
+  const words = toWinAnsi(value).split(/\s+/).filter(Boolean);
+  const lines: string[] = [];
+  let cur = '';
+  const widthOf = (s: string) => font.widthOfTextAtSize(s, size);
+  for (const word of words) {
+    const candidate = cur ? `${cur} ${word}` : word;
+    if (widthOf(candidate) <= maxWidth) {
+      cur = candidate;
+      continue;
+    }
+    if (cur) lines.push(cur);
+    // A single word wider than the column: hard-split it character by character.
+    if (widthOf(word) > maxWidth) {
+      let chunk = '';
+      for (const ch of word) {
+        if (chunk && widthOf(chunk + ch) > maxWidth) {
+          lines.push(chunk);
+          chunk = ch;
+        } else {
+          chunk += ch;
+        }
+      }
+      cur = chunk;
+    } else {
+      cur = word;
+    }
+  }
+  if (cur) lines.push(cur);
+  return lines.length ? lines : [''];
+}
+
 export async function renderInvoicePdf(model: InvoiceModel): Promise<Uint8Array> {
   const pdf = await PDFDocument.create();
-  const page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+  // Mutable so the line table can spill onto a second page: wrapped descriptions + a per-line date make
+  // rows variable-height, so a booking with many lines (a multi-tour quote) can outgrow one A4 sheet.
+  let currentPage = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
   const font = await pdf.embedFont(StandardFonts.Helvetica);
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
 
@@ -89,7 +129,7 @@ export async function renderInvoicePdf(model: InvoiceModel): Promise<Uint8Array>
     opts: { size?: number; font?: PDFFont; color?: ReturnType<typeof rgb>; x?: number } = {},
   ) => {
     const size = opts.size ?? 10;
-    page.drawText(toWinAnsi(value), {
+    currentPage.drawText(toWinAnsi(value), {
       x: opts.x ?? MARGIN,
       y,
       size,
@@ -107,13 +147,22 @@ export async function renderInvoicePdf(model: InvoiceModel): Promise<Uint8Array>
     const size = opts.size ?? 10;
     const f = opts.font ?? font;
     const clean = toWinAnsi(value);
-    page.drawText(clean, {
+    currentPage.drawText(clean, {
       x: rightX - f.widthOfTextAtSize(clean, size),
       y,
       size,
       font: f,
       color: opts.color ?? INK,
     });
+  };
+
+  // Start a fresh page when the next block (`needed` points tall) would collide with the bottom margin,
+  // so a wrapped line table, its totals and the PAID box never render off the page.
+  const ensureSpace = (needed: number) => {
+    if (y - needed < MARGIN + 14) {
+      currentPage = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+      y = PAGE_HEIGHT - MARGIN;
+    }
   };
 
   // 1 + 2. Business header (left) and document title (right), drawn at the same starting band.
@@ -163,7 +212,7 @@ export async function renderInvoicePdf(model: InvoiceModel): Promise<Uint8Array>
   y = Math.min(savedY, y) - 22;
 
   // Horizontal divider under the header.
-  page.drawLine({
+  currentPage.drawLine({
     start: { x: MARGIN, y },
     end: { x: CONTENT_RIGHT, y },
     thickness: 0.75,
@@ -257,7 +306,7 @@ export async function renderInvoicePdf(model: InvoiceModel): Promise<Uint8Array>
   textRight(t('Qty'), COL_QTY_RIGHT, { size: 9, font: bold });
   textRight(t('Amount'), COL_AMOUNT_RIGHT, { size: 9, font: bold });
   y -= 6;
-  page.drawLine({
+  currentPage.drawLine({
     start: { x: MARGIN, y },
     end: { x: CONTENT_RIGHT, y },
     thickness: 0.75,
@@ -265,16 +314,35 @@ export async function renderInvoicePdf(model: InvoiceModel): Promise<Uint8Array>
   });
   y -= 16;
 
-  // Line-item rows.
+  // Line-item rows. The description is WRAPPED (shown in full, not truncated) and its own date sits
+  // under it, so a multi-day booking reads as an itinerary. Qty + Amount align to the row's first line.
   for (const line of model.lines) {
-    text(fitText(line.description, font, 10, COL_DESC_MAX_WIDTH), { size: 10 });
+    // A transport add-on line is nested UNDER its parent: indented and muted, so the document reads as
+    // "the tour" with "· its transfer" beneath, not two equal lines.
+    const indent = line.isAddon ? 14 : 0;
+    const descLines = wrapText(line.description, font, 10, COL_DESC_MAX_WIDTH - indent);
+    const dateStr = line.when ? formatMauritiusDate(line.when) : '';
+    // Keep the whole row together: if it can't fit above the bottom margin, start it on a new page.
+    ensureSpace(descLines.length * 13 + (dateStr ? 12 : 0) + 8);
+    // Qty + Amount on the first visual line (drawn before the cursor advances).
     textRight(String(line.quantity ?? ''), COL_QTY_RIGHT, { size: 10 });
     textRight(`${currency} ${line.lineGrossEur.toFixed(2)}`, COL_AMOUNT_RIGHT, { size: 10 });
-    y -= 15;
+    for (const dl of descLines) {
+      text(dl, { size: 10, x: MARGIN + indent, color: line.isAddon ? MUTED : INK });
+      y -= 13;
+    }
+    if (dateStr) {
+      text(dateStr, { size: 9, color: MUTED });
+      y -= 12;
+    }
+    y -= line.isAddon ? 4 : 6; // gap before the next line item
   }
 
+  // Keep the subtotal rule, the totals block and the PAID box together on one page — if the table ran
+  // to the bottom, they move to a fresh sheet rather than splitting or spilling off the edge.
+  ensureSpace(230);
   y -= 4;
-  page.drawLine({
+  currentPage.drawLine({
     start: { x: COL_QTY_RIGHT - 40, y },
     end: { x: CONTENT_RIGHT, y },
     thickness: 0.5,
@@ -347,7 +415,7 @@ export async function renderInvoicePdf(model: InvoiceModel): Promise<Uint8Array>
   const boxTop = y;
   const boxWidth = 230;
   const boxHeight = 64;
-  page.drawRectangle({
+  currentPage.drawRectangle({
     x: boxX,
     y: boxTop - boxHeight,
     width: boxWidth,
@@ -357,7 +425,7 @@ export async function renderInvoicePdf(model: InvoiceModel): Promise<Uint8Array>
   });
   // Draw the box's contents with a local cursor so the outer `y` math stays simple.
   let by = boxTop - 18;
-  page.drawText(toWinAnsi(paidInFull ? t('PAID') : t('DEPOSIT PAID')), {
+  currentPage.drawText(toWinAnsi(paidInFull ? t('PAID') : t('DEPOSIT PAID')), {
     x: boxX + 12,
     y: by,
     size: 16,
@@ -373,7 +441,7 @@ export async function renderInvoicePdf(model: InvoiceModel): Promise<Uint8Array>
   if (pay?.paidAt) chargeParts.push(t('on {date}', { date: formatMauritiusDate(pay.paidAt) }));
   by -= 20;
   if (chargeParts.length) {
-    page.drawText(fitText(chargeParts.join('  '), font, 10, boxWidth - 24), {
+    currentPage.drawText(fitText(chargeParts.join('  '), font, 10, boxWidth - 24), {
       x: boxX + 12,
       y: by,
       size: 10,
@@ -383,7 +451,7 @@ export async function renderInvoicePdf(model: InvoiceModel): Promise<Uint8Array>
     by -= 14;
   }
   if (pay?.providerRef) {
-    page.drawText(fitText(`${t('Ref')}: ${pay.providerRef}`, font, 8, boxWidth - 24), {
+    currentPage.drawText(fitText(`${t('Ref')}: ${pay.providerRef}`, font, 8, boxWidth - 24), {
       x: boxX + 12,
       y: by,
       size: 8,
@@ -395,7 +463,7 @@ export async function renderInvoicePdf(model: InvoiceModel): Promise<Uint8Array>
 
   // 8. Footer.
   if (y < MARGIN + 14) y = MARGIN + 14; // never let the footer fall off the page
-  page.drawText(toWinAnsi(t('Thank you for booking with {name}.', { name: b.legalName })), {
+  currentPage.drawText(toWinAnsi(t('Thank you for booking with {name}.', { name: b.legalName })), {
     x: MARGIN,
     y: MARGIN,
     size: 9,

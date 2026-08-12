@@ -65,6 +65,10 @@ export interface QuoteItem {
   quantity: number;
   unitAmountMinor: number;
   subtotalMinor: number;
+  /** The attached round-trip transfer: pickup/drop-off + fare. All null when the line has no transfer. */
+  transportPickupLabel: string | null;
+  transportDropoffLabel: string | null;
+  transportFareMinor: number | null;
 }
 
 export interface QuoteRow {
@@ -105,7 +109,8 @@ export interface QuoteDetail extends QuoteRow {
   bookingStatus: string | null;
 }
 
-/** One line as the editor holds it. `quantity` + `unitAmountMinor` make it a `PricedLine`. */
+/** One line as the editor holds it. `quantity` + `unitAmountMinor` (+ optional `transportFareMinor`)
+ *  make it a `PricedLine`, so `quoteTotalMinor` sums line prices AND their attached transfers. */
 export interface QuoteItemInput extends PricedLine {
   kind: QuoteItemKind;
   sessionOccurrenceId?: string | null;
@@ -115,6 +120,10 @@ export interface QuoteItemInput extends PricedLine {
   startsAt?: string | null;
   endsAt?: string | null;
   rentalVehicleSlug?: string | null;
+  /** The attached round-trip transfer's pickup/drop-off. `transportFareMinor` (via `PricedLine`) is the
+   *  charge. All null when no transfer is attached; never set on a rental line. */
+  transportPickupLabel?: string | null;
+  transportDropoffLabel?: string | null;
 }
 
 export interface QuoteInput {
@@ -156,6 +165,9 @@ export interface QuoteItemInsert {
   quantity: number;
   unit_amount_minor: number;
   subtotal_minor: number;
+  transport_pickup_label: string | null;
+  transport_dropoff_label: string | null;
+  transport_fare_minor: number | null;
 }
 
 /** The stored total is always derived. A total that arrived from the browser is discarded. */
@@ -220,6 +232,18 @@ export function quoteItemRows(items: QuoteItemInput[]): QuoteItemInsert[] {
       quantity: item.quantity,
       unit_amount_minor: item.unitAmountMinor,
       subtotal_minor: lineSubtotalMinor(item),
+      // The attached transfer — never on a rental, and all-or-nothing (a fare with no pickup, or the
+      // reverse, is not a transfer). transportFareMinorOf/quoteTotalMinor have already validated the fare.
+      transport_pickup_label:
+        item.kind !== 'rental' && item.transportFareMinor != null
+          ? (item.transportPickupLabel ?? null)
+          : null,
+      transport_dropoff_label:
+        item.kind !== 'rental' && item.transportFareMinor != null
+          ? (item.transportDropoffLabel ?? null)
+          : null,
+      transport_fare_minor:
+        item.kind !== 'rental' && item.transportFareMinor != null ? item.transportFareMinor : null,
     };
   });
 }
@@ -292,7 +316,8 @@ const QUOTE_COLUMNS =
 
 const ITEM_COLUMNS =
   'id, position, kind, session_occurrence_id, activity_option_id, price_label, description, ' +
-  'starts_at, ends_at, rental_vehicle_slug, quantity, unit_amount_minor, subtotal_minor';
+  'starts_at, ends_at, rental_vehicle_slug, quantity, unit_amount_minor, subtotal_minor, ' +
+  'transport_pickup_label, transport_dropoff_label, transport_fare_minor';
 
 function text(value: unknown): string {
   if (typeof value === 'string') return value;
@@ -360,6 +385,10 @@ function mapItem(raw: Row): QuoteItem {
     quantity: Number(raw.quantity ?? 0),
     unitAmountMinor: minor(raw.unit_amount_minor),
     subtotalMinor: minor(raw.subtotal_minor),
+    transportPickupLabel: textOrNull(raw.transport_pickup_label),
+    transportDropoffLabel: textOrNull(raw.transport_dropoff_label),
+    // Null stays null (no transfer) — never minor(null) = 0, which formFromQuote would read as a €0 transfer.
+    transportFareMinor: raw.transport_fare_minor == null ? null : minor(raw.transport_fare_minor),
   };
 }
 

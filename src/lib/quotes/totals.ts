@@ -10,6 +10,10 @@ import { ValidationError } from '@/lib/services/errors';
 export interface PricedLine {
   quantity: number;
   unitAmountMinor: number;
+  /** Optional per-line TRANSPORT ADD-ON fare in minor units — a round-trip transfer attached to this
+   *  tour/custom line, charged ON TOP of its own subtotal. Absent/null ⇒ no transfer. Mirrors
+   *  `transport_fare_minor bigint check (… is null or >= 0)`. */
+  transportFareMinor?: number | null;
 }
 
 /** int4, per `quantity int not null check (quantity > 0)` in quote_items / booking_custom_items. */
@@ -54,9 +58,29 @@ export function lineSubtotalMinor(line: PricedLine): number {
   return subtotal;
 }
 
+/**
+ * The line's transport add-on fare in minor units — absent/null ⇒ 0, else a whole non-negative integer,
+ * mirroring `transport_fare_minor bigint check (… is null or >= 0)`. Kept beside `lineSubtotalMinor`
+ * because both feed `quoteTotalMinor` and both are the only validation between a browser-supplied figure
+ * and the stored total. A negative fare would SUBTRACT from the quote total (a silent discount), so it is
+ * refused here exactly as a negative unit amount is.
+ */
+export function transportFareMinorOf(line: PricedLine): number {
+  const fare = line.transportFareMinor;
+  if (fare == null) return 0;
+  if (!Number.isSafeInteger(fare) || fare < 0) {
+    throw new ValidationError(
+      `Quote line transport fare must be a whole number of minor units at least 0, got ${fare}`,
+    );
+  }
+  return fare;
+}
+
 export function quoteTotalMinor(lines: PricedLine[]): number {
   return lines.reduce((sum, line) => {
-    const total = sum + lineSubtotalMinor(line);
+    // Line price + its optional transport add-on. Both are validated; the add-on is 0 when absent, so a
+    // quote with no transfers is byte-identical to before.
+    const total = sum + lineSubtotalMinor(line) + transportFareMinorOf(line);
     if (!Number.isSafeInteger(total)) {
       throw new ValidationError('Quote total exceeds the exact-integer range');
     }

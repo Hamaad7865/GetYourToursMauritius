@@ -40,6 +40,35 @@ export interface QuotableActivity {
   lng: number | null;
 }
 
+/** An activity's boarding region + coordinates, keyed by OPTION id — how the quote editor prices a
+ *  catalogue LINE's transport add-on, since a line carries `activityOptionId`, not the activity. Fed to
+ *  `activityRegion` (state.ts) exactly like {@link QuotableActivity}. */
+export interface OptionRegion {
+  region: string | null;
+  lat: number | null;
+  lng: number | null;
+}
+
+/**
+ * A map from `activity_option_id` to its activity's region/coords, so the per-line **+ Add transport**
+ * control can auto-price a tour line's transfer from the guest's pickup to THAT tour — the line stores
+ * the option id, not the activity. One cheap read (public/staff RLS on the joined tables), resolved at
+ * edit time so it works on a freshly-added tour and on a re-opened saved quote alike.
+ */
+export async function loadOptionRegions(): Promise<Map<string, OptionRegion>> {
+  const { data, error } = await getBrowserSupabase()
+    .from('activity_options')
+    .select('id, activities ( region, lat, lng )')
+    .returns<Array<{ id: string; activities: OptionRegion | OptionRegion[] | null }>>();
+  if (error) throw error;
+  const map = new Map<string, OptionRegion>();
+  for (const row of data ?? []) {
+    const a = Array.isArray(row.activities) ? (row.activities[0] ?? null) : row.activities;
+    map.set(row.id, { region: a?.region ?? null, lat: a?.lat ?? null, lng: a?.lng ?? null });
+  }
+  return map;
+}
+
 export interface QuoteTier {
   label: string;
   amountMinor: number;

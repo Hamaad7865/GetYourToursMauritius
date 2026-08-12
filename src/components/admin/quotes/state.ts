@@ -164,6 +164,14 @@ export interface QuoteLineDraft {
   /** Set by {@link rentalLineDraft} for a rental line, null otherwise; the editor must never drop it
    *  on a `kind='rental'` line either. See `formFromQuote` and `quoteItemRows`. */
   rentalVehicleSlug: string | null;
+  /**
+   * An optional round-trip TRANSPORT add-on attached to THIS line (a tour or a custom line, never a
+   * rental — a car IS the transport). null when no transfer is attached. The fare is held as TEXT like
+   * every other money field on the draft; {@link quoteInputFromForm} parses it once into
+   * `transportFareMinor`, which lifts the quote total (Σ line subtotals + Σ transport fares). The pickup
+   * is the guest's hotel — set on the line's own control and remembered across lines.
+   */
+  transport: { pickupLabel: string; dropoffLabel: string; fareText: string } | null;
 }
 
 export interface QuoteFormValues {
@@ -224,6 +232,7 @@ export function customLineDraft(): QuoteLineDraft {
     unitText: '',
     catalogueUnitMinor: null,
     rentalVehicleSlug: null,
+    transport: null,
   };
 }
 
@@ -286,6 +295,15 @@ export function formFromQuote(quote: QuoteDetail): QuoteFormValues {
       unitText: formatMinorAsEuros(item.unitAmountMinor),
       catalogueUnitMinor: item.kind === 'catalogue' ? item.unitAmountMinor : null,
       rentalVehicleSlug: item.rentalVehicleSlug,
+      // The stored transport add-on comes back as the line's own transfer, fare re-shown as text.
+      transport:
+        item.transportFareMinor != null
+          ? {
+              pickupLabel: item.transportPickupLabel ?? '',
+              dropoffLabel: item.transportDropoffLabel ?? '',
+              fareText: formatMinorAsEuros(item.transportFareMinor),
+            }
+          : null,
     })),
   };
 }
@@ -359,6 +377,21 @@ export function quoteInputFromForm(form: QuoteFormValues): QuoteInput {
           `booking, so a line without one cannot be sent.`,
       );
     }
+    // The transport add-on: a tour/custom line may carry a round-trip transfer, a rental never does (a
+    // car IS the transport). Its fare becomes money HERE — the one place a typed string is parsed — and
+    // the pickup/dropoff ride through. quoteTotalMinor then adds transportFareMinor on top of the line's
+    // own subtotal, so an attached transfer lifts the quote total.
+    const transport =
+      line.kind !== 'rental' && line.transport
+        ? {
+            transportPickupLabel: line.transport.pickupLabel.trim() || null,
+            transportDropoffLabel: line.transport.dropoffLabel.trim() || null,
+            transportFareMinor: parseEurosToMinor(
+              line.transport.fareText,
+              `${label} transfer fare`,
+            ),
+          }
+        : { transportPickupLabel: null, transportDropoffLabel: null, transportFareMinor: null };
     return {
       kind,
       description,
@@ -371,6 +404,7 @@ export function quoteInputFromForm(form: QuoteFormValues): QuoteInput {
       rentalVehicleSlug: line.kind === 'rental' ? line.rentalVehicleSlug : null,
       quantity,
       unitAmountMinor,
+      ...transport,
     };
   });
 
@@ -502,6 +536,7 @@ export function tourLineDrafts(pick: TourPick): QuoteLineDraft[] {
       unitText: formatMinorAsEuros(tier.amountMinor),
       catalogueUnitMinor: tier.amountMinor,
       rentalVehicleSlug: null,
+      transport: null,
     }));
 }
 
@@ -610,6 +645,7 @@ export function rentalLineDraft(pick: RentalPick): QuoteLineDraft {
     unitText: formatMinorAsEuros(pick.dailyRateMinor),
     catalogueUnitMinor: null,
     rentalVehicleSlug: pick.slug,
+    transport: null,
   };
 }
 
@@ -696,6 +732,7 @@ export function transportLineDraft(pick: TransferPick): QuoteLineDraft {
     unitText: formatMinorAsEuros(pick.fareMinor),
     catalogueUnitMinor: null,
     rentalVehicleSlug: null,
+    transport: null,
   };
 }
 

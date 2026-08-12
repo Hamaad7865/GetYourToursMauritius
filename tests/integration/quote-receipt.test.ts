@@ -69,9 +69,19 @@ describe('a converted quote is invoiced with its lines', () => {
    */
   async function convertQuote(
     ref: string,
-    lines: Array<{ description: string; quantity: number; unitMinor: number; position: number }>,
+    lines: Array<{
+      description: string;
+      quantity: number;
+      unitMinor: number;
+      position: number;
+      /** Optional per-line transport add-on: charged on top of the line, so it lifts the quote total. */
+      transportFareMinor?: number;
+    }>,
   ): Promise<string> {
-    const total = lines.reduce((sum, line) => sum + line.quantity * line.unitMinor, 0);
+    const total = lines.reduce(
+      (sum, line) => sum + line.quantity * line.unitMinor + (line.transportFareMinor ?? 0),
+      0,
+    );
     const quoteId = (
       await db.pg.query<{ id: string }>(
         `insert into quotes (ref, customer_name, customer_email, customer_phone, status,
@@ -85,8 +95,9 @@ describe('a converted quote is invoiced with its lines', () => {
     for (const line of lines) {
       await db.pg.query(
         `insert into quote_items
-           (quote_id, position, kind, description, quantity, unit_amount_minor, subtotal_minor)
-         values ($1, $2, 'custom', $3, $4, $5, $6)`,
+           (quote_id, position, kind, description, quantity, unit_amount_minor, subtotal_minor,
+            transport_fare_minor, transport_pickup_label)
+         values ($1, $2, 'custom', $3, $4, $5, $6, $7, $8)`,
         [
           quoteId,
           line.position,
@@ -94,6 +105,8 @@ describe('a converted quote is invoiced with its lines', () => {
           line.quantity,
           line.unitMinor,
           line.quantity * line.unitMinor,
+          line.transportFareMinor ?? null,
+          line.transportFareMinor ? 'Le Récif Hotel, Belle Mare' : null,
         ],
       );
     }
@@ -183,6 +196,67 @@ describe('a converted quote is invoiced with its lines', () => {
     expect(booking.items.slice(1).every((item) => item.pax === null)).toBe(true);
   });
 
+  it('converts a quote whose line carries a transport add-on, and the booking keeps fare + pickup', async () => {
+    // The line is €90 with a €60 round-trip transfer attached. api_convert_quote's total check must
+    // include Σ transport_fare_minor (total 15000 = 9000 line + 6000 transfer) or it would refuse this
+    // quote as a mismatch; the booking row must carry the fare + pickup so the calendar and receipt show it.
+    const bookingId = await convertQuote('QRECEIPT-TR', [
+      {
+        position: 0,
+        description: 'Private South Tour Mauritius',
+        quantity: 1,
+        unitMinor: 9000,
+        transportFareMinor: 6000,
+      },
+    ]);
+
+    const { rows } = await db.pg.query<{
+      transport_fare_minor: string | null;
+      transport_pickup_label: string | null;
+      total_minor: string;
+    }>(
+      `select ci.transport_fare_minor, ci.transport_pickup_label, b.total_minor
+         from booking_custom_items ci
+         join bookings b on b.id = ci.booking_id
+        where ci.booking_id = $1`,
+      [bookingId],
+    );
+    expect(Number(rows[0]!.transport_fare_minor)).toBe(6000);
+    expect(rows[0]!.transport_pickup_label).toBe('Le Récif Hotel, Belle Mare');
+    expect(Number(rows[0]!.total_minor)).toBe(15000);
+  });
+
+  it('itemises an attached transfer as a nested add-on line that reconciles to the total', async () => {
+    // Without this the fare would be inside total_minor but on no line, so buildInvoice's per-line VAT
+    // split would silently book €60 of the charge as tax.
+    const bookingId = await convertQuote('QRECEIPT-TR2', [
+      {
+        position: 0,
+        description: 'Private South Tour Mauritius',
+        quantity: 1,
+        unitMinor: 9000,
+        transportFareMinor: 6000,
+      },
+    ]);
+    const { booking, payment } = await loadBookingForReceipt(ctx, bookingId);
+    const invoice = buildInvoice(booking, payment, INVOICE_BUSINESS);
+    const descriptions = invoice.lines.map((l) => l.description);
+
+    // The tour line, then its transfer nested directly under it.
+    const parentIdx = descriptions.indexOf('Private South Tour Mauritius');
+    expect(parentIdx).toBeGreaterThanOrEqual(0);
+    const addon = invoice.lines[parentIdx + 1];
+    expect(addon?.isAddon).toBe(true);
+    expect(addon?.description).toBe('Round-trip transfer · from Le Récif Hotel, Belle Mare');
+    expect(addon?.lineGrossEur).toBe(60);
+
+    // Lines reconcile to the €150 total (90 line + 60 transfer) — the whole point.
+    expect(invoice.lines.reduce((s, l) => s + l.lineGrossEur, 0)).toBe(invoice.totalGrossEur);
+    expect(invoice.totalGrossEur).toBe(150);
+    // …and the VAT split is the ordinary inclusive one, not "the transfer was all tax".
+    expect(invoice.subtotalNetEur).toBeGreaterThan(120);
+  });
+
   it('leaves a booking with no custom lines exactly as it was', async () => {
     // The union has to be free for every ordinary booking: an empty aggregate, appended to nothing.
     const seeded = await seedOccurrence(db, 10);
@@ -203,5 +277,67 @@ describe('a converted quote is invoiced with its lines', () => {
     const { booking } = await loadBookingForReceipt(ctx, bookingId);
     expect(booking.items).toHaveLength(1);
     expect(booking.items[0]!.priceLabel).toBe('Adult');
+  });
+
+  /**
+   * A booking that mixes SEVERAL different catalogue tours with a self-describing custom line — exactly
+   * what a converted quote is — must name each line for the tour IT belongs to. The regression: the
+   * receipt returned one booking-wide activityTitle and buildInvoice prefixed it onto every line, so a
+   * three-tour quote printed all three under the first tour's name AND stamped that name onto the
+   * transfers and the car rental ("Catamaran Cruise – Ile Aux Cerfs — Nissan March …").
+   */
+  it('labels each line with its own tour, and leaves a custom line unprefixed', async () => {
+    async function titleForOption(optionId: string): Promise<string> {
+      const { rows } = await db.pg.query<{ title: string }>(
+        `select a.title from activity_options ao join activities a on a.id = ao.activity_id where ao.id = $1`,
+        [optionId],
+      );
+      return rows[0]!.title;
+    }
+
+    // A quote whose only free-text line is the one that used to be mislabelled.
+    const bookingId = await convertQuote('QRECEIPT3', [
+      {
+        position: 0,
+        description: 'Private South Tour Mauritius - 02/09/2026',
+        quantity: 1,
+        unitMinor: 9000,
+      },
+    ]);
+
+    // Two DISTINCT catalogue tours on the same booking (seedOccurrence mints a fresh activity each call).
+    const tourA = await seedOccurrence(db, 10);
+    const tourB = await seedOccurrence(db, 10);
+    const [titleA, titleB] = [
+      await titleForOption(tourA.optionId),
+      await titleForOption(tourB.optionId),
+    ];
+    expect(titleA).not.toBe(titleB); // the whole point — two tours, two names
+    for (const t of [tourA, tourB]) {
+      await db.pg.query(
+        `insert into booking_items
+           (booking_id, session_occurrence_id, activity_option_id, price_label, quantity, pax,
+            unit_amount_minor, subtotal_minor)
+         values ($1, $2, $3, 'Adult', 2, 2, 5500, 11000)`,
+        [bookingId, t.occurrenceId, t.optionId],
+      );
+    }
+
+    const { booking, payment } = await loadBookingForReceipt(ctx, bookingId);
+    const invoice = buildInvoice(booking, payment, INVOICE_BUSINESS);
+    const descriptions = invoice.lines.map((line) => line.description);
+
+    // 1) Each catalogue line carries ITS OWN tour's title — both are present, each exactly once.
+    expect(descriptions).toContain(`${titleA} — Adult`);
+    expect(descriptions).toContain(`${titleB} — Adult`);
+    expect(descriptions.filter((d) => d === `${titleA} — Adult`)).toHaveLength(1);
+
+    // 2) The custom line stands on its own description — NOT prefixed with any tour (the bug that read
+    //    "<first tour> — Private South Tour …"). Custom lines come after the catalogue lines, so it is last.
+    expect(descriptions.at(-1)).toBe('Private South Tour Mauritius - 02/09/2026');
+    expect(descriptions.some((d) => d.includes(' — Private South Tour Mauritius'))).toBe(false);
+
+    // 3) And therefore NOT the old answer, where every line opened with the first tour's name.
+    expect(descriptions.filter((d) => d.startsWith(`${titleA} — `))).toHaveLength(1);
   });
 });

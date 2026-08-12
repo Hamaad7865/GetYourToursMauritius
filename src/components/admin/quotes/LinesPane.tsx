@@ -1,12 +1,18 @@
 'use client';
 
-import { useState, type Dispatch, type SetStateAction } from 'react';
-import dynamic from 'next/dynamic';
+import { useEffect, useState, type Dispatch, type SetStateAction } from 'react';
 import { BTN_GHOST, Card, INPUT_CLS } from '@/components/admin/ui';
-import { IconChevron, IconPin, IconPlus, IconX } from '@/components/ui/icons';
+import { IconChevron, IconPlus, IconX } from '@/components/ui/icons';
 import { fmtDate, fmtTime } from '@/lib/admin/format';
 import { TourPicker } from '@/components/admin/quotes/TourPicker';
 import { RentalPicker } from '@/components/admin/quotes/RentalPicker';
+import { LineTransport } from '@/components/admin/quotes/LineTransport';
+import {
+  loadOptionRegions,
+  loadTransportPricing,
+  type OptionRegion,
+} from '@/lib/admin/quote-catalogue';
+import type { RegionDistanceMap, TransportBandPricing } from '@/lib/services/pricing';
 import type { QuotePickup } from '@/components/admin/quotes/pickup';
 import { totalsMismatch, type StatedAmount } from '@/lib/quotes/reconcile';
 import {
@@ -33,18 +39,6 @@ import {
  * derived from that text through the same parser the save uses, so nothing on screen can disagree
  * with what would be stored.
  */
-
-/**
- * The pickup panel is LOADED ON DEMAND, and that is not a micro-optimisation: it reaches
- * `PickupMap` → `useGoogleMaps` → the Places/marker loader, so a static import would put the whole
- * Google Maps client in the bundle of every operator who opens a quote — and most never open the
- * panel. `ssr: false` because the map is browser-only; it mounts the moment the button is pressed.
- */
-const PickupTransportDrawer = dynamic(
-  () =>
-    import('@/components/admin/quotes/PickupTransportDrawer').then((m) => m.PickupTransportDrawer),
-  { ssr: false },
-);
 
 /** A line's own subtotal, or null while its numbers are still half-typed. */
 function subtotalMinor(line: QuoteLineDraft): number | null {
@@ -82,7 +76,21 @@ export function LinesPane({
 }) {
   const [picking, setPicking] = useState(false);
   const [pickingRental, setPickingRental] = useState(false);
-  const [pickingPickup, setPickingPickup] = useState(false);
+  // Transport pricing + the option→region map, loaded once so each line's "+ Add transport" can
+  // auto-price its transfer. Both degrade to null (the operator types the fare) rather than block.
+  const [pricing, setPricing] = useState<{
+    bands: TransportBandPricing;
+    distances: RegionDistanceMap;
+  } | null>(null);
+  const [optionRegions, setOptionRegions] = useState<Map<string, OptionRegion> | null>(null);
+  useEffect(() => {
+    loadTransportPricing()
+      .then(setPricing)
+      .catch(() => setPricing(null));
+    loadOptionRegions()
+      .then(setOptionRegions)
+      .catch(() => setOptionRegions(null));
+  }, []);
   const lines = form.lines;
   const total = formTotalMinor(form);
   const problem = formLineProblem(form);
@@ -114,13 +122,6 @@ export function LinesPane({
               className={BTN_GHOST}
             >
               <IconPlus width={15} height={15} /> Add custom line
-            </button>
-            <button
-              type="button"
-              onClick={() => setPickingPickup(true)}
-              className={`${BTN_GHOST} !border-teal/40 !text-teal-dark hover:!border-teal`}
-            >
-              <IconPin width={15} height={15} /> Pickup &amp; transport
             </button>
           </div>
         </div>
@@ -253,6 +254,17 @@ export function LinesPane({
                       departure stays on the line for the guest and for the day sheet.
                     </p>
                   )}
+
+                  {line.kind !== 'rental' && (
+                    <LineTransport
+                      line={line}
+                      onChange={(transport) => update(index, { transport })}
+                      pickup={pickup}
+                      setPickup={setPickup}
+                      pricing={pricing}
+                      optionRegions={optionRegions}
+                    />
+                  )}
                 </li>
               );
             })}
@@ -312,16 +324,6 @@ export function LinesPane({
         <RentalPicker
           onAdd={(added) => setLines([...lines, ...added])}
           onClose={() => setPickingRental(false)}
-        />
-      )}
-
-      {pickingPickup && (
-        <PickupTransportDrawer
-          lines={lines}
-          setLines={setLines}
-          pickup={pickup}
-          setPickup={setPickup}
-          onClose={() => setPickingPickup(false)}
         />
       )}
     </div>

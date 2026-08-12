@@ -1,5 +1,5 @@
 import type { InvoiceModel } from '@/lib/invoice/model';
-import { formatMauritiusDateTime } from '@/lib/invoice/mauritius-time';
+import { formatMauritiusDate, formatMauritiusDateTime } from '@/lib/invoice/mauritius-time';
 import { translate } from '@/lib/i18n/translate';
 import { SITE } from '@/lib/seo/site';
 
@@ -85,10 +85,21 @@ export function renderConfirmationEmail(model: InvoiceModel, bookingUrl?: string
     .map((line) => {
       const desc = escapeHtml(line.description);
       const amount = escapeHtml(money(model.currency, line.lineGrossEur));
+      // Each line's own date under its description, so a multi-day booking reads as an itinerary.
+      const dateHtml = line.when
+        ? `<div style="color:${MUTED};font-size:12px;margin-top:2px;">${escapeHtml(formatMauritiusDate(line.when))}</div>`
+        : '';
+      // A transport add-on is nested under its parent: indented + muted, so it reads as its sub-line.
+      const descCell = line.isAddon
+        ? `padding:6px 0 6px 18px;border-bottom:1px solid ${BORDER};color:${MUTED};font-size:13px;`
+        : `padding:8px 0;border-bottom:1px solid ${BORDER};color:${INK};font-size:14px;`;
+      const amtCell = line.isAddon
+        ? `padding:6px 0;border-bottom:1px solid ${BORDER};color:${MUTED};font-size:13px;text-align:right;white-space:nowrap;`
+        : `padding:8px 0;border-bottom:1px solid ${BORDER};color:${INK};font-size:14px;text-align:right;white-space:nowrap;`;
       return `
             <tr>
-              <td style="padding:8px 0;border-bottom:1px solid ${BORDER};color:${INK};font-size:14px;">${desc}</td>
-              <td style="padding:8px 0;border-bottom:1px solid ${BORDER};color:${INK};font-size:14px;text-align:right;white-space:nowrap;">${amount}</td>
+              <td style="${descCell}">${desc}${dateHtml}</td>
+              <td style="${amtCell}">${amount}</td>
             </tr>`;
     })
     .join('');
@@ -304,7 +315,12 @@ ${voucherHtml}
   }
   textLines.push('');
   for (const line of model.lines) {
-    textLines.push(`  - ${line.description}: ${money(model.currency, line.lineGrossEur)}`);
+    const dateStr = line.when ? ` (${formatMauritiusDate(line.when)})` : '';
+    // Indent a transport add-on under its parent line, mirroring the HTML/PDF nesting.
+    const bullet = line.isAddon ? '      · ' : '  - ';
+    textLines.push(
+      `${bullet}${line.description}${dateStr}: ${money(model.currency, line.lineGrossEur)}`,
+    );
   }
   textLines.push('');
   textLines.push(`${t('Total')}: ${totalStr} ${t('(incl. {vatPct}% VAT)', { vatPct })}`);
