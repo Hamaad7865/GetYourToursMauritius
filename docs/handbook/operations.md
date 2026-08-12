@@ -271,7 +271,12 @@ That's why it deserves a real alert. In Cloudflare → Workers & Pages → `gytm
 invocations — the job is deliberately written to _fail loudly_ rather than exit quietly when it can't do
 its work.
 
-**It is not redeployed when a developer pushes code.** It has to be deployed on purpose.
+**It ships automatically with every release.** Since 2026-07-22 a single `git push origin main` deploys
+the website, the database _and_ this Worker from the same commit — the Worker goes last, and the release
+fails if it doesn't come back reporting the version just shipped. So "someone forgot to deploy it" is no
+longer how this breaks. When it does go quiet, suspect its **configuration** — most often
+`INTERNAL_TASK_SECRET` no longer matching the value in the website's environment, which shows up as
+`401` in `wrangler tail`.
 
 ---
 
@@ -282,7 +287,7 @@ Code is not the blocker; configuration is. Confirm each of these:
 - [ ] `NEXT_PUBLIC_SITE_URL` = `https://bellemaretours.com` in Cloudflare Pages
 - [ ] `supabase/catch-up.sql` has been run on the production database
 - [ ] `INTERNAL_TASK_SECRET` set in Pages **and** as the `gytm-cron` Worker secret — **same value**
-- [ ] `gytm-cron` deployed, and `wrangler tail` shows `-> 200`
+- [ ] `gytm-cron` deployed by `release.yml` (a push to `main`), and `wrangler tail` shows `-> 200`
 - [ ] Peach live credentials set, `PEACH_ENVIRONMENT=live`, webhook URL registered
 - [ ] `RESEND_API_KEY` + `RESEND_FROM` set, and the sending domain verified in Resend
 - [ ] `bookings@bellemaretours.com` (sends) and `info@bellemaretours.com` (receives) both work
