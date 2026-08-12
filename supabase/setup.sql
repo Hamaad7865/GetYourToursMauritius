@@ -34911,7 +34911,7 @@ revoke execute on function void_document(uuid) from public, anon;
 grant execute on function void_document(uuid) to authenticated, service_role;
 
 -- ==================== 20260928000000_custom_line_runsheet.sql ====================
--- 20260927000000_custom_line_runsheet
+-- 20260928000000_custom_line_runsheet
 --
 -- A custom/private-tour line carries no headcount and no pickup of its own, so the operations calendar
 -- can show a bespoke tour's date and price but not "collect 2 guests from <hotel>, room 214". Three
@@ -34933,7 +34933,7 @@ grant execute on function void_document(uuid) to authenticated, service_role;
 -- byte-identical (resolved-function-bodies.test.ts pins the latter two).
 --
 -- Mirror into supabase/catch-up.sql and regenerate supabase/setup.sql (`npm run setup:sql`); add
--- ('20260927000000','custom_line_runsheet') to supabase/backfill-migration-ledger.sql.
+-- ('20260928000000','custom_line_runsheet') to supabase/backfill-migration-ledger.sql.
 
 alter table quote_items
   add column if not exists guests int check (guests is null or guests > 0),
