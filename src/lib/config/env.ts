@@ -15,7 +15,13 @@ import { z } from 'zod';
  * cleanly in the Node test runtime.
  */
 const ServerEnvSchema = z.object({
-  NEXT_PUBLIC_SITE_URL: z.string().url().default('http://localhost:3000'),
+  // `.trim()` BEFORE `.url()`: a trailing space/newline pasted into the deploy env survives `.url()`
+  // (WHATWG `new URL()` strips surrounding whitespace, so validation and the localhost gate both pass)
+  // but stays in the stored string — and the payments route builds the Peach return URL by raw
+  // concatenation (`${SITE}/bookings/${ref}`), so the space lands INSIDE the URL and Peach rejects the
+  // whole checkout with a 400 the customer sees as "An upstream service is unavailable". Trim it so the
+  // return URL is always well-formed.
+  NEXT_PUBLIC_SITE_URL: z.string().trim().url().default('http://localhost:3000'),
 
   // Optional. Enables the interactive Google Maps (Maps JavaScript API + Geocoding +
   // Places) used for the itinerary route map, activity location pin and checkout pickup
@@ -82,14 +88,19 @@ const ServerEnvSchema = z.object({
   // booking). PEACH_WEBHOOK_URL is the publicly-reachable webhook URL Peach signs over (set it to the
   // local tunnel URL during sandbox testing). All optional so dev/CI/build run on the stub; the
   // factory (getPaymentProvider) fails closed on a production-like runtime when they're missing.
-  PEACH_CLIENT_ID: z.string().min(1).optional(),
-  PEACH_CLIENT_SECRET: z.string().min(1).optional(),
-  PEACH_MERCHANT_ID: z.string().min(1).optional(),
-  PEACH_ENTITY_ID: z.string().min(1).optional(),
-  PEACH_WEBHOOK_SECRET: z.string().min(1).optional(),
-  PEACH_AUTH_BASE_URL: z.string().url().optional(),
-  PEACH_CHECKOUT_BASE_URL: z.string().url().optional(),
-  PEACH_WEBHOOK_URL: z.string().url().optional(),
+  // `.trim()` on every credential/URL: a stray leading/trailing space pasted into the deploy env (it
+  // has happened — a space-prefixed PEACH_CLIENT_ID) is sent verbatim to Peach's OAuth call, which
+  // rejects it, and the customer sees only the opaque "An upstream service is unavailable". Trim here
+  // so whitespace contamination can never take checkout down. `.trim()` runs before `.min(1)`/`.url()`,
+  // so an all-whitespace value correctly reads as unset (fail closed) rather than as a bad credential.
+  PEACH_CLIENT_ID: z.string().trim().min(1).optional(),
+  PEACH_CLIENT_SECRET: z.string().trim().min(1).optional(),
+  PEACH_MERCHANT_ID: z.string().trim().min(1).optional(),
+  PEACH_ENTITY_ID: z.string().trim().min(1).optional(),
+  PEACH_WEBHOOK_SECRET: z.string().trim().min(1).optional(),
+  PEACH_AUTH_BASE_URL: z.string().trim().url().optional(),
+  PEACH_CHECKOUT_BASE_URL: z.string().trim().url().optional(),
+  PEACH_WEBHOOK_URL: z.string().trim().url().optional(),
   PEACH_ENVIRONMENT: z.enum(['test', 'live']).default('test'),
 
   // Transactional email (Resend). Without both, notifications fall back to the no-op stub.

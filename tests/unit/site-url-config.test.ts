@@ -82,6 +82,43 @@ describe('isSiteUrlConfiguredForLive', () => {
 });
 
 /**
+ * Whitespace regression: a trailing space/newline pasted into NEXT_PUBLIC_SITE_URL survives `.url()`
+ * (WHATWG `new URL()` strips surrounding whitespace, so validation AND the localhost gate pass) but,
+ * before the `.trim()` fix, stayed in the stored string — and the payments route builds the Peach
+ * return URL by raw concatenation (`${SITE}/bookings/${ref}`), so the space landed INSIDE the URL and
+ * Peach rejected the whole checkout with a 400 the customer saw as "An upstream service is
+ * unavailable". This is the sandbox outage of 2026-08-11. The env schema now trims it.
+ */
+describe('env whitespace hygiene (Peach return-URL guard)', () => {
+  // Peach's own shopperResultUrl regex, copied from its 400 response body — a stray space fails it.
+  const PEACH_URL_RE =
+    /^(http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)[a-z0-9]+([\-.]{1}[a-z0-9]+)*\.([a-z]{2,63}|[0-9]{1,3})(:[0-9]{1,5})?(\/.*)?$/;
+
+  afterEach(() => {
+    clearLiveSignals();
+    delete process.env.PEACH_CLIENT_ID;
+    resetServerEnvCache();
+  });
+
+  it('trims a trailing space on NEXT_PUBLIC_SITE_URL so the built return URL passes Peach', () => {
+    process.env.NEXT_PUBLIC_SITE_URL = 'https://belle-mare-sandbox.vercel.app  ';
+    resetServerEnvCache();
+    const site = getServerEnv().NEXT_PUBLIC_SITE_URL;
+    expect(site).toBe('https://belle-mare-sandbox.vercel.app');
+    // The exact concatenation the payments route performs — must not carry an embedded space.
+    const returnUrl = `${site}/bookings/BMTPROBE123456`;
+    expect(returnUrl).not.toMatch(/\s/);
+    expect(PEACH_URL_RE.test(returnUrl)).toBe(true);
+  });
+
+  it('trims a leading space on a Peach credential (the PEACH_CLIENT_ID copy-paste artifact)', () => {
+    process.env.PEACH_CLIENT_ID = ' 7c692abc';
+    resetServerEnvCache();
+    expect(getServerEnv().PEACH_CLIENT_ID).toBe('7c692abc');
+  });
+});
+
+/**
  * Money-path guard: the payments route throws a ConfigError (code site_url_not_configured) BEFORE
  * creating a checkout when production-like + localhost. We mock auth/body/context so the test
  * exercises only the guard, and spy on createPaymentLink to prove it is NOT reached.
