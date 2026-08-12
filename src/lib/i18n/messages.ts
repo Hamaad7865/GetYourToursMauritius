@@ -759,6 +759,8 @@ export const fr: Record<string, string> = {
     'Aucun résultat — choisissez « Mon hôtel n’est pas dans la liste ».',
   'Room / cabin number': 'Numéro de chambre / cabine',
   'e.g. Room 214 or Cabin 8B': 'ex. Chambre 214 ou Cabine 8B',
+  'So the driver can arrange your hotel gate pass.':
+    'Pour que le chauffeur puisse organiser votre laissez-passer à l’hôtel.',
   optional: 'facultatif',
   'Arrival flight': 'Vol d’arrivée',
   'Pickup date': 'Date de prise en charge',

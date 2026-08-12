@@ -72,6 +72,9 @@ export interface DayBooking {
   transportPickup: string | null;
   transportDropoff: string | null;
   pickupPending: boolean;
+  /** The guest's hotel room / cabin, for the driver's gate pass. Booking-level (`bookings.room_or_cabin`),
+   *  surfaced here independent of the airport-transfer block — a plain activity pickup carries a room too. */
+  roomOrCabin: string | null;
   childSeats: number;
   /** The optional supplements this party bought (label + how many, one entry each) — the
    *  kitchen/skipper needs the head counts on the day sheet, so they ride alongside the child seats. */
@@ -133,6 +136,15 @@ export interface DayCustomLine {
   rentalVehicleSlug: string | null;
   /** VEHICLES for a rental, an item count for a custom line — never summed into a headcount. */
   quantity: number;
+  /** How many people are on this bespoke tour — the run-sheet headcount the operator typed on the quote
+   *  line (`booking_custom_items.guests`). Null when none was stated, and never on a rental (`quantity`
+   *  is the vehicle count there). Distinct from `quantity`: a flat-priced private tour is quantity 1. */
+  guests: number | null;
+  /** Where to collect this line from — the guest's hotel (`booking_custom_items.pickup_label`), set on
+   *  the quote independent of the paid transport add-on (a private tour includes its transport). */
+  pickupLabel: string | null;
+  /** The guest's room / cabin for the driver's gate pass — booking-level (`bookings.room_or_cabin`). */
+  roomOrCabin: string | null;
   /** The round-trip TRANSPORT add-on attached to this custom line — its own pickup/drop-off. Null when
    *  the line carries no transfer. Shown on the day-sheet card so the transfer travels with the line. */
   transportPickup: string | null;
@@ -256,6 +268,8 @@ export interface RawDayCustomItem {
   quantity: number;
   unit_amount_minor: number;
   subtotal_minor: number;
+  guests?: number | null;
+  pickup_label?: string | null;
   transport_pickup_label?: string | null;
   transport_dropoff_label?: string | null;
   bookings: RawDayBooking | RawDayBooking[] | null;
@@ -346,6 +360,7 @@ export function mapDaySchedule(rows: RawDayRow[]): DayDeparture[] {
         transportPickup: item.transport_pickup_label ?? null,
         transportDropoff: item.transport_dropoff_label ?? null,
         pickupPending: b.pickup_pending ?? false,
+        roomOrCabin: b.room_or_cabin ?? null,
         childSeats: b.child_seats ?? 0,
         supplements: (b.booking_supplements ?? [])
           .filter((s) => s.qty > 0 && s.name)
@@ -420,6 +435,10 @@ export function mapDayCustomLines(rows: RawDayCustomItem[]): DayCustomLine[] {
       endsAt: raw.ends_at,
       rentalVehicleSlug: raw.rental_vehicle_slug,
       quantity: raw.quantity,
+      // A rental's quantity is VEHICLES, so a headcount on one would be meaningless — drop it there.
+      guests: raw.kind === 'rental' ? null : (raw.guests ?? null),
+      pickupLabel: raw.pickup_label ?? null,
+      roomOrCabin: b.room_or_cabin ?? null,
       transportPickup: raw.transport_pickup_label ?? null,
       transportDropoff: raw.transport_dropoff_label ?? null,
       counted,
@@ -527,7 +546,7 @@ export async function loadDaySchedule(day: string): Promise<DayEntry[]> {
     .from('booking_custom_items')
     .select(
       `id, kind, description, starts_at, ends_at, rental_vehicle_slug,
-       quantity, unit_amount_minor, subtotal_minor,
+       quantity, unit_amount_minor, subtotal_minor, guests, pickup_label,
        transport_pickup_label, transport_dropoff_label,
        bookings ( ${BOOKING_FIELDS} )`,
     )
@@ -586,7 +605,7 @@ export async function loadCustomLinesByDay(
     .from('booking_custom_items')
     .select(
       `id, kind, description, starts_at, ends_at, rental_vehicle_slug,
-       quantity, unit_amount_minor, subtotal_minor,
+       quantity, unit_amount_minor, subtotal_minor, guests, pickup_label,
        transport_pickup_label, transport_dropoff_label,
        bookings ( ${BOOKING_FIELDS} )`,
     )

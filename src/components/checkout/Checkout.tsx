@@ -927,7 +927,15 @@ export function Checkout() {
             : undefined,
         departureFlightNumber:
           isAirport && tripDirection !== 'arrival' ? departureFlight.trim() || null : undefined,
-        roomOrCabin: isAirport || isHotelTransfer ? roomOrCabin.trim() || null : undefined,
+        // The room is for the driver's gate pass — collected on ANY pickup: an airport/hotel transfer,
+        // OR an activity pickup the guest is actually entering (not "make own way", not TBD). `undefined`
+        // (not null) when there is no pickup, so it never overwrites a booking's existing room.
+        roomOrCabin:
+          isAirport || isHotelTransfer
+            ? roomOrCabin.trim() || null
+            : wantsPickup && !tbd
+              ? roomOrCabin.trim() || null
+              : undefined,
         luggageDetails: isAirport || isHotelTransfer ? luggageDetails.trim() || null : undefined,
         childSeatAge:
           isAirport && childSeatWanted && childSeatAge.trim() ? Number(childSeatAge) : undefined,
@@ -1344,6 +1352,21 @@ export function Checkout() {
               className="h-4 w-4 rounded border-ink/30 text-teal focus:ring-teal"
             />
             {t('Drop-off — same as pickup')}
+          </label>
+          {/* Room number — Mauritius hotels issue a gate pass per vehicle, and the driver needs the
+              guest's room to arrange it. Sent as room_or_cabin like the transfer flow already does. */}
+          <label className="mt-3 block text-[13px] font-semibold text-ink">
+            {t('Room / cabin number')}{' '}
+            <span className="font-normal text-ink-muted">({t('optional')})</span>
+            <input
+              value={roomOrCabin}
+              onChange={(e) => setRoomOrCabin(e.target.value)}
+              placeholder={t('e.g. Room 214 or Cabin 8B')}
+              className="mt-1 w-full rounded-xl border border-ink/15 px-3.5 py-2.5 text-sm font-normal outline-none focus:border-teal"
+            />
+            <span className="mt-1 block text-[12px] text-ink-muted">
+              {t('So the driver can arrange your hotel gate pass.')}
+            </span>
           </label>
         </>
       )}

@@ -7,6 +7,7 @@ import { fmtDate, fmtTime } from '@/lib/admin/format';
 import { TourPicker } from '@/components/admin/quotes/TourPicker';
 import { RentalPicker } from '@/components/admin/quotes/RentalPicker';
 import { LineTransport } from '@/components/admin/quotes/LineTransport';
+import { LinePickup } from '@/components/admin/quotes/LinePickup';
 import {
   loadOptionRegions,
   loadTransportPricing,
@@ -253,6 +254,32 @@ export function LinesPane({
                       catalogue and would refuse this one, and a custom line reserves no seat. The
                       departure stays on the line for the guest and for the day sheet.
                     </p>
+                  )}
+
+                  {/* A bespoke tour's run-sheet facts for the operations calendar: how many people, and
+                      the hotel to collect them from (no fare — the tour includes its transport). These
+                      never touch the total; the pickup is what the day sheet shows the driver. */}
+                  {line.kind === 'custom' && (
+                    <div className="mt-2.5">
+                      <label className="inline-flex items-center gap-2 text-[12px] font-semibold text-ink-muted">
+                        Guests
+                        <input
+                          value={line.guests}
+                          onChange={(e) => update(index, { guests: e.target.value })}
+                          inputMode="numeric"
+                          aria-label={`Line ${index + 1} number of guests`}
+                          placeholder="e.g. 2"
+                          className={`${INPUT_CLS} max-w-[5.5rem] text-right`}
+                        />
+                        <span className="font-normal text-ink-muted">on this tour</span>
+                      </label>
+                      <LinePickup
+                        pickupLabel={line.pickupLabel}
+                        onChange={(label) => update(index, { pickupLabel: label })}
+                        pickup={pickup}
+                        setPickup={setPickup}
+                      />
+                    </div>
                   )}
 
                   {line.kind !== 'rental' && (

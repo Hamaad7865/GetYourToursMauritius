@@ -65,6 +65,11 @@ export interface QuoteItem {
   quantity: number;
   unitAmountMinor: number;
   subtotalMinor: number;
+  /** How many people are on a bespoke tour — the run-sheet headcount, custom lines only (a catalogue
+   *  line has its tier quantities). NOT money: it never enters the total. Null when none was stated. */
+  guests: number | null;
+  /** Where to collect a custom tour from — the guest's hotel, independent of the paid transport add-on. */
+  pickupLabel: string | null;
   /** The attached round-trip transfer: pickup/drop-off + fare. All null when the line has no transfer. */
   transportPickupLabel: string | null;
   transportDropoffLabel: string | null;
@@ -96,6 +101,9 @@ export interface QuoteRow {
   bookingId: string | null;
   /** Set when the guest paid. The durable conversion record — see below. */
   convertedAt: string | null;
+  /** The guest's hotel room / cabin, for the driver's gate pass. Copied onto `bookings.room_or_cabin`
+   *  at conversion. Guest-level (one guest, one room), so it lives on the quote, not the line. */
+  roomOrCabin: string | null;
   locale: string;
   createdAt: string;
   updatedAt: string;
@@ -120,6 +128,10 @@ export interface QuoteItemInput extends PricedLine {
   startsAt?: string | null;
   endsAt?: string | null;
   rentalVehicleSlug?: string | null;
+  /** Run-sheet facts for a custom tour line — the headcount and the pickup hotel. Ignored on catalogue
+   *  and rental lines (`quoteItemRows` clears them there). `guests` never touches the money path. */
+  guests?: number | null;
+  pickupLabel?: string | null;
   /** The attached round-trip transfer's pickup/drop-off. `transportFareMinor` (via `PricedLine`) is the
    *  charge. All null when no transfer is attached; never set on a rental line. */
   transportPickupLabel?: string | null;
@@ -132,6 +144,9 @@ export interface QuoteInput {
   customerName: string;
   customerEmail: string;
   customerPhone?: string | null;
+  /** The guest's hotel room / cabin, for the driver's gate pass. Full-replace like the guest fields:
+   *  omitting it CLEARS the stored value. Copied onto the booking at conversion. */
+  roomOrCabin?: string | null;
   validUntil: string;
   introNote?: string | null;
   internalNotes?: string | null;
@@ -165,6 +180,8 @@ export interface QuoteItemInsert {
   quantity: number;
   unit_amount_minor: number;
   subtotal_minor: number;
+  guests: number | null;
+  pickup_label: string | null;
   transport_pickup_label: string | null;
   transport_dropoff_label: string | null;
   transport_fare_minor: number | null;
@@ -232,6 +249,11 @@ export function quoteItemRows(items: QuoteItemInput[]): QuoteItemInsert[] {
       quantity: item.quantity,
       unit_amount_minor: item.unitAmountMinor,
       subtotal_minor: lineSubtotalMinor(item),
+      // Run-sheet facts for a bespoke tour — the headcount and pickup hotel — on CUSTOM lines only. A
+      // catalogue line has its tier quantities and the booking-level pickup; a rental counts vehicles.
+      // Cleared on the other kinds so switching a line's kind in the editor never leaves them dangling.
+      guests: item.kind === 'custom' ? (item.guests ?? null) : null,
+      pickup_label: item.kind === 'custom' ? item.pickupLabel?.trim() || null : null,
       // The attached transfer — never on a rental, and all-or-nothing (a fare with no pickup, or the
       // reverse, is not a transfer). transportFareMinorOf/quoteTotalMinor have already validated the fare.
       transport_pickup_label:
@@ -311,13 +333,13 @@ function db(): QuotesClient {
 
 const QUOTE_COLUMNS =
   'id, ref, customer_name, customer_email, customer_phone, status, currency, total_minor, ' +
-  'deposit_bps, valid_until, intro_note, internal_notes, sent_at, booking_id, converted_at, locale, ' +
-  'created_at, updated_at';
+  'deposit_bps, valid_until, intro_note, internal_notes, sent_at, booking_id, converted_at, ' +
+  'room_or_cabin, locale, created_at, updated_at';
 
 const ITEM_COLUMNS =
   'id, position, kind, session_occurrence_id, activity_option_id, price_label, description, ' +
   'starts_at, ends_at, rental_vehicle_slug, quantity, unit_amount_minor, subtotal_minor, ' +
-  'transport_pickup_label, transport_dropoff_label, transport_fare_minor';
+  'guests, pickup_label, transport_pickup_label, transport_dropoff_label, transport_fare_minor';
 
 function text(value: unknown): string {
   if (typeof value === 'string') return value;
@@ -364,6 +386,7 @@ function mapQuote(raw: Row): QuoteRow {
     sentAt: textOrNull(raw.sent_at),
     bookingId: textOrNull(raw.booking_id),
     convertedAt: textOrNull(raw.converted_at),
+    roomOrCabin: textOrNull(raw.room_or_cabin),
     locale: text(raw.locale),
     createdAt: text(raw.created_at),
     updatedAt: text(raw.updated_at),
@@ -385,6 +408,8 @@ function mapItem(raw: Row): QuoteItem {
     quantity: Number(raw.quantity ?? 0),
     unitAmountMinor: minor(raw.unit_amount_minor),
     subtotalMinor: minor(raw.subtotal_minor),
+    guests: raw.guests == null ? null : Number(raw.guests),
+    pickupLabel: textOrNull(raw.pickup_label),
     transportPickupLabel: textOrNull(raw.transport_pickup_label),
     transportDropoffLabel: textOrNull(raw.transport_dropoff_label),
     // Null stays null (no transfer) — never minor(null) = 0, which formFromQuote would read as a €0 transfer.
@@ -667,6 +692,9 @@ export async function saveQuote(input: QuoteInput): Promise<string> {
     customer_name: customerName,
     customer_email: customerEmail,
     customer_phone: input.customerPhone?.trim() || null,
+    // Full-replace like the guest fields (omitting it clears the stored room), NOT write-only-when-supplied
+    // like locale/deposit: it carries no money-path default, so there is nothing to protect from a reset.
+    room_or_cabin: input.roomOrCabin?.trim() || null,
     valid_until: input.validUntil,
     intro_note: input.introNote?.trim() || null,
     internal_notes: input.internalNotes?.trim() || null,

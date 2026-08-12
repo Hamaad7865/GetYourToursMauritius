@@ -231,6 +231,46 @@ describe('quote line rows', () => {
     expect(row!.activity_option_id).toBe('33333333-3333-3333-3333-333333333333');
     expect(row!.subtotal_minor).toBe(15000);
   });
+
+  // Run-sheet facts belong to a bespoke tour only: a catalogue line has tier quantities + the
+  // booking-level pickup, a rental counts vehicles. Cleared on those so switching kind never strands them.
+  it('writes guests + pickup on a custom line, trimmed, and clears them on catalogue/rental', () => {
+    const [custom, cat, rent] = quoteItemRows([
+      {
+        kind: 'custom',
+        description: 'Private South Tour',
+        quantity: 1,
+        unitAmountMinor: 9000,
+        guests: 2,
+        pickupLabel: '  Crystals Beach Resort  ',
+      },
+      {
+        kind: 'catalogue',
+        priceLabel: 'Adult',
+        sessionOccurrenceId: '22222222-2222-2222-2222-222222222222',
+        activityOptionId: '33333333-3333-3333-3333-333333333333',
+        quantity: 2,
+        unitAmountMinor: 7500,
+        guests: 9,
+        pickupLabel: 'ignored',
+      },
+      {
+        kind: 'rental',
+        description: 'Nissan March, 5 days',
+        rentalVehicleSlug: 'nissan-march',
+        quantity: 5,
+        unitAmountMinor: 3500,
+        guests: 9,
+        pickupLabel: 'ignored',
+      },
+    ]);
+    expect(custom!.guests).toBe(2);
+    expect(custom!.pickup_label).toBe('Crystals Beach Resort');
+    expect(cat!.guests).toBeNull();
+    expect(cat!.pickup_label).toBeNull();
+    expect(rent!.guests).toBeNull();
+    expect(rent!.pickup_label).toBeNull();
+  });
 });
 
 describe('mintQuoteRef', () => {

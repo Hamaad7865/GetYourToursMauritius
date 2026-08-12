@@ -173,6 +173,16 @@ describe('mapDaySchedule', () => {
     expect(dep?.bookings[0]?.transportPickup).toBeNull();
   });
 
+  // room_or_cabin used to surface ONLY through the airport-transfer block (mapTransfer returns null
+  // without a trip_direction), so a plain activity pickup's room — the driver's gate-pass detail —
+  // was invisible on the day sheet. It now rides on every party.
+  it('surfaces the booking room on a departure party, for the driver gate pass', () => {
+    const [dep] = mapDaySchedule([
+      row([item({ bookings: booking({ room_or_cabin: 'Room 214' }) })]),
+    ]);
+    expect(dep?.bookings[0]?.roomOrCabin).toBe('Room 214');
+  });
+
   describe('which bookings appear', () => {
     it.each<Status>(['confirmed', 'completed'])(
       'counts a %s booking in the headcount',
@@ -357,6 +367,35 @@ describe('mapDayCustomLines', () => {
   it("surfaces a custom line's attached transfer pickup", () => {
     const [line] = mapDayCustomLines([customItem({ transport_pickup_label: 'Le Récif Hotel' })]);
     expect(line?.transportPickup).toBe('Le Récif Hotel');
+  });
+
+  // The bespoke-tour run sheet: how many people, which hotel to collect from, and the room number for
+  // the gate pass — none of which the custom line carried before.
+  it('surfaces guests, pickup hotel and the booking room a bespoke tour needs', () => {
+    const [line] = mapDayCustomLines([
+      customItem({
+        guests: 2,
+        pickup_label: 'Crystals Beach Resort',
+        bookings: booking({ room_or_cabin: 'Room 214' }),
+      }),
+    ]);
+    expect(line?.guests).toBe(2);
+    expect(line?.pickupLabel).toBe('Crystals Beach Resort');
+    expect(line?.roomOrCabin).toBe('Room 214');
+  });
+
+  it('leaves guests/pickup null when the line states none', () => {
+    const [line] = mapDayCustomLines([customItem()]);
+    expect(line?.guests).toBeNull();
+    expect(line?.pickupLabel).toBeNull();
+  });
+
+  // A rental's quantity is VEHICLES; a headcount on it would be meaningless, so guests is dropped.
+  it('never reads a rental line as a guest headcount even if guests is set', () => {
+    const [line] = mapDayCustomLines([
+      customItem({ kind: 'rental', rental_vehicle_slug: 'nissan-kicks', quantity: 3, guests: 3 }),
+    ]);
+    expect(line?.guests).toBeNull();
   });
 
   it('surfaces a rental line, carries its return day, and folds no vehicle count into pax', () => {

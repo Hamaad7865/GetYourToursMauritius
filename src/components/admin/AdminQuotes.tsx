@@ -696,6 +696,17 @@ function QuoteEditor({
                     />
                   </Field>
                   <Field
+                    label="Hotel room number"
+                    hint="For the driver’s gate pass at the guest’s hotel. Shows on the calendar day sheet. Optional."
+                  >
+                    <input
+                      value={values.roomOrCabin}
+                      onChange={(e) => set('roomOrCabin', e.target.value)}
+                      className={INPUT_CLS}
+                      placeholder="e.g. Room 214"
+                    />
+                  </Field>
+                  <Field
                     label="Valid until"
                     hint="After this date the link stops opening and the payment path refuses the quote."
                   >
