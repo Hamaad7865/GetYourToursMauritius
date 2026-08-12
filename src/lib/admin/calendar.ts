@@ -66,6 +66,11 @@ export interface DayBooking {
   lines: DayBookingLine[];
   pickupLocation: string | null;
   dropoffLocation: string | null;
+  /** The round-trip TRANSPORT add-on attached to this party's line on this departure — its own pickup/
+   *  drop-off, read off the booking_item. Null when the line carries no transfer. Shown on the day-sheet
+   *  card so the transfer travels WITH the activity instead of being a separate line. */
+  transportPickup: string | null;
+  transportDropoff: string | null;
   pickupPending: boolean;
   childSeats: number;
   /** The optional supplements this party bought (label + how many, one entry each) — the
@@ -128,6 +133,10 @@ export interface DayCustomLine {
   rentalVehicleSlug: string | null;
   /** VEHICLES for a rental, an item count for a custom line — never summed into a headcount. */
   quantity: number;
+  /** The round-trip TRANSPORT add-on attached to this custom line — its own pickup/drop-off. Null when
+   *  the line carries no transfer. Shown on the day-sheet card so the transfer travels with the line. */
+  transportPickup: string | null;
+  transportDropoff: string | null;
   /** Confirmed/completed owning booking — kept for styling parity with a counted departure party. */
   counted: boolean;
   subtotalEur: number;
@@ -229,6 +238,8 @@ export interface RawDayRow {
     quantity: number;
     pax: number | null;
     price_label: string | null;
+    transport_pickup_label?: string | null;
+    transport_dropoff_label?: string | null;
     bookings: RawDayBooking | RawDayBooking[] | null;
   }> | null;
 }
@@ -245,6 +256,8 @@ export interface RawDayCustomItem {
   quantity: number;
   unit_amount_minor: number;
   subtotal_minor: number;
+  transport_pickup_label?: string | null;
+  transport_dropoff_label?: string | null;
   bookings: RawDayBooking | RawDayBooking[] | null;
 }
 
@@ -305,6 +318,12 @@ export function mapDaySchedule(rows: RawDayRow[]): DayDeparture[] {
           line.quantity += item.quantity;
           line.pax += pax;
         } else existing.lines.push({ label, quantity: item.quantity, pax });
+        // A party's transfer is attached to one of its lines (the tour line); keep the first one seen so a
+        // later band line with no transfer does not blank it.
+        if (!existing.transportPickup && item.transport_pickup_label) {
+          existing.transportPickup = item.transport_pickup_label;
+          existing.transportDropoff = item.transport_dropoff_label ?? null;
+        }
         continue;
       }
 
@@ -324,6 +343,8 @@ export function mapDaySchedule(rows: RawDayRow[]): DayDeparture[] {
         lines: [{ label, quantity: item.quantity, pax }],
         pickupLocation: b.pickup_location,
         dropoffLocation: b.dropoff_location ?? null,
+        transportPickup: item.transport_pickup_label ?? null,
+        transportDropoff: item.transport_dropoff_label ?? null,
         pickupPending: b.pickup_pending ?? false,
         childSeats: b.child_seats ?? 0,
         supplements: (b.booking_supplements ?? [])
@@ -399,6 +420,8 @@ export function mapDayCustomLines(rows: RawDayCustomItem[]): DayCustomLine[] {
       endsAt: raw.ends_at,
       rentalVehicleSlug: raw.rental_vehicle_slug,
       quantity: raw.quantity,
+      transportPickup: raw.transport_pickup_label ?? null,
+      transportDropoff: raw.transport_dropoff_label ?? null,
       counted,
       subtotalEur: raw.subtotal_minor / 100,
       bookingId: b.id,
@@ -505,6 +528,7 @@ export async function loadDaySchedule(day: string): Promise<DayEntry[]> {
     .select(
       `id, kind, description, starts_at, ends_at, rental_vehicle_slug,
        quantity, unit_amount_minor, subtotal_minor,
+       transport_pickup_label, transport_dropoff_label,
        bookings ( ${BOOKING_FIELDS} )`,
     )
     .gte('starts_at', startUtc)
@@ -518,7 +542,8 @@ export async function loadDaySchedule(day: string): Promise<DayEntry[]> {
       .select(
         `id, activity_option_id, starts_at, status, capacity,
          activity_options ( name, activities ( title ) ),
-         booking_items ( quantity, pax, price_label, bookings ( ${BOOKING_FIELDS} ) )`,
+         booking_items ( quantity, pax, price_label, transport_pickup_label, transport_dropoff_label,
+                         bookings ( ${BOOKING_FIELDS} ) )`,
       )
       .gte('starts_at', startUtc)
       .lt('starts_at', endUtc)
@@ -562,6 +587,7 @@ export async function loadCustomLinesByDay(
     .select(
       `id, kind, description, starts_at, ends_at, rental_vehicle_slug,
        quantity, unit_amount_minor, subtotal_minor,
+       transport_pickup_label, transport_dropoff_label,
        bookings ( ${BOOKING_FIELDS} )`,
     )
     .gte('starts_at', startUtc)

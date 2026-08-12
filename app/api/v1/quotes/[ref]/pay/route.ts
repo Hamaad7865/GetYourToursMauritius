@@ -227,7 +227,9 @@ async function assertQuotedPricesStillStand(
 ): Promise<void> {
   const { data, error } = await db
     .from('quote_items')
-    .select('kind, activity_option_id, price_label, quantity, unit_amount_minor, subtotal_minor')
+    .select(
+      'kind, activity_option_id, price_label, quantity, unit_amount_minor, subtotal_minor, transport_fare_minor',
+    )
     .eq('quote_id', quoteId);
   // A read that failed is not a quote that prices cleanly. Refuse rather than charge on a guess.
   if (error) throw new ConflictError(PRICE_MOVED);
@@ -256,15 +258,19 @@ async function assertQuotedPricesStillStand(
   let recomputed = 0;
   for (const line of lines) {
     const quantity = Number(line.quantity ?? 0);
+    // The line's optional transport add-on: a trusted operator-set figure exactly like a custom line's
+    // own subtotal — never re-derived from the catalogue, always added. api_convert_quote's
+    // total-vs-lines check includes Σ transport_fare_minor too, so the two money gates agree.
+    const transport = line.transport_fare_minor == null ? 0 : minor(line.transport_fare_minor);
     if (text(line.kind) !== 'catalogue') {
-      recomputed += minor(line.subtotal_minor);
+      recomputed += minor(line.subtotal_minor) + transport;
       continue;
     }
     const unit = current.get(`${text(line.activity_option_id)}\u0000${text(line.price_label)}`);
     // No current price for this tier at all — renamed, retired, or the option was deleted. There is
     // nothing to compare the quoted figure against, so nothing proves it still stands.
     if (unit === undefined) throw new ConflictError(PRICE_MOVED);
-    recomputed += lineSubtotalMinor({ quantity, unitAmountMinor: unit });
+    recomputed += lineSubtotalMinor({ quantity, unitAmountMinor: unit }) + transport;
   }
 
   if (recomputed !== totalMinor) throw new ConflictError(PRICE_MOVED);

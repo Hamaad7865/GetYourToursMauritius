@@ -17,6 +17,15 @@ const itemSchema = z.object({
   quantity: z.number(),
   pax: z.number().nullable().optional(),
   subtotalEur: z.number(),
+  /** The line's own activity title (catalogue line) or null (a self-describing custom/rental line).
+   *  Absent on a pre-migration receipt RPC — left undefined so buildInvoice falls back to the
+   *  booking-wide activityTitle rather than dropping the prefix during a deploy-before-migrate window. */
+  title: z.string().nullable().optional(),
+  /** The line's own date, ISO — the catalogue line's departure or the custom line's starts_at. */
+  when: z.string().nullable().optional(),
+  /** The attached round-trip transfer's fare (MINOR units) + pickup — rendered as a nested add-on line. */
+  transportFareMinor: z.number().nullable().optional(),
+  transportPickupLabel: z.string().nullable().optional(),
 });
 
 const paymentSchema = z
@@ -136,6 +145,12 @@ export async function loadBookingForReceipt(
       quantity: i.quantity,
       pax: i.pax ?? null,
       subtotalEur: i.subtotalEur,
+      // Pass-through: undefined (pre-migration RPC) → buildInvoice falls back to activityTitle; a string
+      // is the line's own tour; null is a self-describing custom line that takes no prefix.
+      title: i.title,
+      when: i.when ?? null,
+      transportFareMinor: i.transportFareMinor ?? null,
+      transportPickupLabel: i.transportPickupLabel ?? null,
     })),
   };
 

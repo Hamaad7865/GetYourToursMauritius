@@ -567,6 +567,11 @@ function CustomLineCard({ line }: { line: DayCustomLine }) {
               </>
             )}
           </p>
+          {line.transportPickup && (
+            <p className="mt-0.5 text-[12px] font-medium text-teal-dark">
+              Round-trip transfer · from {line.transportPickup}
+            </p>
+          )}
         </div>
         <span className="shrink-0 rounded-full bg-ink/[0.06] px-2.5 py-1 text-[11px] font-bold text-ink/70">
           {isRental ? 'Rental' : 'Custom line'}
@@ -736,6 +741,11 @@ function GuestRow({
               dropoffLocation={booking.dropoffLocation}
               pickupPending={booking.pickupPending}
             />
+            {booking.transportPickup && (
+              <p className="mt-1 font-medium text-teal-dark">
+                Round-trip transfer · from {booking.transportPickup}
+              </p>
+            )}
           </Fact>
 
           {booking.childSeats > 0 && (

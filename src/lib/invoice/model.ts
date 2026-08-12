@@ -31,6 +31,28 @@ export interface InvoiceBookingItem {
   pax?: number | null;
   /** Line total in EUR, VAT-inclusive (already what the customer was charged for this line). */
   subtotalEur: number;
+  /**
+   * The line's OWN activity title, prefixed to its price label — e.g. "Catamaran Cruise" turns the bare
+   * band "Adult" into "Catamaran Cruise — Adult". A converted quote can mix several DIFFERENT tours and
+   * self-describing custom lines on one booking, so the prefix has to be per line and not one title for
+   * the whole document (the bug that printed every line — the other tours, the transfers, a car rental —
+   * under the first tour's name).
+   *   - `null`      = a self-describing line that takes NO prefix (a custom/transfer/rental line, whose
+   *                   description already says what it is).
+   *   - `undefined` = the caller supplies no per-line title, and the line falls back to the booking's
+   *                   single {@link InvoiceBookingInput.activityTitle} — the shape every ordinary
+   *                   single-activity caller (and its tests) already relies on.
+   */
+  title?: string | null;
+  /** When THIS line happens, ISO string — the catalogue line's departure or the custom line's own
+   *  date. Rendered as a per-line date on the document so a multi-day booking shows which day each
+   *  line falls on. Null/undefined for a dateless line (a supplement, a transport add-on). */
+  when?: string | null;
+  /** The attached round-trip transfer's fare in MINOR units (already inside `totalEur`), and the pickup
+   *  it collects from. When > 0, buildInvoice emits a NESTED add-on line right under this one so the
+   *  document itemises it and the lines still reconcile to the total. Null/absent = no transfer. */
+  transportFareMinor?: number | null;
+  transportPickupLabel?: string | null;
 }
 
 /**
@@ -122,6 +144,10 @@ export interface InvoiceLine {
   quantity: number;
   unitGrossEur: number;
   lineGrossEur: number;
+  /** When this line happens, ISO — the departure/date shown under the line. Null for a dateless line. */
+  when?: string | null;
+  /** True for a transport add-on line nested under its parent tour/custom line — renderers indent it. */
+  isAddon?: boolean;
 }
 
 export interface InvoiceModel {
@@ -199,21 +225,41 @@ export function buildInvoice(
   // value, or a stray one from the untyped receipt-RPC round-trip) and falls back to English.
   const locale: Locale = isLocale(booking.locale) ? booking.locale : DEFAULT_LOCALE;
 
-  const lines: InvoiceLine[] = booking.items.map((item) => {
+  const lines: InvoiceLine[] = booking.items.flatMap((item) => {
     const quantity = item.pax ?? item.quantity;
     const safeQty = quantity || 1;
     const lineGrossEur = round2(item.subtotalEur);
-    return {
-      // A booking with no catalogue activity behind it — a converted QUOTE, whose lines all live in
-      // `booking_custom_items` — carries no activityTitle, and prefixing an empty one would print a
-      // tax-document line that opens with a bare em dash. The label already says what was sold.
-      description: booking.activityTitle
-        ? `${booking.activityTitle} — ${item.priceLabel}`
-        : item.priceLabel,
+    // The line's OWN title, prefixed to its label. `undefined` = the caller gave no per-line title, so
+    // fall back to the booking's single activityTitle (an ordinary single-activity booking, and its
+    // tests). `null` = a self-describing line (a custom/transfer/rental line from a quote) that takes NO
+    // prefix — its label already says what was sold, and prefixing it with the booking's first tour is
+    // the bug that read "Catamaran Cruise — Nissan March". An empty title likewise prints just the label.
+    const title = item.title === undefined ? booking.activityTitle : item.title;
+    const mainLine: InvoiceLine = {
+      description: title ? `${title} — ${item.priceLabel}` : item.priceLabel,
       quantity,
       unitGrossEur: round2(item.subtotalEur / safeQty),
       lineGrossEur,
+      when: item.when ?? null,
     };
+    // The attached round-trip transfer, itemised as a NESTED line right under its parent — its fare is
+    // already inside totalEur (charged on the line), so surfacing it here is what keeps the lines summing
+    // to the total and the per-line VAT split correct. Renderers indent an `isAddon` line under its parent.
+    const fareMinor = item.transportFareMinor ?? 0;
+    if (fareMinor > 0) {
+      const fareEur = round2(fareMinor / 100);
+      const pickup = item.transportPickupLabel?.trim();
+      const addonLine: InvoiceLine = {
+        description: pickup ? `Round-trip transfer · from ${pickup}` : 'Round-trip transfer',
+        quantity: 1,
+        unitGrossEur: fareEur,
+        lineGrossEur: fareEur,
+        when: null, // the transfer shares its parent's day; no need to repeat the date
+        isAddon: true,
+      };
+      return [mainLine, addonLine];
+    }
+    return [mainLine];
   });
 
   const transportEur = booking.transportEur ?? 0;

@@ -311,6 +311,9 @@ describe('re-opening a saved quote', () => {
         quantity: 2,
         unitAmountMinor: 5500,
         subtotalMinor: 11000,
+        transportPickupLabel: null,
+        transportDropoffLabel: null,
+        transportFareMinor: null,
       },
       {
         id: 'i2',
@@ -326,6 +329,9 @@ describe('re-opening a saved quote', () => {
         quantity: 1,
         unitAmountMinor: 12000,
         subtotalMinor: 12000,
+        transportPickupLabel: null,
+        transportDropoffLabel: null,
+        transportFareMinor: null,
       },
       {
         id: 'i3',
@@ -341,9 +347,31 @@ describe('re-opening a saved quote', () => {
         quantity: 5,
         unitAmountMinor: 1100,
         subtotalMinor: 5500,
+        transportPickupLabel: null,
+        transportDropoffLabel: null,
+        transportFareMinor: null,
       },
     ],
   };
+
+  it('parses an attached transport add-on into rows, lifts the total, and never on a rental', () => {
+    const form = formFromQuote(detail);
+    // Attach a €60 transfer to the catalogue tour, and (defensively) to the rental too.
+    form.lines[0]!.transport = { pickupLabel: 'Le Récif Hotel', dropoffLabel: '', fareText: '60' };
+    form.lines[2]!.transport = { pickupLabel: 'Le Récif Hotel', dropoffLabel: '', fareText: '99' };
+    const input = quoteInputFromForm(form);
+    // The tour line carries the transfer; the rental's transport is dropped (a car IS the transport).
+    expect(input.items[0]!.transportFareMinor).toBe(6000);
+    expect(input.items[0]!.transportPickupLabel).toBe('Le Récif Hotel');
+    expect(input.items[2]!.transportFareMinor ?? null).toBeNull();
+    // The fare lifts the total (Σ subtotals + Σ transport fares): 11000 + 12000 + 5500 + 6000.
+    expect(quoteRowTotal({ items: input.items })).toBe(34500);
+    // …and it survives the round-trip to storage rows.
+    const rows = quoteItemRows(input.items);
+    expect(rows[0]!.transport_fare_minor).toBe(6000);
+    expect(rows[0]!.transport_pickup_label).toBe('Le Récif Hotel');
+    expect(rows[2]!.transport_fare_minor).toBeNull();
+  });
 
   it('round-trips every line back to exactly the rows it was loaded from', () => {
     const rows = quoteItemRows(quoteInputFromForm(formFromQuote(detail)).items);

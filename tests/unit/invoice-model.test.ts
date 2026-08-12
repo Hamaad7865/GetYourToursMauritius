@@ -70,6 +70,7 @@ describe('buildInvoice', () => {
       quantity: 1,
       unitGrossEur: 115,
       lineGrossEur: 115,
+      when: null, // no per-line date supplied -> null (renders no date row)
     });
 
     // (d) the payment block carries chargedAmount (converted from minor) + chargedCurrency
@@ -92,6 +93,52 @@ describe('buildInvoice', () => {
       dropoff: null,
       transfer: null,
     });
+  });
+
+  it('carries each item’s own date onto its line, and leaves dateless lines null', () => {
+    const inv = buildInvoice(
+      {
+        ref: 'BMT-WHEN',
+        customerName: 'A',
+        customerEmail: 'a@x.com',
+        currency: 'EUR',
+        totalEur: 200,
+        activityTitle: '',
+        when: '2026-09-04T08:00:00Z',
+        pickupLocation: null,
+        dropoffLocation: null,
+        childSeats: 0,
+        transportEur: 30, // a dateless line — no `when`
+        items: [
+          {
+            priceLabel: 'Catamaran — Adult',
+            quantity: 2,
+            pax: null,
+            subtotalEur: 110,
+            title: null,
+            when: '2026-09-06T08:00:00Z',
+          },
+          {
+            priceLabel: 'Dolphin swim — Adult',
+            quantity: 2,
+            pax: null,
+            subtotalEur: 60,
+            title: null,
+            when: '2026-09-04T08:00:00Z',
+          },
+        ],
+      },
+      { chargedAmountMinor: 20000, chargedCurrency: 'EUR', issuedAt: '2026-08-01T00:00:00Z' },
+      business,
+    );
+    // Each item's date rides onto its line; the appended transport line carries none.
+    expect(inv.lines.find((l) => l.description === 'Catamaran — Adult')?.when).toBe(
+      '2026-09-06T08:00:00Z',
+    );
+    expect(inv.lines.find((l) => l.description === 'Dolphin swim — Adult')?.when).toBe(
+      '2026-09-04T08:00:00Z',
+    );
+    expect(inv.lines.find((l) => /transport/i.test(l.description))?.when ?? null).toBeNull();
   });
 
   it('builds a transport line and a child-seat line, and the lines sum to the total', () => {

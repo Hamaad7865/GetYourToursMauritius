@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { lineSubtotalMinor, quoteTotalMinor } from '@/lib/quotes/totals';
+import { lineSubtotalMinor, quoteTotalMinor, transportFareMinorOf } from '@/lib/quotes/totals';
 import { ValidationError } from '@/lib/services/errors';
 
 /**
@@ -140,5 +140,61 @@ describe('quote totals', () => {
       expect((thrown as ValidationError).status).toBe(400);
       expect((thrown as ValidationError).code).toBe('validation_error');
     }
+  });
+});
+
+/**
+ * The per-line transport add-on (20260924000000): a round-trip transfer attached to a tour/custom line is
+ * charged ON TOP of the line's own subtotal, so `quoteTotalMinor` must add it. It mirrors
+ * `transport_fare_minor bigint check (… is null or >= 0)`: absent/null is 0, and a negative fare must be
+ * refused exactly like a negative unit amount — otherwise an attached transfer could SUBTRACT from a quote.
+ */
+describe('quote totals — the transport add-on', () => {
+  it('treats an absent or null fare as zero', () => {
+    expect(transportFareMinorOf({ quantity: 1, unitAmountMinor: 5000 })).toBe(0);
+    expect(
+      transportFareMinorOf({ quantity: 1, unitAmountMinor: 5000, transportFareMinor: null }),
+    ).toBe(0);
+  });
+
+  it('adds the fare to the line, on top of its own subtotal', () => {
+    // Dolphin swim (2 × €60 = €120) with a €60 round-trip transfer attached → €180.
+    expect(
+      quoteTotalMinor([{ quantity: 2, unitAmountMinor: 6000, transportFareMinor: 6000 }]),
+    ).toBe(18000);
+  });
+
+  it('sums line prices AND their transfers across the whole quote', () => {
+    expect(
+      quoteTotalMinor([
+        { quantity: 2, unitAmountMinor: 6000, transportFareMinor: 6000 }, // 120 + 60
+        { quantity: 2, unitAmountMinor: 5500, transportFareMinor: 3000 }, // 110 + 30
+        { quantity: 1, unitAmountMinor: 9000 }, // 90, no transfer
+      ]),
+    ).toBe(41000);
+  });
+
+  it('leaves a quote with no transfers byte-identical to before', () => {
+    expect(
+      quoteTotalMinor([
+        { quantity: 2, unitAmountMinor: 5500 },
+        { quantity: 1, unitAmountMinor: 12000 },
+      ]),
+    ).toBe(23000);
+  });
+
+  it('refuses a negative fare so an add-on cannot discount the quote', () => {
+    expect(() =>
+      transportFareMinorOf({ quantity: 1, unitAmountMinor: 5000, transportFareMinor: -100 }),
+    ).toThrow(/transport fare/i);
+    expect(() =>
+      quoteTotalMinor([{ quantity: 1, unitAmountMinor: 12000, transportFareMinor: -100 }]),
+    ).toThrow(ValidationError);
+  });
+
+  it('refuses a fractional fare instead of rounding money nobody typed', () => {
+    expect(() =>
+      transportFareMinorOf({ quantity: 1, unitAmountMinor: 5000, transportFareMinor: 60.5 }),
+    ).toThrow(ValidationError);
   });
 });
