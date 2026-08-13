@@ -883,6 +883,60 @@ export const apiPaths: ZodOpenApiPathsObject = {
       },
     },
   },
+  '/quotes/{ref}/i/{seq}/open': {
+    get: {
+      operationId: 'openQuoteInstallmentLink',
+      summary:
+        'Open a durable per-installment link: move its token into an httpOnly cookie and redirect',
+      description:
+        'The installment link’s analogue of /quotes/{ref}/balance/open, for a per-date scheduled ' +
+        'booking. The reminder’s link is /quotes/{ref}/i/{seq}?t=…, and the installment page redirects ' +
+        'that ?t= here; this authenticates nothing — it validates only the shape of the ref, the seq ' +
+        'and the token, sets an httpOnly, Secure, SameSite=Lax cookie scoped to this ONE installment’s ' +
+        'page + pay paths, and 302s to /quotes/{ref}/i/{seq}. The token is kept out of any rendered ' +
+        'page URL, where GTM (page_location) and the client-error reporter (window.location.href) ' +
+        'would both export it. A request with no valid token still redirects, so nothing here reveals ' +
+        'which quote refs or installments exist.',
+      tags: ['Quotes'],
+      requestParams: {
+        path: z.object({ ref: z.string(), seq: z.string() }),
+        query: z.object({ t: z.string().describe('The raw installment-link token') }),
+      },
+      responses: {
+        '302': {
+          description: 'Redirect to the installment page (cookie set only for a well-formed token)',
+        },
+        '404': errorResponse('Malformed quote reference or installment sequence'),
+        '429': errorResponse('Too many requests'),
+      },
+    },
+  },
+  '/quotes/{ref}/i/{seq}/pay': {
+    post: {
+      operationId: 'payQuoteInstallment',
+      summary: 'Pay a scheduled installment: mint a fresh checkout on the guest’s click',
+      description:
+        'The installment’s analogue of /quotes/{ref}/balance/pay, and what makes the dated reminder ' +
+        'link DURABLE — the checkout is minted on THIS click, sized by api_create_payment to this ' +
+        'installment’s share of the balance (the running total up to it, minus what is already ' +
+        'settled), so the URL works until the installment is covered. Authenticated by the INSTALLMENT ' +
+        'LINK TOKEN in the httpOnly cookie /quotes/{ref}/i/{seq}/open set — never a bearer token, ' +
+        'because the guest has no account. There is no request body: the cookie is the credential. ' +
+        'Every refusal — unknown ref/seq, wrong/absent token, a not-confirmed booking, or an ' +
+        'already-covered installment — is the same 404, so nothing here reveals which quote refs or ' +
+        'installments exist.',
+      tags: ['Quotes'],
+      requestParams: { path: z.object({ ref: z.string(), seq: z.string() }) },
+      responses: {
+        '201': okJson(
+          paymentLinkSchema.extend({ bookingRef: z.string() }),
+          'Checkout link for the installment charge',
+        ),
+        '404': errorResponse('No readable installment for this link'),
+        '429': errorResponse('Too many requests'),
+      },
+    },
+  },
   '/quotes/{ref}/receipt': {
     get: {
       operationId: 'getQuoteReceipt',

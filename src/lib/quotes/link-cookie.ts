@@ -218,7 +218,7 @@ export function quoteBalancePayReturnUrl(ref: string): string {
  * the shape.
  */
 export function isQuotePagePath(path: string): boolean {
-  const match = /^\/quotes\/([^/?#]+)(?:\/balance)?$/.exec(path);
+  const match = /^\/quotes\/([^/?#]+)(?:\/balance|\/i\/\d{1,3})?$/.exec(path);
   return match !== null && quoteRefLooksValid(match[1]!);
 }
 
@@ -248,4 +248,71 @@ export function quotePayReturnUrl(ref: string): string {
  */
 export function quoteOpenPath(ref: string, token: string): string {
   return `/api/v1/quotes/${encodeURIComponent(ref)}/open?t=${encodeURIComponent(token)}`;
+}
+
+/* ── The per-installment link — one dated charge on a per-date scheduled booking ────────────────────
+ *
+ * Same shape as the balance link, but keyed on a SEQ as well as the ref, because a scheduled booking has
+ * several. Each installment's reminder email carries its own /i/{seq}/open link; the open route moves the
+ * token into an httpOnly cookie scoped to that ONE installment's page + pay route and 302s to the clean
+ * page, whose Pay button mints a fresh checkout for exactly that installment. Distinct paths per seq keep
+ * a guest holding two installment links from ever crossing them (RFC 6265 §5.1.4 — /i/1 is not a prefix
+ * of /i/2). The token itself is the deterministic HMAC (src/lib/quotes/installment-token.ts), so nothing
+ * is stored on the row and the reminder can be sent without ever persisting a raw bearer token.
+ * -------------------------------------------------------------------------------------------------- */
+
+export const QUOTE_INSTALLMENT_TOKEN_COOKIE = 'bmt_quote_installment_token';
+
+/** A seq is a small non-negative integer; it is interpolated into a cookie `Path=`, so digits only. */
+export function installmentSeqLooksValid(seq: string): boolean {
+  return /^\d{1,3}$/.test(seq);
+}
+
+/** The two paths this installment's cookie is scoped to: its page and the route its Pay button posts to. */
+export function quoteInstallmentCookiePaths(ref: string, seq: number): [string, string] {
+  return [`/quotes/${ref}/i/${seq}`, `/api/v1/quotes/${ref}/i/${seq}`];
+}
+
+/** The raw installment-link token from a request's cookies, or null. Reads only this cookie name. */
+export function readQuoteInstallmentTokenCookie(req: Request): string | null {
+  const header = req.headers.get('cookie');
+  if (!header) return null;
+  for (const part of header.split(';')) {
+    const [name, ...rest] = part.trim().split('=');
+    if (name !== QUOTE_INSTALLMENT_TOKEN_COOKIE) continue;
+    const value = rest.join('=');
+    if (quoteTokenLooksValid(value)) return value;
+  }
+  return null;
+}
+
+/** Set-Cookie values that hand the installment token to its page + pay route only. Secure/HttpOnly/Lax
+ *  exactly as the deposit and balance cookies (Lax so the guest returns from Peach 3-D Secure with it). */
+export function buildQuoteInstallmentTokenCookies(
+  ref: string,
+  seq: number,
+  token: string,
+): string[] {
+  return quoteInstallmentCookiePaths(ref, seq).map(
+    (path) =>
+      `${QUOTE_INSTALLMENT_TOKEN_COOKIE}=${token}; Path=${path}; Max-Age=${QUOTE_TOKEN_MAX_AGE_SECONDS}; ` +
+      `HttpOnly; Secure; SameSite=Lax`,
+  );
+}
+
+/** The clean installment page the guest ends up on: no token in the URL. */
+export function quoteInstallmentPagePath(ref: string, seq: number): string {
+  return `/quotes/${ref}/i/${seq}`;
+}
+
+/** THE LINK TO EMAIL for an installment. Prefix with SITE.url for the absolute form. Never the page URL
+ *  with `?t=` — the shape the whole module avoids. */
+export function quoteInstallmentOpenPath(ref: string, seq: number, token: string): string {
+  return `/api/v1/quotes/${encodeURIComponent(ref)}/i/${seq}/open?t=${encodeURIComponent(token)}`;
+}
+
+/** The `returnUrl` the installment pay route hands createPaymentLink — absolute, same origin, the
+ *  installment's own page (a quote guest has no /bookings to sign in to). */
+export function quoteInstallmentPayReturnUrl(ref: string, seq: number): string {
+  return `${SITE.url}${quoteInstallmentPagePath(ref, seq)}`;
 }

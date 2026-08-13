@@ -1,5 +1,7 @@
 import { quoteTokenMatches } from './token';
+import { installmentTokenMatches } from './installment-token';
 import { DEFAULT_DEPOSIT_BPS } from './deposit';
+import { computeQuoteSchedule, type QuoteInstallmentPreview } from './payment-schedule';
 import { createServiceRoleClient } from '@/lib/supabase/admin';
 
 /**
@@ -107,6 +109,22 @@ export interface PublicQuote {
    */
   booking: PublicQuoteBooking | null;
   items: PublicQuoteLine[];
+  /**
+   * How the guest pays: 'deposit' (a % of the total up front, the balance chased later) or 'per_date'
+   * (one payment per activity DATE — the first secures every seat, the rest fall due before each date).
+   * The page and the email state DIFFERENT terms for each, so this drives which; see {@link schedule}.
+   */
+  paymentMode: 'deposit' | 'per_date';
+  /**
+   * The per-date schedule the guest is being asked to accept — non-empty ONLY for a `per_date` quote
+   * that has dated lines. seq 0 is due now (the deposit that secures the seats); each later entry falls
+   * due before its date. EMPTY for a deposit quote (and for a per_date quote with no dated line, which
+   * api_convert_quote itself converts as a % deposit) — then the page states `depositBps` instead.
+   *
+   * Derived by {@link computeQuoteSchedule} the same way api_convert_quote splits the booking, so the
+   * "due now" shown here is the exact figure the card is charged. A parity test pins the two together.
+   */
+  schedule: QuoteInstallmentPreview[];
 }
 
 /** The converted booking as the guest may see it: its lifecycle state, and nothing else off the row. */
@@ -192,7 +210,7 @@ type Row = Record<string, unknown>;
 type Rows = { data: Row[] | null; error: unknown };
 
 interface QuotesReadClient {
-  from(table: 'quotes' | 'quote_items' | 'bookings'): {
+  from(table: 'quotes' | 'quote_items' | 'bookings' | 'booking_installments'): {
     select(columns: string): {
       eq(
         column: string,
@@ -243,12 +261,16 @@ function todayUtc(): string {
 const QUOTE_COLUMNS =
   // `deposit_bps` is guest-facing: api_convert_quote charges only round(total × bps / 10000) at the
   // card form, so the page that asks the guest to accept the offer has to be able to say so.
-  'id, ref, customer_name, status, currency, total_minor, deposit_bps, valid_until, intro_note, ' +
-  'token_hash, converted_at, booking_id';
+  // `payment_mode` for the same reason: 'per_date' charges the FIRST activity date's sum, not the %
+  // deposit, so the terms shown to the guest depend on it (see the schedule build below).
+  'id, ref, customer_name, status, currency, total_minor, deposit_bps, payment_mode, valid_until, ' +
+  'intro_note, token_hash, converted_at, booking_id';
 
 const ITEM_COLUMNS =
+  // `transport_fare_minor`: part of a line's date-total (Σ subtotal + Σ transport) and of the quote
+  // total, so the per_date schedule must fold it in — otherwise a date carrying a transfer under-states.
   'position, description, price_label, starts_at, ends_at, quantity, unit_amount_minor, ' +
-  'subtotal_minor';
+  'subtotal_minor, transport_fare_minor';
 
 /**
  * The converted booking's state, or null.
@@ -363,6 +385,20 @@ export async function resolveQuoteForToken(
       unitAmountMinor: minor(row.unit_amount_minor),
       subtotalMinor: minor(row.subtotal_minor),
     })),
+    paymentMode: text(data.payment_mode) === 'per_date' ? 'per_date' : 'deposit',
+    // The schedule is built from the SAME lines the page renders, grouped exactly as api_convert_quote
+    // groups them — so the "due now" it shows is the figure the card is charged. Empty unless per_date,
+    // and empty even then if no line is dated (the RPC falls back to the % deposit; the page follows).
+    schedule:
+      text(data.payment_mode) === 'per_date'
+        ? computeQuoteSchedule(
+            (items ?? []).map((row) => ({
+              startsAt: textOrNull(row.starts_at),
+              subtotalMinor: minor(row.subtotal_minor),
+              transportFareMinor: minor(row.transport_fare_minor),
+            })),
+          )
+        : [],
   };
 }
 
@@ -454,5 +490,99 @@ export async function resolveBalanceForToken(
     customerName: text(data.customer_name),
     currency: text(data.currency),
     balanceDueMinor,
+  };
+}
+
+/**
+ * One dated installment on a per-date scheduled booking, as its durable pay-link may show it.
+ * GUEST-FACING fields only, the same privacy stance as {@link PublicQuoteBalance}.
+ */
+export interface PublicInstallment {
+  /** The QUOTE ref — the path segment the installment page + pay route are keyed on. */
+  ref: string;
+  /** The BOOKING ref — what the pay route hands createPaymentLink. */
+  bookingRef: string;
+  customerName: string;
+  currency: string;
+  seq: number;
+  label: string;
+  /** yyyy-mm-dd — the activity's Mauritius-local date. */
+  dueOn: string;
+  /** Minor units — what THIS link will charge: the running total up to this installment minus what is
+   *  already settled (covers any earlier overdue one too), exactly what create_payment will size the row
+   *  to. Server-derived, never client input. */
+  chargeMinor: number;
+}
+
+/**
+ * The installment behind a durable per-installment link, or null.
+ *
+ * The installment analogue of {@link resolveBalanceForToken}, failing closed in the SAME single-null
+ * shape for every refusal — unknown ref, no booking, a not-confirmed booking, a token that does not
+ * match the deterministic HMAC over (bookingId, seq), an unknown seq, and an installment already covered
+ * (chargeMinor <= 0). One indistinguishable "not found", never an existence oracle.
+ *
+ * The token is NOT a stored hash: an installment link is a deterministic HMAC recomputed here (see
+ * src/lib/quotes/installment-token.ts), which is what lets the reminder cron send it without persisting
+ * a raw token. The two payability conditions (confirmed, chargeMinor > 0) mirror create_payment's own
+ * per-installment branch, so the page never shows a Pay button the charge would then reject.
+ */
+export async function resolveInstallmentForToken(
+  ref: string,
+  seq: number,
+  token: string,
+): Promise<PublicInstallment | null> {
+  if (!ref || !Number.isInteger(seq) || seq < 0 || !/^[0-9a-f]{64}$/.test(token)) return null;
+
+  const db = createServiceRoleClient() as unknown as QuotesReadClient;
+
+  const { data: quote, error } = await db
+    .from('quotes')
+    .select('id, ref, customer_name, currency, booking_id')
+    .eq('ref', ref)
+    .maybeSingle();
+  if (error || !quote) return null;
+  const bookingId = quote.booking_id == null ? null : text(quote.booking_id);
+  if (!bookingId) return null;
+
+  // The credential IS a deterministic HMAC over (bookingId, seq) — no stored hash. Constant-time, fail-closed.
+  if (!(await installmentTokenMatches(bookingId, seq, token))) return null;
+
+  const { data: booking, error: bErr } = await db
+    .from('bookings')
+    .select('ref, status, total_minor, balance_due_minor')
+    .eq('id', bookingId)
+    .maybeSingle();
+  if (bErr || !booking) return null;
+  const status = text(booking.status);
+  const totalMinor = minor(booking.total_minor);
+  const balanceDueMinor = minor(booking.balance_due_minor);
+  if (status !== 'confirmed' || balanceDueMinor <= 0) return null;
+
+  // The schedule (service-read, RLS-immune). The charge is the waterfall create_payment recomputes.
+  const { data: rows, error: iErr } = await db
+    .from('booking_installments')
+    .select('seq, amount_minor, due_on, label')
+    .eq('booking_id', bookingId)
+    .order('seq', { ascending: true });
+  if (iErr || !rows) return null;
+  const inst = rows.find((r) => Number(r.seq) === seq);
+  if (!inst) return null;
+  const cumulative = rows
+    .filter((r) => Number(r.seq) <= seq)
+    .reduce((sum, r) => sum + minor(r.amount_minor), 0);
+  const settled = totalMinor - balanceDueMinor;
+  const chargeMinor = Math.max(0, Math.min(balanceDueMinor, cumulative - settled));
+  if (chargeMinor <= 0) return null; // already covered — same single null, no oracle
+
+  return {
+    ref: text(quote.ref),
+    bookingRef: text(booking.ref),
+    customerName: text(quote.customer_name),
+    currency: text(quote.currency),
+    seq,
+    label: text(inst.label),
+    dueOn: dateText(inst.due_on),
+    chargeMinor,
   };
 }

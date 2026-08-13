@@ -86,6 +86,17 @@ export async function enqueuePickupReminders(ctx: ServiceContext): Promise<numbe
 }
 
 /**
+ * Chase the guest before each dated installment on a per-date scheduled booking, and alert the owner
+ * when one goes overdue. The SQL (api_enqueue_installment_reminders) re-checks every gate — booking
+ * confirmed, installment uncovered, within the lead window — and dedupes per installment, so this is
+ * safe to run unconditionally each tick. Returns how many rows it enqueued.
+ */
+export async function enqueueInstallmentReminders(ctx: ServiceContext): Promise<number> {
+  const data = await callRpc(ctx, 'api_enqueue_installment_reminders', {});
+  return z.coerce.number().int().parse(data);
+}
+
+/**
  * Settle a late-pickup supplement we already hold but could not apply at settlement time — the guest
  * paid, then the departure was called off, and they have since been rescheduled onto a live date.
  *

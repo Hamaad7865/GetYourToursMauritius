@@ -116,6 +116,9 @@ function quoteFixture(converted: boolean, booking: PublicQuoteBooking | null): P
         subtotalMinor: 12000,
       },
     ],
+    // This fixture is a DEPOSIT quote (the default plan); the per_date schedule is exercised separately.
+    paymentMode: 'deposit',
+    schedule: [],
   };
 }
 
@@ -161,10 +164,15 @@ async function render(
     /** The converted booking's REAL state; null while the quote is still an offer. */
     booking?: PublicQuoteBooking | null;
     searchParams?: { t?: string | string[]; just_paid?: string | string[] };
+    /** Fields merged onto the fixture — e.g. a per_date paymentMode + schedule. */
+    overrides?: Partial<PublicQuote>;
   } = {},
 ): Promise<RenderResult> {
   state.urlLocale = options.locale ?? 'en';
-  state.quote = quoteFixture(options.converted ?? false, options.booking ?? null);
+  state.quote = {
+    ...quoteFixture(options.converted ?? false, options.booking ?? null),
+    ...(options.overrides ?? {}),
+  };
   state.redirected = [];
   state.notFound = 0;
 
@@ -301,5 +309,27 @@ describe('public quote page rendering', () => {
     expect(text).toMatch(/did not go through/i);
     expect(payButtons).toHaveLength(1);
     expect(payButtons[0]!.props.converted).toBe(true);
+  });
+
+  // A per_date quote states its SCHEDULE on the page, not the % deposit — the same terms the email does,
+  // and the same figure the card is charged (schedule[0]). See the deposit branch above for the contrast.
+  describe('a per_date quote', () => {
+    it('renders the dated schedule with the first date as due now, not the deposit terms', async () => {
+      const { text } = await render({
+        overrides: {
+          paymentMode: 'per_date',
+          schedule: [
+            { seq: 0, dueOn: '2026-09-05', amountMinor: 40000 },
+            { seq: 1, dueOn: '2026-09-08', amountMinor: 35000 },
+          ],
+        },
+      });
+      expect(text).toContain('Payment schedule');
+      expect(text).toContain('EUR 400.00'); // due now — the first date's sum
+      expect(text).toContain('EUR 350.00'); // the later installment
+      expect(text).toContain('8 Sep 2026');
+      // Never the % deposit sentence the deposit branch shows.
+      expect(text).not.toContain('of the total');
+    });
   });
 });

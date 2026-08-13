@@ -226,3 +226,105 @@ describe('quote email', () => {
     expect(html).toContain('&lt;b&gt;Charter&lt;/b&gt;');
   });
 });
+
+/**
+ * A PER-DATE quote is disclosed as a SCHEDULE, not a % deposit.
+ *
+ * api_convert_quote overrides the deposit to the FIRST activity date's sum (not total × deposit_bps),
+ * so the "pay now" the email states must be that figure — the exact amount the card is charged — and
+ * name the later dates, never "10% now, balance later". The adversarial review caught the email stating
+ * the % deposit for a per_date quote: the guest was shown EUR 100 and charged EUR 400.
+ */
+describe('a per_date quote states its schedule, not the % deposit', () => {
+  const perDate = {
+    ...quote,
+    totalMinor: 100000, // EUR 1000.00
+    depositBps: 1000, // 10% — deliberately, to prove the schedule OVERRIDES it
+    paymentMode: 'per_date' as const,
+    schedule: [
+      { seq: 0, dueOn: '2026-09-05', amountMinor: 40000 }, // EUR 400 due now (first date's sum)
+      { seq: 1, dueOn: '2026-09-08', amountMinor: 35000 }, // EUR 350
+      { seq: 2, dueOn: '2026-09-11', amountMinor: 25000 }, // EUR 250
+    ],
+    items: [{ description: 'Trip', quantity: 1, unitAmountMinor: 100000 }],
+  };
+
+  it('shows the first date sum as due now, never the 10% deposit', () => {
+    const { html, text } = renderQuoteEmail(perDate);
+    expect(html).toContain('EUR 400.00'); // first date's sum — what the card is charged
+    expect(text).toContain('EUR 400.00');
+    // The 10% figure (EUR 100.00) must NOT appear, and never the deposit "% of the total" sentence.
+    expect(html).not.toContain('EUR 100.00');
+    expect(html).not.toContain('of the total');
+  });
+
+  it('names the later dates and their amounts', () => {
+    const { html, text } = renderQuoteEmail(perDate);
+    for (const part of [html, text]) {
+      expect(part).toContain('EUR 350.00');
+      expect(part).toContain('EUR 250.00');
+      expect(part).toContain('8 Sep 2026');
+      expect(part).toContain('11 Sep 2026');
+    }
+  });
+
+  it('a single-date per_date quote reads as pay-in-full-that-date', () => {
+    const single = {
+      ...perDate,
+      totalMinor: 40000,
+      schedule: [{ seq: 0, dueOn: '2026-09-05', amountMinor: 40000 }],
+      items: [{ description: 'Trip', quantity: 1, unitAmountMinor: 40000 }],
+    };
+    const { html } = renderQuoteEmail(single);
+    expect(html).toContain('EUR 400.00 to confirm');
+    expect(html).not.toContain('of the total');
+  });
+
+  it('a per_date quote with NO dated line falls back to the % deposit, as the RPC does', () => {
+    const undated = { ...perDate, schedule: [] };
+    const { html } = renderQuoteEmail(undated);
+    // Empty schedule → deposit terms: 10% of EUR 1000.00 = EUR 100.00, "of the total".
+    expect(html).toContain('EUR 100.00');
+    expect(html).toContain('of the total');
+  });
+});
+
+/**
+ * A line carrying a round-trip TRANSFER add-on. `quotes.total_minor` is Σ(subtotal+transport), so the
+ * transfer fare must be threaded onto the email line or the renderer's reconciliation guard (lines add
+ * up to the stored total) throws and refuses to email ANY quote with a transfer. This pins that the fare
+ * reconciles and is itemised.
+ */
+describe('a line with a round-trip transfer add-on', () => {
+  const withTransfer = {
+    ...quote,
+    totalMinor: 61600, // EUR 520.00 tour + EUR 96.00 transfer
+    items: [
+      {
+        description: 'Private South tour',
+        quantity: 1,
+        unitAmountMinor: 52000,
+        transportFareMinor: 9600,
+      },
+    ],
+  };
+
+  it('renders instead of throwing — the fare reconciles the lines to the stored total', () => {
+    expect(() => renderQuoteEmail(withTransfer)).not.toThrow();
+  });
+
+  it('itemises the transfer as a nested add-on in both HTML and text', () => {
+    const { html, text } = renderQuoteEmail(withTransfer);
+    for (const part of [html, text]) {
+      expect(part).toContain('EUR 520.00'); // the tour line
+      expect(part).toContain('EUR 96.00'); // the nested transfer
+      expect(part).toContain('Round-trip transfer');
+      expect(part).toContain('EUR 616.00'); // the total the two add up to
+    }
+  });
+
+  it('still refuses a total its lines genuinely do not support', () => {
+    // The guard must not be blunted: a stored total that exceeds lines+transfer still throws.
+    expect(() => renderQuoteEmail({ ...withTransfer, totalMinor: 70000 })).toThrow();
+  });
+});

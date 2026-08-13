@@ -10,6 +10,7 @@ import { createServiceRoleClient } from '@/lib/supabase/admin';
 import { getNotificationProvider } from '@/lib/notifications';
 import { renderQuoteEmail, type QuoteEmailLine } from '@/lib/email/quote';
 import { DEFAULT_DEPOSIT_BPS } from '@/lib/quotes/deposit';
+import { computeQuoteSchedule } from '@/lib/quotes/payment-schedule';
 import { quoteOpenPath } from '@/lib/quotes/link-cookie';
 import { hashQuoteToken, mintQuoteToken } from '@/lib/quotes/token';
 import { assertQuoteStillValid } from '@/lib/quotes/validity';
@@ -236,8 +237,10 @@ export const POST = apiHandler(async (req) => {
       // that the guest is entitled to read BEFORE accepting it. api_convert_quote charges only
       // round(total × bps / 10000) at the card form, so an email sent without it quotes a total and
       // then asks for a tenth of it, never mentioning the balance still owed.
+      // `payment_mode` for the same reason `deposit_bps` is here: a 'per_date' quote charges the FIRST
+      // activity date's sum, not total × bps, so the terms the email states to the guest depend on it.
       'id, ref, customer_name, customer_email, status, currency, total_minor, deposit_bps, ' +
-        'valid_until, intro_note, converted_at, locale',
+        'payment_mode, valid_until, intro_note, converted_at, locale',
     )
     .eq('id', quoteId)
     .maybeSingle();
@@ -272,7 +275,12 @@ export const POST = apiHandler(async (req) => {
 
   const { data: items, error: itemsError } = await db
     .from('quote_items')
-    .select('kind, description, price_label, quantity, unit_amount_minor')
+    // `starts_at, subtotal_minor, transport_fare_minor` beyond what the email lines need: they build the
+    // per_date schedule (computeQuoteSchedule), the same date-grouping api_convert_quote splits by.
+    .select(
+      'kind, description, price_label, quantity, unit_amount_minor, starts_at, subtotal_minor, ' +
+        'transport_fare_minor',
+    )
     // The email, the public page and booking_custom_items all read the lines in the owner's order.
     // Ordering by id would be ordering by gen_random_uuid().
     .order('position', { ascending: true })
@@ -306,6 +314,21 @@ export const POST = apiHandler(async (req) => {
   //    is also what prints the figure. Rendering happens BEFORE any write, so a refusal here leaves
   //    the quote exactly as the operator left it.
   const token = mintQuoteToken();
+  const paymentMode = text(quote.payment_mode) === 'per_date' ? 'per_date' : 'deposit';
+  // The per-date schedule the email discloses — built from the SAME lines, grouped the SAME way
+  // api_convert_quote splits the booking, so `schedule[0]` is the exact figure the card is charged now.
+  // Empty unless per_date (and even then only with dated lines), which is precisely when the email
+  // should keep the % deposit terms — the RPC does the same.
+  const schedule =
+    paymentMode === 'per_date'
+      ? computeQuoteSchedule(
+          lines.map((line) => ({
+            startsAt: textOrNull(line.starts_at),
+            subtotalMinor: minor(line.subtotal_minor),
+            transportFareMinor: minor(line.transport_fare_minor),
+          })),
+        )
+      : [];
   const email = renderQuoteEmail({
     ref,
     customerName: text(quote.customer_name),
@@ -315,6 +338,8 @@ export const POST = apiHandler(async (req) => {
     // The column's own default, restated for a row written before it existed: a missing deposit must
     // read as the 10% the RPC would charge, never as 0 (a "pay EUR 0.00 to confirm" email).
     depositBps: Number(quote.deposit_bps ?? DEFAULT_DEPOSIT_BPS),
+    paymentMode,
+    schedule,
     introNote: textOrNull(quote.intro_note),
     // `content_locale` comes back as a plain string; renderQuoteEmail falls back to English for
     // anything that is not a locale it has messages for.
@@ -328,6 +353,9 @@ export const POST = apiHandler(async (req) => {
         description: textOrNull(line.description) ?? text(line.price_label),
         quantity: Number(line.quantity ?? 0),
         unitAmountMinor: minor(line.unit_amount_minor),
+        // Threaded through so quoteTotalMinor(items) matches the transport-inclusive stored total and the
+        // email itemises the transfer — without it, any quote carrying a transfer fails the guard.
+        transportFareMinor: minor(line.transport_fare_minor),
       }),
     ),
     linkToken: token,

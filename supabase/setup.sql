@@ -36030,11 +36030,18 @@ begin
 
   -- PER-DATE SCHEDULE. When the quote is sent payment_mode='per_date', the balance is split into one
   -- installment per activity DATE (Mauritius-local; a null-dated line folds into the earliest date). The
-  -- earliest date is installment 0 and IS the deposit — the payment that secures every seat, exactly like
-  -- the % deposit above — so v_deposit_minor is overridden to that first date's amount here, and the rest
-  -- become dated balance links (built below, after the lines are copied). Falls back to the % deposit when
-  -- the quote has no dated lines at all (nothing to schedule). This ONLY resizes the deposit CHARGE; the
-  -- total, the balance projection and every downstream reader are untouched.
+  -- earliest PAYABLE date is installment 0 and IS the deposit — the payment that secures every seat,
+  -- exactly like the % deposit above — so v_deposit_minor is overridden to that date's amount here, and
+  -- the rest become dated balance links (built below, after the lines are copied). Falls back to the %
+  -- deposit when the quote has no dated lines at all (nothing to schedule). This ONLY resizes the deposit
+  -- CHARGE; the total, the balance projection and every downstream reader are untouched.
+  --
+  -- ZERO-AMOUNT DATES ARE EXCLUDED. A date whose lines sum to 0 (a complimentary activity) is not an
+  -- installment — there is nothing to collect for it, and its seats are secured by the deposit like any
+  -- other. Sizing the deposit to a zero earliest date would set deposit_minor = 0, which create_payment
+  -- reads as the "no deposit" sentinel (coalesce(nullif(deposit_minor,0), total_minor)) and would then
+  -- charge the WHOLE total at the deposit step — the guest shown "Pay 0.00" but billed everything. So the
+  -- deposit is the first date with a POSITIVE amount, and the schedule below skips zero dates to match.
   v_min_date := (
     select min((qi.starts_at at time zone 'Indian/Mauritius')::date)
       from quote_items qi
@@ -36042,11 +36049,24 @@ begin
   );
   v_per_date := (v_quote.payment_mode = 'per_date' and v_min_date is not null);
   if v_per_date then
-    select coalesce(sum(qi.subtotal_minor), 0) + coalesce(sum(qi.transport_fare_minor), 0)
+    select g.amount_minor
       into v_deposit_minor
-      from quote_items qi
-     where qi.quote_id = v_quote.id
-       and coalesce((qi.starts_at at time zone 'Indian/Mauritius')::date, v_min_date) = v_min_date;
+      from (
+        select coalesce((qi.starts_at at time zone 'Indian/Mauritius')::date, v_min_date) as due_on,
+               coalesce(sum(qi.subtotal_minor), 0) + coalesce(sum(qi.transport_fare_minor), 0) as amount_minor
+          from quote_items qi
+         where qi.quote_id = v_quote.id
+         group by 1
+        having coalesce(sum(qi.subtotal_minor), 0) + coalesce(sum(qi.transport_fare_minor), 0) > 0
+         order by due_on
+         limit 1
+      ) g;
+    -- Defensive: total_minor > 0 guarantees at least one positive date, so this cannot be null in
+    -- practice. If it ever were, fall back to the % deposit rather than mint a zero-deposit booking.
+    if v_deposit_minor is null or v_deposit_minor <= 0 then
+      v_per_date := false;
+      v_deposit_minor := round(v_quote.total_minor * v_quote.deposit_bps / 10000.0);
+    end if;
   end if;
 
   -- balance_due_minor is INITIALISED to the full total: nothing is settled at conversion, so the
@@ -36195,6 +36215,9 @@ begin
           from quote_items qi
          where qi.quote_id = v_quote.id
          group by 1
+         -- Skip zero-amount dates: a complimentary date is not an installment (nothing to collect), and
+         -- keeping it would make seq 0 a €0 row that disagrees with the positive-first deposit above.
+        having coalesce(sum(qi.subtotal_minor), 0) + coalesce(sum(qi.transport_fare_minor), 0) > 0
       ) g;
   end if;
 
@@ -36343,22 +36366,34 @@ begin
       where idempotency_key = p ->> 'idempotencyKey' and booking_id = v_booking.id and purpose = 'booking';
     end if;
   elsif v_purpose = 'balance' then
-    -- The newest 'balance' row for this booking — never a 'booking' row (that is the deposit, a distinct
-    -- purpose). Under the booking-row FOR UPDATE above this is the single-open-lease guard: a second mint
-    -- finds the row the first minted and REUSES its checkout lease, so one balance is one payable session,
-    -- not a fork. No `and status <> 'failed'`, exactly as the deposit path: a declined balance attempt's
-    -- row (which carries the checkout-reuse window and the lease) is reused rather than orphaned by a
-    -- second row.
+    -- The newest STILL-OPEN 'balance' row for this booking — never a 'booking' row (that is the deposit,
+    -- a distinct purpose). Under the booking-row FOR UPDATE above this is the single-open-session guard,
+    -- and it is scoped to the BOOKING, NOT to installment_seq: a booking has at most ONE payable balance
+    -- session at a time, whichever installment (or the plain whole-balance link) opened it. This is
+    -- load-bearing because each installment charge is CUMULATIVE (seq k collects the running total up to
+    -- it, minus what is settled) — so two installment links, or an installment link and the plain balance
+    -- link, size to OVERLAPPING amounts. If each minted its own live Peach session (the per-seq scoping
+    -- this replaces), completing both would settle the overlap twice and overcharge the guest. One open
+    -- session per booking makes that unrepresentable: the second open reuses the first's row + checkout
+    -- lease, and only once it settles (and balance_due drops) does the next open mint a fresh, correctly
+    -- re-sized row.
+    --
+    -- "Still open" = paid_minor < amount_minor, so a DECLINED or PENDING row (paid_minor 0) is reused
+    -- rather than orphaned by a second row — the original plain-balance behaviour, which for the plain
+    -- link the balance_already_paid guard above already made equivalent (a fully-paid plain balance
+    -- leaves balance_due = 0 and never reaches here). An installment booking DOES reach here with a
+    -- fully-paid earlier row while balance_due is still > 0, and the filter is what lets seq k+1 mint its
+    -- own session instead of re-minting on the settled seq k row. No `and status <> 'failed'`, exactly as
+    -- the deposit path.
     select * into v_payment from payments
     where booking_id = v_booking.id and purpose = 'balance'
-      and installment_seq is not distinct from v_installment_seq
+      and coalesce(paid_minor, 0) < amount_minor
     order by created_at desc
     limit 1;
 
     if not found then
       select * into v_payment from payments
-      where idempotency_key = p ->> 'idempotencyKey' and booking_id = v_booking.id and purpose = 'balance'
-        and installment_seq is not distinct from v_installment_seq;
+      where idempotency_key = p ->> 'idempotencyKey' and booking_id = v_booking.id and purpose = 'balance';
     end if;
   else
     -- Exactly the row the open request points at — never "the newest add-on row", which after a
@@ -36378,8 +36413,9 @@ begin
       -- balance-payability branch above has already proved it is > 0. From here everything is per-payment-
       -- row: this row takes its own FX pin, its own checkout lease and its own provider_checkout_id.
       -- Sized to the named installment's charge (v_charge, computed + proved > 0 above) when this is a
-      -- dated link, else the WHOLE balance — the unchanged plain-balance path. installment_seq scopes the
-      -- lease so the next dated link mints its own session rather than reusing this one.
+      -- dated link, else the WHOLE balance — the unchanged plain-balance path. installment_seq is RECORDED
+      -- (which installment first opened this session), not used to scope the lease: the reuse lookup above
+      -- is booking-wide, so this is the booking's one open balance session until it settles.
       insert into payments (booking_id, idempotency_key, amount_minor, purpose, installment_seq)
       values (v_booking.id, p ->> 'idempotencyKey',
               coalesce(v_charge, v_booking.balance_due_minor), 'balance', v_installment_seq)
@@ -36683,21 +36719,30 @@ declare
   v_lead int := coalesce((p ->> 'leadDays')::int, 3);
   v_c record;
   v_due_minor bigint;
+  -- Today in MAURITIUS local time, not the session's UTC current_date. due_on is a Mauritius-local date
+  -- (grouped `at time zone 'Indian/Mauritius'`), so comparing it to a UTC "today" would slide the chase
+  -- and overdue windows by the +4h offset at every day boundary — chasing a few hours early, flagging
+  -- overdue a few hours late. Mauritius keeps a fixed UTC+4 offset, so this is exact year-round.
+  v_today date := (now() at time zone 'Indian/Mauritius')::date;
 begin
   if auth.role() <> 'service_role' then
     raise exception 'forbidden' using errcode = '42501';
   end if;
 
   for v_c in (
-    select b.id as booking_id, b.ref, b.customer_email, b.customer_name, b.locale::text as locale,
+    select b.id as booking_id, b.ref, q.ref as quote_ref,
+           b.customer_email, b.customer_name, b.locale::text as locale,
            b.total_minor, b.balance_due_minor,
            bi.seq, bi.due_on, bi.label, bi.amount_minor,
            (select coalesce(sum(x.amount_minor), 0) from booking_installments x
              where x.booking_id = b.id and x.seq <= bi.seq) as cumulative_minor
       from booking_installments bi
       join bookings b on b.id = bi.booking_id
+      -- The durable link + its HMAC token are keyed on the QUOTE ref + the booking id, so carry both.
+      left join quotes q on q.booking_id = b.id
      where b.status = 'confirmed'
        and b.customer_email is not null
+       and q.ref is not null
        and bi.seq > 0
        and coalesce(b.balance_due_minor, 0) > 0
   )
@@ -36711,12 +36756,13 @@ begin
       v_c.cumulative_minor - (v_c.total_minor - v_c.balance_due_minor)
     ));
 
-    if v_c.due_on >= current_date and v_c.due_on <= current_date + v_lead then
+    if v_c.due_on >= v_today and v_c.due_on <= v_today + v_lead then
       insert into notification_outbox (channel, recipient, template, payload, booking_id, idempotency_key)
       values (
         'email', v_c.customer_email, 'installment_reminder',
         jsonb_build_object(
-          'ref', v_c.ref, 'customerName', v_c.customer_name, 'seq', v_c.seq,
+          'ref', v_c.ref, 'quoteRef', v_c.quote_ref, 'bookingId', v_c.booking_id,
+          'customerName', v_c.customer_name, 'seq', v_c.seq,
           'dueOn', v_c.due_on, 'label', v_c.label, 'amountDueMinor', v_due_minor, 'locale', v_c.locale
         ),
         v_c.booking_id,
@@ -36724,7 +36770,7 @@ begin
       )
       on conflict (idempotency_key) do nothing;
       v_count := v_count + 1;
-    elsif v_c.due_on < current_date then
+    elsif v_c.due_on < v_today then
       insert into notification_outbox (channel, recipient, template, payload, booking_id, idempotency_key)
       values (
         'email', 'owner', 'owner_installment_overdue',

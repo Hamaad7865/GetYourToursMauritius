@@ -195,6 +195,20 @@ export const bookingSchema = z.object({
   /** The earliest dated line across BOTH line tables — the balance falls due 24h before it. Null when
    *  nothing on the booking carries a date, and the page then shows no deadline. */
   firstActivityAt: z.string().nullish().catch(null),
+  /** The per-date payment schedule (empty on an ordinary deposit booking). `coveredEur` is a waterfall
+   *  over `balanceDueEur`: an installment is covered once settlement reaches its running total. */
+  installments: z
+    .array(
+      z.object({
+        seq: z.number(),
+        dueOn: z.string(),
+        label: z.string(),
+        amountEur: z.number(),
+        coveredEur: z.number(),
+      }),
+    )
+    .nullish()
+    .catch(null),
   /** The customer's saved route (sightseeing tours), or null/absent for the standard route. */
   customItinerary: z
     .array(

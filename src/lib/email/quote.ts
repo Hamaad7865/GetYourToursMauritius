@@ -9,11 +9,13 @@ import {
 } from '@/lib/quotes/deposit';
 import {
   quoteBalanceOpenPath,
+  quoteInstallmentOpenPath,
   quoteOpenPath,
   quoteRefLooksValid,
   quoteTokenLooksValid,
 } from '@/lib/quotes/link-cookie';
 import { lineSubtotalMinor, quoteTotalMinor } from '@/lib/quotes/totals';
+import { formatScheduleDate, type QuoteInstallmentPreview } from '@/lib/quotes/payment-schedule';
 import { SITE } from '@/lib/seo/site';
 import { ValidationError } from '@/lib/services/errors';
 
@@ -57,6 +59,14 @@ export interface QuoteEmailLine {
   description: string;
   quantity: number;
   unitAmountMinor: number;
+  /**
+   * The line's optional round-trip transfer fare in minor units, charged ON TOP of its subtotal (0/absent
+   * ⇒ no transfer). REQUIRED to be threaded through, because `quotes.total_minor` is Σ(subtotal+transport)
+   * — so a line that drops its fare here makes `quoteTotalMinor(items)` fall short of the stored total and
+   * {@link renderQuoteEmail}'s reconciliation guard throws, refusing to email (or preview) any quote that
+   * carries a transfer. Rendered as a nested add-on row under the line, the way the receipt itemises it.
+   */
+  transportFareMinor?: number | null;
 }
 
 /** Only what the guest may see. See the PRIVACY note above before adding a field. */
@@ -93,6 +103,19 @@ export interface QuoteEmailInput {
    * the offer they are being asked to accept. A caller that forgets this field now fails to compile.
    */
   depositBps: number;
+  /**
+   * The stored `quotes.payment_mode` — 'deposit' (the % above) or 'per_date'. Optional so callers that
+   * predate the schedule keep compiling; absent/anything-but-'per_date' renders the ordinary deposit
+   * terms, exactly as before.
+   */
+  paymentMode?: 'deposit' | 'per_date' | null;
+  /**
+   * The per-date schedule, when {@link paymentMode} is 'per_date' — built by the caller with the shared
+   * {@link computeQuoteSchedule}, the SAME split api_convert_quote performs, so `schedule[0]` is the
+   * exact figure the card is charged now. Empty/absent falls back to the deposit terms (which is also
+   * what the RPC does for a per_date quote that has no dated line).
+   */
+  schedule?: QuoteInstallmentPreview[] | null;
   items: QuoteEmailLine[];
   /**
    * The RAW link token — 32 bytes of lowercase hex from {@link import('@/lib/quotes/token').mintQuoteToken}
@@ -206,23 +229,59 @@ export function renderQuoteEmail(input: QuoteEmailInput): RenderedEmail {
   const payUrl = `${SITE.url}${quoteOpenPath(ref, input.linkToken)}`;
   const totalStr = money(currency, input.totalMinor);
 
-  /* WHAT IS DUE NOW, and what is left. Both figures come from the shared deposit module, which is
-   * what api_convert_quote sizes the first charge with — so the sentence below cannot promise a
-   * figure the card is not charged. A pay-in-full quote says so in one line and mentions no balance
-   * at all: "balance: EUR 0.00" would describe a second payment that never comes. */
-  const payInFull = isPayInFull(input.depositBps);
-  const depositStr = money(currency, depositMinorOf(input.totalMinor, input.depositBps));
-  const balanceStr = money(currency, balanceMinorOf(input.totalMinor, input.depositBps));
-  const termsHeading = payInFull ? t('Payment') : t('Deposit to confirm');
-  const termsDue = payInFull
-    ? t('Pay {total} to confirm your booking.', { total: totalStr })
-    : t('Pay {deposit} now to confirm ({percent} of the total).', {
-        deposit: depositStr,
-        percent: depositPercentLabel(input.depositBps),
-      });
-  const termsBalance = payInFull
-    ? ''
-    : t('The balance of {balance} is payable later.', { balance: balanceStr });
+  /* WHAT IS DUE NOW, and what is left. Both figures come from the SAME split api_convert_quote sizes
+   * the first charge with — the shared deposit module for a deposit quote, {@link computeQuoteSchedule}
+   * for a per_date one — so the sentence below cannot promise a figure the card is not charged. A
+   * pay-in-full quote says so in one line and mentions no balance at all: "balance: EUR 0.00" would
+   * describe a second payment that never comes. */
+  const schedule = input.schedule ?? [];
+  // A per_date quote is disclosed as a SCHEDULE, not a % deposit: api_convert_quote overrides the
+  // deposit to the FIRST date's sum, so the "Pay X now" here must be that figure, never total × bps.
+  // Empty schedule (a per_date quote with no dated line) falls through to the deposit terms — which is
+  // exactly what the RPC does for it.
+  const perDate = input.paymentMode === 'per_date' && schedule.length >= 1;
+  const laterInstallments = schedule.slice(1);
+
+  let termsHeading: string;
+  let termsDue: string;
+  let termsBalance: string;
+  if (perDate) {
+    termsHeading = t('Payment schedule');
+    termsDue =
+      laterInstallments.length === 0
+        ? // One date carries everything → the whole total is due now; it is a pay-in-full-that-date.
+          t('Pay {total} to confirm your booking.', { total: totalStr })
+        : t('Pay {due} now to confirm — this secures every seat.', {
+            due: money(currency, schedule[0]!.amountMinor),
+          });
+    termsBalance =
+      laterInstallments.length === 0
+        ? ''
+        : t('The rest is collected before each activity: {list}.', {
+            list: laterInstallments
+              .map((inst) =>
+                t('{amount} before {date}', {
+                  amount: money(currency, inst.amountMinor),
+                  date: formatScheduleDate(inst.dueOn),
+                }),
+              )
+              .join('; '),
+          });
+  } else {
+    const payInFull = isPayInFull(input.depositBps);
+    const depositStr = money(currency, depositMinorOf(input.totalMinor, input.depositBps));
+    const balanceStr = money(currency, balanceMinorOf(input.totalMinor, input.depositBps));
+    termsHeading = payInFull ? t('Payment') : t('Deposit to confirm');
+    termsDue = payInFull
+      ? t('Pay {total} to confirm your booking.', { total: totalStr })
+      : t('Pay {deposit} now to confirm ({percent} of the total).', {
+          deposit: depositStr,
+          percent: depositPercentLabel(input.depositBps),
+        });
+    termsBalance = payInFull
+      ? ''
+      : t('The balance of {balance} is payable later.', { balance: balanceStr });
+  }
   const introNote = input.introNote?.trim() || '';
   const supportEmail = escapeHtml(SITE.email);
   const supportPhone = escapeHtml(SITE.phone);
@@ -245,11 +304,30 @@ export function renderQuoteEmail(input: QuoteEmailInput): RenderedEmail {
           ? `<div style="margin-top:2px;color:${MUTED};font-size:12.5px;">${escapeHtml(note)}</div>`
           : '');
       const amount = escapeHtml(money(currency, lineSubtotalMinor(line)));
+      const fare = line.transportFareMinor ?? 0;
+      // The transfer rides ON the line but is a figure of its own; itemise it as a nested add-on so the
+      // printed lines add up to the total (the reconciliation guard proves they must), the way the
+      // receipt does. Nothing renders for a line without one.
+      const transferRow =
+        fare > 0
+          ? `
+            <tr>
+              <td style="padding:2px 0 8px 12px;border-bottom:1px solid ${BORDER};color:${MUTED};font-size:12.5px;">${escapeHtml(
+                t('Round-trip transfer'),
+              )}</td>
+              <td style="padding:2px 0 8px 0;border-bottom:1px solid ${BORDER};color:${MUTED};font-size:12.5px;text-align:right;white-space:nowrap;vertical-align:top;">${escapeHtml(
+                money(currency, fare),
+              )}</td>
+            </tr>`
+          : '';
+      // When a transfer follows, the line's own bottom border is dropped so the two read as one group;
+      // the transfer row carries the divider instead.
+      const lineBorder = fare > 0 ? 'transparent' : BORDER;
       return `
             <tr>
-              <td style="padding:8px 0;border-bottom:1px solid ${BORDER};color:${INK};font-size:14px;">${desc}</td>
-              <td style="padding:8px 0;border-bottom:1px solid ${BORDER};color:${INK};font-size:14px;text-align:right;white-space:nowrap;vertical-align:top;">${amount}</td>
-            </tr>`;
+              <td style="padding:8px 0;border-bottom:1px solid ${lineBorder};color:${INK};font-size:14px;">${desc}</td>
+              <td style="padding:8px 0;border-bottom:1px solid ${lineBorder};color:${INK};font-size:14px;text-align:right;white-space:nowrap;vertical-align:top;">${amount}</td>
+            </tr>${transferRow}`;
     })
     .join('');
 
@@ -366,6 +444,13 @@ ${introHtml}
     textLines.push(
       `  - ${line.description}${note ? ` (${note})` : ''}: ${money(currency, lineSubtotalMinor(line))}`,
     );
+    // The same nested transfer add-on as the HTML — so the two parts stay one message and the printed
+    // lines add up to the total.
+    if ((line.transportFareMinor ?? 0) > 0) {
+      textLines.push(
+        `      ${t('Round-trip transfer')}: ${money(currency, line.transportFareMinor ?? 0)}`,
+      );
+    }
   }
   textLines.push('');
   textLines.push(`${t('Total')}: ${totalStr}`);
@@ -546,4 +631,117 @@ export function renderQuoteBalanceEmail(input: QuoteBalanceEmailInput): Rendered
   ].join('\n');
 
   return { subject, html, text };
+}
+
+/* ── Per-date payment schedule reminders ───────────────────────────────────────────────────────── */
+
+export interface InstallmentReminderEmailInput {
+  /** The QUOTE ref (the installment page/route are keyed on it). */
+  ref: string;
+  seq: number;
+  /** The deterministic HMAC token (64 lowercase hex) — see src/lib/quotes/installment-token.ts. */
+  linkToken: string;
+  customerName: string;
+  /** The date bucket, e.g. "04 Sep 2026". */
+  label: string;
+  currency: string;
+  /** Minor units — what THIS installment's link will charge. */
+  amountMinor: number;
+}
+
+/**
+ * The dated "pay before your next activity" reminder. Pure (no I/O, no clock). Like
+ * {@link renderQuoteBalanceEmail} it builds the /open-route URL from the token itself — never the
+ * page URL with `?t=` (which GTM/error_logs would export) — and refuses a non-positive amount or a
+ * malformed ref/token, because an emailed link cannot be recalled.
+ */
+export function renderInstallmentReminderEmail(
+  input: InstallmentReminderEmailInput,
+): RenderedEmail {
+  const { ref, seq } = input;
+  if (!Number.isSafeInteger(input.amountMinor) || input.amountMinor <= 0) {
+    throw new ValidationError(
+      `Installment ${ref}/${seq} has nothing to collect (${input.amountMinor} minor units), so there ` +
+        `is no payment to remind about — create_payment refuses a charge of nothing.`,
+    );
+  }
+  if (!quoteRefLooksValid(ref) || !quoteTokenLooksValid(input.linkToken)) {
+    throw new ValidationError(
+      `Installment ${ref}/${seq} cannot be emailed: its ref/token is not the shape the installment ` +
+        `open route accepts (ref 1-32 alphanumerics; token 64 lowercase hex).`,
+    );
+  }
+
+  const payUrl = `${SITE.url}${quoteInstallmentOpenPath(ref, seq, input.linkToken)}`;
+  const amount = money(input.currency, input.amountMinor);
+  const name = escapeHtml(input.customerName || 'there');
+  const label = escapeHtml(input.label);
+  const operator = SITE.operator;
+  const subject = `Payment due for ${input.label} — ${operator} booking ${ref}`;
+
+  const text = [
+    `Hi ${input.customerName || 'there'},`,
+    ``,
+    `A payment of ${amount} is due for ${input.label} on your ${operator} trip (booking ${ref}), ` +
+      `payable before that date.`,
+    ``,
+    `Pay securely here:`,
+    payUrl,
+    ``,
+    `The rest of your trip is collected the same way, before each activity. Reply to this email if ` +
+      `anything needs to change.`,
+    ``,
+    operator,
+  ].join('\n');
+
+  const html = `<div style="margin:0;padding:24px 0;background:#f3f4f6;font-family:Arial,Helvetica,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
+    <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:600px;max-width:600px;background:#fff;border-radius:8px;overflow:hidden;">
+      <tr><td style="background:${ACCENT};height:4px;font-size:0;line-height:0;">&nbsp;</td></tr>
+      <tr><td style="padding:26px 30px;color:${INK};font-size:15px;line-height:1.6;">
+        <p style="margin:0 0 12px;">Hi ${name},</p>
+        <p style="margin:0 0 16px;">A payment is due for <strong>${label}</strong> on your ${escapeHtml(operator)} trip
+          (booking ${escapeHtml(ref)}), payable before that date.</p>
+        <p style="margin:0 0 20px;font-size:22px;font-weight:bold;">${escapeHtml(amount)}</p>
+        <p style="margin:0 0 24px;">
+          <a href="${payUrl}" style="display:inline-block;background:${ACCENT};color:#fff;text-decoration:none;
+            padding:12px 26px;border-radius:999px;font-weight:bold;">Pay ${escapeHtml(amount)}</a>
+        </p>
+        <p style="margin:0;color:#6b7280;font-size:13px;">The rest of your trip is collected the same way, before
+          each activity. Reply to this email if anything needs to change.</p>
+      </td></tr>
+      <tr><td style="padding:16px 30px;border-top:1px solid ${BORDER};color:#6b7280;font-size:12px;">${escapeHtml(operator)}</td></tr>
+    </table>
+  </td></tr></table>
+</div>`;
+
+  return { subject, html, text };
+}
+
+export interface OwnerInstallmentOverdueEmailInput {
+  ref: string;
+  seq: number;
+  customerName: string;
+  label: string;
+  dueOn: string;
+  currency: string;
+  amountMinor: number;
+}
+
+/** Owner-facing internal alert: a dated installment's date has passed and it is still unpaid. Nothing
+ *  auto-cancels — the owner decides whether to run the activity or chase the guest. Pure. */
+export function renderOwnerInstallmentOverdueEmail(
+  input: OwnerInstallmentOverdueEmailInput,
+): RenderedEmail {
+  const amount = money(input.currency, input.amountMinor);
+  const subject = `Overdue installment: booking ${input.ref} — ${input.label}`;
+  const text =
+    `The ${amount} installment for ${input.label} on booking ${input.ref} (${input.customerName || 'guest'}) ` +
+    `is overdue — it was due ${input.dueOn} and has not been paid. Decide whether to run the activity or ` +
+    `chase the guest; nothing has been cancelled automatically.\n\n${SITE.operator} (internal alert)`;
+  return {
+    subject,
+    html: `<p style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;">${escapeHtml(text).replace(/\n/g, '<br>')}</p>`,
+    text,
+  };
 }

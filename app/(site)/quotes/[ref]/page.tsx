@@ -19,6 +19,7 @@ import {
   depositPercentLabel,
   isPayInFull,
 } from '@/lib/quotes/deposit';
+import { formatScheduleDate } from '@/lib/quotes/payment-schedule';
 import { formatMauritiusDateTime } from '@/lib/invoice/mauritius-time';
 import { SITE } from '@/lib/seo/site';
 
@@ -181,32 +182,71 @@ export default async function QuotePage({
             Valid until {quote.validUntil}. Nothing is reserved until the quote is paid.
           </p>
 
-          {/* WHAT IS DUE NOW. api_convert_quote charges only round(total × deposit_bps / 10000), so
-              without this the guest reads a total, presses Pay, and is asked for a tenth of it — with
-              the rest never named as owed. Hidden once the money has arrived: "pay X to confirm" is
-              stale the moment it has been paid. */}
-          {!paymentReceived && (
-            <div className="mt-4 rounded-xl border border-teal/25 bg-teal/5 p-4">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-teal-dark">
-                {isPayInFull(quote.depositBps) ? 'Payment' : 'Deposit to confirm'}
-              </p>
-              <p className="mt-1 text-[15px] font-bold text-ink">
-                {isPayInFull(quote.depositBps)
-                  ? `Pay ${money(quote.currency, quote.totalMinor)} to confirm your booking.`
-                  : `Pay ${money(
-                      quote.currency,
-                      depositMinorOf(quote.totalMinor, quote.depositBps),
-                    )} now to confirm (${depositPercentLabel(quote.depositBps)} of the total).`}
-              </p>
-              {!isPayInFull(quote.depositBps) && (
-                <p className="mt-1 text-[13px] text-ink-muted">
-                  The balance of{' '}
-                  {money(quote.currency, balanceMinorOf(quote.totalMinor, quote.depositBps))} is
-                  payable later.
+          {/* WHAT IS DUE NOW. api_convert_quote charges only round(total × deposit_bps / 10000) for a
+              deposit quote — or, for a per_date quote, the FIRST activity date's sum — so without this
+              the guest reads a total, presses Pay, and is asked for a figure the page never named.
+              Hidden once the money has arrived: "pay X to confirm" is stale the moment it has been
+              paid. The per_date branch shows the whole schedule, because that IS the offer being
+              accepted; the schedule's "due now" is the exact figure the card is charged. */}
+          {!paymentReceived &&
+            (quote.paymentMode === 'per_date' && quote.schedule.length >= 1 ? (
+              <div className="mt-4 rounded-xl border border-teal/25 bg-teal/5 p-4">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-teal-dark">
+                  Payment schedule
                 </p>
-              )}
-            </div>
-          )}
+                <p className="mt-1 text-[15px] font-bold text-ink">
+                  {quote.schedule.length === 1
+                    ? `Pay ${money(quote.currency, quote.totalMinor)} to confirm your booking.`
+                    : `Pay ${money(
+                        quote.currency,
+                        quote.schedule[0]!.amountMinor,
+                      )} now to confirm — this secures every seat.`}
+                </p>
+                {quote.schedule.length > 1 && (
+                  <>
+                    <p className="mt-2 text-[13px] text-ink-muted">
+                      The rest is collected before each activity:
+                    </p>
+                    <ul className="mt-1.5 space-y-1">
+                      {quote.schedule.slice(1).map((inst) => (
+                        <li
+                          key={inst.seq}
+                          className="flex items-center justify-between gap-4 text-[13px]"
+                        >
+                          <span className="text-ink-muted">
+                            before {formatScheduleDate(inst.dueOn)}
+                          </span>
+                          <span className="whitespace-nowrap font-medium text-ink">
+                            {money(quote.currency, inst.amountMinor)}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+              </div>
+            ) : (
+              <div className="mt-4 rounded-xl border border-teal/25 bg-teal/5 p-4">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-teal-dark">
+                  {isPayInFull(quote.depositBps) ? 'Payment' : 'Deposit to confirm'}
+                </p>
+                <p className="mt-1 text-[15px] font-bold text-ink">
+                  {isPayInFull(quote.depositBps)
+                    ? `Pay ${money(quote.currency, quote.totalMinor)} to confirm your booking.`
+                    : `Pay ${money(
+                        quote.currency,
+                        depositMinorOf(quote.totalMinor, quote.depositBps),
+                      )} now to confirm (${depositPercentLabel(quote.depositBps)} of the total).`}
+                </p>
+                {!isPayInFull(quote.depositBps) && (
+                  <p className="mt-1 text-[13px] text-ink-muted">
+                    The balance of{' '}
+                    {money(quote.currency, balanceMinorOf(quote.totalMinor, quote.depositBps))} is
+                    payable later.
+                  </p>
+                )}
+              </div>
+            ))}
 
           {/* THE MONEY REALLY ARRIVED — the booking says so, not the query string. This is the one
               state that may thank the guest, and the only one that may take the pay affordance away.

@@ -5402,6 +5402,39 @@
                             "null"
                           ]
                         },
+                        "installments": {
+                          "type": [
+                            "array",
+                            "null"
+                          ],
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "seq": {
+                                "type": "number"
+                              },
+                              "dueOn": {
+                                "type": "string"
+                              },
+                              "label": {
+                                "type": "string"
+                              },
+                              "amountEur": {
+                                "type": "number"
+                              },
+                              "coveredEur": {
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "seq",
+                              "dueOn",
+                              "label",
+                              "amountEur",
+                              "coveredEur"
+                            ]
+                          }
+                        },
                         "customItinerary": {
                           "type": [
                             "array",
@@ -6189,6 +6222,39 @@
                             "string",
                             "null"
                           ]
+                        },
+                        "installments": {
+                          "type": [
+                            "array",
+                            "null"
+                          ],
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "seq": {
+                                "type": "number"
+                              },
+                              "dueOn": {
+                                "type": "string"
+                              },
+                              "label": {
+                                "type": "string"
+                              },
+                              "amountEur": {
+                                "type": "number"
+                              },
+                              "coveredEur": {
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "seq",
+                              "dueOn",
+                              "label",
+                              "amountEur",
+                              "coveredEur"
+                            ]
+                          }
                         },
                         "customItinerary": {
                           "type": [
@@ -11033,6 +11099,296 @@
           },
           "409": {
             "description": "The balance is not ready to pay",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/quotes/{ref}/i/{seq}/open": {
+      "get": {
+        "operationId": "openQuoteInstallmentLink",
+        "summary": "Open a durable per-installment link: move its token into an httpOnly cookie and redirect",
+        "description": "The installment link’s analogue of /quotes/{ref}/balance/open, for a per-date scheduled booking. The reminder’s link is /quotes/{ref}/i/{seq}?t=…, and the installment page redirects that ?t= here; this authenticates nothing — it validates only the shape of the ref, the seq and the token, sets an httpOnly, Secure, SameSite=Lax cookie scoped to this ONE installment’s page + pay paths, and 302s to /quotes/{ref}/i/{seq}. The token is kept out of any rendered page URL, where GTM (page_location) and the client-error reporter (window.location.href) would both export it. A request with no valid token still redirects, so nothing here reveals which quote refs or installments exist.",
+        "tags": [
+          "Quotes"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ref",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "seq",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "t",
+            "description": "The raw installment-link token",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Redirect to the installment page (cookie set only for a well-formed token)"
+          },
+          "404": {
+            "description": "Malformed quote reference or installment sequence",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/quotes/{ref}/i/{seq}/pay": {
+      "post": {
+        "operationId": "payQuoteInstallment",
+        "summary": "Pay a scheduled installment: mint a fresh checkout on the guest’s click",
+        "description": "The installment’s analogue of /quotes/{ref}/balance/pay, and what makes the dated reminder link DURABLE — the checkout is minted on THIS click, sized by api_create_payment to this installment’s share of the balance (the running total up to it, minus what is already settled), so the URL works until the installment is covered. Authenticated by the INSTALLMENT LINK TOKEN in the httpOnly cookie /quotes/{ref}/i/{seq}/open set — never a bearer token, because the guest has no account. There is no request body: the cookie is the credential. Every refusal — unknown ref/seq, wrong/absent token, a not-confirmed booking, or an already-covered installment — is the same 404, so nothing here reveals which quote refs or installments exist.",
+        "tags": [
+          "Quotes"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ref",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "seq",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Checkout link for the installment charge",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "sessionId": {
+                          "type": "string"
+                        },
+                        "redirectUrl": {
+                          "type": "string"
+                        },
+                        "checkoutId": {
+                          "type": "string"
+                        },
+                        "provider": {
+                          "type": "string"
+                        },
+                        "chargeAmountMinor": {
+                          "type": "integer"
+                        },
+                        "chargeCurrency": {
+                          "type": "string"
+                        },
+                        "bookingRef": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "sessionId",
+                        "provider",
+                        "bookingRef"
+                      ]
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "integer"
+                        },
+                        "pageSize": {
+                          "type": "integer"
+                        },
+                        "total": {
+                          "type": "integer"
+                        },
+                        "totalPages": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "page",
+                        "pageSize",
+                        "total",
+                        "totalPages"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No readable installment for this link",
             "content": {
               "application/json": {
                 "schema": {

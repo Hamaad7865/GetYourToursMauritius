@@ -2759,6 +2759,19 @@ export const fr: Record<string, string> = {
     'Réglez {deposit} maintenant pour confirmer ({percent} du total).',
   'The balance of {balance} is payable later.':
     'Le solde de {balance} est à régler ultérieurement.',
+  // The round-trip transfer add-on, itemised as a nested line under its activity in the quote email.
+  'Round-trip transfer': 'Transfert aller-retour',
+  // The guest booking-confirmation per-date schedule (a per_date booking pays before each activity).
+  Paid: 'Payé',
+  'We collect each payment before its activity — we will email you a link in good time.':
+    'Nous encaissons chaque paiement avant son activité — nous vous enverrons un lien en temps voulu.',
+  // Per-date payment schedule (quote sent payment_mode='per_date'): one payment per activity date.
+  'Payment schedule': 'Échéancier de paiement',
+  'Pay {due} now to confirm — this secures every seat.':
+    'Réglez {due} maintenant pour confirmer — cela réserve toutes vos places.',
+  'The rest is collected before each activity: {list}.':
+    'Le reste est réglé avant chaque activité : {list}.',
+  '{amount} before {date}': '{amount} avant le {date}',
   'Pay {total} to confirm your booking.': 'Réglez {total} pour confirmer votre réservation.',
   'View & pay your quote': 'Voir et payer votre devis',
   'View and pay your quote:': 'Voir et payer votre devis :',

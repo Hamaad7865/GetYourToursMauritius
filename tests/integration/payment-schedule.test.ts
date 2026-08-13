@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestDb, type TestDb } from '../db/pglite';
+import { computeQuoteSchedule } from '@/lib/quotes/payment-schedule';
 
 /**
  * Per-date payment schedule (20260930000000_payment_schedule).
@@ -282,5 +283,157 @@ describe('per-date payment schedule', () => {
       [ref],
     );
     expect(owner.rows).toHaveLength(1);
+  });
+
+  // ── Adversarial-review fixes ─────────────────────────────────────────────────────────────────────
+
+  /**
+   * FIX 1 (the money bug). Installment charges are CUMULATIVE (seq k = running total up to it − settled),
+   * so two links size to OVERLAPPING amounts. Before the fix each minted its own live Peach session
+   * (per-seq lease), and completing both settled the overlap twice — a real overcharge. The lease is now
+   * booking-wide: one open balance session at a time, whatever installment opened it.
+   */
+  it('Fix 1: two installment links opened before either settles share ONE session (no overpay)', async () => {
+    // €90 / €180 / €140 across three dates. Deposit (seq0 = €90) paid → balance_due €320.
+    const { ref } = await convertQuote(
+      [
+        { amountMinor: 9000, daysFromNow: 2 },
+        { amountMinor: 18000, daysFromNow: 5 },
+        { amountMinor: 14000, daysFromNow: 8 },
+      ],
+      'per_date',
+    );
+    const dep = await mint(ref, 'booking', `${ref}-dep`);
+    await settle(dep.paymentId, `${ref}-dep-evt`, dep.amountMinor);
+
+    // Open installment 1 AND installment 2 before settling either. The second must REUSE the first's
+    // still-open row — one payable session per booking — not fork a second, overlapping one.
+    const i1 = await mint(ref, 'balance', `${ref}-i1`, 1);
+    const i2 = await mint(ref, 'balance', `${ref}-i2`, 2);
+    expect(i2.paymentId).toBe(i1.paymentId); // reused, not forked
+    expect(i2.amountMinor).toBe(i1.amountMinor); // i1's amount (18000), NOT a fresh 32000
+
+    // Exactly one balance row exists for the booking.
+    await db.asOwner();
+    const balRows = await db.pg.query(
+      `select 1 from payments p join bookings b on b.id = p.booking_id
+        where b.ref = $1 and p.purpose = 'balance'`,
+      [ref],
+    );
+    expect(balRows.rows).toHaveLength(1);
+
+    // Settle it (€180). balance_due → €140. Only NOW does a fresh installment-2 open mint its own,
+    // correctly re-sized row (the earlier one is fully paid, so it is skipped by the reuse filter).
+    await settle(i1.paymentId, `${ref}-i1-evt`, i1.amountMinor);
+    expect((await bookingState(ref)).balanceDueMinor).toBe(14000);
+
+    const i2b = await mint(ref, 'balance', `${ref}-i2b`, 2);
+    expect(i2b.paymentId).not.toBe(i1.paymentId); // a new session; the old one is settled
+    expect(i2b.amountMinor).toBe(14000);
+    await settle(i2b.paymentId, `${ref}-i2b-evt`, i2b.amountMinor);
+
+    // Everything settled; total paid == booking total, never a cent more (the overlap is not paid twice).
+    expect((await bookingState(ref)).balanceDueMinor).toBe(0);
+    await db.asOwner();
+    const paid = await db.pg.query<{ total: number }>(
+      `select coalesce(sum(p.paid_minor), 0)::int as total from payments p
+         join bookings b on b.id = p.booking_id where b.ref = $1`,
+      [ref],
+    );
+    expect(Number(paid.rows[0]!.total)).toBe(41000); // 9000 + 18000 + 14000, exactly the total
+  });
+
+  it('Fix 1: the plain balance link and an installment link also share ONE session', async () => {
+    const { ref } = await convertQuote(
+      [
+        { amountMinor: 9000, daysFromNow: 2 },
+        { amountMinor: 18000, daysFromNow: 5 },
+      ],
+      'per_date',
+    );
+    const dep = await mint(ref, 'booking', `${ref}-dep`);
+    await settle(dep.paymentId, `${ref}-dep-evt`, dep.amountMinor); // balance_due €180
+
+    const plain = await mint(ref, 'balance', `${ref}-bal`); // the whole balance, €180
+    expect(plain.amountMinor).toBe(18000);
+    const i1 = await mint(ref, 'balance', `${ref}-i1`, 1); // must reuse the plain session, not fork
+    expect(i1.paymentId).toBe(plain.paymentId);
+  });
+
+  /**
+   * FIX 2 (parity). The guest email + public page compute the schedule in TS (computeQuoteSchedule) so
+   * they can state the terms BEFORE the booking exists. This pins that TS to the SQL split the booking
+   * is actually made with — same amounts, same Mauritius-local dates — including a line whose UTC
+   * instant crosses the +4h boundary into the next Mauritius day.
+   */
+  it('Fix 2: computeQuoteSchedule matches booking_installments exactly (incl. the tz boundary)', async () => {
+    // 06:00Z = 10:00 MU (same day); 21:00Z on the 5th = 01:00 MU on the 6th → its OWN installment.
+    const starts = [
+      { iso: '2026-09-05T06:00:00Z', amountMinor: 9000 },
+      { iso: '2026-09-05T21:00:00Z', amountMinor: 5000 },
+      { iso: '2026-09-08T06:00:00Z', amountMinor: 12000 },
+    ];
+    seq += 1;
+    const total = starts.reduce((s, l) => s + l.amountMinor, 0);
+    await db.asOwner();
+    const { rows } = await db.pg.query<{ id: string }>(
+      `insert into quotes (ref, customer_name, customer_email, status, valid_until, total_minor,
+                           deposit_bps, payment_mode, sent_at)
+       values ($1, 'Marie', $2, 'sent', current_date + 30, $3, 5000, 'per_date', now()) returning id`,
+      [`QPAR${seq}`, `par${seq}@example.com`, total],
+    );
+    const quoteId = rows[0]!.id;
+    let pos = 0;
+    for (const s of starts) {
+      pos += 1;
+      await db.pg.query(
+        `insert into quote_items (quote_id, position, kind, description, starts_at, quantity,
+                                  unit_amount_minor, subtotal_minor)
+         values ($1, $2, 'custom', $3, $4::timestamptz, 1, $5, $5)`,
+        [quoteId, pos, `Line ${pos}`, s.iso, s.amountMinor],
+      );
+    }
+    await db.as({ role: 'service_role' });
+    const booking = await call<{ ref: string }>('api_convert_quote', { quoteId });
+
+    const dbSchedule = await installments(booking.ref);
+    const tsSchedule = computeQuoteSchedule(
+      starts.map((s) => ({ startsAt: s.iso, subtotalMinor: s.amountMinor, transportFareMinor: 0 })),
+    );
+    // The TS helper the guest email/page render from agrees with the SQL the booking is split by.
+    expect(tsSchedule.map((i) => ({ seq: i.seq, dueOn: i.dueOn, amount: i.amountMinor }))).toEqual(
+      dbSchedule.map((i) => ({ seq: i.seq, dueOn: i.dueOn, amount: i.amount })),
+    );
+    // The boundary line really landed on 6 Sep as its own installment — Mauritius-local, not UTC.
+    expect(dbSchedule.map((i) => i.dueOn)).toEqual(['2026-09-05', '2026-09-06', '2026-09-08']);
+    expect(dbSchedule.map((i) => i.amount)).toEqual([9000, 5000, 12000]);
+  });
+
+  /**
+   * A per_date quote whose EARLIEST date is a complimentary (€0) activity. A zero seq-0 would set
+   * deposit_minor = 0, which create_payment reads as the "no deposit" sentinel and would then charge the
+   * WHOLE total at the deposit step — the guest shown "Pay 0" but billed everything. The deposit must be
+   * the first POSITIVE date, and the zero date must not be an installment.
+   */
+  it('excludes a zero earliest date: deposit is the first positive date, not the full total', async () => {
+    const { ref } = await convertQuote(
+      [
+        { amountMinor: 0, daysFromNow: 2 }, // a free activity on the earliest date
+        { amountMinor: 30000, daysFromNow: 5 },
+        { amountMinor: 20000, daysFromNow: 8 },
+      ],
+      'per_date',
+    );
+    // The €0 date is NOT an installment; seq 0 is the first payable date.
+    const sched = await installments(ref);
+    expect(sched.map((i) => i.amount)).toEqual([30000, 20000]);
+    // The deposit is the first positive date (€300), NOT €0 and NOT the €500 full total.
+    expect((await bookingState(ref)).depositMinor).toBe(30000);
+
+    // And create_payment charges that €300 at the deposit step — never the full total via the sentinel.
+    const dep = await mint(ref, 'booking', `${ref}-dep`);
+    expect(dep.amountMinor).toBe(30000);
+    await settle(dep.paymentId, `${ref}-dep-evt`, dep.amountMinor);
+    expect((await bookingState(ref)).balanceDueMinor).toBe(20000);
   });
 });

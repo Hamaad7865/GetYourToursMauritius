@@ -35,6 +35,7 @@ function booking(over: Partial<BookingRow>): BookingRow {
     customItems: [],
     balanceDueEur: 0,
     depositEur: 0,
+    installments: [],
     transfer: null,
     ...over,
   };
