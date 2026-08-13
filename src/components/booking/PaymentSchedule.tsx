@@ -1,17 +1,22 @@
+'use client';
+
+import { useState } from 'react';
+
 /**
- * Read-only per-date payment schedule for the ADMIN drawer — an operational forecast, not just a list.
- * For each activity date it shows what is owed, what is already settled, and — crucially — WHEN the
- * automated reminder email fires and how much it will ask for, so the operator can see at a glance
- * "what do we charge this customer next, and when". A "Next reminder" headline pulls the soonest one out.
+ * Per-date payment schedule for the ADMIN drawer — an operational forecast, not just a list. For each
+ * activity date it shows what is owed, what is already settled, WHEN the automated reminder email fires
+ * and how much it will ask for, and a "Send reminder now" button to chase it on demand — so the operator
+ * can see and act on "what do we charge this customer next, and when" in one place. A "Next reminder"
+ * headline pulls the soonest one out.
  *
  * `coveredEur` is a pure waterfall over the booking's balance, so "Paid" means settlement has reached
  * this installment's running total; the "next" one is the earliest not-yet-fully-covered row. The
  * reminder date mirrors the cron: api_enqueue_installment_reminders chases an installment once its date
  * is within `leadDays` (default 3) — so the guest is emailed ~3 days before each date.
  *
- * ADMIN-ONLY (imported solely by AdminBookings) — it exposes internal reminder timing, which the guest
- * booking page deliberately does not show. Renders nothing on an ordinary deposit booking (empty
- * schedule), so callers can drop it in unguarded.
+ * ADMIN-ONLY (imported solely by AdminBookings) — it exposes internal reminder timing and the send
+ * button, which the guest booking page deliberately does not. The button appears only when
+ * `onSendReminder` is supplied. Renders nothing on an ordinary deposit booking (empty schedule).
  */
 
 export interface ScheduleInstallment {
@@ -50,13 +55,45 @@ function reminderDate(dueOn: string, days: number): string {
   return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 }
 
+/** The outcome of a "Send reminder now" click — enough to tell the operator what happened. */
+export interface SendReminderOutcome {
+  emailed: boolean;
+  recipient: string;
+}
+
+type SendState = { status: 'sending' | 'done' | 'error'; msg: string };
+
 export function PaymentSchedule({
   installments,
   className,
+  onSendReminder,
 }: {
   installments: ScheduleInstallment[] | null | undefined;
   className?: string;
+  /** When supplied, each unpaid row gets a "Send reminder now" button that calls this with the seq. */
+  onSendReminder?: (seq: number) => Promise<SendReminderOutcome>;
 }) {
+  const [sendState, setSendState] = useState<Record<number, SendState>>({});
+
+  async function handleSend(seq: number) {
+    if (!onSendReminder) return;
+    setSendState((s) => ({ ...s, [seq]: { status: 'sending', msg: '' } }));
+    try {
+      const out = await onSendReminder(seq);
+      setSendState((s) => ({
+        ...s,
+        [seq]: out.emailed
+          ? { status: 'done', msg: `Sent to ${out.recipient}` }
+          : { status: 'error', msg: 'Could not send — try again' },
+      }));
+    } catch (err) {
+      setSendState((s) => ({
+        ...s,
+        [seq]: { status: 'error', msg: err instanceof Error ? err.message : 'Could not send' },
+      }));
+    }
+  }
+
   if (!installments || installments.length === 0) return null;
 
   const total = round2(installments.reduce((s, i) => s + i.amountEur, 0));
@@ -103,6 +140,7 @@ export function PaymentSchedule({
           // A row partly covered by the deposit/earlier waterfall shows what is STILL owed, so the
           // operator reads "€72 due" on Christophe's 4 Sep, not the full €290 it costs.
           const partlyCovered = !paid && i.coveredEur > 0.005;
+          const st = sendState[i.seq];
           return (
             <li
               key={i.seq}
@@ -128,6 +166,33 @@ export function PaymentSchedule({
                   {!paid && (
                     <span className="mt-0.5 block text-[11px] text-ink-muted">
                       Reminder emails {reminderDate(i.dueOn, REMINDER_LEAD_DAYS)}
+                    </span>
+                  )}
+                  {/* Chase it on demand — the same email the cron sends, ~3 days early or as a re-send. */}
+                  {!paid && onSendReminder && (
+                    <span className="mt-1 block">
+                      {st?.status === 'done' ? (
+                        <span className="text-[11px] font-semibold text-emerald-700">
+                          <i aria-hidden="true">✓ </i>
+                          {st.msg}
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleSend(i.seq)}
+                          disabled={st?.status === 'sending'}
+                          className="inline-flex items-center gap-1 rounded-md border border-teal/40 px-2 py-0.5 text-[11px] font-semibold text-teal-dark hover:bg-teal/5 disabled:opacity-60"
+                        >
+                          {st?.status === 'sending'
+                            ? 'Sending…'
+                            : st?.status === 'error'
+                              ? 'Try again'
+                              : 'Send reminder now'}
+                        </button>
+                      )}
+                      {st?.status === 'error' && (
+                        <span className="ml-2 text-[11px] text-coral">{st.msg}</span>
+                      )}
                     </span>
                   )}
                 </span>

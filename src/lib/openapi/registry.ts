@@ -1144,6 +1144,47 @@ export const apiPaths: ZodOpenApiPathsObject = {
       },
     },
   },
+  '/admin/bookings/{ref}/installments/{seq}/remind': {
+    post: {
+      operationId: 'sendInstallmentReminder',
+      summary: 'Send a per-date installment reminder email on demand (staff-only)',
+      description:
+        'The operator’s "Send reminder now" button on a per-date booking’s payment schedule. The ' +
+        'automated chase (api_enqueue_installment_reminders) only fires ~3 days before each date; this ' +
+        'sends the SAME reminder for a chosen installment immediately — to chase early or re-send one ' +
+        'that bounced. The email renders through the same template + deterministic HMAC link and asks ' +
+        'for the same running-total charge the pay link collects. Sent IN-REQUEST, not via the outbox ' +
+        '(the token is never persisted, and the hosted sandbox has no cron to drain a queue). STAFF ' +
+        'ONLY via profiles.role (never the JWT’s Postgres role); "seo" is excluded. Refused when the ' +
+        'booking is not confirmed, has no email/quote, or the installment is already covered. A ' +
+        'provider failure comes back as emailed:false (retryable), not a 500.',
+      tags: ['Bookings'],
+      security: [{ bearerAuth: [] }],
+      requestParams: { path: z.object({ ref: z.string(), seq: z.string() }) },
+      requestBody: jsonBody(z.object({})),
+      responses: {
+        '200': okJson(
+          z.object({
+            emailed: z.boolean().describe('false if the provider failed — the operator can retry'),
+            recipient: z.string(),
+            amountDueMinor: z.number().int().describe('EUR minor units the reminder asked for'),
+            label: z.string(),
+            seq: z.number().int(),
+          }),
+          'The reminder was sent (or emailed:false if the provider failed)',
+        ),
+        '400': errorResponse('Invalid request'),
+        '401': errorResponse('Authentication required'),
+        '403': errorResponse('Staff only'),
+        '404': errorResponse('No such booking or installment'),
+        '409': errorResponse(
+          'Not confirmed, no email/quote, or the installment is already covered',
+        ),
+        '429': errorResponse('Too many requests'),
+        '500': errorResponse('Site URL is not configured'),
+      },
+    },
+  },
   '/client-errors': {
     post: {
       operationId: 'reportClientError',
