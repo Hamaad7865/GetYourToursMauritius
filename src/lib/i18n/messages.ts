@@ -2657,6 +2657,17 @@ export const fr: Record<string, string> = {
     'Votre reçu d’acompte est joint au format PDF. Nous vous enverrons un lien sécurisé pour régler le solde.',
   'Good news — we have received your deposit for booking {ref}.':
     'Bonne nouvelle — nous avons bien reçu votre acompte pour la réservation {ref}.',
+  // Per-date INSTALLMENT payment receipt — the same receipt as the deposit, worded "payment" not "deposit".
+  'PART PAID': 'PARTIELLEMENT PAYÉ',
+  'Your {operator} booking {ref} — payment received':
+    'Votre réservation {operator} {ref} — paiement reçu',
+  'We have received your payment': 'Nous avons bien reçu votre paiement',
+  'Thanks for your payment on your {operator} booking — here are the details, with the balance still to pay shown below.':
+    'Merci pour votre paiement sur votre réservation {operator} — voici les détails, avec le solde restant à payer indiqué ci-dessous.',
+  'Your payment receipt is attached as a PDF. We will send you a secure link to pay the rest.':
+    'Votre reçu de paiement est joint au format PDF. Nous vous enverrons un lien sécurisé pour régler le reste.',
+  'Good news — we have received your payment for booking {ref}.':
+    'Bonne nouvelle — nous avons bien reçu votre paiement pour la réservation {ref}.',
   'Questions? Contact us at {emailLink} or {phone}.':
     'Des questions ? Contactez-nous à {emailLink} ou au {phone}.',
   'Hi {name},': 'Bonjour {name},',

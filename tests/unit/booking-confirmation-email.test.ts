@@ -186,3 +186,33 @@ describe('renderConfirmationEmail', () => {
     });
   });
 });
+
+/**
+ * A per-date INSTALLMENT receipt is the same "balance still owed" document as a deposit receipt, but the
+ * copy must say "payment", not "deposit" — by this point the guest has already paid the deposit (and
+ * possibly earlier installments). Driven by model.installment, which the enrich step sets from the outbox
+ * payload; a plain deposit receipt leaves it false and is byte-identical to before.
+ */
+describe('renderConfirmationEmail — installment receipt wording', () => {
+  const receiptModel = (installment: boolean) => ({
+    ...representativeModel(),
+    balanceDueEur: 50,
+    amountPaidEur: 141,
+    installment,
+  });
+
+  it('an intermediate installment reads "payment received", never "deposit"', () => {
+    const { subject, html, text } = renderConfirmationEmail(receiptModel(true));
+    expect(subject).toContain('payment received');
+    expect(html).toContain('We have received your payment');
+    expect(html).not.toContain('We have received your deposit');
+    expect(html).not.toContain('Thanks for your deposit');
+    expect(text).toContain('we have received your payment');
+  });
+
+  it('a plain deposit receipt (installment false) still reads "deposit"', () => {
+    const { html } = renderConfirmationEmail(receiptModel(false));
+    expect(html).toContain('We have received your deposit');
+    expect(html).not.toContain('We have received your payment');
+  });
+});

@@ -178,6 +178,10 @@ export interface InvoiceModel {
   /** Amount still owed in EUR (0 = paid in full). > 0 makes this document a DEPOSIT RECEIPT: the PDF
    *  gates its PAID stamp off and shows "Amount paid / Balance due", the email adopts the receipt copy. */
   balanceDueEur: number;
+  /** When true AND balanceDueEur > 0, this is a receipt for an INTERMEDIATE per-date INSTALLMENT (not the
+   *  deposit): the email + PDF say "payment received" / "PART PAID" rather than "deposit". Set by the
+   *  enrich step from the outbox payload; a plain deposit receipt leaves it false. */
+  installment?: boolean;
   currency: string;
   payment: {
     chargedAmount: number;

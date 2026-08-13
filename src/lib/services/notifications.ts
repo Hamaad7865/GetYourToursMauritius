@@ -78,10 +78,26 @@ async function enrichBookingConfirmation(
       ? { ...booking, balanceDueMinor: depositReceiptBalance }
       : booking;
 
+  // The CHARGE snapshot, for the same reason as the balance one: an installment receipt carries the
+  // cumulative charge AS OF that installment on the payload, so it stays consistent with its snapshotted
+  // Amount paid / Balance due even if it drains after a later installment lowered the live charge that
+  // api_booking_receipt sums. Absent on a plain deposit receipt / the full invoice → live charge, unchanged.
+  const chargedSnapshot =
+    message.template === 'deposit_receipt' && typeof message.payload.chargedAmountMinor === 'number'
+      ? message.payload.chargedAmountMinor
+      : null;
+  const paymentForModel =
+    chargedSnapshot != null ? { ...payment, chargedAmountMinor: chargedSnapshot } : payment;
+
   // Deterministic issue date: the card's paid timestamp, else the drain's injected clock (never an
   // ungoverned new Date()) so tests stay reproducible.
   const issuedAt = payment.paidAt ?? ctx.now().toISOString();
-  const model = buildInvoice(bookingForModel, { ...payment, issuedAt }, INVOICE_BUSINESS);
+  const model = buildInvoice(bookingForModel, { ...paymentForModel, issuedAt }, INVOICE_BUSINESS);
+  // A per-date INSTALLMENT receipt (notify_balance_paid sets `installment` on the payload): the email +
+  // PDF read "payment received" / "PART PAID" instead of "deposit". Only meaningful with a balance owed.
+  if (message.payload.installment === true) {
+    model.installment = true;
+  }
 
   const bookingUrl = `${SITE.url}/bookings/${model.booking.ref}`;
   const email = renderConfirmationEmail(model, bookingUrl);
