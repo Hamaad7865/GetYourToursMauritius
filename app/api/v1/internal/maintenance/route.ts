@@ -10,7 +10,6 @@ import {
   reconcilePaymentsPending,
   enqueueReviewInvites,
   enqueuePickupReminders,
-  enqueueInstallmentReminders,
   applyFundedPickups,
   refreshFxRate,
   purgeErrorLogs,
@@ -138,14 +137,11 @@ export const POST = apiHandler(async (req) => {
     await log('pickup reminder sweep', err);
   }
 
-  // 5b) Chase each dated installment on a per-date scheduled booking before its date, and alert the
-  //     owner on an overdue one. Customer-affecting (an unpaid activity), so a failure counts.
-  let installmentRemindersEnqueued: number | { errored: true } = { errored: true };
-  try {
-    installmentRemindersEnqueued = await enqueueInstallmentReminders(ctx);
-  } catch (err) {
-    await log('installment reminder sweep', err);
-  }
+  // 5b) Per-date installment reminders are DISABLED by owner decision (2026-08-13): a customer is NOT
+  //     auto-emailed to pay each installment. The operator chases each one by hand from the booking
+  //     drawer's "Send reminder now" button (POST .../installments/{seq}/remind) instead. The
+  //     api_enqueue_installment_reminders RPC and the enqueueInstallmentReminders service are left in
+  //     place, dormant — re-enabling is a one-line restore of the call here.
 
   // 6) Settle any late-pickup supplement we hold but could not apply (the departure was called off
   //    and the guest has since been rescheduled). Money already taken, so a failure here counts.
@@ -196,7 +192,6 @@ export const POST = apiHandler(async (req) => {
     ...(failedJob(slotsCreated) ? ['availability'] : []),
     ...(failedJob(reviewInvitesCreated) ? ['reviewInvites'] : []),
     ...(failedJob(pickupRemindersEnqueued) ? ['pickupReminders'] : []),
-    ...(failedJob(installmentRemindersEnqueued) ? ['installmentReminders'] : []),
     ...(failedJob(fundedPickupsApplied) ? ['fundedPickups'] : []),
   ];
   if (erroredJobs.length > 0) {
@@ -210,7 +205,6 @@ export const POST = apiHandler(async (req) => {
         payments,
         reviewInvitesCreated,
         pickupRemindersEnqueued,
-        installmentRemindersEnqueued,
         fundedPickupsApplied,
         fx,
         errorLogsPurged,
