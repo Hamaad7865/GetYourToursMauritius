@@ -410,6 +410,102 @@ describe('per-date payment schedule', () => {
   });
 
   /**
+   * RECEIPTS (20261001000000). Each intermediate installment payment emails the customer a running
+   * receipt; the full paid-in-full VAT invoice fires exactly once — on the payment that CLEARS the
+   * balance, not the first installment (the misfire the pre-installment notify_balance_paid had).
+   */
+  it('emails a receipt per intermediate installment and the full invoice only when the balance clears', async () => {
+    const { ref } = await convertQuote(
+      [
+        { amountMinor: 9000, daysFromNow: 2 }, // deposit
+        { amountMinor: 18000, daysFromNow: 5 },
+        { amountMinor: 14000, daysFromNow: 8 },
+      ],
+      'per_date',
+    );
+    const bid = async () => {
+      await db.asOwner();
+      const { rows } = await db.pg.query<{ id: string }>(`select id from bookings where ref = $1`, [
+        ref,
+      ]);
+      return rows[0]!.id;
+    };
+    const notifs = async (id: string) => {
+      await db.asOwner();
+      const { rows } = await db.pg.query<{
+        template: string;
+        key: string;
+        installment: boolean | null;
+        balance: number | null;
+        charged: number | null;
+      }>(
+        `select template, idempotency_key as key, (payload ->> 'installment')::boolean as installment,
+                (payload ->> 'balanceDueMinor')::int as balance,
+                (payload ->> 'chargedAmountMinor')::int as charged
+           from notification_outbox where booking_id = $1 order by created_at`,
+        [id],
+      );
+      return rows;
+    };
+
+    const dep = await mint(ref, 'booking', `${ref}-dep`);
+    await settle(dep.paymentId, `${ref}-dep-evt`, dep.amountMinor); // confirmed, balance 32000
+    const id = await bid();
+
+    // Installment 1 → balance 14000 (> 0): a running receipt, and NO full invoice yet.
+    const i1 = await mint(ref, 'balance', `${ref}-i1`, 1);
+    await settle(i1.paymentId, `${ref}-i1-evt`, i1.amountMinor);
+    let rows = await notifs(id);
+    expect(rows.filter((r) => r.template === 'booking_confirmation')).toHaveLength(0); // NOT misfired
+    const receipt1 = rows.filter((r) => r.key === `installment_receipt:${i1.paymentId}`);
+    expect(receipt1).toHaveLength(1);
+    expect(receipt1[0]).toMatchObject({ template: 'deposit_receipt', installment: true });
+    // The receipt SNAPSHOTS both the balance and the cumulative charge as of THIS installment, so it stays
+    // internally consistent even if it drains after a later installment moved the live figures.
+    expect(receipt1[0]!.balance).toBe(14000); // balance remaining after installment 1
+    await db.asOwner();
+    const { rows: chargedRows } = await db.pg.query<{ total: number }>(
+      `select coalesce(sum(charged_amount_minor),0)::int as total from payments
+        where booking_id = $1 and purpose in ('booking','balance') and paid_minor > 0`,
+      [id],
+    );
+    // Snapshot equals the cumulative charge across the deposit + installment 1 (both settled by now).
+    expect(receipt1[0]!.charged).toBe(chargedRows[0]!.total);
+    expect(receipt1[0]!.charged).toBeGreaterThan(0);
+
+    // Installment 2 (final) → balance 0: the full invoice fires now, exactly once, + the owner alert.
+    const i2 = await mint(ref, 'balance', `${ref}-i2`, 2);
+    await settle(i2.paymentId, `${ref}-i2-evt`, i2.amountMinor);
+    rows = await notifs(id);
+    expect(rows.filter((r) => r.template === 'booking_confirmation')).toHaveLength(1);
+    expect(rows.filter((r) => r.template === 'owner_balance_paid')).toHaveLength(1);
+    // Still exactly one intermediate receipt (i1's) — the final payment did NOT also emit one.
+    expect(rows.filter((r) => r.key.startsWith('installment_receipt:'))).toHaveLength(1);
+  });
+
+  it('booking_balance_due() matches the balance_due_minor the reducer maintains (no drift)', async () => {
+    const { ref } = await convertQuote(
+      [
+        { amountMinor: 9000, daysFromNow: 2 },
+        { amountMinor: 18000, daysFromNow: 5 },
+      ],
+      'per_date',
+    );
+    const dep = await mint(ref, 'booking', `${ref}-dep`);
+    await settle(dep.paymentId, `${ref}-dep-evt`, dep.amountMinor);
+    const i1 = await mint(ref, 'balance', `${ref}-i1`, 1);
+    await settle(i1.paymentId, `${ref}-i1-evt`, i1.amountMinor);
+
+    await db.asOwner();
+    const { rows } = await db.pg.query<{ col: number; fn: number }>(
+      `select b.balance_due_minor::int as col, booking_balance_due(b.id)::int as fn
+         from bookings b where b.ref = $1`,
+      [ref],
+    );
+    expect(rows[0]!.fn).toBe(rows[0]!.col);
+  });
+
+  /**
    * A per_date quote whose EARLIEST date is a complimentary (€0) activity. A zero seq-0 would set
    * deposit_minor = 0, which create_payment reads as the "no deposit" sentinel and would then charge the
    * WHOLE total at the deposit step — the guest shown "Pay 0" but billed everything. The deposit must be

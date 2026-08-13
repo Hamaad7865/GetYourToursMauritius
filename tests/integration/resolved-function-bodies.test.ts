@@ -233,6 +233,15 @@ const CONTRACTS: ResolvedContract[] = [
       'drop it and a fully-paid deposit booking never receives its VAT invoice',
   },
   {
+    fn: 'notify_balance_paid',
+    must: 'gates the full invoice on the FRESH remaining balance, emitting an installment receipt otherwise',
+    code: /booking_balance_due\s*\([\s\S]*?v_remaining\s*>\s*0[\s\S]*?'deposit_receipt'[\s\S]*?'installment'/,
+    why:
+      'a per-date booking has MANY balance payments; without the fresh-balance gate the paid-in-full ' +
+      'invoice fires on the FIRST installment (balance still owed) and dedupes the real final one — the ' +
+      'customer never gets a correct invoice, and the intermediate installments get no receipt at all',
+  },
+  {
     fn: 'api_booking_receipt',
     must: 'exposes balance_due_minor to the receipt renderer',
     code: /'balancedueminor'\s*,\s*coalesce\s*\(\s*v_bal/,

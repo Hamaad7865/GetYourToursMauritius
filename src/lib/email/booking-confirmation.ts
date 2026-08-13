@@ -73,12 +73,18 @@ export function renderConfirmationEmail(model: InvoiceModel, bookingUrl?: string
   // subject and the attached PDF all say "deposit received, balance due" rather than "paid in full".
   // A fully-paid booking has balanceDueEur = 0 and every line below is byte-identical to before.
   const isDeposit = model.balanceDueEur > 0;
+  // A per-date INSTALLMENT payment (not the deposit): same "balance still owed" receipt shape, but the
+  // copy says "payment" not "deposit" — the guest already paid the deposit and may have paid earlier
+  // installments too. Only meaningful while a balance is owed.
+  const isInstallment = isDeposit && model.installment === true;
   const amountPaidStr = money(model.currency, model.amountPaidEur);
   const balanceDueStr = money(model.currency, model.balanceDueEur);
 
-  const subject = isDeposit
-    ? t('Your {operator} booking {ref} — deposit received', { operator, ref })
-    : t('Your {operator} booking {ref} — invoice & receipt', { operator, ref });
+  const subject = !isDeposit
+    ? t('Your {operator} booking {ref} — invoice & receipt', { operator, ref })
+    : isInstallment
+      ? t('Your {operator} booking {ref} — payment received', { operator, ref })
+      : t('Your {operator} booking {ref} — deposit received', { operator, ref });
 
   // ── HTML ──────────────────────────────────────────────────────────────────
   const lineRows = model.lines
@@ -226,15 +232,26 @@ export function renderConfirmationEmail(model: InvoiceModel, bookingUrl?: string
           <!-- body -->
           <tr>
             <td style="padding:28px;">
-              <h1 style="margin:0 0 8px 0;color:${INK};font-size:22px;">${escapeHtml(isDeposit ? t('We have received your deposit') : t('Your booking is confirmed'))} ✅</h1>
+              <h1 style="margin:0 0 8px 0;color:${INK};font-size:22px;">${escapeHtml(
+                !isDeposit
+                  ? t('Your booking is confirmed')
+                  : isInstallment
+                    ? t('We have received your payment')
+                    : t('We have received your deposit'),
+              )} ✅</h1>
               <p style="margin:0 0 20px 0;color:${MUTED};font-size:14px;line-height:1.5;">
                 ${escapeHtml(
-                  isDeposit
-                    ? t(
-                        'Thanks for your deposit on your {operator} booking — here are the details, with the balance still to pay shown below.',
-                        { operator },
-                      )
-                    : t('Thanks for booking with {operator}. Here are your details.', { operator }),
+                  !isDeposit
+                    ? t('Thanks for booking with {operator}. Here are your details.', { operator })
+                    : isInstallment
+                      ? t(
+                          'Thanks for your payment on your {operator} booking — here are the details, with the balance still to pay shown below.',
+                          { operator },
+                        )
+                      : t(
+                          'Thanks for your deposit on your {operator} booking — here are the details, with the balance still to pay shown below.',
+                          { operator },
+                        ),
                 )}
               </p>
 
@@ -255,11 +272,15 @@ export function renderConfirmationEmail(model: InvoiceModel, bookingUrl?: string
 ${voucherHtml}
               <p style="margin:0 0 20px 0;color:${INK};font-size:14px;line-height:1.5;">
                 ${escapeHtml(
-                  isDeposit
-                    ? t(
-                        'Your deposit receipt is attached as a PDF. We will send you a secure link to pay the balance.',
-                      )
-                    : t('Your invoice & receipt are attached as a PDF.'),
+                  !isDeposit
+                    ? t('Your invoice & receipt are attached as a PDF.')
+                    : isInstallment
+                      ? t(
+                          'Your payment receipt is attached as a PDF. We will send you a secure link to pay the rest.',
+                        )
+                      : t(
+                          'Your deposit receipt is attached as a PDF. We will send you a secure link to pay the balance.',
+                        ),
                 )}
               </p>
 
@@ -287,9 +308,11 @@ ${voucherHtml}
   const textLines = [
     t('Hi {name},', { name: model.customer.name }),
     '',
-    isDeposit
-      ? t('Good news — we have received your deposit for booking {ref}.', { ref })
-      : t('Good news — your booking {ref} is confirmed (total {total}).', { ref, total: totalStr }),
+    !isDeposit
+      ? t('Good news — your booking {ref} is confirmed (total {total}).', { ref, total: totalStr })
+      : isInstallment
+        ? t('Good news — we have received your payment for booking {ref}.', { ref })
+        : t('Good news — we have received your deposit for booking {ref}.', { ref }),
     '',
     `${t('Activity')}: ${activity}`,
   ];
@@ -338,11 +361,15 @@ ${voucherHtml}
     textLines.push('');
   }
   textLines.push(
-    isDeposit
-      ? t(
-          'Your deposit receipt is attached as a PDF. We will send you a secure link to pay the balance.',
-        )
-      : t('Your invoice & receipt are attached as a PDF.'),
+    !isDeposit
+      ? t('Your invoice & receipt are attached as a PDF.')
+      : isInstallment
+        ? t(
+            'Your payment receipt is attached as a PDF. We will send you a secure link to pay the rest.',
+          )
+        : t(
+            'Your deposit receipt is attached as a PDF. We will send you a secure link to pay the balance.',
+          ),
   );
   textLines.push('');
   textLines.push(

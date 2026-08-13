@@ -411,6 +411,9 @@ export async function renderInvoicePdf(model: InvoiceModel): Promise<Uint8Array>
   // shows the deposit that WAS charged); the amount still owed is spelled out in the totals block above.
   const pay = model.payment;
   const paidInFull = model.balanceDueEur <= 0;
+  // A per-date INSTALLMENT payment (balance still owed, but not the deposit): stamp "PART PAID" rather
+  // than "DEPOSIT PAID". The document title above is already the generic "PAYMENT RECEIPT" for both.
+  const isInstallment = !paidInFull && model.installment === true;
   const boxX = MARGIN;
   const boxTop = y;
   const boxWidth = 230;
@@ -425,13 +428,16 @@ export async function renderInvoicePdf(model: InvoiceModel): Promise<Uint8Array>
   });
   // Draw the box's contents with a local cursor so the outer `y` math stays simple.
   let by = boxTop - 18;
-  currentPage.drawText(toWinAnsi(paidInFull ? t('PAID') : t('DEPOSIT PAID')), {
-    x: boxX + 12,
-    y: by,
-    size: 16,
-    font: bold,
-    color: ACCENT,
-  });
+  currentPage.drawText(
+    toWinAnsi(paidInFull ? t('PAID') : isInstallment ? t('PART PAID') : t('DEPOSIT PAID')),
+    {
+      x: boxX + 12,
+      y: by,
+      size: 16,
+      font: bold,
+      color: ACCENT,
+    },
+  );
   const chargeParts: string[] = [];
   if (pay && typeof pay.chargedAmount === 'number') {
     chargeParts.push(
