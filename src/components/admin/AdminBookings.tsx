@@ -10,6 +10,7 @@ import {
   markBookingRefunded,
   eraseCustomerData,
   saveBookingNotes,
+  sendInstallmentReminder,
   bookingExtraCharges,
   type BookingRow,
   type BookingDetail,
@@ -791,7 +792,10 @@ function BookingDrawer({
 
             {booking.installments.length > 0 && (
               <section className="rounded-xl border border-ink/10 p-4">
-                <PaymentSchedule installments={booking.installments} />
+                <PaymentSchedule
+                  installments={booking.installments}
+                  onSendReminder={(seq) => sendInstallmentReminder(booking.ref, seq)}
+                />
               </section>
             )}
 

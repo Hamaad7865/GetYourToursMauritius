@@ -657,3 +657,50 @@ export async function saveBookingNotes(id: string, notes: string): Promise<void>
     .eq('id', id);
   if (error) throw error;
 }
+
+/** What "Send reminder now" returns: whether the email went and to whom, and the figure it asked for. */
+export interface InstallmentReminderResult {
+  emailed: boolean;
+  recipient: string;
+  amountDueMinor: number;
+  label: string;
+}
+
+/**
+ * Send the per-date installment reminder for `seq` on booking `ref` on demand — the "Send reminder now"
+ * button. Posts to the staff-gated admin route (bearer auth, like {@link sendBalanceLink}), which renders
+ * and sends the SAME email the cron does. `emailed: false` means the provider failed and the operator can
+ * retry — it is not thrown, so the button can say "couldn't send, try again" rather than a generic error.
+ */
+export async function sendInstallmentReminder(
+  ref: string,
+  seq: number,
+): Promise<InstallmentReminderResult> {
+  const { data } = await getBrowserSupabase().auth.getSession();
+  const accessToken = data.session?.access_token ?? null;
+  const res = await fetch(
+    `/api/v1/admin/bookings/${encodeURIComponent(ref)}/installments/${seq}/remind`,
+    {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        ...(accessToken ? { authorization: `Bearer ${accessToken}` } : {}),
+      },
+      body: JSON.stringify({}),
+    },
+  );
+  const body = (await res.json().catch(() => null)) as {
+    ok?: boolean;
+    data?: Partial<InstallmentReminderResult>;
+    error?: { message?: string };
+  } | null;
+  if (!res.ok || !body?.ok || !body.data) {
+    throw new Error(body?.error?.message ?? 'Could not send the reminder.');
+  }
+  return {
+    emailed: body.data.emailed ?? false,
+    recipient: body.data.recipient ?? '',
+    amountDueMinor: body.data.amountDueMinor ?? 0,
+    label: body.data.label ?? '',
+  };
+}

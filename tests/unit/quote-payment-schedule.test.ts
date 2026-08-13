@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { computeQuoteSchedule, formatScheduleDate } from '@/lib/quotes/payment-schedule';
+import {
+  computeQuoteSchedule,
+  formatScheduleDate,
+  installmentChargeMinor,
+} from '@/lib/quotes/payment-schedule';
 
 /**
  * The per-date payment schedule the guest email, the public quote page and the operator preview all
@@ -80,5 +84,32 @@ describe('formatScheduleDate', () => {
   it('formats yyyy-mm-dd as the "FMDD Mon YYYY" label booking_installments stores', () => {
     expect(formatScheduleDate('2026-09-05')).toBe('5 Sep 2026');
     expect(formatScheduleDate('2026-12-25')).toBe('25 Dec 2026');
+  });
+});
+
+describe('installmentChargeMinor', () => {
+  // Christophe: €616 total, €308 deposit settled → the pay link / reminder for each seq collects the
+  // running total up to it, minus what is settled, clamped to the balance.
+  const INSTALLMENTS = [
+    { seq: 0, amountMinor: 9000 },
+    { seq: 1, amountMinor: 29000 },
+    { seq: 2, amountMinor: 3000 },
+    { seq: 3, amountMinor: 17000 },
+    { seq: 4, amountMinor: 3600 },
+  ];
+  const charge = (seq: number) => installmentChargeMinor(INSTALLMENTS, seq, 61600, 30800);
+
+  it('returns 0 for an installment already covered by settlement (the deposit)', () => {
+    expect(charge(0)).toBe(0); // 2 Sep — inside the €308 already paid
+  });
+
+  it('charges the running total up to the installment minus what is settled', () => {
+    expect(charge(1)).toBe(7200); // 4 Sep: cumulative 38000 − 30800 settled = 7200
+    expect(charge(2)).toBe(10200); // 6 Sep: cumulative 41000 − 30800 = 10200 (clears 4 Sep too)
+    expect(charge(3)).toBe(27200); // 8 Sep: cumulative 58000 − 30800
+  });
+
+  it('never exceeds the balance still owed', () => {
+    expect(charge(4)).toBe(30800); // 9 Sep: cumulative 61600 − 30800 = 30800 = the whole balance
   });
 });

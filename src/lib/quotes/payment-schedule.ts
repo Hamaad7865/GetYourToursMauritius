@@ -86,6 +86,29 @@ export function computeQuoteSchedule(lines: QuoteScheduleLine[]): QuoteInstallme
 }
 
 /**
+ * What an installment's pay link — and its reminder email — collects NOW: the running total up to and
+ * including `seq`, minus what is already settled, clamped to `[0, balanceDueMinor]`. This is the EXACT
+ * figure `api_create_payment` sizes the checkout to and `api_enqueue_installment_reminders` prints in the
+ * email, so the manual "send reminder now" route can display the same amount without a second source of
+ * truth. `installments` is the booking's schedule (each `{ seq, amountMinor }`); order does not matter.
+ *
+ * 0 means this installment (and everything before it) is already covered by settlement — nothing to
+ * charge, and the reason a caller refuses to send a reminder for it.
+ */
+export function installmentChargeMinor(
+  installments: Array<{ seq: number; amountMinor: number }>,
+  seq: number,
+  totalMinor: number,
+  balanceDueMinor: number,
+): number {
+  const settled = totalMinor - balanceDueMinor;
+  const cumulative = installments
+    .filter((i) => i.seq <= seq)
+    .reduce((sum, i) => sum + i.amountMinor, 0);
+  return Math.max(0, Math.min(balanceDueMinor, cumulative - settled));
+}
+
+/**
  * A schedule date as the guest reads it — "5 Sep 2026", matching the `to_char(due_on, 'FMDD Mon YYYY')`
  * label api_convert_quote stores on `booking_installments`. Edge-safe: parses the `yyyy-mm-dd` directly
  * rather than through `Intl`, so no ICU timezone data is needed and the day never shifts.
