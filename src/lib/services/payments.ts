@@ -43,6 +43,13 @@ export interface CreatePaymentLinkInput {
    */
   purpose?: 'booking' | 'pickup_addon' | 'balance';
   /**
+   * For a 'balance' checkout on a per-date scheduled booking: which installment this link is for.
+   * create_payment sizes the row to that installment's share of the balance (the running total minus
+   * what is already settled) and scopes the single-flight lease to it, so each dated link is its own
+   * session. Absent = the plain whole-balance link, unchanged. Server-derived amount, never client input.
+   */
+  installmentSeq?: number;
+  /**
    * WHICH ENTRY POINT AUTHORIZES THIS CHECKOUT. Default 'caller' — api_create_payment, which checks
    * that `ctx`'s identity owns the booking (or is staff). That is every customer checkout, and it is
    * deliberately untouched: the public booking ref is not a bearer credential.
@@ -107,6 +114,7 @@ export async function createPaymentLink(
     bookingRef: input.bookingRef,
     idempotencyKey,
     purpose: input.purpose ?? 'booking',
+    ...(input.installmentSeq != null ? { installmentSeq: input.installmentSeq } : {}),
   };
 
   // Overlap the provider's cold-start with our own DB work. Peach needs an OAuth token from a

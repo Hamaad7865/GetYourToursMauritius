@@ -1,4 +1,5 @@
-import { quoteTotalMinor } from '@/lib/quotes/totals';
+import { lineSubtotalMinor, quoteTotalMinor, transportFareMinorOf } from '@/lib/quotes/totals';
+import { computeQuoteSchedule } from '@/lib/quotes/payment-schedule';
 import { defaultValidUntil, quoteTodayUtc } from '@/lib/quotes/validity';
 import { fmtDate, fmtTime, mauDay } from '@/lib/admin/format';
 import { rentalDays, regionFromCoords } from '@/lib/services/pricing';
@@ -236,6 +237,10 @@ export interface QuoteFormValues {
    * the first charge from — the rest is chased later with the balance link.
    */
   depositBps: number;
+  /** 'deposit' (one deposit + balance) or 'per_date' (a schedule of one installment per activity date,
+   *  built at conversion). In 'per_date' the deposit is the earliest date's amount, so the % above is
+   *  ignored. Copied into quotes.payment_mode. */
+  paymentMode: 'deposit' | 'per_date';
   lines: QuoteLineDraft[];
 }
 
@@ -284,6 +289,7 @@ export function emptyQuoteForm(today: string = quoteTodayUtc()): QuoteFormValues
     introNote: '',
     internalNotes: '',
     depositBps: DEFAULT_DEPOSIT_BPS,
+    paymentMode: 'deposit',
     lines: [],
   };
 }
@@ -314,6 +320,7 @@ export function formFromQuote(quote: QuoteDetail): QuoteFormValues {
     // The stored deposit comes back EXACTLY — a non-round percent (an AI draft, a manual set)
     // survives re-opening and saving untouched. Defaulted only if a row somehow carries none.
     depositBps: quote.depositBps ?? DEFAULT_DEPOSIT_BPS,
+    paymentMode: quote.paymentMode ?? 'deposit',
     lines: quote.items.map((item) => ({
       key: newLineKey(),
       kind: item.kind,
@@ -460,6 +467,7 @@ export function quoteInputFromForm(form: QuoteFormValues): QuoteInput {
     currency: 'EUR',
     locale: form.locale,
     depositBps: form.depositBps,
+    paymentMode: form.paymentMode,
     items,
   };
 }
@@ -824,8 +832,21 @@ export function previewEmailInput(form: QuoteFormValues): QuoteEmailInput {
     introNote: input.introNote,
     locale: input.locale ?? 'en',
     // The preview is EVIDENCE: it must state the same payment terms the send route will, or the
-    // operator signs off on an offer whose deposit sentence they never saw.
+    // operator signs off on an offer whose deposit sentence they never saw. That includes the per_date
+    // schedule — built here from the same lines, the same way computeQuoteSchedule builds it for the
+    // send route, so the preview's "due now" is the figure the guest is later charged.
     depositBps: form.depositBps,
+    paymentMode: form.paymentMode,
+    schedule:
+      form.paymentMode === 'per_date'
+        ? computeQuoteSchedule(
+            input.items.map((item) => ({
+              startsAt: item.startsAt ?? null,
+              subtotalMinor: lineSubtotalMinor(item),
+              transportFareMinor: transportFareMinorOf(item),
+            })),
+          )
+        : [],
     items: input.items.map((item) => ({
       // The send route makes the same substitution (`description ?? price_label`), and so does
       // api_convert_quote when it names the booking_items row — so the preview, the email and the
@@ -833,6 +854,9 @@ export function previewEmailInput(form: QuoteFormValues): QuoteEmailInput {
       description: item.description?.trim() || item.priceLabel || '',
       quantity: item.quantity,
       unitAmountMinor: item.unitAmountMinor,
+      // Same as the send route: without the fare, quoteTotalMinor falls short of the stored total and the
+      // preview throws for any quote with a transfer.
+      transportFareMinor: transportFareMinorOf(item),
     })),
     linkToken: PREVIEW_LINK_TOKEN,
   };

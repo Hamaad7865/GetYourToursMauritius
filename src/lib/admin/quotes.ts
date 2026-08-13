@@ -92,6 +92,10 @@ export interface QuoteRow {
    * fixture need not restate the schema default — mapQuote always provides it.
    */
   depositBps?: number;
+  /** 'deposit' (one deposit + balance) or 'per_date' (a schedule of one installment per activity date,
+   *  built at conversion from the line dates). Optional on the row type so a fixture need not restate
+   *  the default — mapQuote always provides it. */
+  paymentMode?: 'deposit' | 'per_date';
   /** ISO date (yyyy-mm-dd). api_convert_quote refuses a quote whose validity has passed. */
   validUntil: string;
   introNote: string | null;
@@ -161,6 +165,12 @@ export interface QuoteInput {
    * deposit input silently clear the stored deposit. Its default (1000) belongs to the INSERT alone.
    */
   depositBps?: number;
+  /**
+   * How the guest pays: 'deposit' (default — one deposit + balance) or 'per_date' (a schedule of one
+   * installment per activity date, built at conversion from the line dates). WRITE-ONLY-WHEN-SUPPLIED
+   * like {@link depositBps}, for the same reason: an edit with no payment-mode input must not reset it.
+   */
+  paymentMode?: 'deposit' | 'per_date';
   /** Accepted so a form object can be passed straight in, and then DISCARDED. See `quoteRowTotal`. */
   totalMinor?: number;
   items: QuoteItemInput[];
@@ -333,7 +343,7 @@ function db(): QuotesClient {
 
 const QUOTE_COLUMNS =
   'id, ref, customer_name, customer_email, customer_phone, status, currency, total_minor, ' +
-  'deposit_bps, valid_until, intro_note, internal_notes, sent_at, booking_id, converted_at, ' +
+  'deposit_bps, payment_mode, valid_until, intro_note, internal_notes, sent_at, booking_id, converted_at, ' +
   'room_or_cabin, locale, created_at, updated_at';
 
 const ITEM_COLUMNS =
@@ -380,6 +390,7 @@ function mapQuote(raw: Row): QuoteRow {
     currency: text(raw.currency),
     totalMinor: minor(raw.total_minor),
     depositBps: Number(raw.deposit_bps ?? 1000),
+    paymentMode: (text(raw.payment_mode) || 'deposit') as 'deposit' | 'per_date',
     validUntil: dateText(raw.valid_until),
     introNote: textOrNull(raw.intro_note),
     internalNotes: textOrNull(raw.internal_notes),
@@ -687,6 +698,15 @@ export async function saveQuote(input: QuoteInput): Promise<string> {
     );
   }
 
+  // The payment mode, validated like deposit/locale (the half that survives a cast) before any statement.
+  // `null` = "the caller said nothing" (leave the stored mode, take the INSERT default 'deposit').
+  const paymentMode: string | null = input.paymentMode ?? null;
+  if (paymentMode !== null && paymentMode !== 'deposit' && paymentMode !== 'per_date') {
+    throw new ValidationError(
+      `A quote's payment mode must be 'deposit' or 'per_date', not '${paymentMode}'.`,
+    );
+  }
+
   const rows = quoteItemRows(input.items);
   const fields: Row = {
     customer_name: customerName,
@@ -717,6 +737,7 @@ export async function saveQuote(input: QuoteInput): Promise<string> {
     // booking's first-charge size at conversion, and an edit from a form (or an AI draft) with no
     // deposit input must not reset it. Absent from `fields` above (the full-replace side) on purpose.
     if (depositBps !== null) fields.deposit_bps = depositBps;
+    if (paymentMode !== null) fields.payment_mode = paymentMode;
 
     // The line replacement is gated on this having matched: the lines are the itemisation behind the
     // stored total, and deleting them for an edit that was refused is exactly the state the guard is
@@ -740,6 +761,7 @@ export async function saveQuote(input: QuoteInput): Promise<string> {
         currency: currency ?? 'EUR',
         locale: locale ?? 'en',
         deposit_bps: depositBps ?? 1000,
+        payment_mode: paymentMode ?? 'deposit',
         ref: mintQuoteRef(),
         created_by: staff?.userId ?? null,
       })

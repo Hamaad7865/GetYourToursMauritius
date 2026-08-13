@@ -58,6 +58,16 @@ interface Booking {
   balanceDueEur?: number | null;
   /** Earliest dated line across both line tables — the balance falls due 24h before it. */
   firstActivityAt?: string | null;
+  /** The per-date payment schedule (empty/absent on an ordinary deposit booking). `coveredEur` is the
+   *  waterfall over `balanceDueEur` — an installment is covered once settlement reaches its running
+   *  total. Drives the dated schedule shown in place of the single deposit deadline (booking_json). */
+  installments?: Array<{
+    seq: number;
+    dueOn: string;
+    label: string;
+    amountEur: number;
+    coveredEur: number;
+  }> | null;
   customItinerary?: Array<{ title: string; area?: string | null }> | null;
   pickupLocation?: string | null;
   dropoffLocation?: string | null;
@@ -659,14 +669,57 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
                 <Price eur={booking.balanceDueEur ?? 0} />
               </span>
             </div>
-            {balanceDueBy && (
-              <p className="mt-1.5 text-[12.5px] leading-relaxed text-ink-muted">
-                {t('Due by {date}, 24 hours before your first activity.', { date: balanceDueBy })}
-              </p>
+            {(booking.installments ?? []).length > 0 ? (
+              // A per_date booking has MANY deadlines, not one — the single "24h before your first
+              // activity" line above is the deposit-booking case and would misstate the terms the guest
+              // accepted. Show the dated schedule instead: what is paid, and what each later date collects.
+              <div className="mt-2.5 space-y-1.5 border-t border-gold/25 pt-2.5">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-ink-muted">
+                  {t('Payment schedule')}
+                </p>
+                {(booking.installments ?? []).map((inst) => {
+                  const settled = inst.coveredEur >= inst.amountEur - 0.005;
+                  const remaining = Math.max(
+                    0,
+                    Math.round((inst.amountEur - inst.coveredEur) * 100) / 100,
+                  );
+                  return (
+                    <div
+                      key={inst.seq}
+                      className="flex items-baseline justify-between gap-3 text-[12.5px]"
+                    >
+                      {/* inst.label is DB-formatted date text ("5 Sep 2026") — shown verbatim. */}
+                      <span className="text-ink-muted">{inst.label}</span>
+                      {settled ? (
+                        <span className="font-bold text-teal-dark">{t('Paid')}</span>
+                      ) : (
+                        <span className="font-bold text-ink">
+                          <Price eur={remaining} />
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+                <p className="pt-0.5 text-[12px] leading-relaxed text-ink-muted">
+                  {t(
+                    'We collect each payment before its activity — we will email you a link in good time.',
+                  )}
+                </p>
+              </div>
+            ) : (
+              <>
+                {balanceDueBy && (
+                  <p className="mt-1.5 text-[12.5px] leading-relaxed text-ink-muted">
+                    {t('Due by {date}, 24 hours before your first activity.', {
+                      date: balanceDueBy,
+                    })}
+                  </p>
+                )}
+                <p className="mt-1.5 text-[12.5px] leading-relaxed text-ink-muted">
+                  {t('Get in touch to settle it — we will send you a payment link.')}
+                </p>
+              </>
             )}
-            <p className="mt-1.5 text-[12.5px] leading-relaxed text-ink-muted">
-              {t('Get in touch to settle it — we will send you a payment link.')}
-            </p>
           </div>
         )}
 

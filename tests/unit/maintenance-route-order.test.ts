@@ -9,6 +9,7 @@ const {
   materialize,
   reviewInvites,
   pickupReminders,
+  installmentReminders,
   fundedPickups,
   fxRefresh,
   purgeErrors,
@@ -40,6 +41,10 @@ const {
       calls.push('pickupReminders');
       return 0;
     }),
+    installmentReminders: vi.fn(async () => {
+      calls.push('installmentReminders');
+      return 0;
+    }),
     fundedPickups: vi.fn(async () => {
       calls.push('fundedPickups');
       return 0;
@@ -57,6 +62,7 @@ vi.mock('@/lib/services/maintenance', () => ({
   materializeAvailability: materialize,
   enqueueReviewInvites: reviewInvites,
   enqueuePickupReminders: pickupReminders,
+  enqueueInstallmentReminders: installmentReminders,
   applyFundedPickups: fundedPickups,
   refreshFxRate: fxRefresh,
   purgeErrorLogs: purgeErrors,
@@ -79,6 +85,7 @@ beforeEach(() => {
   materialize.mockClear();
   reviewInvites.mockClear();
   pickupReminders.mockClear();
+  installmentReminders.mockClear();
   fundedPickups.mockClear();
   fxRefresh.mockClear();
   purgeErrors.mockClear();

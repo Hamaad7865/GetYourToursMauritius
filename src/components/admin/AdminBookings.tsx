@@ -38,6 +38,7 @@ import {
   paymentPill,
   statusPill,
 } from './BookingFacts';
+import { PaymentSchedule } from '@/components/booking/PaymentSchedule';
 
 function euroInt(n: number): string {
   return `€${Math.round(n).toLocaleString('en-US')}`;
@@ -787,6 +788,12 @@ function BookingDrawer({
                 </div>
               )}
             </section>
+
+            {booking.installments.length > 0 && (
+              <section className="rounded-xl border border-ink/10 p-4">
+                <PaymentSchedule installments={booking.installments} />
+              </section>
+            )}
 
             <section className="rounded-xl border border-ink/10 p-4">
               <h3 className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">

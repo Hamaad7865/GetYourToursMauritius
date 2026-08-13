@@ -10,6 +10,7 @@ import {
   reconcilePaymentsPending,
   enqueueReviewInvites,
   enqueuePickupReminders,
+  enqueueInstallmentReminders,
   applyFundedPickups,
   refreshFxRate,
   purgeErrorLogs,
@@ -137,6 +138,15 @@ export const POST = apiHandler(async (req) => {
     await log('pickup reminder sweep', err);
   }
 
+  // 5b) Chase each dated installment on a per-date scheduled booking before its date, and alert the
+  //     owner on an overdue one. Customer-affecting (an unpaid activity), so a failure counts.
+  let installmentRemindersEnqueued: number | { errored: true } = { errored: true };
+  try {
+    installmentRemindersEnqueued = await enqueueInstallmentReminders(ctx);
+  } catch (err) {
+    await log('installment reminder sweep', err);
+  }
+
   // 6) Settle any late-pickup supplement we hold but could not apply (the departure was called off
   //    and the guest has since been rescheduled). Money already taken, so a failure here counts.
   let fundedPickupsApplied: number | { errored: true } = { errored: true };
@@ -186,6 +196,7 @@ export const POST = apiHandler(async (req) => {
     ...(failedJob(slotsCreated) ? ['availability'] : []),
     ...(failedJob(reviewInvitesCreated) ? ['reviewInvites'] : []),
     ...(failedJob(pickupRemindersEnqueued) ? ['pickupReminders'] : []),
+    ...(failedJob(installmentRemindersEnqueued) ? ['installmentReminders'] : []),
     ...(failedJob(fundedPickupsApplied) ? ['fundedPickups'] : []),
   ];
   if (erroredJobs.length > 0) {
@@ -199,6 +210,7 @@ export const POST = apiHandler(async (req) => {
         payments,
         reviewInvitesCreated,
         pickupRemindersEnqueued,
+        installmentRemindersEnqueued,
         fundedPickupsApplied,
         fx,
         errorLogsPurged,

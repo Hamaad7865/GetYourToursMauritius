@@ -12,6 +12,11 @@ import { renderInvoicePdf } from '@/lib/invoice/pdf';
 import { escapeHtml, renderConfirmationEmail } from '@/lib/email/booking-confirmation';
 import { renderReviewRequestEmail } from '@/lib/email/review-request';
 import { renderPickupConfirmedEmail, renderPickupReminderEmail } from '@/lib/email/pickup';
+import {
+  renderInstallmentReminderEmail,
+  renderOwnerInstallmentOverdueEmail,
+} from '@/lib/email/quote';
+import { mintInstallmentToken } from '@/lib/quotes/installment-token';
 import { renderLeadEnquiryEmail } from '@/lib/email/lead-enquiry';
 import { INVOICE_BUSINESS } from '@/lib/invoice/business';
 import { SITE } from '@/lib/seo/site';
@@ -409,6 +414,54 @@ function enrichPickupEmail(message: NotificationMessage): void {
   message.text = email.text;
 }
 
+/**
+ * The dated installment reminder — the one enrich step that is ASYNC, because the durable link's token
+ * is a deterministic HMAC recomputed here (never persisted in the outbox). The SQL enqueuer supplies the
+ * quote ref + booking id + seq; the token binds the booking id + seq, and the renderer builds the /open
+ * URL from it so no raw token is ever rendered.
+ */
+async function enrichInstallmentReminder(message: NotificationMessage): Promise<void> {
+  const p = message.payload;
+  const str = (v: unknown): string => (typeof v === 'string' ? v : '');
+  const num = (v: unknown): number => (typeof v === 'number' ? v : 0);
+  const bookingId = str(p.bookingId);
+  const quoteRef = str(p.quoteRef);
+  const seq = num(p.seq);
+  const token = await mintInstallmentToken(bookingId, seq);
+  const email = renderInstallmentReminderEmail({
+    ref: quoteRef,
+    seq,
+    linkToken: token,
+    customerName: str(p.customerName),
+    // Quote bookings are EUR (bookings.currency CHECK = 'EUR'); the payload omits it for that reason.
+    currency: 'EUR',
+    amountMinor: num(p.amountDueMinor),
+    label: str(p.label),
+  });
+  message.subject = email.subject;
+  message.html = email.html;
+  message.text = email.text;
+}
+
+/** The owner's overdue-installment alert. Sync — no link, so no token to compute. */
+function enrichOwnerInstallmentOverdue(message: NotificationMessage): void {
+  const p = message.payload;
+  const str = (v: unknown): string => (typeof v === 'string' ? v : '');
+  const num = (v: unknown): number => (typeof v === 'number' ? v : 0);
+  const email = renderOwnerInstallmentOverdueEmail({
+    ref: str(p.ref),
+    seq: num(p.seq),
+    customerName: str(p.customerName),
+    label: str(p.label),
+    dueOn: str(p.dueOn),
+    currency: 'EUR',
+    amountMinor: num(p.amountDueMinor),
+  });
+  message.subject = email.subject;
+  message.html = email.html;
+  message.text = email.text;
+}
+
 export interface DrainResult {
   processed: number;
   sent: number;
@@ -460,6 +513,10 @@ export async function drainNotifications(
         message.template === 'pickup_confirmed'
       ) {
         enrichPickupEmail(message);
+      } else if (message.template === 'installment_reminder') {
+        await enrichInstallmentReminder(message);
+      } else if (message.template === 'owner_installment_overdue') {
+        enrichOwnerInstallmentOverdue(message);
       }
       await provider.send(message);
       await callRpc(ctx, 'mark_notification', { id: message.id, result: 'sent' });

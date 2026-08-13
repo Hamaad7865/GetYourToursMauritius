@@ -110,6 +110,15 @@ export interface BookingRow {
    *  (booking_supplements rows). Like transport they have NO booking_items rows, so the drawer must
    *  render each or the Total looks unexplained. */
   supplements: Array<{ name: string; qty: number; totalEur: number }>;
+  /** The per-date payment schedule (empty on an ordinary deposit booking). `coveredEur` is a waterfall
+   *  over `balanceDueEur` — an installment is covered once settlement reaches its running total. */
+  installments: Array<{
+    seq: number;
+    dueOn: string;
+    label: string;
+    amountEur: number;
+    coveredEur: number;
+  }>;
   /** Airport-transfer details (null for non-transfer bookings) — shown in the admin drawer + voucher. */
   transfer: AdminTransferDetails | null;
 }
@@ -262,6 +271,12 @@ interface RawBooking extends RawTransferFields {
     transport_pickup_label: string | null;
     transport_dropoff_label: string | null;
   }> | null;
+  booking_installments: Array<{
+    seq: number;
+    due_on: string;
+    label: string;
+    amount_minor: number;
+  }> | null;
   payments: RawPaymentLite[] | null;
 }
 
@@ -279,7 +294,8 @@ const BOOKING_SELECT = `
   booking_custom_items (
     description, quantity, subtotal_minor, position,
     transport_fare_minor, transport_pickup_label, transport_dropoff_label
-  )
+  ),
+  booking_installments ( seq, due_on, label, amount_minor )
 `;
 
 function mapItem(raw: RawItem): BookingItemRow {
@@ -369,6 +385,25 @@ function mapBooking(raw: RawBooking): BookingRow {
         totalEur: s.total_minor / 100,
       })),
     customItems,
+    // The per-date payment schedule with a waterfall coverage: settled (total − balance_due) fills the
+    // installments in seq order, so each is covered once settlement reaches its running total. Empty on
+    // an ordinary deposit booking.
+    installments: (() => {
+      const rows = (raw.booking_installments ?? []).slice().sort((a, b) => a.seq - b.seq);
+      const settled = (raw.total_minor ?? 0) - (raw.balance_due_minor ?? 0);
+      let cumulativeBefore = 0;
+      return rows.map((r) => {
+        const covered = Math.max(0, Math.min(r.amount_minor, settled - cumulativeBefore));
+        cumulativeBefore += r.amount_minor;
+        return {
+          seq: r.seq,
+          dueOn: String(r.due_on).slice(0, 10),
+          label: r.label,
+          amountEur: r.amount_minor / 100,
+          coveredEur: covered / 100,
+        };
+      });
+    })(),
     transfer: mapTransfer(raw),
   };
 }

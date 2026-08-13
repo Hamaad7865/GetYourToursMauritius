@@ -33,6 +33,10 @@ const ServerEnvSchema = z.object({
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1).optional(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
   SUPABASE_JWT_SECRET: z.string().min(1).optional(),
+  // HMAC key for the durable per-installment pay-link token (src/lib/quotes/installment-token.ts).
+  // Optional: falls back to SUPABASE_JWT_SECRET / the service-role key so no new config is needed —
+  // set a dedicated value only to rotate installment links without rotating auth. Never client-exposed.
+  PAYMENT_LINK_SECRET: z.string().min(1).optional(),
 
   // Legacy HS256 (symmetric) access tokens are REJECTED by default. The project now signs
   // ES256 via JWKS, so HS256 should never appear in production; accepting it means anyone

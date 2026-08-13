@@ -739,72 +739,110 @@ function QuoteEditor({
                 </div>
 
                 <div className="mt-4 border-t border-[#EEF1F3] pt-4">
-                  <div className="flex flex-wrap items-end gap-x-5 gap-y-3">
-                    <Field
-                      label="Deposit to confirm"
-                      hint="What the guest pays now to lock in the booking. The balance is chased later."
-                    >
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="number"
-                          min={1}
-                          max={100}
-                          step={1}
-                          value={depositPercent}
-                          disabled={payInFull || converted}
-                          aria-label="Deposit percent"
-                          onChange={(e) =>
-                            set('depositBps', depositBpsFromPercent(Number(e.target.value)))
-                          }
-                          className={`${INPUT_CLS} w-24 disabled:opacity-50`}
-                        />
-                        <span className="text-sm font-bold text-ink-muted">%</span>
-                      </div>
-                    </Field>
-                    <label className="mb-1.5 flex cursor-pointer items-center gap-2 text-[13px] font-semibold text-ink">
-                      <input
-                        type="checkbox"
-                        checked={payInFull}
-                        disabled={converted}
-                        onChange={(e) =>
-                          set(
-                            'depositBps',
-                            e.target.checked ? PAY_IN_FULL_BPS : DEFAULT_DEPOSIT_BPS,
-                          )
-                        }
-                        className="h-4 w-4 rounded border-[#CBD3D8] text-teal accent-teal focus:ring-teal disabled:opacity-50"
-                      />
-                      Pay in full (100%)
-                    </label>
+                  <div className="mb-3">
+                    <span className="mb-1.5 block text-[13px] font-bold text-ink">
+                      Payment plan
+                    </span>
+                    <div className="inline-flex rounded-lg border border-[#CBD3D8] p-0.5 text-[13px] font-semibold">
+                      {(['deposit', 'per_date'] as const).map((mode) => (
+                        <button
+                          key={mode}
+                          type="button"
+                          disabled={converted}
+                          onClick={() => set('paymentMode', mode)}
+                          className={`rounded-md px-3 py-1.5 disabled:opacity-50 ${
+                            values.paymentMode === mode ? 'bg-teal text-white' : 'text-ink-muted'
+                          }`}
+                        >
+                          {mode === 'deposit' ? 'Deposit + balance' : 'Pay per date'}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                  <p className="mt-2 text-[12px] leading-relaxed text-ink-muted">
-                    {payInFull ? (
-                      depositAmount === null ? (
-                        <>
-                          The guest pays the whole total to confirm — no balance to collect later.
-                        </>
-                      ) : (
-                        <>
-                          The guest pays the whole{' '}
-                          <span className="font-bold text-ink">{eurFromMinor(depositAmount)}</span>{' '}
-                          to confirm — no balance to collect later.
-                        </>
-                      )
-                    ) : depositAmount === null || balanceAmount === null ? (
-                      <>
-                        The guest pays {depositPercent}% now to confirm the booking; the rest is
-                        collected later with the balance link.
-                      </>
-                    ) : (
-                      <>
-                        The guest pays{' '}
-                        <span className="font-bold text-ink">{eurFromMinor(depositAmount)}</span> (
-                        {depositPercent}%) now to confirm; a{' '}
-                        <span className="font-bold text-ink">{eurFromMinor(balanceAmount)}</span>{' '}
-                        balance is collected later with the balance link.
-                      </>
-                    )}
-                  </p>
+                  {values.paymentMode === 'per_date' ? (
+                    <div className="rounded-lg border border-teal/20 bg-teal/[0.04] p-3 text-[12.5px] leading-relaxed text-ink-muted">
+                      The balance is split into <strong>one payment per activity date</strong> — the
+                      guest pays each before that day and is reminded automatically a few days
+                      ahead. The earliest date&rsquo;s amount is the deposit that secures the trip;
+                      the exact schedule is built from the line dates when the guest accepts.
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex flex-wrap items-end gap-x-5 gap-y-3">
+                        <Field
+                          label="Deposit to confirm"
+                          hint="What the guest pays now to lock in the booking. The balance is chased later."
+                        >
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="number"
+                              min={1}
+                              max={100}
+                              step={1}
+                              value={depositPercent}
+                              disabled={payInFull || converted}
+                              aria-label="Deposit percent"
+                              onChange={(e) =>
+                                set('depositBps', depositBpsFromPercent(Number(e.target.value)))
+                              }
+                              className={`${INPUT_CLS} w-24 disabled:opacity-50`}
+                            />
+                            <span className="text-sm font-bold text-ink-muted">%</span>
+                          </div>
+                        </Field>
+                        <label className="mb-1.5 flex cursor-pointer items-center gap-2 text-[13px] font-semibold text-ink">
+                          <input
+                            type="checkbox"
+                            checked={payInFull}
+                            disabled={converted}
+                            onChange={(e) =>
+                              set(
+                                'depositBps',
+                                e.target.checked ? PAY_IN_FULL_BPS : DEFAULT_DEPOSIT_BPS,
+                              )
+                            }
+                            className="h-4 w-4 rounded border-[#CBD3D8] text-teal accent-teal focus:ring-teal disabled:opacity-50"
+                          />
+                          Pay in full (100%)
+                        </label>
+                      </div>
+                      <p className="mt-2 text-[12px] leading-relaxed text-ink-muted">
+                        {payInFull ? (
+                          depositAmount === null ? (
+                            <>
+                              The guest pays the whole total to confirm — no balance to collect
+                              later.
+                            </>
+                          ) : (
+                            <>
+                              The guest pays the whole{' '}
+                              <span className="font-bold text-ink">
+                                {eurFromMinor(depositAmount)}
+                              </span>{' '}
+                              to confirm — no balance to collect later.
+                            </>
+                          )
+                        ) : depositAmount === null || balanceAmount === null ? (
+                          <>
+                            The guest pays {depositPercent}% now to confirm the booking; the rest is
+                            collected later with the balance link.
+                          </>
+                        ) : (
+                          <>
+                            The guest pays{' '}
+                            <span className="font-bold text-ink">
+                              {eurFromMinor(depositAmount)}
+                            </span>{' '}
+                            ({depositPercent}%) now to confirm; a{' '}
+                            <span className="font-bold text-ink">
+                              {eurFromMinor(balanceAmount)}
+                            </span>{' '}
+                            balance is collected later with the balance link.
+                          </>
+                        )}
+                      </p>
+                    </>
+                  )}
                   {converted && (
                     <p className="mt-1.5 text-[12px] leading-relaxed text-ink-muted">
                       This quote has been converted, so its deposit can no longer be changed. Send
