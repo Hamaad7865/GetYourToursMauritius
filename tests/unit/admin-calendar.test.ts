@@ -374,6 +374,57 @@ describe('mapDaySchedule', () => {
     );
   });
 
+  /* `capacity` is denominated in booking UNITS (Σ quantity), not people, so the header ratio reads
+   * against `units`. A seat tour has units===pax; a private charter or a van is ONE unit however many
+   * guests ride it, so pax > units there — which is exactly when the card also shows "· N guests". */
+  describe('units (what capacity is denominated against)', () => {
+    it('equals pax for a seat tour (each guest is one unit)', () => {
+      const [dep] = mapDaySchedule([row([item({ quantity: 2, pax: null })])]);
+      expect(dep?.units).toBe(2);
+      expect(dep?.pax).toBe(2);
+    });
+
+    it('counts ONE unit for a multi-guest private/vehicle party (pax exceeds units)', () => {
+      const [dep] = mapDaySchedule([
+        row([item({ quantity: 1, pax: 6, price_label: 'Private van' })]),
+      ]);
+      expect(dep?.units).toBe(1);
+      expect(dep?.pax).toBe(6);
+    });
+
+    it('counts the vehicles, not the riders, when several are booked', () => {
+      const [dep] = mapDaySchedule([row([item({ quantity: 3, pax: 12, price_label: 'Van' })])]);
+      expect(dep?.units).toBe(3);
+      expect(dep?.pax).toBe(12);
+    });
+
+    it('sums quantity across a party’s bands', () => {
+      const [dep] = mapDaySchedule([
+        row([
+          item({ quantity: 2, price_label: 'Adult' }),
+          item({ quantity: 1, price_label: 'Child' }),
+        ]),
+      ]);
+      expect(dep?.units).toBe(3);
+    });
+
+    it('sums units across parties', () => {
+      const [dep] = mapDaySchedule([
+        row([item({ quantity: 2 }), item({ bookings: booking({ id: 'b2', ref: 'BMT002' }) })]),
+      ]);
+      expect(dep?.units).toBe(4);
+    });
+
+    it('excludes unpaid parties, mirroring pax', () => {
+      const [dep] = mapDaySchedule([
+        row([item({ quantity: 1, pax: 6, bookings: booking({ status: 'payment_pending' }) })]),
+      ]);
+      expect(dep?.units).toBe(0);
+      expect(dep?.pax).toBe(0);
+      expect(dep?.pendingPax).toBe(6);
+    });
+  });
+
   // The TS twin of booking_awaiting_choice(jsonb): non-null disruption with no resolvedAt means the
   // guest was called off and still owes us a choice.
   it('flags a guest who still owes us a new date or a refund', () => {

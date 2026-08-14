@@ -109,8 +109,14 @@ export interface DayDeparture {
   guestsPerTrip: number | null;
   activityTitle: string;
   optionName: string;
-  /** Seats held by confirmed/completed parties — the number `capacity` is denominated against. */
+  /** Guests on confirmed/completed parties (Σ `pax ?? quantity`) — the HEADCOUNT. For a private or
+   *  vehicle party this EXCEEDS `units` (one charter/van carries several guests); for a seat tour it
+   *  equals `units`. Can exceed `capacity`, which counts units, not people. */
   pax: number;
+  /** Booking UNITS on confirmed/completed parties (Σ `quantity`) — the unit `capacity` is denominated
+   *  against: guests for a seat tour, trips for a private option, vehicles for vehicle mode (the same
+   *  count `used_capacity` gates on). "X of capacity" on the day sheet reads against THIS, not `pax`. */
+  units: number;
   /** Heads on unpaid, still-live bookings. Deliberately outside `pax`: they hold no seat yet, and
    *  folding them in would make this card disagree with the month grid and with used_capacity. */
   pendingPax: number;
@@ -476,6 +482,12 @@ export function mapDaySchedule(rows: RawDayRow[]): DayDeparture[] {
       activityTitle: act?.title ?? 'Untitled',
       optionName: opt?.name ?? '',
       pax: bookings.reduce((s, b) => s + (b.counted ? b.pax : 0), 0),
+      // Σ `quantity` of counted parties — a private charter or a van is ONE unit however many guests
+      // ride it, so this (not pax) is what `capacity` denominates against. Seat tours have pax===units.
+      units: bookings.reduce(
+        (s, b) => s + (b.counted ? b.lines.reduce((t, l) => t + l.quantity, 0) : 0),
+        0,
+      ),
       pendingPax: bookings.reduce((s, b) => s + (b.counted ? 0 : b.pax), 0),
       bookings,
     });

@@ -481,7 +481,16 @@ function DepartureCard({
               </>
             ) : (
               <>
-                {departure.pax} of {departure.capacity}
+                {/* "X of capacity" is denominated in UNITS (trips/vehicles), not people: a 6-guest van
+                    is 1 of the day's vehicle slots. Show the headcount only when it differs — seat
+                    tours have pax===units and stay clean. */}
+                {departure.units} of {departure.capacity}
+                {departure.pax !== departure.units && (
+                  <>
+                    {' '}
+                    · {departure.pax} guest{departure.pax === 1 ? '' : 's'}
+                  </>
+                )}
               </>
             )}
             {departure.pendingPax > 0 && (
