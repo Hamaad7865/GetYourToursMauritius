@@ -296,6 +296,84 @@ describe('mapDaySchedule', () => {
     });
   });
 
+  /* The day pool is trips × guests only for a SHARED option, so the sheet reads its guests-per-trip
+   * back to show "N of M trips". A private option's pool counts trips and a vehicle's counts
+   * vehicles — both already in the owner's unit — and a legacy shared option has no cap yet, so all
+   * three surface guestsPerTrip = null and keep the historic seat/trip/vehicle ratio. */
+  describe('guestsPerTrip (so the day sheet can speak trips)', () => {
+    it('reads a shared option’s guests-per-trip', () => {
+      const [dep] = mapDaySchedule([
+        row([item()], {
+          activity_options: {
+            name: 'Shared tour',
+            guests_per_trip: 25,
+            activities: { title: 'Ile aux Cerfs' },
+          },
+        }),
+      ]);
+      expect(dep?.guestsPerTrip).toBe(25);
+    });
+
+    it('lets an option override beat the activity default', () => {
+      const [dep] = mapDaySchedule([
+        row([item()], {
+          activity_options: {
+            name: 'Shared tour',
+            guests_per_trip: 12,
+            activities: { title: 'Ile aux Cerfs', guests_per_trip: 25 },
+          },
+        }),
+      ]);
+      expect(dep?.guestsPerTrip).toBe(12);
+    });
+
+    it('falls back to the activity default when the option sets none', () => {
+      const [dep] = mapDaySchedule([
+        row([item()], {
+          activity_options: {
+            name: 'Shared tour',
+            activities: { title: 'Ile aux Cerfs', guests_per_trip: 25 },
+          },
+        }),
+      ]);
+      expect(dep?.guestsPerTrip).toBe(25);
+    });
+
+    it('is null for a legacy shared option with no cap set — keeps the seat ratio', () => {
+      const [dep] = mapDaySchedule([row([item()])]);
+      expect(dep?.guestsPerTrip).toBeNull();
+    });
+
+    it('is null for a PRIVATE option (its pool counts trips, not guests)', () => {
+      const [dep] = mapDaySchedule([
+        row([item()], {
+          activity_options: {
+            name: 'Private charter',
+            private_base_minor: 500_00,
+            guests_per_trip: 6,
+            activities: { title: 'Ile aux Cerfs', guests_per_trip: 25 },
+          },
+        }),
+      ]);
+      expect(dep?.guestsPerTrip).toBeNull();
+    });
+
+    it.each(['vehicle', 'vehicle_custom'])(
+      'is null in %s mode (the pool counts vehicles)',
+      (mode) => {
+        const [dep] = mapDaySchedule([
+          row([item()], {
+            activity_options: {
+              name: 'Van transfer',
+              activities: { title: 'Airport transfer', guests_per_trip: 25, pricing_mode: mode },
+            },
+          }),
+        ]);
+        expect(dep?.guestsPerTrip).toBeNull();
+      },
+    );
+  });
+
   // The TS twin of booking_awaiting_choice(jsonb): non-null disruption with no resolvedAt means the
   // guest was called off and still owes us a choice.
   it('flags a guest who still owes us a new date or a refund', () => {

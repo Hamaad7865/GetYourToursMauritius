@@ -102,6 +102,11 @@ export interface DayDeparture {
   startsAt: string;
   status: string;
   capacity: number;
+  /** Effective guests-per-trip for a SHARED option (option override ?? activity default) when one is
+   *  set — the day pool is trips × this, so the sheet can read the owner's model ("N of M trips")
+   *  instead of the raw seat pool. null for a legacy shared option (no cap yet), and for private and
+   *  vehicle options, whose pool already counts trips / vehicles — those keep the historic ratio. */
+  guestsPerTrip: number | null;
   activityTitle: string;
   optionName: string;
   /** Seats held by confirmed/completed parties — the number `capacity` is denominated against. */
@@ -278,16 +283,32 @@ interface RawDayBooking extends RawTransferFields {
   disruption: { resolvedAt?: string | null } | null;
 }
 
+/** The activity an option belongs to, as embedded on the occurrence read. `guests_per_trip` is the
+ *  activity-level default cap and `pricing_mode` tells vehicle mode apart — both optional so the
+ *  test factories (and any caller that doesn't select them) stay valid; absent reads as legacy. */
+interface RawDayActivity {
+  title: string;
+  guests_per_trip?: number | null;
+  pricing_mode?: string | null;
+}
+
+/** The booking option embedded on the occurrence read. `guests_per_trip` is the option's own cap
+ *  override (null → uses the activity default); `private_base_minor` non-null marks a PRIVATE option
+ *  (its pool counts trips, not guests, so the trip re-read must skip it). */
+interface RawDayOption {
+  name: string;
+  guests_per_trip?: number | null;
+  private_base_minor?: number | null;
+  activities: RawDayActivity | RawDayActivity[] | null;
+}
+
 export interface RawDayRow {
   id: string;
   activity_option_id: string;
   starts_at: string;
   status: string;
   capacity: number;
-  activity_options:
-    | { name: string; activities: { title: string } | { title: string }[] | null }
-    | Array<{ name: string; activities: { title: string } | { title: string }[] | null }>
-    | null;
+  activity_options: RawDayOption | RawDayOption[] | null;
   booking_items: Array<{
     quantity: number;
     pax: number | null;
@@ -363,6 +384,17 @@ export function mapDaySchedule(rows: RawDayRow[]): DayDeparture[] {
   const out: DayDeparture[] = [];
   for (const raw of rows) {
     const opt = one(raw.activity_options);
+    const act = one(opt?.activities);
+    // The day pool is trips × guests only for a SHARED option. A private option's pool counts trips
+    // and a vehicle option's counts vehicles — both already read in the owner's unit — and a shared
+    // option with no cap yet is one trip taking the whole pool. Surface guests/trip only in the first
+    // case, so the day sheet can re-read those pools as "N of M trips".
+    const isPrivate = opt?.private_base_minor != null;
+    // Both `vehicle` and `vehicle_custom` (the planner road-trip) pool VEHICLES, with guests fixed by
+    // the vehicle brackets — neither carries a meaningful guests-per-trip, so match the prefix.
+    const isVehicle = (act?.pricing_mode ?? '').startsWith('vehicle');
+    const rawGpt = opt?.guests_per_trip ?? act?.guests_per_trip ?? null;
+    const guestsPerTrip = !isPrivate && !isVehicle && rawGpt != null && rawGpt > 0 ? rawGpt : null;
     const bookings: DayBooking[] = [];
 
     for (const item of raw.booking_items ?? []) {
@@ -440,7 +472,8 @@ export function mapDaySchedule(rows: RawDayRow[]): DayDeparture[] {
       startsAt: raw.starts_at,
       status: raw.status,
       capacity: raw.capacity,
-      activityTitle: one(opt?.activities)?.title ?? 'Untitled',
+      guestsPerTrip,
+      activityTitle: act?.title ?? 'Untitled',
       optionName: opt?.name ?? '',
       pax: bookings.reduce((s, b) => s + (b.counted ? b.pax : 0), 0),
       pendingPax: bookings.reduce((s, b) => s + (b.counted ? 0 : b.pax), 0),
@@ -709,7 +742,8 @@ export async function loadDaySchedule(day: string): Promise<DayEntry[]> {
       .from('session_occurrences')
       .select(
         `id, activity_option_id, starts_at, status, capacity,
-         activity_options ( name, activities ( title ) ),
+         activity_options ( name, guests_per_trip, private_base_minor,
+                            activities ( title, guests_per_trip, pricing_mode ) ),
          booking_items ( quantity, pax, price_label, transport_pickup_label, transport_dropoff_label,
                          bookings ( ${BOOKING_FIELDS} ) )`,
       )

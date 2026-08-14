@@ -443,6 +443,13 @@ function DepartureCard({
   // unpaid and already-disrupted parties, and this card now lists unpaid ones too. Promising mail to
   // a guest who will never receive it is exactly the sort of thing staff act on and later regret.
   const willEmail = notifiableCount(departure);
+  // The owner plans in trips, not seats. When a shared option carries a guests-per-trip, read its
+  // pool (trips × guests) back as "N of M trips" with the headcount beside it. tripsUsed is the
+  // minimum trips those guests fill — a shared trip seats several parties, so it is a floor, not an
+  // exact packing. Legacy/private/vehicle options have no gpt here and keep the historic ratio.
+  const gpt = departure.guestsPerTrip;
+  const tripsPerDay = gpt ? Math.max(1, Math.round(departure.capacity / gpt)) : null;
+  const tripsUsed = gpt ? Math.ceil(departure.pax / gpt) : null;
 
   const callOff = useCallback(async () => {
     setBusy(true);
@@ -466,8 +473,17 @@ function DepartureCard({
         <div>
           <p className="text-sm font-bold text-ink">{departure.activityTitle}</p>
           <p className="text-[12.5px] text-ink-muted">
-            {departure.optionName} · {fmtTime(departure.startsAt)} · {departure.pax} of{' '}
-            {departure.capacity}
+            {departure.optionName} · {fmtTime(departure.startsAt)} ·{' '}
+            {gpt ? (
+              <>
+                {tripsUsed} of {tripsPerDay} trip{tripsPerDay === 1 ? '' : 's'} · {departure.pax}{' '}
+                guest{departure.pax === 1 ? '' : 's'}
+              </>
+            ) : (
+              <>
+                {departure.pax} of {departure.capacity}
+              </>
+            )}
             {departure.pendingPax > 0 && (
               <span className="text-amber-700"> · +{departure.pendingPax} unpaid</span>
             )}
