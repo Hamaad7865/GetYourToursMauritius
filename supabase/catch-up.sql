@@ -14401,17 +14401,29 @@ begin
         count(*)                                                     as departures,
         count(*) filter (where o.status = 'cancelled')               as cancelled,
         coalesce(sum(o.booked), 0)                                   as pax,
-        coalesce(sum(greatest(o.capacity - o.booked, 0)), 0)         as seats_left
+        -- capacity is in UNITS, so seats_left subtracts UNITS (booked_units), never the headcount.
+        coalesce(sum(greatest(o.capacity - o.booked_units, 0)), 0)   as seats_left
       from (
         select
           so.starts_at, so.status, so.capacity,
+          -- HEADCOUNT (pax ?? quantity) -> the day's guest count. May exceed capacity; that is fine,
+          -- it is people, not the seat pool.
           coalesce((
             select sum(coalesce(bi.pax, bi.quantity))
               from booking_items bi
               join bookings b on b.id = bi.booking_id
              where bi.session_occurrence_id = so.id
                and b.status in ('confirmed', 'completed')
-          ), 0) as booked
+          ), 0) as booked,
+          -- BOOKING UNITS (sum of quantity) -> what capacity is denominated in (trips for a private
+          -- option, vehicles for vehicle mode, guests for a seat tour). seats_left subtracts THIS.
+          coalesce((
+            select sum(bi.quantity)
+              from booking_items bi
+              join bookings b on b.id = bi.booking_id
+             where bi.session_occurrence_id = so.id
+               and b.status in ('confirmed', 'completed')
+          ), 0) as booked_units
         from session_occurrences so
         -- Half-open Mauritius-local range: sargable against session_occurrences_starts_idx, unlike
         -- (starts_at at time zone ...)::date = d.
