@@ -63,6 +63,10 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
   // edited again (see `set`/`onTitle`/`onSlug`/`editFr`), so it only ever marks the current state.
   const [justSaved, setJustSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // A soft warning after a successful save — e.g. an option removal that was refused because the
+  // option has bookings (the fix is to Discontinue it, not delete). Distinct from `error` (a real
+  // failure) so the save still counts as saved.
+  const [warning, setWarning] = useState<string | null>(null);
   const [slugLocked, setSlugLocked] = useState(mode === 'edit');
   const [active, setActive] = useState<SectionId>(defaultSection(false));
   // Rail dots stay off until the first save attempt — a brand-new tour has an empty title by
@@ -152,6 +156,7 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
 
   function set<K extends keyof ActivityFormValues>(key: K, val: ActivityFormValues[K]) {
     setJustSaved(false);
+    setWarning(null);
     setValues((prev) => (prev ? { ...prev, [key]: val } : prev));
   }
 
@@ -175,6 +180,7 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
   async function save(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setWarning(null);
     setJustSaved(false);
     setSubmitted(true);
     // One pane is on screen, so an error about a private option is useless while you're looking at
@@ -201,12 +207,21 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
         return;
       }
       if (id) {
-        await updateActivity(id, v, { contentOnly });
+        const { keptWithBookings } = await updateActivity(id, v, { contentOnly });
         await saveActivityTranslation(id, fr);
         // Reload so newly-added options/supplements pick up their database ids, then stay on the
         // current pane with a "Saved ✓" confirmation rather than leaving the tour.
         await reloadInto(id);
         setJustSaved(true);
+        // An option the owner tried to REMOVE but that has bookings can't be deleted — say so plainly
+        // (it used to just silently reappear) and point at Discontinue.
+        if (keptWithBookings.length) {
+          const names = keptWithBookings.map((n) => `“${n}”`).join(', ');
+          const one = keptWithBookings.length === 1;
+          setWarning(
+            `Saved — but ${names} ${one ? 'has' : 'have'} bookings, so ${one ? 'it was' : 'they were'} not removed. Use “Discontinue” on ${one ? 'it' : 'them'} to hide from customers while keeping the booking.`,
+          );
+        }
         // Revalidate the public site's server components so the change shows there too.
         router.refresh();
       }
@@ -273,6 +288,14 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
             className="rounded-xl bg-coral/10 px-4 py-3 text-sm font-medium text-coral"
           >
             {error}
+          </p>
+        )}
+        {warning && (
+          <p
+            role="status"
+            className="rounded-xl bg-amber-100/60 px-4 py-3 text-sm font-medium text-amber-800"
+          >
+            {warning}
           </p>
         )}
 

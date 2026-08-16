@@ -1,8 +1,9 @@
 'use client';
 
+import { useState } from 'react';
 import { IconX } from '@/components/ui/icons';
 import { inputClass } from '@/components/admin/fields';
-import type { OptionInput } from '@/lib/admin/activity-write';
+import { setOptionStatus, type OptionInput } from '@/lib/admin/activity-write';
 
 export function OptionsEditor({
   options,
@@ -11,8 +12,28 @@ export function OptionsEditor({
   options: OptionInput[];
   onChange: (o: OptionInput[]) => void;
 }) {
+  // In-flight guard + error for the discontinue/reinstate side-effect (a status RPC, independent of
+  // the tour's Save). Keyed by option id so only the acted-on row's button spins.
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [statusError, setStatusError] = useState<string | null>(null);
+
   function update(i: number, patch: Partial<OptionInput>) {
     onChange(options.map((o, idx) => (idx === i ? { ...o, ...patch } : o)));
+  }
+
+  /** Discontinue ('archived') or reinstate ('active') a SAVED option immediately, then reflect the
+   *  new status in the form so the content Save leaves it untouched. */
+  async function changeStatus(i: number, optionId: string, status: 'active' | 'archived') {
+    setBusyId(optionId);
+    setStatusError(null);
+    try {
+      await setOptionStatus(optionId, status);
+      update(i, { status });
+    } catch (err) {
+      setStatusError(err instanceof Error ? err.message : 'Could not update the option.');
+    } finally {
+      setBusyId(null);
+    }
   }
   const presetBtn =
     'rounded-full border border-ink/15 px-2.5 py-1 text-[11.5px] font-bold text-ink hover:border-teal hover:text-teal';
@@ -36,8 +57,14 @@ export function OptionsEditor({
         ];
         const patchTier = (pi: number, patch: Partial<OptionInput['prices'][number]>) =>
           update(i, { prices: opt.prices.map((x, xi) => (xi === pi ? { ...x, ...patch } : x)) });
+        const archived = opt.status === 'archived';
         return (
-          <div key={i} className="rounded-xl border border-ink/10 p-4">
+          <div
+            key={i}
+            className={`rounded-xl border p-4 ${
+              archived ? 'border-amber-300 bg-amber-50/40' : 'border-ink/10'
+            }`}
+          >
             <div className="flex items-center gap-2">
               <input
                 className={inputClass}
@@ -54,6 +81,44 @@ export function OptionsEditor({
                 <IconX width={18} height={18} />
               </button>
             </div>
+            {/* Discontinue / reinstate — only for a SAVED option (a new one just uses ✕). A booked option
+                can't be hard-deleted, so this retires it from sale while keeping its bookings. */}
+            {opt.id && (
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                {archived ? (
+                  <>
+                    <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-[11.5px] font-bold text-amber-800">
+                      Discontinued — hidden from customers
+                    </span>
+                    <button
+                      type="button"
+                      disabled={busyId === opt.id}
+                      onClick={() => void changeStatus(i, opt.id!, 'active')}
+                      className="rounded-full border border-ink/15 px-2.5 py-1 text-[11.5px] font-bold text-teal-dark hover:border-teal disabled:opacity-50"
+                    >
+                      {busyId === opt.id ? 'Working…' : 'Reinstate'}
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={busyId === opt.id}
+                    onClick={() => {
+                      if (
+                        window.confirm(
+                          `Discontinue “${opt.name || 'this option'}”? It will be hidden from customers and stop taking new bookings. Any existing booking is kept — you can reinstate it later.`,
+                        )
+                      ) {
+                        void changeStatus(i, opt.id!, 'archived');
+                      }
+                    }}
+                    className="rounded-full border border-ink/15 px-2.5 py-1 text-[11.5px] font-bold text-ink hover:border-coral hover:text-coral disabled:opacity-50"
+                  >
+                    {busyId === opt.id ? 'Working…' : 'Discontinue'}
+                  </button>
+                )}
+              </div>
+            )}
             {/* Per-option time — Half day vs Full day differ here. Blank falls back to the activity's. */}
             <div className="mt-2.5 flex flex-wrap items-center gap-2 text-[12px] text-ink-muted">
               <span className="font-semibold">This option:</span>
@@ -327,6 +392,11 @@ export function OptionsEditor({
       >
         Add option
       </button>
+      {statusError && (
+        <p role="alert" className="text-[12.5px] font-medium text-coral">
+          {statusError}
+        </p>
+      )}
     </div>
   );
 }

@@ -119,7 +119,8 @@ describe('updateActivity preserves option ids on edit', () => {
     };
 
     await db.as({ sub: STAFF, role: 'authenticated' });
-    await expect(updateActivity(activityId, form)).resolves.toBeUndefined();
+    // The option is kept in the form (id present) → an in-place update, nothing removed.
+    await expect(updateActivity(activityId, form)).resolves.toEqual({ keptWithBookings: [] });
 
     await db.asOwner();
     const opts = (
@@ -272,5 +273,68 @@ describe('updateActivity preserves option ids on edit', () => {
       await db.pg.query(`select id from session_occurrences where id = $1`, [removableOcc])
     ).rows;
     expect(occ, 'its availability occurrences cascade-deleted with the option').toHaveLength(0);
+  });
+
+  it('removing a BOOKED option reports it in keptWithBookings and keeps it (Discontinue, not delete)', async () => {
+    const { activityId, optionId } = await seedActivity('booked-removal');
+    // A second option WITH a confirmed booking that the admin then drops from the form.
+    const soldId = (
+      await db.pg.query<{ id: string }>(
+        `insert into activity_options (activity_id, name, position) values ($1, 'Sunset dinner', 1) returning id`,
+        [activityId],
+      )
+    ).rows[0]!.id;
+    const soldOcc = (
+      await db.pg.query<{ id: string }>(
+        `insert into session_occurrences (activity_option_id, operator_id, starts_at, ends_at, capacity)
+         values ($1, $2, now() + interval '14 days', now() + interval '14 days' + interval '5 hours', 10)
+         returning id`,
+        [soldId, operatorId],
+      )
+    ).rows[0]!.id;
+    const bookingId = (
+      await db.pg.query<{ id: string }>(
+        `insert into bookings (customer_name, customer_email, status, total_minor, operator_payout_minor)
+         values ('Booked Guest', 'b@example.com', 'confirmed', 5000, 5000) returning id`,
+      )
+    ).rows[0]!.id;
+    await db.pg.query(
+      `insert into booking_items
+         (booking_id, session_occurrence_id, activity_option_id, price_label, quantity, unit_amount_minor, subtotal_minor)
+       values ($1, $2, $3, 'Adult', 1, 5000, 5000)`,
+      [bookingId, soldOcc, soldId],
+    );
+
+    const form = {
+      ...EMPTY_ACTIVITY,
+      slug: 'booked-removal',
+      title: 'Trimmed',
+      // 'Sunset dinner' dropped from the form — but it has a booking, so it must be KEPT + reported.
+      options: [
+        {
+          id: optionId,
+          name: 'Private group',
+          prices: [{ label: 'Adult', amountEur: 70, maxGuests: null }],
+        },
+      ],
+    };
+
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    const result = await updateActivity(activityId, form);
+
+    expect(
+      result.keptWithBookings,
+      'the booked option is reported so the editor can guide to Discontinue',
+    ).toEqual(['Sunset dinner']);
+    await db.asOwner();
+    const opts = (
+      await db.pg.query<{ id: string }>(`select id from activity_options where activity_id = $1`, [
+        activityId,
+      ])
+    ).rows;
+    expect(
+      opts.some((o) => o.id === soldId),
+      'the booked option is kept, not deleted',
+    ).toBe(true);
   });
 });

@@ -1205,6 +1205,7 @@ export interface Database {
       set_daily_capacity_atomic: { Args: { p: Json }; Returns: undefined };
       stop_availability_atomic: { Args: { p: Json }; Returns: undefined };
       set_option_weekdays_atomic: { Args: { p: Json }; Returns: undefined };
+      set_option_status_atomic: { Args: { p: Json }; Returns: undefined };
       api_list_rental_vehicles: { Args: { p: Json }; Returns: Json };
       api_content_defaults: { Args: { p: Json }; Returns: Json };
       api_moderate_guest_review: { Args: { p: Json }; Returns: Json };

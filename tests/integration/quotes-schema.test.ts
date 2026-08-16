@@ -598,10 +598,12 @@ describe('quotes schema (20260909000000)', () => {
       await db.as({ sub: STAFF, role: 'authenticated' });
       // Before the guard this threw the raw 23503 MID-SAVE — after the activities row and the images
       // had already been written as separate statements, so the save was left half-applied.
+      // The quoted option is kept AND reported, so the editor can tell the owner to Discontinue it
+      // rather than silently reverting the removal.
       await expect(
         updateActivity(tour.activityId, form),
         'the save blew up on a quoted option',
-      ).resolves.toBeUndefined();
+      ).resolves.toEqual({ keptWithBookings: ['Sunset'] });
 
       await db.asOwner();
       const opts = (

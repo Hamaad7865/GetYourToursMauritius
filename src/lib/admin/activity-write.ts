@@ -22,6 +22,10 @@ export interface OptionInput {
   /** Present for options loaded from an existing activity; absent for newly-added ones. Used to
    *  reconcile options in place on edit so a booked option keeps its identity. */
   id?: string;
+  /** 'active' | 'archived'. Archived = discontinued: hidden from customers, no new dates, but the row
+   *  (and its bookings) is kept. Set via setOptionStatus (a side-effect RPC), NOT the content save —
+   *  reconcileOptions leaves it untouched. Absent on a newly-added option (defaults 'active'). */
+  status?: string;
   name: string;
   /** Per-option time (Half day / Full day etc.) — falls back to the activity's on the detail page. */
   durationMinutes?: number | null;
@@ -388,15 +392,16 @@ async function replacePrices(optionId: string, prices: PriceInput[]): Promise<vo
  * and availability occurrences cascade; a booked option that staff removed is left intact (you can't
  * un-sell a seat).
  */
-async function reconcileOptions(activityId: string, formOptions: OptionInput[]): Promise<void> {
+async function reconcileOptions(activityId: string, formOptions: OptionInput[]): Promise<string[]> {
   const sb = getBrowserSupabase();
   // Throw on a failed read: a transient null here (e.g. a token-refresh 401) would make every form
   // option look new and duplicate the entire option set on save.
   const { data: existing, error: readErr } = await sb
     .from('activity_options')
-    .select('id')
+    .select('id, name')
     .eq('activity_id', activityId);
   if (readErr) throw readErr;
+  const nameById = new Map((existing ?? []).map((o) => [o.id, o.name]));
   const { toUpsert, removedIds } = planOptionReconcile(
     (existing ?? []).map((o) => o.id),
     formOptions,
@@ -446,6 +451,7 @@ async function reconcileOptions(activityId: string, formOptions: OptionInput[]):
     await replacePrices(optionId, isPriv ? [] : option.prices);
   }
 
+  const keptWithBookings: string[] = [];
   for (const optionId of removedIds) {
     // Delete a removed option UNLESS something still references it. `booking_items` is ON DELETE RESTRICT
     // (you can't un-sell a seat), so a booked option is kept. Its prices AND auto-materialised availability
@@ -460,7 +466,12 @@ async function reconcileOptions(activityId: string, formOptions: OptionInput[]):
       .from('booking_items')
       .select('id', { count: 'exact', head: true })
       .eq('activity_option_id', optionId);
-    if (itemsErr || items === null || (items ?? 0) > 0) continue; // booked, or unprovable — keep it
+    if (itemsErr || items === null || (items ?? 0) > 0) {
+      // Report only a genuine reference (a real booking), never an unprovable count — the message
+      // tells the owner to Discontinue instead of the silent revert this used to do.
+      if ((items ?? 0) > 0) keptWithBookings.push(nameById.get(optionId) ?? 'an option');
+      continue; // booked, or unprovable — keep it
+    }
 
     // A quote line names the option too (and its slots, which CASCADE from it). Both quote_items
     // foreign keys are NO ACTION — deliberately: a live offer sitting in a guest's inbox must not
@@ -468,11 +479,15 @@ async function reconcileOptions(activityId: string, formOptions: OptionInput[]):
     // So a quoted option is kept exactly like a booked one; without this the raw 23503 reached the
     // tour editor mid-save. (20260909000000, section 6.)
     const quoted = await countQuoteLinesForOption(optionId);
-    if (quoted === null || quoted > 0) continue; // on a live quote, or unprovable — keep it
+    if (quoted === null || quoted > 0) {
+      if ((quoted ?? 0) > 0) keptWithBookings.push(nameById.get(optionId) ?? 'an option');
+      continue; // on a live quote, or unprovable — keep it
+    }
 
     const { error } = await sb.from('activity_options').delete().eq('id', optionId);
     if (error) throw error;
   }
+  return keptWithBookings;
 }
 
 /** Quote lines naming this option. Null = the count failed (never treated as "none"). */
@@ -672,7 +687,7 @@ export async function updateActivity(
   id: string,
   v: ActivityFormValues,
   opts: SaveOpts = {},
-): Promise<void> {
+): Promise<{ keptWithBookings: string[] }> {
   if (!opts.contentOnly) assertPricingValid(v);
   const sb = getBrowserSupabase();
   const opId = await operatorId();
@@ -691,12 +706,31 @@ export async function updateActivity(
   const { error } = await sb.from('activities').update(row).eq('id', id);
   if (error) throw error;
   await replaceImages(id, v.images);
+  let keptWithBookings: string[] = [];
   if (!opts.contentOnly) {
-    await reconcileOptions(id, v.options);
+    keptWithBookings = await reconcileOptions(id, v.options);
     await reconcileSupplements(id, v.supplements);
     // Publishing or adding the first price makes the activity materializable — fill its window now.
     await materializeActivity(id);
   }
+  return { keptWithBookings };
+}
+
+/**
+ * Discontinue ('archived') or reinstate ('active') ONE option — a side-effect independent of the
+ * content save. Archiving hides it from customers, stops new bookings, and deletes its empty future
+ * dates (keeping any a booking references); reinstating re-materialises. A booked option can't be
+ * hard-deleted (its sale is a permanent record), so this is how it's retired. See
+ * set_option_status_atomic.
+ */
+export async function setOptionStatus(
+  optionId: string,
+  status: 'active' | 'archived',
+): Promise<void> {
+  const { error } = await getBrowserSupabase().rpc('set_option_status_atomic', {
+    p: { optionId, status },
+  });
+  if (error) throw error;
 }
 
 export async function deleteActivity(id: string): Promise<void> {
@@ -899,7 +933,7 @@ export async function loadActivityForEdit(id: string): Promise<ActivityFormValue
   const { data: options } = await sb
     .from('activity_options')
     .select(
-      'id, name, duration_minutes, start_window, private_base_minor, private_included, private_extra_minor, private_max_guests, position',
+      'id, name, status, duration_minutes, start_window, private_base_minor, private_included, private_extra_minor, private_max_guests, position',
     )
     .eq('activity_id', id)
     .order('position');
@@ -957,6 +991,7 @@ export async function loadActivityForEdit(id: string): Promise<ActivityFormValue
     options: (options ?? []).map((o) => ({
       id: o.id,
       name: o.name,
+      status: o.status,
       durationMinutes: o.duration_minutes,
       startWindow: o.start_window ?? '',
       isPrivateOption: o.private_base_minor != null,
