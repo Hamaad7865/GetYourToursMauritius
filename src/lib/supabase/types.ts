@@ -201,6 +201,9 @@ type ActivityOptionsRow = {
   /** 20260908000000 — per-option "guests per trip" override for SHARED options (null = inherit
    *  activities.guests_per_trip). A private option's cap is private_max_guests instead. */
   guests_per_trip: number | null;
+  /** 20261003000000 — ISO weekdays (Mon=1 … Sun=7) this option does NOT run; empty = every day.
+   *  materialize_availability skips these; set_option_weekdays_atomic writes + reconciles them. */
+  closed_weekdays: number[];
   position: number;
   created_at: string;
 };
@@ -218,6 +221,7 @@ type ActivityOptionsInsert = {
   private_max_guests?: number | null;
   daily_capacity?: number | null;
   guests_per_trip?: number | null;
+  closed_weekdays?: number[];
   position?: number;
   created_at?: string;
 };
@@ -1200,6 +1204,7 @@ export interface Database {
       api_erase_user: { Args: { p: Json }; Returns: Json };
       set_daily_capacity_atomic: { Args: { p: Json }; Returns: undefined };
       stop_availability_atomic: { Args: { p: Json }; Returns: undefined };
+      set_option_weekdays_atomic: { Args: { p: Json }; Returns: undefined };
       api_list_rental_vehicles: { Args: { p: Json }; Returns: Json };
       api_content_defaults: { Args: { p: Json }; Returns: Json };
       api_moderate_guest_review: { Args: { p: Json }; Returns: Json };

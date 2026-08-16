@@ -18,6 +18,8 @@ export interface OptionRow {
    *  under (the guests its base price covers). Null for shared options. */
   privateMaxGuests: number | null;
   privateIncluded: number | null;
+  /** ISO weekdays (Mon=1 … Sun=7) this option does NOT run; empty = every day (the "Runs on" control). */
+  closedWeekdays: number[];
 }
 
 export async function loadActivityOptions(activityId: string): Promise<{
@@ -38,7 +40,7 @@ export async function loadActivityOptions(activityId: string): Promise<{
   const { data: opts } = await sb
     .from('activity_options')
     .select(
-      'id, name, daily_capacity, guests_per_trip, private_base_minor, private_included, private_max_guests',
+      'id, name, daily_capacity, guests_per_trip, private_base_minor, private_included, private_max_guests, closed_weekdays',
     )
     .eq('activity_id', activityId)
     .order('position');
@@ -55,6 +57,7 @@ export async function loadActivityOptions(activityId: string): Promise<{
       isPrivate: o.private_base_minor != null,
       privateMaxGuests: o.private_max_guests,
       privateIncluded: o.private_included,
+      closedWeekdays: o.closed_weekdays ?? [],
     })),
   };
 }
@@ -130,6 +133,20 @@ export async function stopAvailability(activityId: string): Promise<void> {
   // transaction means a mid-sequence failure can't leave slots still bookable after "stop".
   const { error } = await getBrowserSupabase().rpc('stop_availability_atomic', {
     p: { activityId },
+  });
+  if (error) throw error;
+}
+
+/**
+ * Set which weekdays ONE option runs. `closedWeekdays` is the ISO days it does NOT run (Mon=1 …
+ * Sun=7); an empty array means every day. One atomic RPC writes the setting and reconciles the ~6
+ * months already materialised — closing the future slots a booking/hold/quote references, deleting
+ * the empty ones, then re-materialising to refill any weekday switched back on. Derive the array from
+ * the seven "Runs on" checkboxes with availableToClosedWeekdays().
+ */
+export async function setOptionWeekdays(optionId: string, closedWeekdays: number[]): Promise<void> {
+  const { error } = await getBrowserSupabase().rpc('set_option_weekdays_atomic', {
+    p: { optionId, closedWeekdays },
   });
   if (error) throw error;
 }

@@ -7,9 +7,15 @@ import {
   loadActivityOptions,
   loadAvailabilityState,
   setDailyCapacity,
+  setOptionWeekdays,
   stopAvailability,
   type OptionRow,
 } from '@/lib/admin/availability-write';
+import {
+  availableToClosedWeekdays,
+  closedWeekdaysToAvailable,
+  WEEKDAY_LABELS,
+} from '@/lib/admin/option-weekdays';
 import { IconChevron } from '@/components/ui/icons';
 import { AdminHeading, BTN_PRIMARY } from '@/components/admin/ui';
 
@@ -26,6 +32,78 @@ function errMessage(err: unknown, fallback: string): string {
 
 const NUM_INPUT =
   'w-28 rounded-xl border border-[#E2E7EA] bg-[#F7F8FA] px-3.5 py-2.5 text-sm text-ink outline-none focus:border-teal focus:bg-white';
+
+/**
+ * "Runs on" — seven weekday toggles (Mon…Sun) for ONE option, checked = it runs that day. Persists
+ * the OFF days as the option's closed_weekdays; the save reconciles the dates already materialised
+ * (see setOptionWeekdays). All-off is blocked — that's "not bookable", i.e. Stop availability.
+ */
+function WeekdayPicker({
+  optionId,
+  initialClosed,
+  busy,
+  onRun,
+}: {
+  optionId: string;
+  initialClosed: number[];
+  busy: boolean;
+  onRun: (fn: () => Promise<unknown>, ok: string) => void;
+}) {
+  const storedKey = [...initialClosed].sort((a, b) => a - b).join(',');
+  const [days, setDays] = useState<boolean[]>(() => closedWeekdaysToAvailable(initialClosed));
+  // Re-sync from the store after a save/refresh changes the persisted value.
+  useEffect(() => {
+    setDays(closedWeekdaysToAvailable(initialClosed));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storedKey]);
+
+  const closed = availableToClosedWeekdays(days);
+  const dirty = closed.join(',') !== storedKey;
+  const noneOn = days.every((d) => !d);
+
+  return (
+    <div className="mt-3 w-full border-t border-ink/10 pt-3">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <span className="text-[12.5px] font-bold text-ink/60">Runs on</span>
+        <div className="flex flex-wrap gap-1.5">
+          {WEEKDAY_LABELS.map((label, i) => {
+            const on = days[i];
+            return (
+              <button
+                key={label}
+                type="button"
+                role="checkbox"
+                aria-checked={on}
+                aria-label={label}
+                onClick={() => setDays((cur) => cur.map((v, j) => (j === i ? !v : v)))}
+                className={`grid h-9 min-w-[44px] place-items-center rounded-lg border px-2 text-[12.5px] font-bold ${
+                  on
+                    ? 'border-teal bg-teal/10 text-teal-dark'
+                    : 'border-ink/15 bg-[#F7F8FA] text-ink/40 line-through'
+                }`}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+        <button
+          type="button"
+          disabled={busy || !dirty || noneOn}
+          onClick={() => onRun(() => setOptionWeekdays(optionId, closed), 'Running days updated.')}
+          className="rounded-lg bg-teal-dark px-3 py-2 text-[12.5px] font-bold text-white hover:bg-teal-dark/90 disabled:opacity-50"
+        >
+          Save days
+        </button>
+      </div>
+      <p className="mt-1.5 text-[12px] text-ink-muted">
+        {noneOn
+          ? 'Pick at least one day — to make it un-bookable entirely, use Stop availability.'
+          : 'Days switched off never become bookable; a booking already on one is kept, you reschedule it.'}
+      </p>
+    </div>
+  );
+}
 
 /**
  * Availability = TWO numbers everywhere, matching how the owner actually plans a day:
@@ -297,6 +375,17 @@ export function AvailabilityEditor({ activityId }: { activityId: string }) {
             </p>
           )}
 
+          {/* Sole-option tours (e.g. the sunset catamaran) set their weekdays here; multi-option
+              tours set them per option in the rows below. */}
+          {open && soleOption && (
+            <WeekdayPicker
+              optionId={soleOption.id}
+              initialClosed={soleOption.closedWeekdays}
+              busy={busy}
+              onRun={run}
+            />
+          )}
+
           {/* Per-option pools: each option can carry its OWN two numbers. A private option counts
               TRIPS per day (e.g. 1 = one charter/day) and its guests number IS its max group size;
               a shared option's pool is trips × guests. Blank trips = uses the activity numbers. */}
@@ -426,6 +515,12 @@ export function AvailabilityEditor({ activityId }: { activityId: string }) {
                           Use default
                         </button>
                       )}
+                      <WeekdayPicker
+                        optionId={o.id}
+                        initialClosed={o.closedWeekdays}
+                        busy={busy}
+                        onRun={run}
+                      />
                     </div>
                   );
                 })}
