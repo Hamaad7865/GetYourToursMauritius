@@ -124,6 +124,18 @@ export function BookingOptionCard() {
 
       <h3 className="mt-1 font-display text-[19px] font-semibold text-ink">{b.activity.title}</h3>
 
+      {/* Single-option tours show no picker (OptionSelector renders only for 2+), so the lone option's
+          name would otherwise never appear. Surface it here as a subtitle when it adds something over
+          the tour title — a generic "Standard"/"Shared" that just repeats the title stays hidden.
+          Owner's own text, so NOT passed through t() (see the supplements note below). */}
+      {b.activity.options.length === 1 &&
+        b.activity.options[0]?.name &&
+        b.activity.options[0].name.trim() !== b.activity.title.trim() && (
+          <p className="mt-0.5 text-[14px] font-semibold text-teal-dark">
+            {b.activity.options[0].name}
+          </p>
+        )}
+
       <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-[13px] text-ink/80">
         {dur && (
           <span className="flex items-center gap-1.5">
