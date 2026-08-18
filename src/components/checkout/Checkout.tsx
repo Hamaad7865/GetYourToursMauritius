@@ -11,6 +11,7 @@ import { PickupDropoffMap } from '@/components/maps/PickupDropoffMap';
 import { childSeatsCost, regionFromCoords, transportFare } from '@/lib/services/pricing';
 import { decodeParty } from '@/lib/services/party';
 import { nominalDayKey } from '@/lib/services/day-key';
+import { returnTimeBeforeArrival } from '@/lib/transfers/lead-time';
 import { useBottomBarOffset } from '@/lib/ui/useBottomBarOffset';
 import { transfers, type Transfer } from '@/lib/content/transfers';
 import { useGoogleMaps } from '@/lib/maps/useGoogleMaps';
@@ -783,19 +784,27 @@ export function Checkout() {
     departureFlight.trim().length > 0 &&
     departureDate.trim().length > 0 &&
     returnTime.trim().length > 0;
+  // A same-day departure/return can't be timed before the arrival it follows — the driver would have
+  // to collect the guest before they've landed. Only meaningful for 'return' (a lone arrival/departure
+  // direction has nothing on the other side to compare against); returnTimeBeforeArrival is itself a
+  // same-day-only check, so a genuinely later departure date is never blocked here.
   const airportLegsOk =
     tripDirection === 'arrival'
       ? arrivalLegOk
       : tripDirection === 'departure'
         ? departureLegOk
-        : arrivalLegOk && departureLegOk;
+        : arrivalLegOk &&
+          departureLegOk &&
+          !returnTimeBeforeArrival(arrivalDate, departureDate, arrivalTime, returnTime);
   // Step ① can advance unless pickup is wanted with no address and not "I don't know yet" — or, for an
   // airport transfer, until the hotel + the required leg fields are entered.
   // Hotel-to-hotel: the route is already chosen in the console; step ① just confirms the pickup date
   // (and the return date when it's a return trip), both prefilled.
   const hotelTransferLegsOk =
     arrivalDate.trim().length > 0 &&
-    (tripTypeParam !== 'return' || departureDate.trim().length > 0);
+    (tripTypeParam !== 'return' ||
+      (departureDate.trim().length > 0 &&
+        !returnTimeBeforeArrival(arrivalDate, departureDate, arrivalTime, returnTime)));
   const canAdvance = isAirport
     ? hotelChosen && airportLegsOk
     : isHotelTransfer
@@ -1655,6 +1664,9 @@ export function Checkout() {
                             <input
                               type="time"
                               value={returnTime}
+                              min={
+                                departureDate === arrivalDate ? arrivalTime || undefined : undefined
+                              }
                               onChange={(e) => setReturnTime(e.target.value)}
                               className={`mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal outline-none focus:border-teal ${DATE_TIME_INPUT}`}
                             />
@@ -1779,6 +1791,9 @@ export function Checkout() {
                           <input
                             type="time"
                             value={returnTime}
+                            min={
+                              departureDate === arrivalDate ? arrivalTime || undefined : undefined
+                            }
                             onChange={(e) => setReturnTime(e.target.value)}
                             className={`mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal outline-none focus:border-teal ${DATE_TIME_INPUT}`}
                           />

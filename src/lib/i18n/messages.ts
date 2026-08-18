@@ -1673,6 +1673,8 @@ export const fr: Record<string, string> = {
   'Please choose your return date.': 'Veuillez choisir votre date de retour.',
   'Your return date cannot be before your arrival date.':
     'Votre date de retour ne peut pas être antérieure à votre date d’arrivée.',
+  'Your pickup time cannot be before your arrival time.':
+    'Votre heure de prise en charge ne peut pas être antérieure à votre heure d’arrivée.',
   'We need at least {n} days to arrange your transfer.':
     'Nous avons besoin d’au moins {n} jours pour organiser votre transfert.',
   'We meet you in the arrivals hall, help with your bags and drive you straight to {hotel} in a clean, air-conditioned vehicle — at a fixed price agreed in advance, with no hidden extras.':

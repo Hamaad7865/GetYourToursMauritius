@@ -29,3 +29,20 @@ export function earliestBookableDay(todayYmd: string, minAdvanceDays: number): s
 export function returnBeforeArrival(arrivalYmd: string, returnYmd: string): boolean {
   return Boolean(arrivalYmd && returnYmd && returnYmd < arrivalYmd);
 }
+
+/**
+ * True when a return/departure leg lands on the SAME day as arrival but at a strictly earlier clock
+ * time — the driver would have to collect the guest before they've landed. A different-day return is
+ * never flagged here (returnBeforeArrival already governs cross-day ordering), so this is meaningful
+ * only alongside it, not instead of it. Times are 'HH:MM' (a native <input type="time"> value), which
+ * compares lexicographically the same as chronologically. Either side empty is "not yet comparable".
+ */
+export function returnTimeBeforeArrival(
+  arrivalYmd: string,
+  returnYmd: string,
+  arrivalTime: string,
+  returnTime: string,
+): boolean {
+  if (!arrivalYmd || !returnYmd || arrivalYmd !== returnYmd) return false;
+  return Boolean(arrivalTime && returnTime && returnTime < arrivalTime);
+}

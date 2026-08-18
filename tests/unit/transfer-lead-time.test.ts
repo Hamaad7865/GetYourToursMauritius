@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { earliestBookableDay, returnBeforeArrival } from '../../src/lib/transfers/lead-time';
+import {
+  earliestBookableDay,
+  returnBeforeArrival,
+  returnTimeBeforeArrival,
+} from '../../src/lib/transfers/lead-time';
 
 describe('earliestBookableDay', () => {
   it('adds the advance-days floor to today', () => {
@@ -37,5 +41,26 @@ describe('returnBeforeArrival', () => {
   it('is never invalid while a side is still empty', () => {
     expect(returnBeforeArrival('2026-08-20', '')).toBe(false);
     expect(returnBeforeArrival('', '2026-08-19')).toBe(false);
+  });
+});
+
+describe('returnTimeBeforeArrival', () => {
+  it('flags a same-day pickup strictly before the arrival time (the reported case)', () => {
+    expect(returnTimeBeforeArrival('2026-08-20', '2026-08-20', '14:55', '11:55')).toBe(true);
+  });
+
+  it('accepts a same-day pickup at or after the arrival time', () => {
+    expect(returnTimeBeforeArrival('2026-08-20', '2026-08-20', '14:55', '14:55')).toBe(false);
+    expect(returnTimeBeforeArrival('2026-08-20', '2026-08-20', '14:55', '18:00')).toBe(false);
+  });
+
+  it('never flags a DIFFERENT-day return regardless of the clock', () => {
+    expect(returnTimeBeforeArrival('2026-08-20', '2026-08-21', '14:55', '06:00')).toBe(false);
+  });
+
+  it('is never invalid while a date or time is still empty', () => {
+    expect(returnTimeBeforeArrival('', '2026-08-20', '14:55', '11:55')).toBe(false);
+    expect(returnTimeBeforeArrival('2026-08-20', '2026-08-20', '', '11:55')).toBe(false);
+    expect(returnTimeBeforeArrival('2026-08-20', '2026-08-20', '14:55', '')).toBe(false);
   });
 });

@@ -18,7 +18,11 @@ import {
   type TripType,
 } from '@/lib/services/pricing';
 import { pickVehicleSlot } from '@/lib/transfers/pick-vehicle-slot';
-import { earliestBookableDay, returnBeforeArrival } from '@/lib/transfers/lead-time';
+import {
+  earliestBookableDay,
+  returnBeforeArrival,
+  returnTimeBeforeArrival,
+} from '@/lib/transfers/lead-time';
 import {
   IconArrowRight,
   IconCalendar,
@@ -161,6 +165,13 @@ export function TransferBookingWidget({
     if (returnBeforeArrival(date, returnDate)) setReturnDate('');
   }, [date, returnDate]);
 
+  // Same-day return: if the arrival time moves past the chosen pickup time, that pickup time is no
+  // longer valid — the driver can't collect the guest before they've landed. Clear it so the customer
+  // re-picks rather than carrying an impossible same-day pickup into checkout.
+  useEffect(() => {
+    if (returnTimeBeforeArrival(date, returnDate, time, returnTime)) setReturnTime('');
+  }, [date, time, returnDate, returnTime]);
+
   const suvEligible = party <= 4;
   const effectiveSuv = suv && suvEligible;
   const vehicle = airportVehicleLabel(party, effectiveSuv);
@@ -188,6 +199,10 @@ export function TransferBookingWidget({
     }
     if (tripType === 'return' && returnBeforeArrival(date, returnDate)) {
       setError(t('Your return date cannot be before your arrival date.'));
+      return;
+    }
+    if (tripType === 'return' && returnTimeBeforeArrival(date, returnDate, time, returnTime)) {
+      setError(t('Your pickup time cannot be before your arrival time.'));
       return;
     }
     // Belt-and-suspenders: the picker already floors to minDate, but a stale prefill could sit below
@@ -473,6 +488,7 @@ export function TransferBookingWidget({
               <input
                 type="time"
                 value={returnTime}
+                min={returnDate === date ? time || undefined : undefined}
                 onChange={(e) => setReturnTime(e.target.value)}
                 className={`mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal outline-none focus:border-teal ${DATE_TIME_INPUT}`}
               />
