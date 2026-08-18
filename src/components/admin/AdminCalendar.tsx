@@ -916,6 +916,7 @@ function GuestRow({
               transportPickup={booking.transportPickup}
               transportDropoff={booking.transportDropoff}
               roomOrCabin={booking.roomOrCabin}
+              transferDirection={booking.transfer?.direction ?? null}
             />
           </Fact>
 

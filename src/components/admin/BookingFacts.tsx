@@ -107,16 +107,40 @@ export type DropoffView = { kind: 'dash' } | { kind: 'same' } | { kind: 'text'; 
  * An explicit booking pickup still wins (and keeps its own distinct drop-off): that is a checkout guest
  * who typed a hotel, not a quote transfer.
  */
+/** The airport end of an airport transfer is stored with the ARRIVAL qualifier — checkout hardcodes
+ *  "SSR International Airport (arrivals)" for every direction. On a departure that same airport is the
+ *  DROP-OFF, at departures, so relabel it. A no-op on any other string. */
+function relabelAirportForDeparture(stored: string | null): string | null {
+  return stored ? stored.replace(/\(\s*arrivals\s*\)/i, '(departures)') : stored;
+}
+
 export function resolvePickup(b: {
   pickupLocation: string | null;
   dropoffLocation: string | null;
   pickupPending: boolean;
   transportPickup?: string | null;
   transportDropoff?: string | null;
+  /**
+   * The airport-transfer trip direction, when this booking is one. An airport DEPARTURE is stored
+   * arrival-oriented (pickup = the airport, drop-off = the hotel) because checkout hardcodes it — so
+   * the day sheet read "Pickup: SSR Airport" for a guest who is AT their hotel waiting to go TO the
+   * airport, and a driver briefed off it would go to the wrong place. Flip a departure to hotel →
+   * airport(departures). An arrival is already correct; a return genuinely begins at the airport (and
+   * is captioned "both ways" beside this). `trip_direction` is set ONLY for airport transfers, so this
+   * never disturbs a hotel-to-hotel transfer or a plain activity pickup.
+   */
+  transferDirection?: string | null;
 }): { pickup: PickupView; dropoff: DropoffView } {
-  const roundTrip = !b.pickupLocation && !!b.transportPickup;
-  const pickup: PickupView = b.pickupLocation
-    ? { kind: 'text', text: b.pickupLocation, roundTrip: false }
+  // Airport-transfer DEPARTURE remap: the two ends are the airport (stored as the pickup) and the
+  // hotel (stored as the drop-off); a departure runs hotel → airport, so swap them and relabel the
+  // airport parenthetical. Every other case reads its stored fields unchanged.
+  const flip = b.transferDirection === 'departure';
+  const pickupLocation = flip ? b.dropoffLocation : b.pickupLocation;
+  const dropoffLocation = flip ? relabelAirportForDeparture(b.pickupLocation) : b.dropoffLocation;
+
+  const roundTrip = !pickupLocation && !!b.transportPickup;
+  const pickup: PickupView = pickupLocation
+    ? { kind: 'text', text: pickupLocation, roundTrip: false }
     : b.transportPickup
       ? { kind: 'text', text: b.transportPickup, roundTrip: true }
       : b.pickupPending
@@ -124,7 +148,7 @@ export function resolvePickup(b: {
         : { kind: 'none' };
   // A round trip's own distinct drop-off is rare, but honour it if set; otherwise a null drop-off WITH
   // a pickup means "same as pickup", and with no pickup at all it is a dash.
-  const explicitDropoff = b.dropoffLocation ?? (roundTrip ? (b.transportDropoff ?? null) : null);
+  const explicitDropoff = dropoffLocation ?? (roundTrip ? (b.transportDropoff ?? null) : null);
   const dropoff: DropoffView = explicitDropoff
     ? { kind: 'text', text: explicitDropoff }
     : pickup.kind === 'text' || pickup.kind === 'pending'
@@ -148,6 +172,7 @@ export function PickupFacts({
   transportPickup,
   transportDropoff,
   roomOrCabin,
+  transferDirection,
 }: {
   pickupLocation: string | null;
   dropoffLocation: string | null;
@@ -155,6 +180,8 @@ export function PickupFacts({
   transportPickup?: string | null;
   transportDropoff?: string | null;
   roomOrCabin?: string | null;
+  /** Airport-transfer direction; flips a departure's pickup/drop-off. See {@link resolvePickup}. */
+  transferDirection?: string | null;
 }) {
   const { pickup, dropoff } = resolvePickup({
     pickupLocation,
@@ -162,6 +189,7 @@ export function PickupFacts({
     pickupPending,
     transportPickup: transportPickup ?? null,
     transportDropoff: transportDropoff ?? null,
+    transferDirection: transferDirection ?? null,
   });
   return (
     <dl className="flex flex-col gap-2.5">

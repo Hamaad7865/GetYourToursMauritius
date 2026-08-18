@@ -810,6 +810,7 @@ function BookingDrawer({
                   pickupPending={booking.pickupPending}
                   transportPickup={booking.transportPickup}
                   transportDropoff={booking.transportDropoff}
+                  transferDirection={booking.transfer?.direction ?? null}
                 />
               </div>
             </section>
