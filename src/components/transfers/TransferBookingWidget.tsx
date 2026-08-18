@@ -18,6 +18,7 @@ import {
   type TripType,
 } from '@/lib/services/pricing';
 import { pickVehicleSlot } from '@/lib/transfers/pick-vehicle-slot';
+import { earliestBookableDay, returnBeforeArrival } from '@/lib/transfers/lead-time';
 import {
   IconArrowRight,
   IconCalendar,
@@ -81,6 +82,11 @@ export function TransferBookingWidget({
   const prefillTrip: TripType = params.get('trip') === 'return' ? 'return' : 'one_way';
 
   const today = useMemo(() => ymd(new Date()), []);
+  // Minimum advance-booking floor (activities.min_advance_days). Default 1 = no same-day (earliest is
+  // tomorrow), matching the DB default; the live value arrives with the fares fetch below. Unlike the
+  // catalogue booking flow, this widget doesn't gate its picker on the availability map, so it must
+  // apply the floor itself — otherwise the calendar keeps offering days the server rejects as too soon.
+  const [minAdvanceDays, setMinAdvanceDays] = useState(1);
   const [party, setParty] = useState(prefillParty);
   const [suv, setSuv] = useState(prefillSuv);
   const [tripType, setTripType] = useState<TripType>(prefillTrip);
@@ -106,6 +112,7 @@ export function TransferBookingWidget({
         parseApiJson<{
           airportFares?: AirportFareByZone;
           returnDiscountPct?: number;
+          minAdvanceDays?: number;
           heroImage?: { url?: string };
         }>(r),
       )
@@ -122,6 +129,10 @@ export function TransferBookingWidget({
         if (live && live.zone1 && live.zone2) setFares(live);
         if (typeof body.data?.returnDiscountPct === 'number')
           setReturnPct(body.data.returnDiscountPct);
+        // The activity's advance-booking floor, so the picker below hides too-soon days (the owner
+        // raises this for trips that need a driver assigned — e.g. no same-day airport pickups).
+        if (typeof body.data?.minAdvanceDays === 'number' && body.data.minAdvanceDays >= 0)
+          setMinAdvanceDays(body.data.minAdvanceDays);
       })
       .catch(() => {
         /* offline / not live yet — defaults stand; the server reconciles the price at pay */
@@ -130,6 +141,25 @@ export function TransferBookingWidget({
       active = false;
     };
   }, []);
+
+  // Earliest day the picker may offer = today + the advance-booking floor (mirrors the server's
+  // create_hold / api_list_availability). Recomputed once the live floor loads.
+  const minDate = useMemo(
+    () => earliestBookableDay(today, minAdvanceDays),
+    [today, minAdvanceDays],
+  );
+
+  // The lead-time floor loads with the fares fetch, so a date picked in the brief window before it
+  // arrives can end up below the new floor — clear it rather than show a date the server will reject.
+  useEffect(() => {
+    if (date && date < minDate) setDate('');
+  }, [date, minDate]);
+
+  // If the arrival moves to after the chosen return, that return is no longer valid — clear it so the
+  // customer re-picks rather than carrying a return that precedes arrival into checkout (Bug 2).
+  useEffect(() => {
+    if (returnBeforeArrival(date, returnDate)) setReturnDate('');
+  }, [date, returnDate]);
 
   const suvEligible = party <= 4;
   const effectiveSuv = suv && suvEligible;
@@ -154,6 +184,18 @@ export function TransferBookingWidget({
     }
     if (tripType === 'return' && !returnDate) {
       setError(t('Please choose your return date.'));
+      return;
+    }
+    if (tripType === 'return' && returnBeforeArrival(date, returnDate)) {
+      setError(t('Your return date cannot be before your arrival date.'));
+      return;
+    }
+    // Belt-and-suspenders: the picker already floors to minDate, but a stale prefill could sit below
+    // it — never start a booking the server will reject as too soon.
+    if (date < minDate) {
+      setError(
+        t("That date isn't open yet — please try another day, or contact us to arrange it."),
+      );
       return;
     }
     setBusy(true);
@@ -378,6 +420,13 @@ export function TransferBookingWidget({
         </label>
       )}
 
+      {/* Lead-time notice: why sooner dates are unavailable (owner needs time to assign a driver). */}
+      {minAdvanceDays > 1 && (
+        <p className="mt-3 text-[12px] font-medium text-ink-muted">
+          {t('We need at least {n} days to arrange your transfer.', { n: String(minAdvanceDays) })}
+        </p>
+      )}
+
       {/* Dates + times */}
       <div className="mt-4 grid gap-3">
         <div className="grid grid-cols-2 gap-3">
@@ -387,7 +436,7 @@ export function TransferBookingWidget({
             </span>
             <DatePicker
               value={date}
-              min={today}
+              min={minDate}
               onChange={setDate}
               className="mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal focus:border-teal"
             />
@@ -412,7 +461,7 @@ export function TransferBookingWidget({
               </span>
               <DatePicker
                 value={returnDate}
-                min={date || today}
+                min={date || minDate}
                 onChange={setReturnDate}
                 className="mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal focus:border-teal"
               />

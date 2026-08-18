@@ -11,6 +11,7 @@ import {
   transferMetaTitle,
   transferMetaDescription,
   localisedTransfer,
+  genericTransferFaq,
 } from '@/lib/content/transfers';
 import { parseGuestHotel } from '@/lib/content/guest-hotel';
 import { loadAirportFares, transferFromPriceEur } from '@/lib/transfers/from-price';
@@ -87,6 +88,13 @@ export default async function TransferDetailPage({
    */
   const guest = parseGuestHotel(await searchParams);
   const displayName = guest?.name ?? hotel.hotelName;
+  // A snapped, unlisted hotel: the guest searched a place we don't list, so this page belongs to the
+  // nearest listed hotel (for its zone/fare) but must READ as the guest's own hotel. When the two
+  // differ, the listed hotel's location-specific prose — its intro, its area's things-to-do, and any
+  // FAQ naming it — is suppressed/genericised below so the body can't contradict the guest-named H1
+  // ("Your transfer to LUXZ Rose Hill" over "…to Pearle Beach Resort & Spa in Flic-en-Flac"). Bug 3.
+  const isOverride = Boolean(guest && guest.name !== hotel.hotelName);
+  const visibleFaq = isOverride ? genericTransferFaq(hotel) : hotel.faq;
   // This hotel's real entry fare (its zone's standard car, one way) — the same number the booking
   // widget quotes below. Never a per-region estimate: the two drifted and the page under-advertised.
   const fromPriceEur = transferFromPriceEur(hotel.slug, await loadAirportFares());
@@ -116,7 +124,7 @@ export default async function TransferDetailPage({
       <JsonLd data={faqPageJsonLd(hotel.faq)} />
 
       <InfoPage
-        eyebrow={`${t('Airport transfer')} · ${hotel.area}`}
+        eyebrow={isOverride ? t('Airport transfer') : `${t('Airport transfer')} · ${hotel.area}`}
         title={t('Airport transfer to {hotel}', { hotel: displayName })}
         intro={t(
           'Private, fixed-price transfer from SSR International Airport to {hotel} — from €{price} per car, about {min} minutes.',
@@ -153,7 +161,7 @@ export default async function TransferDetailPage({
               <Fact label={t('From')} value={`€${fromPriceEur} / car`} />
               <Fact label={t('Drive time')} value={`~${hotel.durationMinFromAirport} min`} />
               <Fact label={t('Distance')} value={`~${hotel.distanceKmFromAirport} km`} />
-              <Fact label={t('Coast')} value={`${hotel.region} (${hotel.area})`} />
+              {!isOverride && <Fact label={t('Coast')} value={`${hotel.region} (${hotel.area})`} />}
             </div>
 
             {/* Route map: SSR airport → the guest's hotel when we have it, else this hotel. */}
@@ -170,7 +178,14 @@ export default async function TransferDetailPage({
               <h2 className="text-[22px] font-extrabold tracking-tight text-ink">
                 {t('Your transfer to {hotel}', { hotel: displayName })}
               </h2>
-              <p className="mt-4 text-[15px] leading-relaxed text-ink/80">{hotel.intro}</p>
+              <p className="mt-4 text-[15px] leading-relaxed text-ink/80">
+                {isOverride
+                  ? t(
+                      'We meet you in the arrivals hall, help with your bags and drive you straight to {hotel} in a clean, air-conditioned vehicle — at a fixed price agreed in advance, with no hidden extras.',
+                      { hotel: displayName },
+                    )
+                  : hotel.intro}
+              </p>
             </section>
 
             {/* Included */}
@@ -191,8 +206,8 @@ export default async function TransferDetailPage({
               </ul>
             </section>
 
-            {/* Nearby */}
-            {hotel.nearbyAttractions.length > 0 && (
+            {/* Nearby (hidden under a snapped-hotel override — it names the LISTED hotel's area). */}
+            {!isOverride && hotel.nearbyAttractions.length > 0 && (
               <section className="mt-9 border-t border-ink/10 pt-8">
                 <h2 className="text-[22px] font-extrabold tracking-tight text-ink">
                   {t('Things to do near {area}', { area: hotel.area })}
@@ -216,25 +231,28 @@ export default async function TransferDetailPage({
               </section>
             )}
 
-            {/* FAQ */}
-            <section className="mt-9 border-t border-ink/10 pt-8">
-              <h2 className="text-[22px] font-extrabold tracking-tight text-ink">
-                {t('Frequently asked questions')}
-              </h2>
-              <div className="mt-4 flex flex-col gap-2.5">
-                {hotel.faq.map((f) => (
-                  <details
-                    key={f.q}
-                    className="group rounded-xl border border-ink/10 bg-white px-4 py-3 open:bg-cream/40"
-                  >
-                    <summary className="cursor-pointer list-none text-[15px] font-bold text-ink marker:hidden">
-                      {f.q}
-                    </summary>
-                    <p className="mt-2 text-[14.5px] leading-relaxed text-ink/75">{f.a}</p>
-                  </details>
-                ))}
-              </div>
-            </section>
+            {/* FAQ — trimmed to the generic Q&A under a snapped-hotel override (genericTransferFaq),
+                so a question that names the listed hotel can't contradict the guest-named H1. */}
+            {visibleFaq.length > 0 && (
+              <section className="mt-9 border-t border-ink/10 pt-8">
+                <h2 className="text-[22px] font-extrabold tracking-tight text-ink">
+                  {t('Frequently asked questions')}
+                </h2>
+                <div className="mt-4 flex flex-col gap-2.5">
+                  {visibleFaq.map((f) => (
+                    <details
+                      key={f.q}
+                      className="group rounded-xl border border-ink/10 bg-white px-4 py-3 open:bg-cream/40"
+                    >
+                      <summary className="cursor-pointer list-none text-[15px] font-bold text-ink marker:hidden">
+                        {f.q}
+                      </summary>
+                      <p className="mt-2 text-[14.5px] leading-relaxed text-ink/75">{f.a}</p>
+                    </details>
+                  ))}
+                </div>
+              </section>
+            )}
           </div>
 
           {/* Booking widget (sticky on desktop) */}

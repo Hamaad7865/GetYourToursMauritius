@@ -94,6 +94,21 @@ export function nearestTransfer(lat: number, lng: number): Transfer {
   return best;
 }
 
+/**
+ * The FAQ entries that DON'T name this listed hotel or its area — the safe subset to show on a
+ * snapped-hotel (?hotel=) override view. There the page's H1, map and booking all read as the GUEST's
+ * own hotel (see src/lib/content/guest-hotel.ts), so a Q&A that names THIS hotel ("…transfer to Pearle
+ * Beach Resort & Spa in Flic-en-Flac…") would flatly contradict it. Metadata/JSON-LD keep the full
+ * canonical FAQ — only the visible list is trimmed, and only under an override.
+ */
+export function genericTransferFaq(t: Transfer): TransferContent['faq'] {
+  const needles = [t.hotelName.toLowerCase(), t.area.toLowerCase()];
+  return t.faq.filter((f) => {
+    const hay = `${f.q} ${f.a}`.toLowerCase();
+    return !needles.some((n) => hay.includes(n));
+  });
+}
+
 export const TRANSFER_REGION_ORDER: TransferRegion[] = [
   'North',
   'East',

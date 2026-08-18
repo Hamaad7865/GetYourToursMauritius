@@ -10,6 +10,7 @@ import { useT, useMoney } from '@/components/site/PreferencesProvider';
 import { PickupDropoffMap } from '@/components/maps/PickupDropoffMap';
 import { childSeatsCost, regionFromCoords, transportFare } from '@/lib/services/pricing';
 import { decodeParty } from '@/lib/services/party';
+import { nominalDayKey } from '@/lib/services/day-key';
 import { useBottomBarOffset } from '@/lib/ui/useBottomBarOffset';
 import { transfers, type Transfer } from '@/lib/content/transfers';
 import { useGoogleMaps } from '@/lib/maps/useGoogleMaps';
@@ -303,6 +304,10 @@ export function Checkout() {
   const tripTypeParam: 'one_way' | 'return' =
     params.get('tripType') === 'return' ? 'return' : 'one_way';
   const returnDateParam = (params.get('retDate') ?? '').slice(0, 40);
+  // Local "today" floor for the transfer date pickers, so a flight/pickup date can't be set in the
+  // past and a departure/return leg can't precede arrival. The bookable occurrence's own advance-days
+  // floor is enforced server-side (create_hold); these bounds just keep the entered legs coherent.
+  const todayYmd = useMemo(() => nominalDayKey(new Date()), []);
 
   // The PRICE-RELEVANT selection, hashed from inputs that are STABLE across a Back/reload of this
   // /checkout URL. Used on BOTH sides of the rehydration gate: pay() persists this hash with the
@@ -1609,6 +1614,7 @@ export function Checkout() {
                             {t('Arrival date')} <span className="text-coral-dark">*</span>
                             <DatePicker
                               value={arrivalDate}
+                              min={todayYmd}
                               onChange={setArrivalDate}
                               ariaLabel={t('Arrival date')}
                               className="mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal focus:border-teal"
@@ -1638,6 +1644,7 @@ export function Checkout() {
                             {t('Pickup date')} <span className="text-coral-dark">*</span>
                             <DatePicker
                               value={departureDate}
+                              min={arrivalDate || todayYmd}
                               onChange={setDepartureDate}
                               ariaLabel={t('Pickup date')}
                               className="mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal focus:border-teal"
@@ -1737,6 +1744,7 @@ export function Checkout() {
                         {t('Pickup date')} <span className="text-coral-dark">*</span>
                         <DatePicker
                           value={arrivalDate}
+                          min={todayYmd}
                           onChange={setArrivalDate}
                           ariaLabel={t('Pickup date')}
                           className="mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal focus:border-teal"
@@ -1760,6 +1768,7 @@ export function Checkout() {
                           {t('Return date')} <span className="text-coral-dark">*</span>
                           <DatePicker
                             value={departureDate}
+                            min={arrivalDate || todayYmd}
                             onChange={setDepartureDate}
                             ariaLabel={t('Return date')}
                             className="mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal focus:border-teal"

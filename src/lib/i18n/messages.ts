@@ -1671,6 +1671,12 @@ export const fr: Record<string, string> = {
     'Choisissez un véhicule et vos dates pour un prix instantané, puis réservez en un clic sur WhatsApp — sans paiement en ligne ni file d’attente à l’aéroport. Nous louons aux voyageurs séjournant dans la région de Belle Mare, avec livraison gratuite à votre hôtel ou Airbnb.',
   'Please choose your arrival date.': 'Veuillez choisir votre date d’arrivée.',
   'Please choose your return date.': 'Veuillez choisir votre date de retour.',
+  'Your return date cannot be before your arrival date.':
+    'Votre date de retour ne peut pas être antérieure à votre date d’arrivée.',
+  'We need at least {n} days to arrange your transfer.':
+    'Nous avons besoin d’au moins {n} jours pour organiser votre transfert.',
+  'We meet you in the arrivals hall, help with your bags and drive you straight to {hotel} in a clean, air-conditioned vehicle — at a fixed price agreed in advance, with no hidden extras.':
+    'Nous vous accueillons dans le hall des arrivées, vous aidons avec vos bagages et vous conduisons directement à {hotel} dans un véhicule propre et climatisé — à un prix fixe convenu à l’avance, sans frais cachés.',
   'Price list': 'Liste des prix',
   'Rent a car or scooter in Belle Mare, Mauritius':
     'Louez une voiture ou un scooter à Belle Mare, île Maurice',
