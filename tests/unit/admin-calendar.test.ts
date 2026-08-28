@@ -3,6 +3,7 @@ import {
   customLineDays,
   customLineLabel,
   customLinesByDay,
+  describeRescheduleError,
   mapDayCustomLines,
   mapDaySchedule,
   mapReturnLegs,
@@ -817,5 +818,51 @@ describe('returnLegsByDay', () => {
     ]);
     expect([...map.keys()].sort()).toEqual(['2026-08-23', '2026-08-25']);
     expect(map.get('2026-08-23')).toHaveLength(1);
+  });
+});
+
+describe('describeRescheduleError', () => {
+  // The admin move surface never runs mapDbError, so the raw RPC exception was reaching staff as one
+  // flat "Could not move that booking." for every cause. describeRescheduleError turns each token into
+  // a plain sentence AND flags the ONE cause staff can retry past: the 24h self-service window.
+  it('flags the 24h window as retryable (windowBlocked) — the only case that offers "Move anyway"', () => {
+    const r = describeRescheduleError(new Error('reschedule_window_passed'));
+    expect(r.windowBlocked).toBe(true);
+    expect(r.message).toMatch(/24 hour/i);
+  });
+
+  it('reads a cross-option target as terminal, not retryable', () => {
+    const r = describeRescheduleError(new Error('option_mismatch'));
+    expect(r.windowBlocked).toBe(false);
+    expect(r.message).toMatch(/option/i);
+  });
+
+  it('reads a target that is no longer open as terminal', () => {
+    const r = describeRescheduleError(new Error('target_not_bookable'));
+    expect(r.windowBlocked).toBe(false);
+    expect(r.message).toMatch(/no longer|another/i);
+  });
+
+  it('reads a full target as terminal', () => {
+    const r = describeRescheduleError(new Error('insufficient_capacity'));
+    expect(r.windowBlocked).toBe(false);
+    expect(r.message).toMatch(/room|full|space/i);
+  });
+
+  it('reads a not_reschedulable booking as terminal', () => {
+    const r = describeRescheduleError(new Error('not_reschedulable'));
+    expect(r.windowBlocked).toBe(false);
+    expect(r.message).toMatch(/no longer/i);
+  });
+
+  it('falls back to a generic message for an unknown error, never windowBlocked', () => {
+    const r = describeRescheduleError(new Error('kaboom'));
+    expect(r.windowBlocked).toBe(false);
+    expect(r.message).toMatch(/could not move/i);
+  });
+
+  it('handles a non-Error value without throwing', () => {
+    const r = describeRescheduleError('reschedule_window_passed');
+    expect(r.windowBlocked).toBe(true);
   });
 });

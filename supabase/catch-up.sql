@@ -14078,6 +14078,10 @@ declare
   v_units int;
   v_available int;
   v_disrupted boolean;
+  -- Staff-only bypass of the 24h window, requested explicitly from the admin calendar's "move anyway"
+  -- confirm step. Read here but honoured ONLY under is_staff() in the guard below, so a customer who
+  -- sends it cannot self-grant it.
+  v_staff_override boolean := coalesce((p ->> 'staffOverride')::boolean, false);
 begin
   if v_ref is null or v_occ_id is null then
     raise exception 'invalid_request' using detail = 'reschedule: ref and occurrenceId required';
@@ -14160,11 +14164,15 @@ begin
       using detail = 'a reschedule must stay on the same activity option';
   end if;
 
-  -- The free-change window mirrors the cancellation window -- EXCEPT when we called the trip off
-  -- ourselves, in which case the guest must be able to move at short notice. disruption is written
-  -- only by the staff-gated api_weather_cancel_occurrence, so this bypass is not self-servable.
+  -- The free-change window mirrors the cancellation window -- EXCEPT (a) when we called the trip off
+  -- ourselves (the guest must be able to move at short notice), or (b) when a STAFF operator explicitly
+  -- asks to, from the admin calendar (a change a guest phones in the day before). Both bypasses are
+  -- un-self-servable: disruption is written only by the staff-gated api_weather_cancel_occurrence, and
+  -- staffOverride is honoured only under is_staff() -- a customer passing it hits is_staff() = false and
+  -- stays blocked exactly as before.
   v_disrupted := booking_awaiting_choice(v_booking.disruption);
   if not v_disrupted
+     and not (v_staff_override and is_staff())
      and (v_current_starts is null or v_current_starts <= now() + interval '24 hours') then
     raise exception 'reschedule_window_passed'
       using detail = 'self-service changes close 24 hours before the activity';

@@ -406,4 +406,49 @@ describe('api_reschedule_booking / api_weather_cancel_occurrence', () => {
     expect(json.activityOptionId).toBe(optId);
     expect(Number(json.partySize)).toBe(2);
   });
+
+  // The staff window override: an operator moving a booking on a guest's behalf must be able to move
+  // one whose departure is already inside the 24h self-service window (a change phoned in the day
+  // before), but only through an EXPLICIT flag that is honoured only under is_staff() — so a customer
+  // cannot self-grant it. See docs/superpowers/specs/2026-08-28-staff-reschedule-window-override.md.
+  it('lets STAFF move a booking inside the 24h window with an explicit override', async () => {
+    const from = await makeOccurrence('10 days');
+    const to = await makeOccurrence('12 days');
+    const ref = await bookConfirm(from, 'staff-override');
+    await moveOccurrenceClose(from); // 6h away — the self-service window is shut
+
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    await call(db, 'api_reschedule_booking', { ref, occurrenceId: to, staffOverride: true });
+    expect(await occurrenceOf(ref)).toBe(to);
+    expect(await usedCap(from)).toBe(0);
+    expect(await usedCap(to)).toBe(2);
+  });
+
+  it('still refuses a STAFF move inside the window WITHOUT the override (this is what raises the confirm step)', async () => {
+    const from = await makeOccurrence('10 days');
+    const to = await makeOccurrence('12 days');
+    const ref = await bookConfirm(from, 'staff-nooverride');
+    await moveOccurrenceClose(from);
+
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    await expect(call(db, 'api_reschedule_booking', { ref, occurrenceId: to })).rejects.toThrow(
+      /reschedule_window_passed/,
+    );
+    expect(await occurrenceOf(ref)).toBe(from); // untouched
+  });
+
+  it('ignores staffOverride from a CUSTOMER — the bypass is honoured only under is_staff()', async () => {
+    const from = await makeOccurrence('10 days');
+    const to = await makeOccurrence('12 days');
+    const ref = await bookConfirm(from, 'cust-override');
+    await moveOccurrenceClose(from);
+
+    // A customer sending the flag hits is_staff() = false and stays blocked by the window exactly as
+    // before — the override cannot be self-served.
+    await db.as({ sub: CUSTOMER, role: 'authenticated' });
+    await expect(
+      call(db, 'api_reschedule_booking', { ref, occurrenceId: to, staffOverride: true }),
+    ).rejects.toThrow(/reschedule_window_passed/);
+    expect(await occurrenceOf(ref)).toBe(from); // not moved
+  });
 });

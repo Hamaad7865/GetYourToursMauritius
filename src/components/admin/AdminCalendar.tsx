@@ -12,6 +12,7 @@ import { PickupFacts, Pill, TransferFacts, paymentPill, statusPill } from './Boo
 import {
   CALL_OFF_REASONS,
   callOffDeparture,
+  describeRescheduleError,
   loadCalendarMonth,
   loadCustomLinesByDay,
   loadReturnLegsByDay,
@@ -28,6 +29,7 @@ import {
   type DayReturnLeg,
   type DayEntry,
   type MoveTarget,
+  type RescheduleFailure,
 } from '@/lib/admin/calendar';
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -1027,7 +1029,11 @@ function MovePicker({
   onDone: () => void;
 }) {
   const [targets, setTargets] = useState<MoveTarget[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [failure, setFailure] = useState<RescheduleFailure | null>(null);
+  // The one date the RPC refused ONLY on the 24h window — remembered so "Move anyway" re-sends the
+  // override for exactly that target and nothing else. Null unless a window block is awaiting a choice.
+  const [pendingOverride, setPendingOverride] = useState<MoveTarget | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const mounted = useRef(true);
 
@@ -1037,7 +1043,7 @@ function MovePicker({
       .then((rows) => mounted.current && setTargets(rows.slice(0, 12)))
       .catch((e: unknown) => {
         if (!mounted.current) return;
-        setError(e instanceof Error ? e.message : 'Could not load dates.');
+        setLoadError(e instanceof Error ? e.message : 'Could not load dates.');
         setTargets([]);
       });
     return () => {
@@ -1046,14 +1052,19 @@ function MovePicker({
   }, [activityOptionId, excludeOccurrenceId]);
 
   const move = useCallback(
-    async (occurrenceId: string) => {
-      setBusy(occurrenceId);
-      setError(null);
+    async (tgt: MoveTarget, staffOverride: boolean) => {
+      setBusy(tgt.occurrenceId);
+      setFailure(null);
+      setPendingOverride(null);
       try {
-        await rescheduleBookingAsStaff(bookingRef, occurrenceId);
+        await rescheduleBookingAsStaff(bookingRef, tgt.occurrenceId, { staffOverride });
         onDone();
       } catch (e: unknown) {
-        setError(e instanceof Error ? e.message : 'Could not move that booking.');
+        const f = describeRescheduleError(e);
+        setFailure(f);
+        // Only the 24h window is retryable, and only once: a move that was ALREADY an override and
+        // still failed the window is a real refusal, not a prompt to loop.
+        if (f.windowBlocked && !staffOverride) setPendingOverride(tgt);
       } finally {
         setBusy(null);
       }
@@ -1064,9 +1075,12 @@ function MovePicker({
   return (
     <div className="mt-2.5 rounded-xl border border-[#EAEEF0] bg-[#FAFBFC] p-3">
       <p className="text-[12.5px] font-bold text-ink">Move {bookingRef} to…</p>
-      {error && <AdminError>{error}</AdminError>}
+      {loadError && <AdminError>{loadError}</AdminError>}
+      {/* A terminal failure (wrong option, full date, …) reads as a sentence here. The 24h-window
+          case is NOT shown here — it opens the confirm step below instead. */}
+      {failure && !pendingOverride && <AdminError>{failure.message}</AdminError>}
       {targets === null && <p className="mt-1 text-[12.5px] text-ink-muted">Loading dates…</p>}
-      {targets?.length === 0 && !error && (
+      {targets?.length === 0 && !loadError && (
         <p className="mt-1 text-[12.5px] text-ink-muted">No other open dates for this option.</p>
       )}
       <div className="mt-1.5 flex flex-wrap gap-1.5">
@@ -1076,17 +1090,49 @@ function MovePicker({
             type="button"
             disabled={busy != null}
             aria-busy={busy === tgt.occurrenceId}
-            onClick={() => void move(tgt.occurrenceId)}
+            onClick={() => void move(tgt, false)}
             className="rounded-full border border-ink/15 bg-white px-3 py-1.5 text-[12px] font-bold text-ink hover:border-teal/50 hover:bg-teal/5 disabled:opacity-60"
           >
-            {new Date(tgt.startsAt).toLocaleDateString('en-GB', {
-              day: 'numeric',
-              month: 'short',
-            })}
+            {fmtDateShort(tgt.startsAt)}
             <span className="ml-1 font-normal text-ink-muted">({tgt.seatsLeft})</span>
           </button>
         ))}
       </div>
+
+      {/* The staff override confirm step. The RPC refuses a move inside the 24h self-service window
+          for everyone; a staff operator may knowingly push past it (a change a guest phoned in the day
+          before). "Move anyway" re-sends the SAME target with staffOverride, which the RPC honours only
+          under is_staff(). */}
+      {pendingOverride && (
+        <div className="mt-2.5 rounded-xl border border-amber-300 bg-amber-50/60 p-3">
+          <p className="text-[12.5px] leading-relaxed text-ink">
+            {failure?.message} Move <strong>{bookingRef}</strong> to{' '}
+            <strong>{fmtDateShort(pendingOverride.startsAt)}</strong> anyway?
+          </p>
+          <div className="mt-2.5 flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={busy != null}
+              aria-busy={busy === pendingOverride.occurrenceId}
+              onClick={() => void move(pendingOverride, true)}
+              className="rounded-full bg-amber-500 px-4 py-1.5 text-[12px] font-bold text-white hover:bg-amber-500/90 disabled:opacity-60"
+            >
+              {busy ? 'Moving…' : 'Move anyway'}
+            </button>
+            <button
+              type="button"
+              disabled={busy != null}
+              onClick={() => {
+                setPendingOverride(null);
+                setFailure(null);
+              }}
+              className={BTN_GHOST}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

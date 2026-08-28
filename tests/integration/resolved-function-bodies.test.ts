@@ -271,6 +271,20 @@ const CONTRACTS: ResolvedContract[] = [
       'refunding the balance rebounds balance_due_minor 0 -> balance; without killing the link (and the ' +
       'terminal status beside it) the guest could pay the balance a SECOND time',
   },
+  // The STAFF 24h-window bypass (20261005000000_reschedule_staff_window_override). The window guard
+  // is un-self-servable ONLY because both halves are present: a re-definition from the pre-override
+  // body drops the bypass entirely and freezes every under-24h booking as un-moveable from the admin
+  // calendar; one that keeps `v_staff_override` but drops the `is_staff()` conjunct is far worse —
+  // it makes the override SELF-servable, so a customer moves inside the window by sending the flag.
+  // Pin the whole conjunction, so either loss goes RED.
+  {
+    fn: 'api_reschedule_booking',
+    must: 'gates the 24h-window bypass on BOTH staffOverride AND is_staff()',
+    code: /\bnot\s*\(\s*v_staff_override\s+and\s+is_staff\s*\(\s*\)\s*\)/,
+    why:
+      'losing the whole clause freezes every under-24h booking as un-moveable by staff; losing only ' +
+      'the is_staff() half makes the override self-servable — a customer moves inside the window',
+  },
 ];
 
 /**

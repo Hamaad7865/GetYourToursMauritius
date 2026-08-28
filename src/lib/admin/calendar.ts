@@ -899,14 +899,68 @@ export async function callOffDeparture(
   return (data ?? { affected: 0 }) as { affected: number };
 }
 
-/** Move one booking to another departure of the SAME option (staff acting on a guest's behalf). */
+/**
+ * Move one booking to another departure of the SAME option (staff acting on a guest's behalf).
+ *
+ * `staffOverride` asks api_reschedule_booking to move a booking whose departure is already inside the
+ * 24h self-service window — the change a guest phones in the day before. The RPC honours it ONLY under
+ * is_staff(), so it is not a customer-reachable bypass; the admin UI sets it only after the operator
+ * confirms the "under 24 hours away — move anyway?" prompt.
+ */
 export async function rescheduleBookingAsStaff(
   ref: string,
   occurrenceId: string,
+  opts: { staffOverride?: boolean } = {},
 ): Promise<{ occurrenceId: string }> {
-  const { data, error } = await getBrowserSupabase().rpc('api_reschedule_booking', {
-    p: { ref, occurrenceId },
-  });
+  const p: { ref: string; occurrenceId: string; staffOverride?: boolean } = { ref, occurrenceId };
+  if (opts.staffOverride) p.staffOverride = true;
+  const { data, error } = await getBrowserSupabase().rpc('api_reschedule_booking', { p });
   if (error) throw error;
   return (data ?? { occurrenceId }) as unknown as { occurrenceId: string };
+}
+
+/** The outcome of a failed staff reschedule, shaped for the admin calendar's MovePicker. */
+export interface RescheduleFailure {
+  /** A plain-language reason to show the operator, in place of the raw RPC token. */
+  message: string;
+  /**
+   * True when the move was blocked ONLY by the 24h self-service window — the one cause a staff operator
+   * can retry past, by confirming "move anyway" (which re-sends with `staffOverride`). Every other
+   * failure is terminal on this screen.
+   */
+  windowBlocked: boolean;
+}
+
+/**
+ * Turn a raw api_reschedule_booking exception into something staff can read and act on.
+ *
+ * The admin move path calls the RPC straight from the browser and never runs `mapDbError` (that lives
+ * on the /api/v1 customer path), so without this every cause — a full date, a cross-option target, the
+ * 24h window — reached the operator as one flat "Could not move that booking." The RPC raises a
+ * distinct token per cause (the token IS the error message), so match on it, and single out the window
+ * as the ONE cause a staff operator can retry past with an explicit override.
+ */
+export function describeRescheduleError(err: unknown): RescheduleFailure {
+  const raw = err instanceof Error ? err.message : String(err);
+  if (/\breschedule_window_passed\b/.test(raw))
+    return {
+      windowBlocked: true,
+      message: 'This departure is under 24 hours away, so the free-change window has closed.',
+    };
+  if (/\boption_mismatch\b/.test(raw))
+    return {
+      windowBlocked: false,
+      message: 'That date is for a different option — book it as a new activity instead.',
+    };
+  if (/\btarget_not_bookable\b/.test(raw))
+    return { windowBlocked: false, message: 'That date is no longer open — pick another.' };
+  if (/\binsufficient_capacity\b/.test(raw))
+    return { windowBlocked: false, message: 'That date has no room left for the whole party.' };
+  if (/\bnot_reschedulable\b/.test(raw))
+    return { windowBlocked: false, message: 'This booking can no longer be moved.' };
+  if (/\b(occurrence_not_found|booking_not_found)\b/.test(raw))
+    return { windowBlocked: false, message: 'That could not be found — refresh and try again.' };
+  if (/\bforbidden\b/.test(raw))
+    return { windowBlocked: false, message: 'You do not have permission to move this booking.' };
+  return { windowBlocked: false, message: 'Could not move that booking.' };
 }
