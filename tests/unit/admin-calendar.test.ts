@@ -865,4 +865,32 @@ describe('describeRescheduleError', () => {
     const r = describeRescheduleError('reschedule_window_passed');
     expect(r.windowBlocked).toBe(true);
   });
+
+  // THE REAL BROWSER SHAPE. supabase-js `.rpc()` resolves its error as a PLAIN OBJECT
+  // ({ message, details, hint, code }) — NOT an Error instance — and rescheduleBookingAsStaff rethrows
+  // exactly that. `err instanceof Error` is therefore false in the browser, so a naive `String(err)`
+  // reads "[object Object]", no token matches, and the window case silently degraded to the generic
+  // "Could not move that booking." with NO "Move anyway" step. This is the case that shipped broken.
+  it('reads the token off a supabase-js plain-object error (the real browser shape, not an Error)', () => {
+    const r = describeRescheduleError({
+      message: 'reschedule_window_passed',
+      details: 'self-service changes close 24 hours before the activity',
+      hint: null,
+      code: 'P0001',
+    });
+    expect(r.windowBlocked).toBe(true);
+    expect(r.message).toMatch(/24 hour/i);
+  });
+
+  it('maps a plain-object option_mismatch to its terminal message', () => {
+    const r = describeRescheduleError({ message: 'option_mismatch', code: 'P0001' });
+    expect(r.windowBlocked).toBe(false);
+    expect(r.message).toMatch(/option/i);
+  });
+
+  it('still falls back generically for a plain object carrying an unknown token', () => {
+    const r = describeRescheduleError({ message: 'kaboom', code: 'P0001' });
+    expect(r.windowBlocked).toBe(false);
+    expect(r.message).toMatch(/could not move/i);
+  });
 });

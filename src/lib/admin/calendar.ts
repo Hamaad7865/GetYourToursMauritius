@@ -932,6 +932,27 @@ export interface RescheduleFailure {
 }
 
 /**
+ * The raw text of a reschedule failure, WHATEVER shape it arrives in.
+ *
+ * This is load-bearing: supabase-js's `.rpc()` resolves its error as a PLAIN OBJECT
+ * (`{ message, details, hint, code }`) — NOT an `Error` instance — and `rescheduleBookingAsStaff`
+ * rethrows exactly that. So in the browser `err instanceof Error` is false, and a naive `String(err)`
+ * reads `"[object Object]"`, matches no token, and silently degrades the window case to the generic
+ * "Could not move that booking." with no "move anyway" step — the bug this function shipped with. Read
+ * the token off the object's `message` (with `details`/`code` as belt-and-suspenders) too.
+ */
+function rescheduleErrorText(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (err && typeof err === 'object') {
+    const o = err as { message?: unknown; details?: unknown; code?: unknown };
+    return [o.message, o.details, o.code]
+      .filter((v): v is string => typeof v === 'string')
+      .join(' ');
+  }
+  return String(err);
+}
+
+/**
  * Turn a raw api_reschedule_booking exception into something staff can read and act on.
  *
  * The admin move path calls the RPC straight from the browser and never runs `mapDbError` (that lives
@@ -941,7 +962,7 @@ export interface RescheduleFailure {
  * as the ONE cause a staff operator can retry past with an explicit override.
  */
 export function describeRescheduleError(err: unknown): RescheduleFailure {
-  const raw = err instanceof Error ? err.message : String(err);
+  const raw = rescheduleErrorText(err);
   if (/\breschedule_window_passed\b/.test(raw))
     return {
       windowBlocked: true,
