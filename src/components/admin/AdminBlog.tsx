@@ -22,6 +22,7 @@ import {
   TEXTAREA_CLS,
 } from '@/components/admin/ui';
 import { IconPlus, IconX } from '@/components/ui/icons';
+import { RichBodyField } from '@/components/admin/RichBodyField';
 
 /** Photo picker: upload a file (→ Storage, public URL) or paste a URL, with preview + remove. */
 function ImageField({
@@ -257,7 +258,8 @@ function Editor({
       <section className="rounded-2xl border border-[#EAEEF0] bg-white p-5">
         <h2 className="text-[15px] font-extrabold text-ink">Sections</h2>
         <p className="mt-0.5 text-[13px] text-ink-muted">
-          Each section is a heading plus paragraphs (one per line break).
+          Each section is a heading plus body text. Use the toolbar for sub-headings, bold, italic
+          and links.
         </p>
         <div className="mt-4 flex flex-col gap-4">
           {v.sections.map((s, i) => (
@@ -284,19 +286,19 @@ function Editor({
                   <IconX width={16} height={16} />
                 </button>
               </div>
-              <textarea
-                value={s.paragraphs.join('\n\n')}
-                onChange={(e) =>
-                  set({
-                    sections: v.sections.map((x, j) =>
-                      j === i ? { ...x, paragraphs: e.target.value.split(/\n{2,}/) } : x,
-                    ),
-                  })
-                }
-                rows={5}
-                placeholder="Write the section text. Separate paragraphs with an empty line."
-                className={`mt-2 w-full ${TEXTAREA_CLS}`}
-              />
+              <div className="mt-2">
+                <RichBodyField
+                  value={s.paragraphs.join('\n\n')}
+                  onChange={(text) =>
+                    set({
+                      sections: v.sections.map((x, j) =>
+                        j === i ? { ...x, paragraphs: text.split(/\n{2,}/) } : x,
+                      ),
+                    })
+                  }
+                  placeholder="Write the section text. Separate paragraphs with an empty line."
+                />
+              </div>
               <div className="mt-2">
                 <ImageField
                   label="Section photo (optional — shown under the heading)"

@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
-import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { InfoPage, EnquireRow } from '@/components/site/InfoPage';
 import { JsonLd } from '@/components/seo/JsonLd';
+import { renderBlocks } from '@/components/content/RichText';
 import { formatPostDate } from '@/lib/content/blog';
 import { loadPost, loadRelatedPosts } from '@/lib/content/blog-live';
 import { articleJsonLd, breadcrumbListJsonLd, faqPageJsonLd } from '@/lib/seo/jsonld';
@@ -12,31 +12,6 @@ import { getT, getLocale } from '@/lib/i18n/server';
 import { localeAlternates, localePath } from '@/lib/i18n/routing';
 
 export const runtime = 'edge';
-
-// Internal paths the writers wove into the prose → turned into real links with friendly labels.
-const LINK_LABELS: Record<string, string> = {
-  '/airport-transfers': 'airport transfers',
-  '/ai-road-trip-planner': 'AI trip planner',
-  '/attractions': 'things to do in Mauritius',
-  '/activities': 'tours & activities',
-};
-const LINK_RE = /(\/airport-transfers|\/ai-road-trip-planner|\/attractions|\/activities)/g;
-
-function renderWithLinks(text: string): ReactNode[] {
-  return text.split(LINK_RE).map((part, i) =>
-    LINK_LABELS[part] ? (
-      <Link
-        key={i}
-        href={part}
-        className="font-semibold text-teal underline underline-offset-2 hover:text-teal-dark"
-      >
-        {LINK_LABELS[part]}
-      </Link>
-    ) : (
-      <span key={i}>{part}</span>
-    ),
-  );
-}
 
 export async function generateMetadata({
   params,
@@ -141,13 +116,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                   className="mt-4 w-full rounded-2xl border border-ink/10 object-cover"
                 />
               )}
-              <div className="mt-3 flex flex-col gap-3.5">
-                {section.paragraphs.map((para, i) => (
-                  <p key={i} className="m-0 text-[15.5px] leading-relaxed text-ink/80">
-                    {renderWithLinks(para)}
-                  </p>
-                ))}
-              </div>
+              <div className="mt-3">{renderBlocks(section.paragraphs)}</div>
             </section>
           ))}
 

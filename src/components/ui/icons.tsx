@@ -365,6 +365,23 @@ export const IconEyeOff = (p: SVGProps<SVGSVGElement>) => (
   </Svg>
 );
 
+export const IconLink = (p: SVGProps<SVGSVGElement>) => (
+  <Svg {...p}>
+    <path d="M9 15l6-6" />
+    <path d="M11 6.5 12 5.5a4 4 0 0 1 5.7 5.7l-2 2" />
+    <path d="M13 17.5 12 18.5a4 4 0 0 1-5.7-5.7l2-2" />
+  </Svg>
+);
+
+/** Arrow leaving a box — marks a link that opens in a new tab. */
+export const IconExternalLink = (p: SVGProps<SVGSVGElement>) => (
+  <Svg {...p}>
+    <path d="M15 3h6v6" />
+    <path d="M10 14 21 3" />
+    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+  </Svg>
+);
+
 /* Brand glyphs — rendered with their own fills, not the stroke helper. */
 export const IconGoogle = (p: SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 48 48" width="18" height="18" aria-hidden="true" {...p}>
