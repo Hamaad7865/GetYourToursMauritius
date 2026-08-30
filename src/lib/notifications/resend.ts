@@ -131,6 +131,81 @@ See you there.
 Belle Mare Tours`,
     };
   }
+  // The guest's confirmation that their booking now names a DIFFERENT tour. Sent only once the move
+  // has actually committed, so it can speak in the past tense — for an upgrade that is after the
+  // difference settled, for a cheaper move immediately. The money line is written from the sign of
+  // the difference rather than assuming an upgrade: telling someone owed a refund that they have
+  // "paid the difference" would be both wrong and alarming.
+  if (message.template === 'booking_changed') {
+    const when = dayOf(p.startsAt);
+    const title = typeof p.activityTitle === 'string' ? p.activityTitle : 'your new tour';
+    const diff = typeof p.differenceEur === 'number' ? p.differenceEur : 0;
+    const money =
+      diff > 0
+        ? `Thanks for settling the €${diff.toFixed(2)} difference.`
+        : diff < 0
+          ? `We owe you €${Math.abs(diff).toFixed(2)} back, and we're refunding it to the card you paid with — it usually lands within a few days.`
+          : `There was nothing extra to pay.`;
+    return {
+      subject: `Your Belle Mare Tours booking ${ref} is now ${title}`,
+      text: `Hi ${name},
+
+That's sorted — booking ${ref} is now ${title} on ${when}. ${money}
+
+Your booking: ${bookingUrl}
+
+See you there.
+
+Belle Mare Tours`,
+    };
+  }
+  // Owner-facing: a booking moved to a different tour, so the run sheet changed on both departures.
+  if (message.template === 'owner_booking_changed') {
+    const diff = typeof p.differenceEur === 'number' ? p.differenceEur : 0;
+    const money =
+      diff > 0
+        ? `collected €${diff.toFixed(2)}`
+        : diff < 0
+          ? `REFUND €${Math.abs(diff).toFixed(2)} owed`
+          : 'no price change';
+    const phone =
+      typeof p.customerPhone === 'string' && p.customerPhone ? `\nPhone: ${p.customerPhone}` : '';
+    return {
+      subject: `Booking changed: ${ref} → ${typeof p.activityTitle === 'string' ? p.activityTitle : 'another tour'} (${money})`,
+      text: `${name}'s booking ${ref} has moved to a different tour.
+
+Now: ${typeof p.activityTitle === 'string' ? p.activityTitle : ''} · ${dayOf(p.startsAt)}${phone}
+New total: €${typeof p.newTotalEur === 'number' ? p.newTotalEur.toFixed(2) : '?'} (${money})
+
+Both departures' run sheets have changed.
+
+Open in admin: ${SITE.url}/admin/bookings?q=${encodeURIComponent(ref)}
+
+Belle Mare Tours (internal alert)`,
+    };
+  }
+  // A difference we took but could not apply — the guest's money is on a booking that never moved.
+  // Same reasoning as the pickup orphan: nobody can refund what nobody knows about.
+  if (message.template === 'owner_change_orphan_payment') {
+    const card =
+      typeof p.chargedAmountMinor === 'number' && typeof p.chargedCurrency === 'string'
+        ? ` (card: ${p.chargedCurrency} ${(p.chargedAmountMinor / 100).toFixed(2)})`
+        : '';
+    const fee =
+      typeof p.differenceEur === 'number'
+        ? `€${p.differenceEur.toFixed(2)}`
+        : 'a tour-change difference';
+    return {
+      subject: `Action needed: refund ${fee} change difference on ${ref}`,
+      text: `${name} paid ${fee}${card} to change booking ${ref} to a different tour, but the change could NOT be applied — the target departure filled up or was called off, or the booking was cancelled while that payment was still open.
+
+The money is held and the booking did NOT move. Refund it in the Peach dashboard.
+
+Open in admin: ${SITE.url}/admin/bookings?q=${encodeURIComponent(ref)}
+
+Belle Mare Tours (internal alert)`,
+    };
+  }
   // The guest's own confirmation of a cancellation. Serves both a plain self-cancel and taking the
   // refund arm of a called-off trip — deliberately reason-neutral so it is honest in both.
   if (message.template === 'booking_cancelled_confirmation') {

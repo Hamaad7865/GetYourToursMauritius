@@ -38,10 +38,12 @@ export interface CreatePaymentLinkInput {
    * second payments row on the same booking, whose amount api_request_pickup already wrote from the
    * server-derived fare. 'balance' is the outstanding remainder on a deposit-confirmed quote booking —
    * a further payments row whose amount create_payment sizes from the booking's balance_due_minor. Both
-   * are server-derived, never client input. Every guard below (the FX pin, the reuse window, the
-   * single-flight lease, the liveness re-query) applies to them unchanged — they are all per-PAYMENT-ROW.
+   * are server-derived, never client input. 'change_addon' is the price difference on a staff-proposed
+   * move to a different tour — likewise a further row, sized by api_propose_booking_change from the
+   * re-derived price list. Every guard below (the FX pin, the reuse window, the single-flight lease,
+   * the liveness re-query) applies to them unchanged — they are all per-PAYMENT-ROW.
    */
-  purpose?: 'booking' | 'pickup_addon' | 'balance';
+  purpose?: 'booking' | 'pickup_addon' | 'balance' | 'change_addon';
   /**
    * For a 'balance' checkout on a per-date scheduled booking: which installment this link is for.
    * create_payment sizes the row to that installment's share of the balance (the running total minus

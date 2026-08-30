@@ -8535,7 +8535,8 @@
                     "enum": [
                       "booking",
                       "pickup_addon",
-                      "balance"
+                      "balance",
+                      "change_addon"
                     ]
                   }
                 },

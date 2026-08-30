@@ -464,9 +464,10 @@ type PaymentsRow = {
   checkout_claimed_until: string | null;
   /** Which money this row is for (20260910000000). 'booking' is the booking total; 'pickup_addon' is
    *  the transport supplement for a pickup added after the booking was paid; 'balance' is the
-   *  remainder after a deposit (payments_purpose_check gained it in the deposit split). api_create_payment
-   *  scopes every lookup by this — a booking re-pay must never pick up the add-on row. */
-  purpose: 'booking' | 'pickup_addon' | 'balance';
+   *  remainder after a deposit (payments_purpose_check gained it in the deposit split); 'change_addon'
+   *  is the price difference when staff move a paid booking onto a different tour (20261006000000).
+   *  api_create_payment scopes every lookup by this — a booking re-pay must never pick up the add-on row. */
+  purpose: 'booking' | 'pickup_addon' | 'balance' | 'change_addon';
   created_at: string;
   updated_at: string;
 };
@@ -507,6 +508,50 @@ type BookingPickupRequestsRow = {
   created_at: string;
   updated_at: string;
 };
+/** A staff proposal to move a paid booking onto a different activity option (20261006000000).
+ *  `difference_minor` is SIGNED: positive means the guest owes it, negative means we owe it back. */
+type BookingChangeRequestsRow = {
+  id: string;
+  booking_id: string;
+  from_option_id: string;
+  to_option_id: string;
+  to_occurrence_id: string;
+  old_total_minor: number;
+  new_total_minor: number;
+  difference_minor: number;
+  /** Null on a level or cheaper move — those take no money, so they mint no payments row. */
+  payment_id: string | null;
+  /** Null likewise: only an upgrade reserves the target seat while it waits to be paid. */
+  hold_id: string | null;
+  expires_at: string | null;
+  /** Set the moment the booking actually moves. The `applied_at is null` guard is what makes a
+   *  replayed webhook, the reconcile sweep and the guest's sync poll all no-ops after the first. */
+  applied_at: string | null;
+  /** Set when staff record the manual Peach refund for a cheaper move. */
+  refunded_at: string | null;
+  withdrawn_at: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+type BookingChangeRequestsInsert = {
+  id?: string;
+  booking_id: string;
+  from_option_id: string;
+  to_option_id: string;
+  to_occurrence_id: string;
+  old_total_minor: number;
+  new_total_minor: number;
+  difference_minor: number;
+  payment_id?: string | null;
+  hold_id?: string | null;
+  expires_at?: string | null;
+  applied_at?: string | null;
+  refunded_at?: string | null;
+  withdrawn_at?: string | null;
+  created_by?: string | null;
+};
+
 type BookingPickupRequestsInsert = {
   id?: string;
   booking_id: string;
@@ -1123,6 +1168,7 @@ export interface Database {
       payments: TableDef<PaymentsRow, PaymentsInsert>;
       payment_events: TableDef<PaymentEventsRow, PaymentEventsInsert>;
       booking_pickup_requests: TableDef<BookingPickupRequestsRow, BookingPickupRequestsInsert>;
+      booking_change_requests: TableDef<BookingChangeRequestsRow, BookingChangeRequestsInsert>;
       notification_outbox: TableDef<NotificationOutboxRow, NotificationOutboxInsert>;
       audit_logs: TableDef<AuditLogsRow, AuditLogsInsert>;
       leads: TableDef<LeadsRow, LeadsInsert>;
@@ -1198,6 +1244,10 @@ export interface Database {
       api_swap_category_positions: { Args: { p_id_a: string; p_id_b: string }; Returns: undefined };
       api_reorder_activities: { Args: { p: Json }; Returns: undefined };
       api_mark_refunded: { Args: { p: Json }; Returns: Json };
+      api_booking_change_quote: { Args: { p: Json }; Returns: Json };
+      api_propose_booking_change: { Args: { p: Json }; Returns: Json };
+      api_withdraw_booking_change: { Args: { p: Json }; Returns: Json };
+      api_record_change_refund: { Args: { p: Json }; Returns: Json };
       api_reschedule_booking: { Args: { p: Json }; Returns: Json };
       api_weather_cancel_occurrence: { Args: { p: Json }; Returns: Json };
       api_admin_calendar_month: { Args: { p: Json }; Returns: Json };

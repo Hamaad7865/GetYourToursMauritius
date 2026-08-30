@@ -17,6 +17,7 @@ import {
   type BookingStatus,
   type PaymentState,
 } from '@/lib/admin/bookings';
+import { BookingChangePanel } from '@/components/admin/BookingChangePanel';
 import { avatar } from '@/lib/admin/dashboard';
 import { balanceIsOutstanding } from '@/lib/quotes/deposit';
 import { csvCell } from '@/lib/admin/csv';
@@ -883,6 +884,19 @@ function BookingDrawer({
                 ))
               )}
             </section>
+
+            {/* Change of tour. Only a confirmed + paid booking can be moved — the RPC enforces this
+                too, but offering the panel on an unpayable booking would be a dead end. */}
+            {booking.status === 'confirmed' && booking.paymentState === 'paid' && (
+              <BookingChangePanel
+                bookingId={booking.id}
+                bookingRef={booking.ref}
+                onChanged={() => {
+                  void reload();
+                  onChanged();
+                }}
+              />
+            )}
 
             <section className="rounded-xl border border-ink/10 p-4">
               <h3 className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">

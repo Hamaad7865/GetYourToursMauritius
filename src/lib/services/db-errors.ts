@@ -126,6 +126,48 @@ export function mapDbError(error: unknown): never {
   if (/\bpickup_incomplete\b/.test(message)) {
     throw new ValidationError('A pickup needs an address and a map location');
   }
+  // Change-of-tour guards (api_propose_booking_change / apply_booking_change / create_payment's
+  // change branch) → friendly 409s. Same reasoning as the pickup block above: unmapped, every one of
+  // these reaches the caller as a 500 "Database error", which reads as a broken site rather than a
+  // rule a human can act on. Above the generic `forbidden` branch because first match wins.
+  if (/\bnot_changeable\b/.test(message)) {
+    throw new ConflictError('This booking cannot be moved to a different tour.');
+  }
+  if (/\bchange_price_unavailable\b/.test(message)) {
+    throw new ConflictError(
+      'That tour does not sell the same ticket types as this booking — it cannot be priced automatically.',
+    );
+  }
+  if (/\bchange_is_noop\b/.test(message)) {
+    throw new ConflictError('This booking is already on that departure.');
+  }
+  if (/\bchange_payment_in_flight\b/.test(message)) {
+    throw new ConflictError(
+      'A payment for this change is already open — finish it, or try again in a few minutes.',
+    );
+  }
+  if (/\bchange_request_expired\b/.test(message)) {
+    throw new ConflictError('This change offer has expired — ask us to send a new one.');
+  }
+  if (/\bchange_request_not_found\b/.test(message)) {
+    throw new ConflictError('There is no open change for this booking.');
+  }
+  // Already settled. Mirrors pickup_already_paid: the guard that stops the second charge must not
+  // surface as a 500.
+  if (/\bchange_already_paid\b/.test(message)) {
+    throw new ConflictError(
+      'The difference is already paid — we’re applying it. Refresh in a moment, or message us.',
+    );
+  }
+  if (/\bchange_already_applied\b/.test(message)) {
+    throw new ConflictError('That change has already gone through.');
+  }
+  if (/\bchange_not_applied\b/.test(message)) {
+    throw new ConflictError('That change has not gone through yet.');
+  }
+  if (/\bno_refund_due\b/.test(message)) {
+    throw new ConflictError('There is nothing to refund on that change.');
+  }
   // Quote conversion guards (api_convert_quote) → readable 404/409s. Without these every guard in
   // that function — including the convert-once guard, the only thing standing between a guest and a
   // second payable booking — falls through to the unmapped ProviderError below and reaches the guest

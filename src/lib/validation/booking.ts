@@ -384,9 +384,10 @@ export const createPaymentInputSchema = z.object({
   /** Which money this checkout is for. 'booking' (default) is the booking total (or, for a quote, the
    *  deposit) and is refused once that row is paid; 'pickup_addon' is the transport supplement for a
    *  pickup added after the fact; 'balance' is the outstanding remainder on a deposit-confirmed quote
-   *  booking. Every non-'booking' amount is server-derived (the open pickup request, or the booking's
-   *  balance_due_minor) — never from the client. */
-  purpose: z.enum(['booking', 'pickup_addon', 'balance']).optional(),
+   *  booking; 'change_addon' is the price difference on a staff-proposed move to a different tour.
+   *  Every non-'booking' amount is server-derived (the open pickup request, the booking's
+   *  balance_due_minor, or the open change request's priced difference) — never from the client. */
+  purpose: z.enum(['booking', 'pickup_addon', 'balance', 'change_addon']).optional(),
 });
 export type CreatePaymentInput = z.infer<typeof createPaymentInputSchema>;
 
