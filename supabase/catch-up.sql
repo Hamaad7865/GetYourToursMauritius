@@ -33025,12 +33025,24 @@ comment on table booking_change_requests is
 
 alter table booking_change_requests enable row level security;
 
--- GRANTS ARE SEPARATE FROM RLS, and a new table has none by default: without these, every policy
--- below is unreachable and the table answers "permission denied" rather than "no rows". `anon` is
--- included on purpose — booking_open_change_json is reachable from a signed-out view of a booking
--- page, and an anon caller must get an empty result (which the policies below already guarantee,
--- since both require an identity) rather than an error that breaks the whole page.
-grant select on booking_change_requests to anon, authenticated;
+-- GRANTS ARE SEPARATE FROM RLS, and both directions bite here.
+--
+-- Too few: a new table's policies are unreachable without a grant, and it answers "permission denied"
+-- rather than "no rows" — which is how the guest-surface test first failed.
+--
+-- Too many: Supabase's default privileges on `public` hand anon AND authenticated the full
+-- insert/update/delete set on every new table, so "I only granted select" is not what the database
+-- ends up believing. `booking_pickup_requests` revokes anon outright and this table matches it.
+-- Verified with has_table_privilege(), never information_schema.role_table_grants, which has
+-- previously reported a live anon grant as absent.
+--
+-- Anon needs nothing: booking_open_change_json is only ever evaluated for a row api_get_booking
+-- already returned, and bookings_select is `user_id = auth.uid() or is_staff()`, which no anonymous
+-- caller can satisfy. Authenticated needs SELECT only — every write goes through a SECURITY DEFINER
+-- RPC that runs as the owner, so revoking writes here costs staff nothing and leaves the table with
+-- no direct write path at all.
+revoke all on booking_change_requests from public, anon, authenticated;
+grant select on booking_change_requests to authenticated;
 grant select, insert, update, delete on booking_change_requests to service_role;
 
 -- Staff see and manage everything; the owning customer may READ their own (the booking page shows a
