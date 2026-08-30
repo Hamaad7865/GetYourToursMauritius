@@ -28,10 +28,11 @@ import { saveChargeHandoff } from '@/lib/checkout/charge-handoff';
  */
 export function useResumePayment(
   bookingRef: string,
-  /** Which money to reopen. 'pickup_addon' resumes the transport supplement for a late pickup — a
-   *  separate payments row on the same booking, so the booking's own already-paid state is no
+  /** Which money to reopen. 'pickup_addon' resumes the transport supplement for a late pickup and
+   *  'change_addon' the price difference on a staff-proposed move to a different tour — both are
+   *  separate payments rows on the same booking, so the booking's own already-paid state is no
    *  obstacle (api_create_payment scopes its guards by purpose). */
-  purpose?: 'booking' | 'pickup_addon',
+  purpose?: 'booking' | 'pickup_addon' | 'change_addon',
   /** EUR deposit + total for a genuine PARTIAL deposit (0 < deposit < total). When present, the pay
    *  page discloses "€X deposit now, €Y balance later" instead of a bare MUR figure that can read like
    *  a bad exchange rate. A full charge leaves this undefined. */
@@ -144,11 +145,16 @@ export function ResumePaymentButton({
   className,
   depositMinor,
   totalMinor,
+  purpose,
 }: {
   bookingRef: string;
   /** CTA text — defaults to the shared "Complete payment" string. */
   label?: string;
   className?: string;
+  /** Which money to reopen. Defaults to the booking's own payment; pass 'change_addon' to pay the
+   *  difference on an open tour change, whose booking is confirmed + paid and therefore unpayable
+   *  under the default purpose. */
+  purpose?: 'booking' | 'pickup_addon' | 'change_addon';
   /** EUR deposit + total (minor units) for a PARTIAL-deposit booking, so the pay page can disclose the
    *  deposit/balance split. Pass both; a full charge (deposit 0 or == total) discloses nothing extra. */
   depositMinor?: number;
@@ -159,7 +165,7 @@ export function ResumePaymentButton({
     depositMinor != null && totalMinor != null
       ? { depositEurMinor: depositMinor, totalEurMinor: totalMinor }
       : undefined;
-  const { resume, busy, error } = useResumePayment(bookingRef, undefined, deposit);
+  const { resume, busy, error } = useResumePayment(bookingRef, purpose, deposit);
 
   return (
     <>

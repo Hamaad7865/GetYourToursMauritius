@@ -505,6 +505,45 @@ describe('staff change of tour', () => {
     ).rejects.toThrow(/change_price_unavailable/);
   });
 
+  it('surfaces an open upgrade to the guest, and withdraws it from view once settled', async () => {
+    const booking = await paidBooking('guest-surface');
+    await asStaff();
+    const proposed = await call<{ paymentId: string }>(db, 'api_propose_booking_change', {
+      ref: booking.ref,
+      occurrenceId: dearOcc,
+    });
+
+    // The OWNER of the booking sees it — this is the only surface that can pay the difference, since
+    // every other pay button is gated on an unpaid booking.
+    await db.as({ sub: CUSTOMER, role: 'authenticated' });
+    const seen = await call<{ pendingChange: { differenceMinor: number } | null }>(
+      db,
+      'api_get_booking',
+      { ref: booking.ref },
+    );
+    expect(seen.pendingChange).not.toBeNull();
+    expect(seen.pendingChange!.differenceMinor).toBe(5000);
+
+    // Once it settles the booking has moved, so there is nothing left to pay and the block goes.
+    await settle(proposed.paymentId, 5000, 'guest-surface-settled');
+    await db.as({ sub: CUSTOMER, role: 'authenticated' });
+    const after = await call<{ pendingChange: unknown }>(db, 'api_get_booking', {
+      ref: booking.ref,
+    });
+    expect(after.pendingChange).toBeNull();
+  });
+
+  it('never shows the guest a level or cheaper move as something to pay', async () => {
+    const booking = await paidBooking('no-guest-block');
+    await asStaff();
+    await call(db, 'api_propose_booking_change', { ref: booking.ref, occurrenceId: levelOcc });
+    await db.as({ sub: CUSTOMER, role: 'authenticated' });
+    const seen = await call<{ pendingChange: unknown }>(db, 'api_get_booking', {
+      ref: booking.ref,
+    });
+    expect(seen.pendingChange).toBeNull();
+  });
+
   it('withdrawing a proposal returns the held seat', async () => {
     const booking = await paidBooking('withdraw');
     await asStaff();

@@ -77,6 +77,14 @@ comment on table booking_change_requests is
 
 alter table booking_change_requests enable row level security;
 
+-- GRANTS ARE SEPARATE FROM RLS, and a new table has none by default: without these, every policy
+-- below is unreachable and the table answers "permission denied" rather than "no rows". `anon` is
+-- included on purpose — booking_open_change_json is reachable from a signed-out view of a booking
+-- page, and an anon caller must get an empty result (which the policies below already guarantee,
+-- since both require an identity) rather than an error that breaks the whole page.
+grant select on booking_change_requests to anon, authenticated;
+grant select, insert, update, delete on booking_change_requests to service_role;
+
 -- Staff see and manage everything; the owning customer may READ their own (the booking page shows a
 -- pending upgrade and its pay link). No customer write path exists — proposing is staff-only.
 drop policy if exists bcr_staff_all on booking_change_requests;
@@ -1371,3 +1379,68 @@ $$;
 
 revoke execute on function api_booking_receipt(jsonb) from public, anon, authenticated;
 grant execute on function api_booking_receipt(jsonb) to service_role;
+
+-- ---------------------------------------------------------------------------
+-- 11) The GUEST-FACING surface for an open upgrade.
+--
+--     Without this the upgrade leg is unfinishable: every pay button on the booking page is gated on
+--     `awaitingPayment`, which is false for a confirmed + paid booking — exactly the state a change
+--     proposal is raised against. Staff could park a proposal and hold a seat that the guest had no
+--     way to pay for.
+--
+--     SECURITY INVOKER + RLS, deliberately, exactly as booking_json is: the bcr_owner_select policy
+--     already scopes a change request to its booking's owner, and bcr_staff_all to staff. Making this
+--     a definer would hand any caller another guest's pending change, and the ownership rule would
+--     then have to be re-stated here — a second spelling of a rule that already exists.
+--
+--     Positive differences only. A level or cheaper move is applied the moment it is proposed, so it
+--     has nothing to pay and must not raise a "you owe us" block on the guest's page.
+-- ---------------------------------------------------------------------------
+create or replace function booking_open_change_json(p_booking_id uuid)
+returns jsonb
+language sql
+stable
+security invoker
+set search_path = public
+as $$
+  select jsonb_build_object(
+           'requestId', r.id,
+           'differenceMinor', r.difference_minor,
+           'newTotalMinor', r.new_total_minor,
+           'expiresAt', r.expires_at,
+           'activityTitle', a.title,
+           'optionName', o.name,
+           'startsAt', so.starts_at
+         )
+    from booking_change_requests r
+    join session_occurrences so on so.id = r.to_occurrence_id
+    join activity_options o on o.id = r.to_option_id
+    join activities a on a.id = o.activity_id
+   where r.booking_id = p_booking_id
+     and r.applied_at is null
+     and r.withdrawn_at is null
+     and r.difference_minor > 0
+     and (r.expires_at is null or r.expires_at > now())
+   order by r.created_at desc
+   limit 1;
+$$;
+
+grant execute on function booking_open_change_json(uuid) to anon, authenticated, service_role;
+
+-- api_get_booking re-applied from its winning body VERBATIM plus `pendingChange`. Kept
+-- `security invoker` — booking_json relies on that (definer-grants-lockdown.test.ts pins
+-- used_capacity staying anon-executable BECAUSE booking_json is invoker), and the new helper above
+-- depends on it for its RLS scoping too.
+create or replace function api_get_booking(p jsonb)
+returns jsonb
+language sql
+stable
+security invoker
+set search_path = public
+as $$
+  select booking_json(b.id)
+         || jsonb_build_object('isOwn', coalesce(b.user_id = auth.uid(), false))
+         || jsonb_build_object('pendingChange', booking_open_change_json(b.id))
+  from bookings b
+  where b.ref = p ->> 'ref';
+$$;

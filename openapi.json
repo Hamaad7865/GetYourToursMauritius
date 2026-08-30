@@ -5727,6 +5727,52 @@
                             "reason"
                           ]
                         },
+                        "pendingChange": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "properties": {
+                            "requestId": {
+                              "type": "string"
+                            },
+                            "differenceMinor": {
+                              "type": "integer"
+                            },
+                            "newTotalMinor": {
+                              "type": "integer"
+                            },
+                            "expiresAt": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "activityTitle": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "optionName": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "startsAt": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "requestId",
+                            "differenceMinor",
+                            "newTotalMinor"
+                          ]
+                        },
                         "activitySlug": {
                           "type": [
                             "string",
@@ -6546,6 +6592,52 @@
                           },
                           "required": [
                             "reason"
+                          ]
+                        },
+                        "pendingChange": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "properties": {
+                            "requestId": {
+                              "type": "string"
+                            },
+                            "differenceMinor": {
+                              "type": "integer"
+                            },
+                            "newTotalMinor": {
+                              "type": "integer"
+                            },
+                            "expiresAt": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "activityTitle": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "optionName": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "startsAt": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "requestId",
+                            "differenceMinor",
+                            "newTotalMinor"
                           ]
                         },
                         "activitySlug": {

@@ -72,6 +72,17 @@ interface Booking {
   pickupLocation?: string | null;
   dropoffLocation?: string | null;
   pickupPending?: boolean;
+  /** An open staff proposal to move this booking to a different tour, where the guest owes the
+   *  difference. Positive differences only — see the render site. */
+  pendingChange?: {
+    requestId: string;
+    differenceMinor: number;
+    newTotalMinor: number;
+    expiresAt?: string | null;
+    activityTitle?: string | null;
+    optionName?: string | null;
+    startsAt?: string | null;
+  } | null;
   /** A pickup the guest has committed to but whose transport supplement hasn't settled yet. The
    *  address is deliberately not on the booking until it does — see 20260910000000. */
   pendingPickup?: {
@@ -720,6 +731,33 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
                 </p>
               </>
             )}
+          </div>
+        )}
+
+        {/* AN OPEN TOUR CHANGE THE GUEST OWES THE DIFFERENCE ON. This block is the ONLY way that
+            difference can be paid: every other pay button here is gated on `awaitingPayment`, and a
+            booking a change is raised against is confirmed + paid, so all of them are hidden. The
+            server only ever sets `pendingChange` for a POSITIVE difference — a level or cheaper move
+            is applied the moment staff propose it and owes nothing. Nothing on the booking has moved
+            yet; it moves when this settles. */}
+        {booking.pendingChange && (
+          <div className="mt-5 rounded-xl border border-gold/40 bg-gold-light/20 px-4 py-3">
+            <div className="text-[13px] font-bold text-ink">{t('Your tour change')}</div>
+            <p className="mt-1 text-[13px] leading-relaxed text-ink/80">
+              {t(
+                'We have held a place for you on {tour}. Pay the difference to confirm the change — your current booking stays exactly as it is until then.',
+                { tour: booking.pendingChange.activityTitle ?? t('your new tour') },
+              )}
+            </p>
+            <div className="mt-2 text-[13px] font-bold text-ink">
+              <Price eur={booking.pendingChange.differenceMinor / 100} />
+            </div>
+            <ResumePaymentButton
+              bookingRef={booking.ref}
+              purpose="change_addon"
+              label={t('Pay the difference')}
+              className="mt-3 inline-flex items-center justify-center rounded-full bg-teal px-4 py-2 text-[13px] font-bold text-white hover:bg-teal-dark disabled:opacity-60"
+            />
           </div>
         )}
 

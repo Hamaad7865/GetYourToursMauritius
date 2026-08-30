@@ -275,6 +275,11 @@ export const fr: Record<string, string> = {
   'Start time': 'Heure de départ',
   'Estimated return': 'Retour estimé',
   'Pickup location': 'Lieu de prise en charge',
+  'Your tour change': 'Votre changement d’excursion',
+  'We have held a place for you on {tour}. Pay the difference to confirm the change — your current booking stays exactly as it is until then.':
+    'Nous vous avons réservé une place sur {tour}. Réglez la différence pour confirmer le changement — votre réservation actuelle reste inchangée jusque-là.',
+  'your new tour': 'votre nouvelle excursion',
+  'Pay the difference': 'Régler la différence',
   'See less': 'Voir moins',
   'See more': 'Voir plus',
   'Link copied': 'Lien copié',

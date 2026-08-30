@@ -299,6 +299,24 @@ export const bookingSchema = z.object({
       resolution: z.enum(['rescheduled', 'refunded']).nullish(),
     })
     .nullish(),
+  /**
+   * An OPEN staff proposal to move this booking to a different tour, where the guest owes the
+   * difference (20261006000000). Present only while it is unapplied, unwithdrawn and unexpired — a
+   * level or cheaper move is applied on the spot and never appears here, because there is nothing to
+   * pay. The booking page renders its own pay button from this: every other pay button is gated on
+   * `awaitingPayment`, which is false for the confirmed + paid booking a change is raised against.
+   */
+  pendingChange: z
+    .object({
+      requestId: z.string(),
+      differenceMinor: z.coerce.number().int(),
+      newTotalMinor: z.coerce.number().int(),
+      expiresAt: z.string().nullish(),
+      activityTitle: z.string().nullish(),
+      optionName: z.string().nullish(),
+      startsAt: z.string().nullish(),
+    })
+    .nullish(),
   /** Activity slug + option of the booked line — the confirmation page needs both to offer new dates
    *  (the availability endpoint is keyed by slug and its slots are filtered by option). */
   activitySlug: z.string().nullish(),
