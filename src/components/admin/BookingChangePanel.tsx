@@ -33,6 +33,16 @@ import { eur, fmtDateTime } from '@/lib/admin/format';
 interface Props {
   bookingId: string;
   bookingRef: string;
+  /**
+   * The booking's CURRENT departure (ISO), used to seed the date picker.
+   *
+   * Defaulting this to today was a real, money-shaped bug: a booking for 16 September opened the
+   * picker on 30 August, listed only that day's departure, and an operator selecting "the one
+   * departure offered" silently held a seat on a trip that had already left. Seeding it with the
+   * booking's own date means the obvious action — change the TOUR, keep the date — is the one that
+   * happens by default.
+   */
+  currentStartsAt?: string | null;
   /** Re-read the booking after anything commits, so the drawer's totals and items refresh. */
   onChanged: () => void;
 }
@@ -42,11 +52,21 @@ function todayMu(): string {
   return new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString().slice(0, 10);
 }
 
-export function BookingChangePanel({ bookingId, bookingRef, onChanged }: Props) {
+/** The booking's own departure day in Mauritius, falling back to today for a booking with no date. */
+function defaultDay(currentStartsAt?: string | null): string {
+  if (!currentStartsAt) return todayMu();
+  const d = new Date(currentStartsAt);
+  if (Number.isNaN(d.getTime())) return todayMu();
+  const local = new Date(d.getTime() + 4 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  // A past booking would seed a date the server now refuses; today is the honest floor.
+  return local < todayMu() ? todayMu() : local;
+}
+
+export function BookingChangePanel({ bookingId, bookingRef, currentStartsAt, onChanged }: Props) {
   const [open, setOpen] = useState(false);
   const [activities, setActivities] = useState<QuotableActivity[]>([]);
   const [activityId, setActivityId] = useState('');
-  const [day, setDay] = useState(todayMu());
+  const [day, setDay] = useState(() => defaultDay(currentStartsAt));
   const [departures, setDepartures] = useState<QuoteDeparture[]>([]);
   const [occurrenceId, setOccurrenceId] = useState('');
   const [quote, setQuote] = useState<BookingChangeQuote | null>(null);
@@ -191,6 +211,16 @@ export function BookingChangePanel({ bookingId, bookingRef, onChanged }: Props) 
 
       {open && (
         <div className="mt-3 space-y-3">
+          {/* What they are moving FROM, stated before the inputs. The operator is about to change one
+              of two things (the tour, or the date) and needs the starting point on screen to see
+              which. */}
+          {currentStartsAt && (
+            <p className="rounded-lg bg-ink/[0.04] px-3 py-2 text-[12.5px] text-ink-muted">
+              Currently on{' '}
+              <span className="font-semibold text-ink">{fmtDateTime(currentStartsAt)}</span>. The
+              date below starts there — change it only if the guest is moving day too.
+            </p>
+          )}
           <label className="block">
             <span className="text-[12px] font-semibold text-ink-muted">Tour</span>
             <select

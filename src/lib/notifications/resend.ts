@@ -159,6 +159,28 @@ See you there.
 Belle Mare Tours`,
     };
   }
+  // The OFFER, sent when staff propose an upgrade — before any money moves. It must be explicit that
+  // nothing has changed yet and that the current booking stands, or a guest who ignores it will think
+  // they have been moved. The link is the booking page, which is where the pay button lives.
+  if (message.template === 'booking_change_offer') {
+    const diff = typeof p.differenceEur === 'number' ? p.differenceEur : 0;
+    const title = typeof p.activityTitle === 'string' ? p.activityTitle : 'another tour';
+    const when = dayOf(p.startsAt);
+    const holdsUntil =
+      typeof p.expiresAt === 'string' ? ` We can hold it until ${dayOf(p.expiresAt)}.` : '';
+    return {
+      subject: `Your booking ${ref}: switch to ${title} for €${diff.toFixed(2)}`,
+      text: `Hi ${name},
+
+As discussed, we've held a place for you on ${title} on ${when}. To switch, there's a difference of €${diff.toFixed(2)} to pay.${holdsUntil}
+
+Pay the difference here: ${bookingUrl}
+
+Nothing has changed yet — your current booking stands exactly as it is unless and until that payment goes through. If you'd rather stay as you are, just ignore this email.
+
+Belle Mare Tours`,
+    };
+  }
   // Owner-facing: a booking moved to a different tour, so the run sheet changed on both departures.
   if (message.template === 'owner_booking_changed') {
     const diff = typeof p.differenceEur === 'number' ? p.differenceEur : 0;

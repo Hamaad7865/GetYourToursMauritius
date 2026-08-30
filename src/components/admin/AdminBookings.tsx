@@ -891,6 +891,7 @@ function BookingDrawer({
               <BookingChangePanel
                 bookingId={booking.id}
                 bookingRef={booking.ref}
+                currentStartsAt={booking.items.map((i) => i.startsAt).filter(Boolean)[0] ?? null}
                 onChanged={() => {
                   void reload();
                   onChanged();

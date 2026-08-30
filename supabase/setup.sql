@@ -37916,6 +37916,15 @@ begin
     raise exception 'target_not_bookable' using detail = 'activity or option not live';
   end if;
 
+  -- THE DEPARTURE MUST STILL BE AHEAD OF US, the same guard api_reschedule_booking applies to its
+  -- target. Without it a September booking could be moved onto a departure that left this morning:
+  -- the admin picker defaults to a date, and "the only departure listed" is a very easy thing to
+  -- select by accident. Checked HERE as well as in the write path so the priced preview refuses it
+  -- too, rather than showing a happy figure the propose call then rejects.
+  if v_target.status <> 'open' or v_target.starts_at <= now() then
+    raise exception 'target_not_bookable' using detail = v_target.status;
+  end if;
+
   -- THE UNIT-SEMANTICS REFUSAL, on both sides of the move. A private or vehicle option counts the
   -- pool in TRIPS, not heads: create_booking writes quantity 1 with the real party in `pax`. Moving a
   -- per-person booking onto such an option (or off one) would either reserve N departures for one
@@ -38093,6 +38102,64 @@ $$;
 revoke execute on function notify_booking_change_applied(uuid) from public, anon, authenticated;
 grant execute on function notify_booking_change_applied(uuid) to service_role;
 
+-- THE OFFER MAIL — sent when staff PROPOSE an upgrade, not when it completes.
+--
+-- Without this the flow has no way to reach the guest: staff park a proposal, a seat is held, and the
+-- only surface that can pay it is a block on the guest's own booking page which they have no reason
+-- to revisit. The operator would have to chase by hand, which is the work this feature exists to
+-- remove. Upgrades only — a level or cheaper move is applied on the spot and owes nothing.
+create or replace function notify_booking_change_offer(p_request_id uuid)
+returns void
+language plpgsql
+volatile
+security definer
+set search_path = public
+as $$
+declare
+  v_req booking_change_requests;
+  v_booking bookings;
+  v_title text;
+  v_starts_at timestamptz;
+begin
+  select * into v_req from booking_change_requests where id = p_request_id;
+  if not found or v_req.difference_minor <= 0 or v_req.applied_at is not null then
+    return;
+  end if;
+  select * into v_booking from bookings where id = v_req.booking_id;
+  if not found or v_booking.customer_email is null then
+    return;
+  end if;
+
+  select a.title, so.starts_at
+    into v_title, v_starts_at
+    from activity_options o
+    join activities a on a.id = o.activity_id
+    join session_occurrences so on so.id = v_req.to_occurrence_id
+   where o.id = v_req.to_option_id;
+
+  insert into notification_outbox (channel, recipient, template, payload, booking_id, idempotency_key)
+  values (
+    'email', v_booking.customer_email, 'booking_change_offer',
+    jsonb_build_object(
+      'ref', v_booking.ref,
+      'customerName', v_booking.customer_name,
+      'activityTitle', v_title,
+      'startsAt', v_starts_at,
+      'differenceEur', v_req.difference_minor::float / 100,
+      'newTotalEur', v_req.new_total_minor::float / 100,
+      'expiresAt', v_req.expires_at,
+      'locale', v_booking.locale::text
+    ),
+    v_req.booking_id,
+    'change_offer_guest:' || p_request_id::text
+  )
+  on conflict (idempotency_key) do nothing;
+end;
+$$;
+
+revoke execute on function notify_booking_change_offer(uuid) from public, anon, authenticated;
+grant execute on function notify_booking_change_offer(uuid) to service_role;
+
 -- A settled change payment that could NOT be applied. EVERY branch that refuses to move the booking
 -- routes here, because the alternative is keeping a guest's money with no record anyone will ever
 -- look at. Email only, idempotent per payment: the reconcile sweep re-queries the same capture for
@@ -38196,8 +38263,14 @@ begin
   -- ...and the target departure must still be running, and the booking must not be awaiting a
   -- disruption choice. api_weather_cancel_occurrence leaves a booking 'confirmed' with its items on a
   -- cancelled occurrence, so the status check above sails straight past a called-off trip.
+  -- `starts_at <= now()` matters MOST here: a proposal is payable for hours, so the guest can settle
+  -- it after the departure they were being moved onto has already left. Moving them onto a departed
+  -- trip and keeping the money is the worst available outcome, so this routes to the orphan alert.
   select * into v_target from session_occurrences where id = v_req.to_occurrence_id for update;
-  if not found or v_target.status <> 'open' or booking_awaiting_choice(v_booking.disruption) then
+  if not found
+     or v_target.status <> 'open'
+     or v_target.starts_at <= now()
+     or booking_awaiting_choice(v_booking.disruption) then
     if v_req.payment_id is not null then
       perform notify_change_orphan_payment(v_req.payment_id);
     end if;
@@ -38375,7 +38448,8 @@ begin
   if not found then
     raise exception 'occurrence_not_found';
   end if;
-  if v_target.status <> 'open' then
+  -- Open AND still ahead of us — see the same guard in change_request_quote.
+  if v_target.status <> 'open' or v_target.starts_at <= now() then
     raise exception 'target_not_bookable' using detail = v_target.status;
   end if;
 
@@ -38449,10 +38523,13 @@ begin
   returning * into v_req;
 
   -- A level or cheaper move has nothing to wait for: commit it now. A cheaper one then owes money
-  -- back, which api_record_change_refund settles once the owner has refunded in Peach.
+  -- back, which api_record_change_refund settles once the owner has refunded in Peach. An UPGRADE
+  -- instead emails the guest the offer — the held seat is worthless if nobody tells them it exists.
   if v_diff <= 0 then
     perform apply_booking_change(v_req.id);
     select * into v_req from booking_change_requests where id = v_req.id;
+  else
+    perform notify_booking_change_offer(v_req.id);
   end if;
 
   return jsonb_build_object(

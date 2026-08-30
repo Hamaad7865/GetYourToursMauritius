@@ -544,6 +544,96 @@ describe('staff change of tour', () => {
     expect(seen.pendingChange).toBeNull();
   });
 
+  it('refuses a departure that has already left', async () => {
+    const booking = await paidBooking('past-target');
+    await db.asOwner();
+    const past = (
+      await db.pg.query<{ id: string }>(
+        `insert into session_occurrences (activity_option_id, operator_id, starts_at, ends_at, capacity)
+         values ($1, $2, now() - interval '6 hours', now() - interval '2 hours', 40) returning id`,
+        [dearOption, operatorId],
+      )
+    ).rows[0]!.id;
+
+    await asStaff();
+    // Both the priced preview and the write path refuse it — the preview too, so the panel cannot
+    // show a happy figure that propose then rejects.
+    await expect(
+      call(db, 'api_booking_change_quote', { bookingId: booking.id, occurrenceId: past }),
+    ).rejects.toThrow(/target_not_bookable/);
+    await expect(
+      call(db, 'api_propose_booking_change', { ref: booking.ref, occurrenceId: past }),
+    ).rejects.toThrow(/target_not_bookable/);
+  });
+
+  it('does not move the booking when the target departs before the guest pays', async () => {
+    const booking = await paidBooking('departed-before-pay');
+    await db.asOwner();
+    const soon = (
+      await db.pg.query<{ id: string }>(
+        `insert into session_occurrences (activity_option_id, operator_id, starts_at, ends_at, capacity)
+         values ($1, $2, now() + interval '2 hours', now() + interval '8 hours', 40) returning id`,
+        [dearOption, operatorId],
+      )
+    ).rows[0]!.id;
+
+    await asStaff();
+    const proposed = await call<{ paymentId: string }>(db, 'api_propose_booking_change', {
+      ref: booking.ref,
+      occurrenceId: soon,
+    });
+
+    // The guest sits on the payment page; the trip leaves in the meantime.
+    await db.asOwner();
+    await db.pg.query(
+      `update session_occurrences set starts_at = now() - interval '1 hour',
+              ends_at = now() - interval '10 minutes' where id = $1`,
+      [soon],
+    );
+    await settle(proposed.paymentId, 5000, 'departed-settled');
+
+    expect((await bookingRow(db, booking.ref)).total_minor).toBe(11000);
+    const { rows: alert } = await db.pg.query<{ template: string }>(
+      `select template from notification_outbox where idempotency_key = $1`,
+      [`change_orphan:${proposed.paymentId}`],
+    );
+    expect(alert).toHaveLength(1);
+  });
+
+  it('emails the guest the offer when an upgrade is proposed', async () => {
+    const booking = await paidBooking('offer-mail');
+    await asStaff();
+    const proposed = await call<{ requestId: string }>(db, 'api_propose_booking_change', {
+      ref: booking.ref,
+      occurrenceId: dearOcc,
+    });
+
+    await db.asOwner();
+    const { rows } = await db.pg.query<{ template: string; recipient: string; payload: unknown }>(
+      `select template, recipient, payload from notification_outbox where idempotency_key = $1`,
+      [`change_offer_guest:${proposed.requestId}`],
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.template).toBe('booking_change_offer');
+    expect(rows[0]!.recipient).toBe('offer-mail@example.com');
+    expect((rows[0]!.payload as { differenceEur: number }).differenceEur).toBe(50);
+  });
+
+  it('sends no offer mail for a level or cheaper move', async () => {
+    const booking = await paidBooking('no-offer-mail');
+    await asStaff();
+    const r = await call<{ requestId: string }>(db, 'api_propose_booking_change', {
+      ref: booking.ref,
+      occurrenceId: levelOcc,
+    });
+    await db.asOwner();
+    const { rows } = await db.pg.query(
+      `select 1 from notification_outbox where idempotency_key = $1`,
+      [`change_offer_guest:${r.requestId}`],
+    );
+    expect(rows).toHaveLength(0);
+  });
+
   it('withdrawing a proposal returns the held seat', async () => {
     const booking = await paidBooking('withdraw');
     await asStaff();
