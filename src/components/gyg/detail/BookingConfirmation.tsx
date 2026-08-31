@@ -83,6 +83,24 @@ interface Booking {
     optionName?: string | null;
     startsAt?: string | null;
   } | null;
+  /** Every APPLIED tour change on this booking, oldest first — informational, unlike `pendingChange`
+   *  above. An upgrade shows what was paid; a downgrade shows what is owed back and whether it has
+   *  been refunded yet. Almost always empty or one entry, but rendered as a list regardless so a
+   *  second change on the same booking needs no follow-up UI change. */
+  changeHistory?: Array<{
+    requestId: string;
+    appliedAt: string;
+    refundedAt?: string | null;
+    differenceMinor: number;
+    fromActivityTitle?: string | null;
+    fromOptionName?: string | null;
+    fromStartsAt?: string | null;
+    fromTotalMinor: number;
+    toActivityTitle?: string | null;
+    toOptionName?: string | null;
+    toStartsAt?: string | null;
+    toTotalMinor: number;
+  }> | null;
   /** A pickup the guest has committed to but whose transport supplement hasn't settled yet. The
    *  address is deliberately not on the booking until it does — see 20260910000000. */
   pendingPickup?: {
@@ -758,6 +776,71 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
               label={t('Pay the difference')}
               className="mt-3 inline-flex items-center justify-center rounded-full bg-teal px-4 py-2 text-[13px] font-bold text-white hover:bg-teal-dark disabled:opacity-60"
             />
+          </div>
+        )}
+
+        {/* THE HISTORY OF ANY APPLIED CHANGE. Informational, not actionable — `pendingChange` above
+            is the ONLY block that still needs a decision from the guest. This one exists because
+            once a change applies, apply_booking_change overwrites booking_items in place: nothing
+            else on this page (or the invoice) can otherwise show the booking ever having been the
+            OLD tour, or that money moved to get here. Rendered as `.map()` over the array even
+            though it will almost always hold zero or one entries — a second change on the same
+            booking needs no follow-up change here. */}
+        {booking.changeHistory && booking.changeHistory.length > 0 && (
+          <div className="mt-5 space-y-3 border-t border-ink/10 pt-4">
+            {booking.changeHistory.map((change) => {
+              const fmt = (iso?: string | null) =>
+                iso
+                  ? new Date(iso).toLocaleDateString('en-GB', {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric',
+                    })
+                  : '';
+              // A downgrade the owner hasn't yet refunded is the one entry still worth the guest's
+              // attention — same amber-pill idiom as "Pickup to be arranged" below, reserved for
+              // exactly this one actionable-from-the-guest's-view case.
+              const refundOwed = change.differenceMinor < 0 && !change.refundedAt;
+              return (
+                <div
+                  key={change.requestId}
+                  className={
+                    refundOwed
+                      ? 'rounded-xl border border-amber-200 bg-amber-50 px-4 py-3'
+                      : 'rounded-xl bg-ink/[0.03] px-4 py-3'
+                  }
+                >
+                  <div className="text-[13px] font-bold text-ink">{t('Your tour change')}</div>
+                  <p className="mt-1 text-[13px] leading-relaxed text-ink/80">
+                    {t('Previously')}: {change.fromActivityTitle ?? t('your previous tour')}
+                    {change.fromOptionName ? ` — ${change.fromOptionName}` : ''}
+                    {change.fromStartsAt ? ` · ${fmt(change.fromStartsAt)}` : ''} ·{' '}
+                    <Price eur={change.fromTotalMinor / 100} />
+                  </p>
+                  <p className="mt-1 text-[13px] leading-relaxed text-ink/80">
+                    {t('Now')}: {change.toActivityTitle ?? t('your new tour')}
+                    {change.toOptionName ? ` — ${change.toOptionName}` : ''}
+                    {change.toStartsAt ? ` · ${fmt(change.toStartsAt)}` : ''} ·{' '}
+                    <Price eur={change.toTotalMinor / 100} />
+                  </p>
+                  <p className="mt-1.5 text-[13px] font-bold text-ink">
+                    {change.differenceMinor > 0
+                      ? t('Charged')
+                      : change.differenceMinor < 0
+                        ? change.refundedAt
+                          ? t('Refunded on {date}', { date: fmt(change.refundedAt) })
+                          : t('Refund pending')
+                        : t('No extra charge')}
+                    {change.differenceMinor !== 0 && (
+                      <>
+                        {' '}
+                        <Price eur={Math.abs(change.differenceMinor) / 100} />
+                      </>
+                    )}
+                  </p>
+                </div>
+              );
+            })}
           </div>
         )}
 

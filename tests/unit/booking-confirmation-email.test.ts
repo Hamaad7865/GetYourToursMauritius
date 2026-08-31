@@ -216,3 +216,72 @@ describe('renderConfirmationEmail — installment receipt wording', () => {
     expect(html).not.toContain('We have received your payment');
   });
 });
+
+/**
+ * The third, optional `change` parameter — the "Previously → Now → Difference" fragment for a
+ * tour-change confirmation. Threaded as a SIBLING argument, never a field on InvoiceModel: the
+ * critical property this suite checks is that supplying it changes nothing about the model itself,
+ * which is what keeps the owner's decision ("the attached PDF stays a clean, single-state invoice")
+ * true by construction — there must be no field on the model a future edit to renderInvoicePdf could
+ * ever discover and start rendering.
+ */
+describe('renderConfirmationEmail — the change-summary fragment', () => {
+  const changeSummary = () => ({
+    fromActivityTitle: 'Full Day Speed Boat Ile Aux Cerf with Lunch',
+    fromOptionName: 'Standard',
+    fromStartsAt: '2026-09-21T08:00:00Z',
+    fromTotalEur: 110,
+    toActivityTitle: 'Full Day 5 Islands tour Ile Aux Cerfs with Lunch',
+    toOptionName: 'Standard',
+    toStartsAt: '2026-09-21T08:00:00Z',
+    toTotalEur: 160,
+    differenceEur: 50,
+    refundStatus: 'none' as const,
+  });
+
+  it('splices the fragment into both html and text, and drives a distinct subject', () => {
+    const model = representativeModel();
+    const { subject, html, text } = renderConfirmationEmail(model, undefined, changeSummary());
+    expect(subject).toContain('tour change confirmed');
+    expect(html).toContain('Full Day Speed Boat');
+    expect(html).toContain('Full Day 5 Islands');
+    expect(text).toContain('Full Day Speed Boat');
+    expect(text).toContain('Full Day 5 Islands');
+    // The ordinary invoice content is still present alongside it — this composes, it does not replace.
+    expect(html).toContain(model.booking.ref);
+  });
+
+  it('a refunded downgrade drives the refund-confirmed subject', () => {
+    const { subject, html } = renderConfirmationEmail(representativeModel(), undefined, {
+      ...changeSummary(),
+      differenceEur: -50,
+      toTotalEur: 60,
+      refundStatus: 'refunded',
+      refundedAt: '2026-09-22T12:00:00Z',
+    });
+    expect(subject).toContain('refund confirmed');
+    expect(html).toContain('Refunded');
+  });
+
+  it('with no third argument, renders byte-identically to the two-argument call', () => {
+    const model = representativeModel();
+    const withUndefined = renderConfirmationEmail(model, 'https://x.test/bookings/BMT-1042');
+    const withoutArg = renderConfirmationEmail(
+      model,
+      'https://x.test/bookings/BMT-1042',
+      undefined,
+    );
+    expect(withUndefined).toEqual(withoutArg);
+  });
+
+  it('leaves the InvoiceModel — and therefore what renderInvoicePdf will ever see — untouched', () => {
+    // The same model object, passed once with a change summary and once without. If rendering the
+    // email ever mutated the model in place to carry change data, this would catch it; the model
+    // going into renderInvoicePdf must be identical either way, proving the PDF has no way to pick
+    // up change-of-tour data now or after a future edit to this file.
+    const model = representativeModel();
+    const snapshot = JSON.parse(JSON.stringify(model));
+    renderConfirmationEmail(model, undefined, changeSummary());
+    expect(model).toEqual(snapshot);
+  });
+});

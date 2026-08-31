@@ -110,6 +110,27 @@ describe('renderConfirmationEmail — locale', () => {
     expect(fr.html).toContain('EUR 191.00');
     expect(en.html).toContain('EUR 191.00');
   });
+
+  it('the spliced change-summary fragment follows the booking locale too', () => {
+    const model = buildInvoice(bookingInput({ locale: 'fr' }), payment, INVOICE_BUSINESS);
+    const { html, subject } = renderConfirmationEmail(model, undefined, {
+      fromActivityTitle: 'Excursion en bateau',
+      fromOptionName: null,
+      fromStartsAt: '2026-09-21T08:00:00Z',
+      fromTotalEur: 110,
+      toActivityTitle: 'Tour des 5 îles',
+      toOptionName: null,
+      toStartsAt: '2026-09-21T08:00:00Z',
+      toTotalEur: 160,
+      differenceEur: 50,
+      refundStatus: 'none',
+    });
+    // The fragment's own labels ("Previously"/"Now"/"Charged") must be French here, matching the
+    // rest of the email around it — an English label leaking through would read as half-translated.
+    expect(html).not.toContain('>Previously<');
+    expect(html).not.toContain('>Now<');
+    expect(subject.length).toBeGreaterThan(0);
+  });
 });
 
 describe('renderReviewRequestEmail — locale', () => {

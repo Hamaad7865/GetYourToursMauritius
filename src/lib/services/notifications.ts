@@ -6,10 +6,15 @@ import type {
   NotificationMessage,
   NotificationProvider,
 } from '@/lib/notifications/types';
-import { loadBookingForReceipt } from './receipt';
+import { loadBookingForReceipt, loadLatestAppliedChange } from './receipt';
 import { buildInvoice } from '@/lib/invoice/model';
 import { renderInvoicePdf } from '@/lib/invoice/pdf';
-import { escapeHtml, renderConfirmationEmail } from '@/lib/email/booking-confirmation';
+import {
+  escapeHtml,
+  renderConfirmationEmail,
+  type ConfirmationChangeSummary,
+} from '@/lib/email/booking-confirmation';
+import { renderChangeAppliedNotice } from '@/lib/email/booking-change';
 import { renderReviewRequestEmail } from '@/lib/email/review-request';
 import { renderPickupConfirmedEmail, renderPickupReminderEmail } from '@/lib/email/pickup';
 import {
@@ -99,8 +104,36 @@ async function enrichBookingConfirmation(
     model.installment = true;
   }
 
+  // A tour-change confirmation (upgrade-settled/level applying booking_changed, or the follow-up
+  // booking_change_refunded once a downgrade's refund is recorded) gets the "Previously → Now →
+  // Difference" fragment spliced into the SAME invoice email — reloaded live via
+  // api_booking_change_history, never from the outbox payload (booking_change_refunded's payload is
+  // deliberately thin and carries none of this). Skipped for every other template: zero added cost
+  // on the ordinary booking_confirmation/deposit_receipt path, which is the overwhelming majority of
+  // sends.
+  let change: ConfirmationChangeSummary | undefined;
+  if (message.template === 'booking_changed' || message.template === 'booking_change_refunded') {
+    const entry = await loadLatestAppliedChange(ctx, message.bookingId);
+    if (entry) {
+      change = {
+        fromActivityTitle: entry.fromActivityTitle ?? 'your previous tour',
+        fromOptionName: entry.fromOptionName ?? null,
+        fromStartsAt: entry.fromStartsAt ?? null,
+        fromTotalEur: entry.fromTotalMinor / 100,
+        toActivityTitle: entry.toActivityTitle ?? model.booking.activityTitle,
+        toOptionName: entry.toOptionName ?? null,
+        toStartsAt: entry.toStartsAt ?? null,
+        toTotalEur: entry.toTotalMinor / 100,
+        differenceEur: entry.differenceMinor / 100,
+        refundStatus:
+          entry.differenceMinor >= 0 ? 'none' : entry.refundedAt ? 'refunded' : 'pending',
+        refundedAt: entry.refundedAt ?? null,
+      };
+    }
+  }
+
   const bookingUrl = `${SITE.url}/bookings/${model.booking.ref}`;
-  const email = renderConfirmationEmail(model, bookingUrl);
+  const email = renderConfirmationEmail(model, bookingUrl, change);
   message.subject = email.subject;
   message.html = email.html;
   message.text = email.text;
@@ -393,6 +426,46 @@ function enrichOwnerNewLead(message: NotificationMessage): void {
 }
 
 /**
+ * The downgrade's immediate, PDF-less notice. Payload-only and synchronous, like enrichReviewRequest:
+ * notify_booking_change_applied already embeds every field this needs directly in the outbox payload
+ * (fromActivityTitle, toActivityTitle, both totals, the difference), so there is no DB round-trip.
+ *
+ * This must NEVER route through enrichBookingConfirmation/the invoice pipeline: `paid_minor` still
+ * reflects the OLD, higher amount at this instant (the refund is a later, separate,
+ * api_record_change_refund step), so a full invoice sent now would show paid > total.
+ */
+function enrichBookingChangeNotice(message: NotificationMessage): void {
+  const p = message.payload;
+  const str = (v: unknown): string | null => (typeof v === 'string' && v ? v : null);
+  const num = (v: unknown): number => (typeof v === 'number' ? v : 0);
+  const currency = 'EUR';
+  const email = renderChangeAppliedNotice({
+    customerName: str(p.customerName) ?? 'there',
+    ref: str(p.ref) ?? '',
+    locale: typeof p.locale === 'string' ? p.locale : null,
+    summary: {
+      currency,
+      fromActivityTitle: str(p.fromActivityTitle) ?? 'your previous tour',
+      fromOptionName: str(p.fromOptionName),
+      fromStartsAt: str(p.fromStartsAt),
+      fromTotalEur: num(p.fromTotalEur),
+      toActivityTitle: str(p.toActivityTitle) ?? 'your new tour',
+      toOptionName: str(p.toOptionName),
+      toStartsAt: str(p.toStartsAt),
+      toTotalEur: num(p.toTotalEur),
+      differenceEur: num(p.differenceEur),
+      // Always 'pending': this template only ever fires for a JUST-applied downgrade, before
+      // api_record_change_refund has run (that follow-up is a different template — booking_changed
+      // via booking_change_refunded — which reads live 'refunded' state instead).
+      refundStatus: 'pending',
+    },
+  });
+  message.subject = email.subject;
+  message.html = email.html;
+  message.text = email.text;
+}
+
+/**
  * The two guest emails of the late-pickup flow. Payload-only and synchronous, like
  * enrichReviewRequest: api_enqueue_pickup_reminders / notify_pickup_set embed the title, the name and
  * the booking's stored locale at insert time, so there is no DB round-trip and no failure mode that
@@ -509,10 +582,21 @@ export async function drainNotifications(
   for (const message of messages) {
     try {
       resolveOwnerRecipient(message);
-      if (message.template === 'booking_confirmation' || message.template === 'deposit_receipt') {
-        // Both render through the same path: buildInvoice carries balance_due_minor, so the email +
+      if (
+        message.template === 'booking_confirmation' ||
+        message.template === 'deposit_receipt' ||
+        message.template === 'booking_changed' ||
+        message.template === 'booking_change_refunded'
+      ) {
+        // booking_confirmation/deposit_receipt: buildInvoice carries balance_due_minor, so the email +
         // PDF present a DEPOSIT RECEIPT (balance owed) or the full PAID invoice (settled) off the data.
+        // booking_changed/booking_change_refunded additionally splice in the "Previously → Now →
+        // Difference" fragment (§3 of the change-history work) — both are safe to invoice-with-PDF at
+        // this point: an upgrade has settled, a level move never touched payment state, and
+        // booking_change_refunded only fires once the refund has actually landed.
         await enrichBookingConfirmation(ctx, message);
+      } else if (message.template === 'booking_change_refund_pending') {
+        enrichBookingChangeNotice(message);
       } else if (
         message.template === 'owner_new_booking' ||
         message.template === 'owner_refund_pending'

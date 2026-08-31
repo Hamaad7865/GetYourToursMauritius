@@ -317,6 +317,33 @@ export const bookingSchema = z.object({
       startsAt: z.string().nullish(),
     })
     .nullish(),
+  /**
+   * Every APPLIED tour change on this booking, oldest first (20261006000000 follow-up). Unlike
+   * `pendingChange` this is informational, not actionable — an upgrade shows what was paid, a
+   * downgrade shows what is owed back and whether it has been refunded yet. `.default([])` rather
+   * than bare `.nullish()`: a deploy window where the route ships before the SQL migration has run
+   * degrades to an empty array instead of a parse failure, matching how the rest of this schema
+   * treats a pre-migration receipt RPC.
+   */
+  changeHistory: z
+    .array(
+      z.object({
+        requestId: z.string(),
+        appliedAt: z.string(),
+        refundedAt: z.string().nullish(),
+        differenceMinor: z.coerce.number().int(),
+        fromActivityTitle: z.string().nullish(),
+        fromOptionName: z.string().nullish(),
+        fromStartsAt: z.string().nullish(),
+        fromTotalMinor: z.coerce.number().int(),
+        toActivityTitle: z.string().nullish(),
+        toOptionName: z.string().nullish(),
+        toStartsAt: z.string().nullish(),
+        toTotalMinor: z.coerce.number().int(),
+      }),
+    )
+    .nullish()
+    .default([]),
   /** Activity slug + option of the booked line — the confirmation page needs both to offer new dates
    *  (the availability endpoint is keyed by slug and its slots are filtered by option). */
   activitySlug: z.string().nullish(),

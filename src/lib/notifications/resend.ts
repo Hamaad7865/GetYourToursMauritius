@@ -136,16 +136,20 @@ Belle Mare Tours`,
   // difference settled, for a cheaper move immediately. The money line is written from the sign of
   // the difference rather than assuming an upgrade: telling someone owed a refund that they have
   // "paid the difference" would be both wrong and alarming.
+  // Belt-and-braces text fallback — booking_changed is normally pre-rendered by
+  // enrichBookingConfirmation with the branded HTML, a before/after breakdown and an invoice PDF
+  // (§3 of the change-history work); this only fires if enrichment is bypassed (a raw test message).
+  // Only reached with difference_minor >= 0 — a downgrade routes to booking_change_refund_pending
+  // instead, which enrichBookingChangeNotice always renders directly (no fallback needed here, same
+  // as pickup_confirmed).
   if (message.template === 'booking_changed') {
-    const when = dayOf(p.startsAt);
-    const title = typeof p.activityTitle === 'string' ? p.activityTitle : 'your new tour';
+    const when = dayOf(p.toStartsAt);
+    const title = typeof p.toActivityTitle === 'string' ? p.toActivityTitle : 'your new tour';
     const diff = typeof p.differenceEur === 'number' ? p.differenceEur : 0;
     const money =
       diff > 0
         ? `Thanks for settling the €${diff.toFixed(2)} difference.`
-        : diff < 0
-          ? `We owe you €${Math.abs(diff).toFixed(2)} back, and we're refunding it to the card you paid with — it usually lands within a few days.`
-          : `There was nothing extra to pay.`;
+        : `There was nothing extra to pay.`;
     return {
       subject: `Your Belle Mare Tours booking ${ref} is now ${title}`,
       text: `Hi ${name},
@@ -182,13 +186,21 @@ Belle Mare Tours`,
     };
   }
   // Owner-facing: a booking moved to a different tour, so the run sheet changed on both departures.
+  //
+  // The MUR figure (via the shared chargedNote helper, same as owner_new_booking/owner_refund_pending)
+  // is what closes a real gap: an owner told only "REFUND €35.00 owed" has no way to know what to
+  // actually type into Peach, which settles in MUR, not EUR. For a downgrade there is no exact figure
+  // yet (no change_addon payment exists to read one off — the refund hasn't happened), so
+  // notify_booking_change_applied sends a PRO-RATA ESTIMATE instead and flags it — "(approx.)" here
+  // says plainly that this is a rounded guess, not the number to reconcile against.
   if (message.template === 'owner_booking_changed') {
     const diff = typeof p.differenceEur === 'number' ? p.differenceEur : 0;
+    const estimateNote = p.chargedIsEstimate === true ? ' (approx.)' : '';
     const money =
       diff > 0
-        ? `collected €${diff.toFixed(2)}`
+        ? `collected €${diff.toFixed(2)}${chargedNote(p)}`
         : diff < 0
-          ? `REFUND €${Math.abs(diff).toFixed(2)} owed`
+          ? `REFUND €${Math.abs(diff).toFixed(2)} owed${chargedNote(p)}${estimateNote}`
           : 'no price change';
     const phone =
       typeof p.customerPhone === 'string' && p.customerPhone ? `\nPhone: ${p.customerPhone}` : '';

@@ -275,6 +275,26 @@ export const fr: Record<string, string> = {
   'Start time': 'Heure de départ',
   'Estimated return': 'Retour estimé',
   'Pickup location': 'Lieu de prise en charge',
+  Previously: 'Précédemment',
+  Now: 'Désormais',
+  Difference: 'Différence',
+  Charged: 'Débité',
+  // 'Refunded' / 'Refund pending' / 'on {date}' reuse the existing entries elsewhere in this file
+  // (booking-status labels) — same English source string, and "Remboursée" reads fine standalone.
+  'No extra charge': 'Aucun supplément',
+  'to the card you paid with': 'sur la carte utilisée pour le paiement',
+  'your previous tour': 'votre excursion précédente',
+  'Refunded on {date}': 'Remboursé le {date}',
+  'Your tour has changed': 'Votre excursion a changé',
+  'Hi {name}, your tour has changed — here is what happened.':
+    'Bonjour {name}, votre excursion a changé — voici ce qui s’est passé.',
+  "We'll refund the difference to the card you paid with — it usually lands within a few days.":
+    'Nous vous rembourserons la différence sur la carte utilisée pour le paiement — cela prend généralement quelques jours.',
+  'Your {operator} booking {ref} has changed': 'Votre réservation {operator} {ref} a changé',
+  'Your {operator} booking {ref} — refund confirmed':
+    'Votre réservation {operator} {ref} — remboursement confirmé',
+  'Your {operator} booking {ref} — tour change confirmed':
+    'Votre réservation {operator} {ref} — changement d’excursion confirmé',
   'Your tour change': 'Votre changement d’excursion',
   'We have held a place for you on {tour}. Pay the difference to confirm the change — your current booking stays exactly as it is until then.':
     'Nous vous avons réservé une place sur {tour}. Réglez la différence pour confirmer le changement — votre réservation actuelle reste inchangée jusque-là.',

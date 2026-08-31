@@ -533,6 +533,21 @@ type BookingChangeRequestsRow = {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  /** The "before"/"after" snapshot, written once by apply_booking_change at the moment it commits —
+   *  null until then. from_occurrence_id/starts_at/activity_title/option_name describe the departure
+   *  this booking was on before the move (genuinely unrecoverable afterwards: booking_items is
+   *  overwritten in place); the to_* fields mirror it for the departure it moved to, snapshotted too
+   *  in case a LATER change moves the booking again. from_items/to_items are
+   *  `{id, priceLabel, quantity, unitAmountMinor, subtotalMinor}[]`. */
+  from_occurrence_id: string | null;
+  from_activity_title: string | null;
+  from_option_name: string | null;
+  from_starts_at: string | null;
+  to_activity_title: string | null;
+  to_option_name: string | null;
+  to_starts_at: string | null;
+  from_items: Json | null;
+  to_items: Json | null;
 };
 type BookingChangeRequestsInsert = {
   id?: string;
@@ -550,6 +565,15 @@ type BookingChangeRequestsInsert = {
   refunded_at?: string | null;
   withdrawn_at?: string | null;
   created_by?: string | null;
+  from_occurrence_id?: string | null;
+  from_activity_title?: string | null;
+  from_option_name?: string | null;
+  from_starts_at?: string | null;
+  to_activity_title?: string | null;
+  to_option_name?: string | null;
+  to_starts_at?: string | null;
+  from_items?: Json | null;
+  to_items?: Json | null;
 };
 
 type BookingPickupRequestsInsert = {
@@ -1245,6 +1269,7 @@ export interface Database {
       api_reorder_activities: { Args: { p: Json }; Returns: undefined };
       api_mark_refunded: { Args: { p: Json }; Returns: Json };
       api_booking_change_quote: { Args: { p: Json }; Returns: Json };
+      api_booking_change_history: { Args: { p: Json }; Returns: Json };
       api_propose_booking_change: { Args: { p: Json }; Returns: Json };
       api_withdraw_booking_change: { Args: { p: Json }; Returns: Json };
       api_record_change_refund: { Args: { p: Json }; Returns: Json };

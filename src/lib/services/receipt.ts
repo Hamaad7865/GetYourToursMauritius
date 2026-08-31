@@ -172,3 +172,40 @@ export async function loadBookingForReceipt(
 
   return { booking, payment };
 }
+
+/** One entry of `api_booking_change_history`'s array — the shape `booking_change_history_json` builds. */
+const changeHistoryEntrySchema = z.object({
+  requestId: z.string(),
+  appliedAt: z.string(),
+  refundedAt: z.string().nullable().optional(),
+  differenceMinor: z.number(),
+  fromActivityTitle: z.string().nullable().optional(),
+  fromOptionName: z.string().nullable().optional(),
+  fromStartsAt: z.string().nullable().optional(),
+  fromTotalMinor: z.number(),
+  toActivityTitle: z.string().nullable().optional(),
+  toOptionName: z.string().nullable().optional(),
+  toStartsAt: z.string().nullable().optional(),
+  toTotalMinor: z.number(),
+});
+export type ChangeHistoryEntry = z.infer<typeof changeHistoryEntrySchema>;
+
+/**
+ * The most recently APPLIED tour change on a booking, for the change-flow emails
+ * (`booking_changed` / `booking_change_refund_pending` / `booking_change_refunded`). Loaded fresh
+ * from `api_booking_change_history`, never from the outbox payload — same "never trust the payload
+ * for rendering" convention {@link loadBookingForReceipt} already follows, and load-bearing here
+ * specifically: `booking_change_refunded`'s payload is deliberately thin (no from/to fields at all),
+ * so this live re-fetch is the ONLY source for its email body.
+ *
+ * Returns null for a booking with no applied change at all — callers treat that as "render the
+ * ordinary invoice, no change summary," never as an error.
+ */
+export async function loadLatestAppliedChange(
+  ctx: ServiceContext,
+  bookingId: string,
+): Promise<ChangeHistoryEntry | null> {
+  const raw = await callRpc(ctx, 'api_booking_change_history', { bookingId });
+  const entries = z.array(changeHistoryEntrySchema).parse(raw ?? []);
+  return entries.at(-1) ?? null;
+}

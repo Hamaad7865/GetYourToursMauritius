@@ -1,5 +1,6 @@
 import type { InvoiceModel } from '@/lib/invoice/model';
 import { formatMauritiusDate, formatMauritiusDateTime } from '@/lib/invoice/mauritius-time';
+import { renderChangeSummaryFragment, type ChangeSummaryInput } from './change-summary';
 import { translate } from '@/lib/i18n/translate';
 import { SITE } from '@/lib/seo/site';
 
@@ -46,7 +47,21 @@ export interface RenderedEmail {
   text: string;
 }
 
-export function renderConfirmationEmail(model: InvoiceModel, bookingUrl?: string): RenderedEmail {
+/**
+ * The "what changed" input for a tour-change confirmation, threaded as a SIBLING parameter rather
+ * than a field on `InvoiceModel` — deliberately. `InvoiceModel` also feeds `renderInvoicePdf`, and
+ * the owner's explicit decision was that the attached PDF stays a clean, single-state VAT invoice
+ * with no old/new/difference section. Keeping this data off the model entirely is what makes that
+ * true by construction: there is no field the PDF renderer could ever pick up, now or in a future
+ * edit, rather than a rule someone has to remember to keep respecting.
+ */
+export type ConfirmationChangeSummary = Omit<ChangeSummaryInput, 'locale' | 'currency'>;
+
+export function renderConfirmationEmail(
+  model: InvoiceModel,
+  bookingUrl?: string,
+  change?: ConfirmationChangeSummary,
+): RenderedEmail {
   const locale = model.locale;
   const t = (key: string, vars?: Record<string, string | number>) => translate(locale, key, vars);
   const operator = model.business.legalName;
@@ -80,11 +95,20 @@ export function renderConfirmationEmail(model: InvoiceModel, bookingUrl?: string
   const amountPaidStr = money(model.currency, model.amountPaidEur);
   const balanceDueStr = money(model.currency, model.balanceDueEur);
 
-  const subject = !isDeposit
-    ? t('Your {operator} booking {ref} — invoice & receipt', { operator, ref })
-    : isInstallment
-      ? t('Your {operator} booking {ref} — payment received', { operator, ref })
-      : t('Your {operator} booking {ref} — deposit received', { operator, ref });
+  // A change-flow email overrides the ordinary subject entirely — both variants are recognisably
+  // "this booking moved," not "here's your invoice," even though the same invoice table follows.
+  const changeFragment = change
+    ? renderChangeSummaryFragment({ ...change, locale, currency: model.currency })
+    : null;
+  const subject = change
+    ? change.refundStatus === 'refunded'
+      ? t('Your {operator} booking {ref} — refund confirmed', { operator, ref })
+      : t('Your {operator} booking {ref} — tour change confirmed', { operator, ref })
+    : !isDeposit
+      ? t('Your {operator} booking {ref} — invoice & receipt', { operator, ref })
+      : isInstallment
+        ? t('Your {operator} booking {ref} — payment received', { operator, ref })
+        : t('Your {operator} booking {ref} — deposit received', { operator, ref });
 
   // ── HTML ──────────────────────────────────────────────────────────────────
   const lineRows = model.lines
@@ -254,7 +278,7 @@ export function renderConfirmationEmail(model: InvoiceModel, bookingUrl?: string
                         ),
                 )}
               </p>
-
+${changeFragment ? changeFragment.html : ''}
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px 0;">
                 ${detailRows}
               </table>
@@ -314,6 +338,7 @@ ${voucherHtml}
         ? t('Good news — we have received your payment for booking {ref}.', { ref })
         : t('Good news — we have received your deposit for booking {ref}.', { ref }),
     '',
+    ...(changeFragment ? [changeFragment.text, ''] : []),
     `${t('Activity')}: ${activity}`,
   ];
   if (when) textLines.push(`${t('Date')}: ${when}`);

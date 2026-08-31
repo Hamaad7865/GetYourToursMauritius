@@ -5773,6 +5773,82 @@
                             "newTotalMinor"
                           ]
                         },
+                        "changeHistory": {
+                          "type": [
+                            "array",
+                            "null"
+                          ],
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "requestId": {
+                                "type": "string"
+                              },
+                              "appliedAt": {
+                                "type": "string"
+                              },
+                              "refundedAt": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "differenceMinor": {
+                                "type": "integer"
+                              },
+                              "fromActivityTitle": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "fromOptionName": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "fromStartsAt": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "fromTotalMinor": {
+                                "type": "integer"
+                              },
+                              "toActivityTitle": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "toOptionName": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "toStartsAt": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "toTotalMinor": {
+                                "type": "integer"
+                              }
+                            },
+                            "required": [
+                              "requestId",
+                              "appliedAt",
+                              "differenceMinor",
+                              "fromTotalMinor",
+                              "toTotalMinor"
+                            ]
+                          },
+                          "default": []
+                        },
                         "activitySlug": {
                           "type": [
                             "string",
@@ -5817,7 +5893,8 @@
                         "currency",
                         "source",
                         "createdAt",
-                        "items"
+                        "items",
+                        "changeHistory"
                       ]
                     },
                     "meta": {
@@ -6640,6 +6717,82 @@
                             "newTotalMinor"
                           ]
                         },
+                        "changeHistory": {
+                          "type": [
+                            "array",
+                            "null"
+                          ],
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "requestId": {
+                                "type": "string"
+                              },
+                              "appliedAt": {
+                                "type": "string"
+                              },
+                              "refundedAt": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "differenceMinor": {
+                                "type": "integer"
+                              },
+                              "fromActivityTitle": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "fromOptionName": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "fromStartsAt": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "fromTotalMinor": {
+                                "type": "integer"
+                              },
+                              "toActivityTitle": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "toOptionName": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "toStartsAt": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "toTotalMinor": {
+                                "type": "integer"
+                              }
+                            },
+                            "required": [
+                              "requestId",
+                              "appliedAt",
+                              "differenceMinor",
+                              "fromTotalMinor",
+                              "toTotalMinor"
+                            ]
+                          },
+                          "default": []
+                        },
                         "activitySlug": {
                           "type": [
                             "string",
@@ -6684,7 +6837,8 @@
                         "currency",
                         "source",
                         "createdAt",
-                        "items"
+                        "items",
+                        "changeHistory"
                       ]
                     },
                     "meta": {

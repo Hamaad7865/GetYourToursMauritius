@@ -62,6 +62,42 @@ create table if not exists booking_change_requests (
   updated_at timestamptz not null default now()
 );
 
+-- WHAT "BEFORE" AND "AFTER" ACTUALLY WERE (added once real testing showed the confirmation email and
+-- the booking page could only ever describe the booking's CURRENT state — apply_booking_change
+-- overwrites booking_items in place, so nothing else in the schema remembers the old tour).
+--
+-- from_occurrence_id is `on delete set null`, NOT `restrict` like its to_occurrence_id sibling: a
+-- session_occurrences row genuinely gets hard-deleted by discontinue_option / option_closed_weekdays
+-- (both `delete ... where not exists (booking_items referencing it)`), and the moment a change
+-- repoints booking_items away, the OLD occurrence has zero references and becomes exactly the "empty
+-- future slot" that cleanup targets. A restrict FK here would make that unrelated cleanup abort the
+-- day someone discontinues an option a guest was once moved off. to_occurrence_id (already shipped,
+-- load-bearing for the repoint) carries the identical latent hazard; left alone deliberately -- fixing
+-- it touches tested code this migration doesn't own.
+--
+-- from_*/to_* activity title, option name and starts_at are SNAPSHOTS, not live joins -- matching how
+-- booking_items.price_label is already denormalized at booking time rather than read live. Both sides
+-- are captured, not just "from": if a booking changes tour twice, change #1's "to" tour becomes
+-- change #2's "from" tour, and it can itself be renamed or archived later.
+--
+-- from_items/to_items snapshot {id, priceLabel, quantity, unitAmountMinor, subtotalMinor}[] immediately
+-- before/after the move. price_label and quantity are already invariant across a change (the UPDATE
+-- below never touches them) -- captured anyway so nothing downstream has to assume that stays true.
+-- Note: neither array foots exactly to old_total_minor/new_total_minor when a transport add-on is
+-- attached (change_request_quote folds transport_fare_minor into both totals so it nets to zero in
+-- differenceMinor, but the item snapshot only captures booking_items columns) -- matches how the
+-- invoice itself already separates tour lines from a transport line; not a bug.
+alter table booking_change_requests add column if not exists from_occurrence_id uuid
+  references session_occurrences (id) on delete set null;
+alter table booking_change_requests add column if not exists from_activity_title text;
+alter table booking_change_requests add column if not exists from_option_name text;
+alter table booking_change_requests add column if not exists from_starts_at timestamptz;
+alter table booking_change_requests add column if not exists to_activity_title text;
+alter table booking_change_requests add column if not exists to_option_name text;
+alter table booking_change_requests add column if not exists to_starts_at timestamptz;
+alter table booking_change_requests add column if not exists from_items jsonb;
+alter table booking_change_requests add column if not exists to_items jsonb;
+
 create index if not exists bcr_booking_idx on booking_change_requests (booking_id);
 create index if not exists bcr_payment_idx on booking_change_requests (payment_id);
 -- The open-request lookup every path does: one partial index serves create_payment's payability
@@ -308,9 +344,16 @@ as $$
 declare
   v_req booking_change_requests;
   v_booking bookings;
-  v_title text;
-  v_starts_at timestamptz;
+  v_change_payment payments;
+  v_booking_payment payments;
+  v_charged_amount_minor bigint;
+  v_charged_currency text;
+  v_charged_is_estimate boolean := false;
+  v_guest_template text;
 begin
+  -- v_req already carries every from_*/to_* field apply_booking_change just wrote -- no join needed
+  -- here at all (this function used to run its own redundant title/starts_at lookup off
+  -- to_option_id/to_occurrence_id; deleted, since the row now IS the source of truth).
   select * into v_req from booking_change_requests where id = p_request_id;
   if not found then
     return;
@@ -320,12 +363,28 @@ begin
     return;
   end if;
 
-  select a.title, so.starts_at
-    into v_title, v_starts_at
-    from activity_options o
-    join activities a on a.id = o.activity_id
-    join session_occurrences so on so.id = v_req.to_occurrence_id
-   where o.id = v_req.to_option_id;
+  -- OWNER SIDE: fires for all three signs -- this is the "run sheet changed" alert, distinct from
+  -- the invoice question the guest-side branch below answers. The MUR figure is exact for an
+  -- upgrade (read off the payment that actually settled) and a pro-rata ESTIMATE for a downgrade
+  -- (no change_addon payment exists yet to read an exact figure off -- the refund hasn't happened).
+  if v_req.difference_minor > 0 then
+    select * into v_change_payment from payments where id = v_req.payment_id;
+    v_charged_amount_minor := v_change_payment.charged_amount_minor;
+    v_charged_currency := v_change_payment.charged_currency;
+  elsif v_req.difference_minor < 0 then
+    -- The same row api_record_change_refund will later reverse against.
+    select * into v_booking_payment from payments
+     where booking_id = v_req.booking_id and purpose = 'booking'
+     order by created_at limit 1;
+    if v_booking_payment.charged_amount_minor is not null and coalesce(v_booking_payment.paid_minor, 0) > 0 then
+      v_charged_amount_minor := round(
+        v_booking_payment.charged_amount_minor * abs(v_req.difference_minor)::numeric
+        / v_booking_payment.paid_minor
+      );
+      v_charged_currency := v_booking_payment.charged_currency;
+      v_charged_is_estimate := true;
+    end if;
+  end if;
 
   insert into notification_outbox (channel, recipient, template, payload, booking_id, idempotency_key)
   values (
@@ -334,27 +393,46 @@ begin
       'ref', v_booking.ref,
       'customerName', v_booking.customer_name,
       'customerPhone', v_booking.customer_phone,
-      'activityTitle', v_title,
-      'startsAt', v_starts_at,
+      'activityTitle', v_req.to_activity_title,
+      'startsAt', v_req.to_starts_at,
       'differenceEur', v_req.difference_minor::float / 100,
-      'newTotalEur', v_req.new_total_minor::float / 100
+      'newTotalEur', v_req.new_total_minor::float / 100,
+      'chargedAmountMinor', v_charged_amount_minor,
+      'chargedCurrency', v_charged_currency,
+      'chargedIsEstimate', v_charged_is_estimate
     ),
     v_req.booking_id,
     'booking_changed_owner:' || p_request_id::text
   )
   on conflict (idempotency_key) do nothing;
 
+  -- GUEST SIDE: the template itself branches on sign, not just the copy inside one template --
+  -- money-timing correctness demands it. paid_minor still reflects the OLD, higher amount until
+  -- api_record_change_refund actually runs, so a downgrade must NOT route through the invoice-with-
+  -- PDF pipeline yet (it would show paid > total, a nonsensical negative-balance document); it gets
+  -- a lightweight, PDF-less notice instead. Upgrade-settled and level moves are both safe to invoice
+  -- immediately -- for an upgrade, balance_due_minor is already correct by this point (fixed
+  -- upstream in append_payment_event); a level move never touched payment state at all.
+  v_guest_template := case when v_req.difference_minor < 0
+                           then 'booking_change_refund_pending'
+                           else 'booking_changed' end;
+
   if v_booking.customer_email is not null then
     insert into notification_outbox (channel, recipient, template, payload, booking_id, idempotency_key)
     values (
-      'email', v_booking.customer_email, 'booking_changed',
+      'email', v_booking.customer_email, v_guest_template,
       jsonb_build_object(
         'ref', v_booking.ref,
         'customerName', v_booking.customer_name,
-        'activityTitle', v_title,
-        'startsAt', v_starts_at,
+        'fromActivityTitle', v_req.from_activity_title,
+        'fromOptionName', v_req.from_option_name,
+        'fromStartsAt', v_req.from_starts_at,
+        'fromTotalEur', v_req.old_total_minor::float / 100,
+        'toActivityTitle', v_req.to_activity_title,
+        'toOptionName', v_req.to_option_name,
+        'toStartsAt', v_req.to_starts_at,
+        'toTotalEur', v_req.new_total_minor::float / 100,
         'differenceEur', v_req.difference_minor::float / 100,
-        'newTotalEur', v_req.new_total_minor::float / 100,
         'locale', v_booking.locale::text
       ),
       v_req.booking_id,
@@ -498,6 +576,15 @@ declare
   v_units int;
   v_available int;
   v_called_off boolean;
+  v_from_occurrence_id uuid;
+  v_from_starts_at timestamptz;
+  v_from_activity_title text;
+  v_from_option_name text;
+  v_to_activity_title text;
+  v_to_option_name text;
+  v_from_items jsonb;
+  v_to_items jsonb;
+  v_settled_sum bigint;
 begin
   -- `applied_at is null` is the whole idempotency story: a replayed webhook, the reconcile sweep and
   -- the guest's own sync poll all land here, and only the first one moves anything.
@@ -575,6 +662,32 @@ begin
     return;
   end if;
 
+  -- SNAPSHOT THE "BEFORE" STATE, one query each, before anything is overwritten. Read straight off
+  -- the booking's current lines/occurrence -- the same shape change_request_quote and
+  -- api_propose_booking_change already read when this move was priced, just captured now instead of
+  -- discarded, since apply_booking_change is the last moment this data is still live.
+  select bi.session_occurrence_id, so.starts_at
+    into v_from_occurrence_id, v_from_starts_at
+    from booking_items bi
+    join session_occurrences so on so.id = bi.session_occurrence_id
+   where bi.booking_id = v_req.booking_id
+   order by bi.id limit 1;
+
+  select a.title, o.name into v_from_activity_title, v_from_option_name
+    from activity_options o join activities a on a.id = o.activity_id
+   where o.id = v_req.from_option_id;
+
+  select a.title, o.name into v_to_activity_title, v_to_option_name
+    from activity_options o join activities a on a.id = o.activity_id
+   where o.id = v_req.to_option_id;
+
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'id', bi.id, 'priceLabel', bi.price_label, 'quantity', bi.quantity,
+           'unitAmountMinor', bi.unit_amount_minor, 'subtotalMinor', bi.subtotal_minor
+         )), '[]'::jsonb)
+    into v_from_items
+    from booking_items bi where bi.booking_id = v_req.booking_id;
+
   -- THE MOVE. Every line is re-pointed and re-priced against the target option, by label - the same
   -- rule change_request_quote costed. subtotal is recomputed from the fresh unit price rather than
   -- scaled, so a rounding difference can never accumulate across repeated changes.
@@ -593,11 +706,49 @@ begin
          )
    where bi.booking_id = v_req.booking_id;
 
+  -- THE "AFTER" SNAPSHOT, same shape as "before" -- same row ids (only price/occurrence/option
+  -- columns changed), taken as its own read rather than assumed from the update, so this stays
+  -- correct even if a future edit widens what the UPDATE touches.
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'id', bi.id, 'priceLabel', bi.price_label, 'quantity', bi.quantity,
+           'unitAmountMinor', bi.unit_amount_minor, 'subtotalMinor', bi.subtotal_minor
+         )), '[]'::jsonb)
+    into v_to_items
+    from booking_items bi where bi.booking_id = v_req.booking_id;
+
   -- The booking total follows its lines. operator_payout moves by the same delta the pickup add-on
   -- moves it by, so the payout view stays consistent with what was actually sold.
+  --
+  -- balance_due_minor is recomputed here too, not left alone: for an upgrade/level move it is a
+  -- no-op (append_payment_event's own recompute on the settling change_addon payment -- or, for a
+  -- level move, no payment event at all -- already leaves it correct). For a DOWNGRADE applied
+  -- against a still-open-balance booking (change_request_quote's gate only checks
+  -- payment_state = 'paid', which a settled deposit satisfies even with balance_due_minor > 0), this
+  -- function runs standalone with no payment event to fix it up, and total_minor dropping while
+  -- balance_due_minor stayed at its pre-change figure would overstate what the guest still owes by
+  -- the size of the price cut. Mirrors append_payment_event's own projection exactly (same purpose/
+  -- applied-add-on scoping), so a booking that was never in this state recomputes to the same figure
+  -- it already had.
+  select coalesce(sum(pay.paid_minor - pay.refunded_minor), 0)
+    into v_settled_sum
+    from payments pay
+   where pay.booking_id = v_req.booking_id
+     and (
+       pay.purpose in ('booking', 'balance')
+       or exists (
+         select 1 from booking_pickup_requests r
+          where r.payment_id = pay.id and r.applied_at is not null and r.fee_minor > 0
+       )
+       or exists (
+         select 1 from booking_change_requests r
+          where r.payment_id = pay.id and r.applied_at is not null
+       )
+     );
+
   update bookings
      set total_minor = v_req.new_total_minor,
          operator_payout_minor = operator_payout_minor + v_req.difference_minor,
+         balance_due_minor = greatest(0, v_req.new_total_minor - v_settled_sum),
          updated_at = now()
    where id = v_req.booking_id;
 
@@ -608,7 +759,16 @@ begin
   end if;
 
   update booking_change_requests
-     set applied_at = now(), updated_at = now()
+     set applied_at = now(), updated_at = now(),
+         from_occurrence_id = v_from_occurrence_id,
+         from_activity_title = v_from_activity_title,
+         from_option_name = v_from_option_name,
+         from_starts_at = v_from_starts_at,
+         to_activity_title = v_to_activity_title,
+         to_option_name = v_to_option_name,
+         to_starts_at = v_target.starts_at,
+         from_items = v_from_items,
+         to_items = v_to_items
    where id = v_req.id;
 
   perform notify_booking_change_applied(v_req.id);
@@ -949,12 +1109,66 @@ begin
 
   update booking_change_requests set refunded_at = now(), updated_at = now() where id = v_req.id;
 
+  perform notify_booking_change_refunded(v_req.id);
+
   return jsonb_build_object('ok', true, 'refundedMinor', v_amount);
 end;
 $$;
 
 revoke execute on function api_record_change_refund(jsonb) from public, anon;
 grant execute on function api_record_change_refund(jsonb) to authenticated, service_role;
+
+-- ---------------------------------------------------------------------------
+-- notify_booking_change_refunded — the follow-up the guest is owed once the refund actually lands.
+--
+-- booking_changed (the immediate apply-time notice for a downgrade, routed to the PDF-less
+-- 'booking_change_refund_pending' template) tells the guest a refund is coming; nothing until now
+-- confirmed it arrived. THIN payload deliberately: unlike deposit_receipt, there is no race to
+-- defend against here (no balance that could clear mid-flight before the row drains) -- by the time
+-- this fires the booking is fully reconciled, so the enrich step's live re-fetch is strictly more
+-- accurate than anything pinned at enqueue time.
+--
+-- No owner-facing copy of this. The owner just clicked the button themselves, after refunding in
+-- Peach by hand -- they don't need telling about their own action, and they already saw the
+-- estimated MUR figure in the apply-time owner_booking_changed alert.
+-- ---------------------------------------------------------------------------
+create or replace function notify_booking_change_refunded(p_request_id uuid)
+returns void
+language plpgsql
+volatile
+security definer
+set search_path = public
+as $$
+declare
+  v_req booking_change_requests;
+  v_booking bookings;
+begin
+  select * into v_req from booking_change_requests where id = p_request_id;
+  if not found or v_req.refunded_at is null then
+    return;
+  end if;
+  select * into v_booking from bookings where id = v_req.booking_id;
+  if not found or v_booking.customer_email is null then
+    return;
+  end if;
+
+  insert into notification_outbox (channel, recipient, template, payload, booking_id, idempotency_key)
+  values (
+    'email', v_booking.customer_email, 'booking_change_refunded',
+    jsonb_build_object(
+      'ref', v_booking.ref,
+      'customerName', v_booking.customer_name,
+      'locale', v_booking.locale::text
+    ),
+    v_req.booking_id,
+    'booking_change_refunded_guest:' || p_request_id::text
+  )
+  on conflict (idempotency_key) do nothing;
+end;
+$$;
+
+revoke execute on function notify_booking_change_refunded(uuid) from public, anon, authenticated;
+grant execute on function notify_booking_change_refunded(uuid) to service_role;
 
 -- ---------------------------------------------------------------------------
 -- 9) create_payment - the WINNING body (20260930000000 lineage) VERBATIM plus the change_addon
@@ -1516,10 +1730,63 @@ $$;
 
 grant execute on function booking_open_change_json(uuid) to anon, authenticated, service_role;
 
--- api_get_booking re-applied from its winning body VERBATIM plus `pendingChange`. Kept
--- `security invoker` — booking_json relies on that (definer-grants-lockdown.test.ts pins
--- used_capacity staying anon-executable BECAUSE booking_json is invoker), and the new helper above
--- depends on it for its RLS scoping too.
+-- booking_change_history_json — the APPLIED sibling of booking_open_change_json above. Same
+-- `security invoker` reasoning: RLS (bcr_owner_select / bcr_staff_all) does the scoping, so this
+-- opens no new privacy surface. Needs ZERO joins, unlike its sibling — every field it returns now
+-- lives directly on booking_change_requests after apply_booking_change's snapshot capture, so this
+-- is a flat read. Returns an ARRAY (not a single object): a booking can accumulate more than one
+-- applied change over time, and every entry is worth keeping.
+create or replace function booking_change_history_json(p_booking_id uuid)
+returns jsonb
+language sql
+stable
+security invoker
+set search_path = public
+as $$
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'requestId', r.id,
+           'appliedAt', r.applied_at,
+           'refundedAt', r.refunded_at,
+           'differenceMinor', r.difference_minor,
+           'fromActivityTitle', r.from_activity_title,
+           'fromOptionName', r.from_option_name,
+           'fromStartsAt', r.from_starts_at,
+           'fromTotalMinor', r.old_total_minor,
+           'fromItems', r.from_items,
+           'toActivityTitle', r.to_activity_title,
+           'toOptionName', r.to_option_name,
+           'toStartsAt', r.to_starts_at,
+           'toTotalMinor', r.new_total_minor,
+           'toItems', r.to_items
+         ) order by r.applied_at asc), '[]'::jsonb)
+    from booking_change_requests r
+   where r.booking_id = p_booking_id
+     and r.applied_at is not null;
+$$;
+
+grant execute on function booking_change_history_json(uuid) to anon, authenticated, service_role;
+
+-- api_booking_change_history — a thin `p jsonb` wrapper, since every RPC the TS drain calls directly
+-- takes one jsonb argument (the convention api_booking_receipt already follows). No is_staff() gate:
+-- its only caller is the service-role notification drain, which has no auth.uid() to check and
+-- already runs elevated — same grant shape as api_booking_receipt.
+create or replace function api_booking_change_history(p jsonb)
+returns jsonb
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select booking_change_history_json(nullif(p ->> 'bookingId', '')::uuid);
+$$;
+
+revoke execute on function api_booking_change_history(jsonb) from public, anon, authenticated;
+grant execute on function api_booking_change_history(jsonb) to service_role;
+
+-- api_get_booking re-applied from its winning body VERBATIM plus `pendingChange` and, now,
+-- `changeHistory`. Kept `security invoker` — booking_json relies on that (definer-grants-lockdown.
+-- test.ts pins used_capacity staying anon-executable BECAUSE booking_json is invoker), and both
+-- change-flow helpers below depend on it for their RLS scoping too.
 create or replace function api_get_booking(p jsonb)
 returns jsonb
 language sql
@@ -1530,6 +1797,269 @@ as $$
   select booking_json(b.id)
          || jsonb_build_object('isOwn', coalesce(b.user_id = auth.uid(), false))
          || jsonb_build_object('pendingChange', booking_open_change_json(b.id))
+         || jsonb_build_object('changeHistory', booking_change_history_json(b.id))
   from bookings b
   where b.ref = p ->> 'ref';
 $$;
+
+-- ---------------------------------------------------------------------------
+-- append_payment_event — the WINNING body (20260912000000_quote_deposit.sql lineage) VERBATIM plus
+-- one disjunct, fixing the phantom-balance bug real testing surfaced: a fully-settled upgrade showed
+-- balance_due_minor equal to the difference just paid. See the header comment above the change inside
+-- the body below for the full mechanism (the settlement trigger firing synchronously inside this same
+-- statement, before this function's own balance recompute runs).
+-- ---------------------------------------------------------------------------
+create or replace function append_payment_event(
+  p_payment_id uuid,
+  p_type text,
+  p_provider_event_id text,
+  p_amount_minor bigint,
+  p_occurred_at timestamptz,
+  p_payload jsonb
+)
+returns payments
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_payment payments;
+  v_paid bigint;
+  v_refunded bigint;
+  v_failed boolean;
+  v_state payment_state;
+  v_booking_state payment_state;
+  v_booking_status booking_status;
+  v_occ_id uuid;
+  v_needed bigint;
+  v_cap bigint;
+  v_used_conf bigint;
+  v_used_hold bigint;
+  v_oversold boolean := false;
+  v_called_off boolean := false;
+begin
+  select * into v_payment from payments where id = p_payment_id for update;
+  if not found then
+    raise exception 'payment_not_found';
+  end if;
+
+  insert into payment_events (payment_id, type, provider_event_id, amount_minor, occurred_at, payload)
+  values (
+    p_payment_id, p_type, p_provider_event_id, coalesce(p_amount_minor, 0),
+    coalesce(p_occurred_at, now()), coalesce(p_payload, '{}'::jsonb)
+  )
+  on conflict (payment_id, provider_event_id, type) do nothing;
+
+  select
+    coalesce(sum(amount_minor) filter (where type in ('paid', 'captured')), 0),
+    coalesce(sum(amount_minor) filter (where type = 'refunded'), 0),
+    bool_or(type = 'failed')
+  into v_paid, v_refunded, v_failed
+  from payment_events
+  where payment_id = p_payment_id;
+
+  if v_paid > 0 and v_refunded >= v_paid then
+    v_state := 'refunded';
+  elsif v_paid > 0 and v_refunded > 0 then
+    v_state := 'partially_refunded';
+  -- amount_minor > 0: a zero-amount payment must never read as fully paid (0 >= 0) -- the 'failed'
+  -- branch below has to win for it.
+  elsif v_payment.amount_minor > 0 and v_paid >= v_payment.amount_minor then
+    v_state := 'paid';
+  elsif v_paid > 0 then
+    v_state := 'pending'; -- underpaid: do not confirm
+  elsif coalesce(v_failed, false) then
+    v_state := 'failed';
+  else
+    v_state := 'pending';
+  end if;
+
+  update payments
+  set status = v_state, paid_minor = v_paid, refunded_minor = v_refunded, updated_at = now()
+  where id = p_payment_id
+  returning * into v_payment;
+
+  -- MORE money than we asked for, on one payments row. Nothing else in this system can see that: the
+  -- reducer's own branches all read `>= amount_minor`, so a second capture on an already-paid row is
+  -- indistinguishable from the first, and the late-pickup apply trigger cannot re-fire on it. It
+  -- should be impossible — but "impossible" is what the double-charge guards keep discovering it is
+  -- not, and the only honest response to money we did not ask for is to tell someone who can return it.
+  if v_payment.amount_minor > 0 and v_paid > v_payment.amount_minor then
+    insert into notification_outbox (channel, recipient, template, payload, booking_id, idempotency_key)
+    select 'email', 'owner', 'owner_overpayment',
+           jsonb_build_object(
+             'ref', b.ref,
+             'customerName', b.customer_name,
+             'expectedEur', v_payment.amount_minor::float / 100,
+             'paidEur', v_paid::float / 100,
+             'purpose', v_payment.purpose
+           ),
+           b.id,
+           'overpaid:' || v_payment.id::text
+      from bookings b where b.id = v_payment.booking_id
+    on conflict (idempotency_key) do nothing;
+  end if;
+
+  -- BOOKING-level projection, rolled up across every payment row of this booking -- best row wins,
+  -- and 'failed' only when EVERY row failed. Written from the single touched row it was a latch: one
+  -- declined attempt stamped the booking 'failed' forever (nothing else writes this column), which
+  -- silently removed it from api_pending_payment_checkouts and run_booking_maintenance. Ranking
+  -- rather than re-summing the ledger keeps this a pure widening: a booking with one payment row --
+  -- every booking that never hit the fork -- projects exactly what it projected before.
+  -- Ordered paid > partially_refunded > refunded > pending > failed: with two rows after a double
+  -- charge, one refunded and one not, money is still held and 'paid' is the honest answer.
+  select case min(
+           case pay.status
+             when 'paid' then 1
+             when 'partially_refunded' then 2
+             when 'refunded' then 3
+             when 'pending' then 4
+             when 'failed' then 5
+           end
+         )
+         when 1 then 'paid'
+         when 2 then 'partially_refunded'
+         when 3 then 'refunded'
+         when 5 then 'failed'
+         else 'pending'
+         end::payment_state
+    into v_booking_state
+    from payments pay
+   where pay.booking_id = v_payment.booking_id;
+
+  update bookings set payment_state = coalesce(v_booking_state, v_state), updated_at = now()
+  where id = v_payment.booking_id;
+
+  -- AMOUNT STILL OWED, maintained here as a projection over the payment ROWS — never latched from the
+  -- single row this event touched (that is precisely the sticky-failed class of bug: a booking-level
+  -- figure derived from one child row). total_minor is the running order total — the FULL quoted price,
+  -- GROWN by an applied late-pickup fee (apply_pickup_request, the AFTER-UPDATE-of-status trigger that
+  -- fires from inside the `update payments` above) — so "owed" is that total minus everything settled.
+  -- A row counts only to the extent its money actually REACHED total_minor:
+  --   * the deposit ('booking') and the balance ('balance'), which ARE the total; and
+  --   * a 'pickup_addon' ONLY once its request was APPLIED (a booking_pickup_requests row with
+  --     applied_at set and fee_minor > 0 points at it) — an applied add-on grew total_minor, so its
+  --     capture must count here to net that growth back out.
+  -- A pickup captured but NOT applied never reached total_minor, so it must NOT count: the zero-fee
+  -- revision cuts its payment_id loose (api_request_pickup) and a called-off departure returns before
+  -- growing total (apply_pickup_request), and both leave the capture ORPHANED (notify_pickup_orphan_
+  -- payment). Summing that gross capture in — the original all-purposes shape — silently REDUCED the
+  -- amount owed by money that never paid down the order: a real, permanent under-collection on a booking
+  -- that still owes its balance. (paid_minor - refunded_minor) so a later refund of a counted row stops
+  -- it counting; greatest(0, …) so an overpayment, a refund event, or an unapplied pickup can never
+  -- drive balance_due_minor negative. A legacy/customer booking whose single 'booking' row covers
+  -- total_minor still recomputes to 0 unchanged.
+  update bookings b
+     set balance_due_minor = greatest(
+           0,
+           b.total_minor - coalesce((
+             select sum(pay.paid_minor - pay.refunded_minor)
+               from payments pay
+              where pay.booking_id = b.id
+                and (
+                  pay.purpose in ('booking', 'balance')
+                  or exists (
+                    select 1
+                      from booking_pickup_requests r
+                     where r.payment_id = pay.id
+                       and r.applied_at is not null
+                       and r.fee_minor > 0
+                  )
+                  -- A settled change_addon payment (20261006000000). No amount guard needed, unlike
+                  -- the pickup clause above: a change_addon payments row only ever exists when
+                  -- difference_minor > 0 (api_propose_booking_change only inserts one in that
+                  -- branch), so there is no zero-fee case to exclude. Without this disjunct, the
+                  -- moment payments_apply_booking_change (an AFTER trigger on THIS SAME update
+                  -- statement, fired via the caller's earlier UPDATE payments SET status=...) has
+                  -- already bumped bookings.total_minor to the new, higher figure, this recompute
+                  -- would then subtract a sum that excludes the very payment that just made the
+                  -- booking whole -- leaving a fully-settled upgrade with a phantom balance_due_minor
+                  -- equal to the difference just paid. Verified live on the sandbox before this fix:
+                  -- a paid, upgraded booking carried balance_due_minor = its difference_minor.
+                  or exists (
+                    select 1 from booking_change_requests r
+                     where r.payment_id = pay.id and r.applied_at is not null
+                  )
+                )
+           ), 0)
+         ),
+         updated_at = now()
+   where b.id = v_payment.booking_id;
+
+  -- Confirmation stays driven by THIS row reaching 'paid' (v_state), never by the roll-up: a row
+  -- that just captured the full amount is what licenses confirming, and reusing the roll-up here
+  -- would re-run the capacity re-check on every later event of an already-paid booking.
+  if v_state = 'paid' then
+    select status into v_booking_status from bookings where id = v_payment.booking_id;
+
+    if v_booking_status in ('draft', 'held', 'payment_pending') then
+      -- Re-validate capacity per occurrence, excluding this booking's own items/holds.
+      for v_occ_id in
+        select distinct session_occurrence_id from booking_items where booking_id = v_payment.booking_id
+      loop
+        perform 1 from session_occurrences where id = v_occ_id for update;
+        select coalesce(sum(quantity), 0) into v_needed
+        from booking_items where booking_id = v_payment.booking_id and session_occurrence_id = v_occ_id;
+        select capacity into v_cap from session_occurrences where id = v_occ_id;
+        select coalesce(sum(bi.quantity), 0) into v_used_conf
+        from booking_items bi join bookings b on b.id = bi.booking_id
+        where bi.session_occurrence_id = v_occ_id
+          and b.status in ('confirmed', 'completed')
+          and b.id <> v_payment.booking_id;
+        select coalesce(sum(h.quantity), 0) into v_used_hold
+        from booking_holds h
+        where h.session_occurrence_id = v_occ_id
+          and h.status = 'active' and h.expires_at > now()
+          and (h.booking_id is null or h.booking_id <> v_payment.booking_id);
+        if v_needed > v_cap - v_used_conf - v_used_hold then
+          v_oversold := true;
+        end if;
+      end loop;
+
+      -- Was the departure called off while this payment was in flight?
+      --
+      -- Confirming here would tell the guest they are booked onto a trip that is not running. Worse,
+      -- they could never be put right afterwards: api_weather_cancel_occurrence stamps only bookings
+      -- that were ALREADY confirmed+paid when it ran, and it refuses to re-run on an occurrence it
+      -- has already cancelled — so this booking would never receive a `disruption` stamp, and that
+      -- stamp is the ONLY thing that opens the 24h bypass in api_cancel_booking and
+      -- api_reschedule_booking (via booking_awaiting_choice). Charged, told "confirmed", and locked
+      -- out of both the refund and the free reschedule /refunds promises.
+      --
+      -- Route the money back instead — the same answer this function already gives when the seats
+      -- turn out to be gone (oversold) or the booking is no longer live. refund_pending frees the
+      -- capacity immediately and fires enqueue_booking_notification's refund_pending branch, so the
+      -- owner gets a work item and the guest is told.
+      select exists (
+        select 1
+          from booking_items bi
+          join session_occurrences so on so.id = bi.session_occurrence_id
+         where bi.booking_id = v_payment.booking_id
+           and so.status = 'cancelled'
+      ) into v_called_off;
+
+      if v_oversold or v_called_off then
+        update bookings set status = 'refund_pending', updated_at = now() where id = v_payment.booking_id;
+      else
+        update bookings set status = 'confirmed', updated_at = now() where id = v_payment.booking_id;
+        update booking_holds set status = 'consumed'
+        where booking_id = v_payment.booking_id and status = 'active';
+      end if;
+    elsif v_booking_status not in ('confirmed', 'completed') then
+      -- Money captured on an expired/cancelled booking: must be refunded, not confirmed.
+      update bookings set status = 'refund_pending', updated_at = now() where id = v_payment.booking_id;
+    end if;
+  elsif v_state = 'refunded' and coalesce(v_booking_state, v_state) = 'refunded' then
+    update bookings set status = 'refunded', updated_at = now()
+    where id = v_payment.booking_id and status <> 'cancelled';
+    update booking_holds set status = 'released'
+    where booking_id = v_payment.booking_id and status = 'active';
+  end if;
+
+  return v_payment;
+end;
+$$;
+
+
+revoke execute on function append_payment_event(uuid, text, text, bigint, timestamptz, jsonb) from public, anon, authenticated;
+grant execute on function append_payment_event(uuid, text, text, bigint, timestamptz, jsonb) to service_role;

@@ -285,6 +285,23 @@ const CONTRACTS: ResolvedContract[] = [
       'losing the whole clause freezes every under-24h booking as un-moveable by staff; losing only ' +
       'the is_staff() half makes the override self-servable — a customer moves inside the window',
   },
+  // append_payment_event (20261006000000_booking_change_option.sql) — this function has already
+  // regressed from a stale body multiple times (the deposit/balance/pickup disjuncts above it in the
+  // same balance_due_minor projection are proof), and real testing found a THIRD gap the same way:
+  // the settlement trigger for a change_addon payment fires synchronously inside the very statement
+  // that would otherwise recompute the balance, so a re-definition missing this disjunct leaves a
+  // fully-paid upgrade showing a phantom balance_due_minor equal to the difference just paid —
+  // verified live on the sandbox before the fix, where a paid €80 booking read "balance due €35".
+  {
+    fn: 'append_payment_event',
+    must: 'counts a settled, applied change_addon payment in the balance_due_minor projection',
+    code: /\bfrom\s+booking_change_requests\s+r\s+where\s+r\.payment_id\s*=\s*pay\.id\s+and\s+r\.applied_at\s+is\s+not\s+null\b/,
+    why:
+      'total_minor is already bumped to the new, higher figure by the time this recompute runs (the ' +
+      'apply trigger fires inside the same UPDATE statement); excluding the settled change_addon ' +
+      'payment from the sum leaves balance_due_minor equal to the difference just paid, on a booking ' +
+      'that is, in fact, paid in full',
+  },
 ];
 
 /**
