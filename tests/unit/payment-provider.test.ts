@@ -254,6 +254,59 @@ describe('PeachPaymentProvider.createCheckout', () => {
     const headers = checkout!.init.headers as Record<string, string>;
     expect(headers.Authorization).toBe('Bearer tok');
     expect(headers.Origin).toBe('https://site.example.com');
+
+    // NO standing instruction on a plain checkout. Peach rejects the field outright unless card
+    // storage is on ("Standing instruction parameters require either createRegistration or
+    // allowStoringDetails to be true"), so sending it here would 400 every guest and quote payment.
+    expect(body.allowStoringDetails).toBeUndefined();
+    expect(body.standingInstruction).toBeUndefined();
+  });
+
+  /**
+   * Enabling card storage is what makes Peach treat the charge as credential-on-file and pick a
+   * standing-instruction type for us. Peach documents `INSTALLMENT` as causing result code
+   * 800.100.156 ("transaction declined (format error)") across multiple card issuers, so the type is
+   * pinned to UNSCHEDULED rather than left to their default.
+   *
+   * `source` is deliberately absent: the v2 checkout API rejects it as an "unknown field", even
+   * though Peach's card-storage documentation describes a mode/type/source block. Verified against
+   * the sandbox — see scripts/sandbox/probe-standing-instruction.mjs.
+   */
+  it('pins standingInstruction to UNSCHEDULED when, and only when, card storage is on', async () => {
+    const calls: Array<{ url: string; init: RequestInit }> = [];
+    const fetchMock = vi.fn(async (url: string | URL, init?: RequestInit) => {
+      const u = String(url);
+      calls.push({ url: u, init: init ?? {} });
+      if (u.endsWith('/api/oauth/token')) {
+        return new Response(JSON.stringify({ access_token: 'tok', expires_in: 300 }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        });
+      }
+      return new Response(JSON.stringify({ checkoutId: 'cid_9' }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const provider = new PeachPaymentProvider(CONFIG);
+    await provider.createCheckout({
+      bookingRef: 'BMT-2',
+      amount: 50,
+      currency: 'MUR',
+      customerEmail: 'a@b.com',
+      description: 'x',
+      returnUrl: 'https://site.example.com/bookings/BMT-2',
+      saveCard: true,
+    });
+
+    const body = JSON.parse(
+      String(calls.find((c) => c.url.endsWith('/v2/checkout'))!.init.body),
+    ) as Record<string, unknown>;
+    expect(body.allowStoringDetails).toBe(true);
+    expect(body.standingInstruction).toEqual({ mode: 'INITIAL', type: 'UNSCHEDULED' });
+    expect((body.standingInstruction as Record<string, unknown>).source).toBeUndefined();
   });
 });
 

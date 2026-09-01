@@ -158,7 +158,30 @@ export class PeachPaymentProvider implements PaymentProvider {
     if (this.config.webhookUrl) body.notificationUrl = this.config.webhookUrl;
     // Card-on-file STORE: `allowStoringDetails` makes the widget show a "save card" checkbox (Peach
     // returns a registrationId ONLY if the customer ticks it — harvested later from the status payload).
-    if (input.saveCard) body.allowStoringDetails = true;
+    if (input.saveCard) {
+      body.allowStoringDetails = true;
+      // PIN THE STANDING-INSTRUCTION TYPE, because enabling card storage is what makes Peach treat
+      // this as a credential-on-file transaction and choose a type for us. Peach's own guidance on
+      // result code 800.100.156 ("transaction declined (format error)") is that
+      // `standingInstruction.type = INSTALLMENT` "impacts multiple card issuers" and that merchants
+      // should send UNSCHEDULED instead. Left unset, the type is theirs to default; set here, it is
+      // ours to state.
+      //
+      // UNSCHEDULED + INITIAL is the honest description of what actually happens: the cardholder is
+      // sitting in the widget typing the card (so this is not a merchant-initiated repeat), and the
+      // charges are one-off — a balance, a supplement, a tour-change difference — never a schedule
+      // agreed in advance.
+      //
+      // Verified against the Peach sandbox (scripts/sandbox/probe-standing-instruction.mjs), which is
+      // the ONLY reason this shape is trusted:
+      //   * `source` is rejected as an "unknown field" — Peach's v2 checkout takes mode + type only,
+      //     even though their card-storage docs describe a three-field block;
+      //   * standingInstruction WITHOUT allowStoringDetails/createRegistration is a hard 400
+      //     ("Standing instruction parameters require either createRegistration or
+      //     allowStoringDetails to be true"), which is why this sits INSIDE the saveCard branch.
+      //     Hoisting it out would 400 every guest and quote checkout — every payment on the site.
+      body.standingInstruction = { mode: 'INITIAL', type: 'UNSCHEDULED' };
+    }
     // One-click REUSE: `cardTokens` surfaces the signed-in user's saved cards in the widget. Verified
     // against the live sandbox: /v2/checkout accepts `cardTokens` on the server body (HTTP 200), so the
     // opaque tokens stay SERVER-SIDE (never sent to the browser). Do NOT add `allowStoredCards` — Peach
