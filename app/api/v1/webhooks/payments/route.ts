@@ -4,6 +4,7 @@ import { jsonOk } from '@/lib/http/envelope';
 import { preflightResponse } from '@/lib/http/cors';
 import { getPaymentProvider } from '@/lib/payments';
 import { extractWebhookFields } from '@/lib/payments/peach';
+import { bookingRefFromMerchantTransactionId } from '@/lib/payments/merchant-ref';
 import { reconcilePaymentEvent } from '@/lib/payments/reconcile';
 import { createServiceRoleClient } from '@/lib/supabase/admin';
 
@@ -31,10 +32,12 @@ export const POST = apiHandler(async (req) => {
   req.headers.forEach((value, key) => {
     headers[key.toLowerCase()] = value;
   });
-  const bookingRef = extractWebhookFields(
-    rawBody,
-    headers['content-type'] ?? '',
-  ).merchantTransactionId;
+  // The echoed merchantTransactionId carries a per-payment suffix (see merchant-ref.ts); the booking
+  // lookup below wants the ref alone. Sessions minted before that change echo the bare ref and are
+  // returned unchanged.
+  const bookingRef = bookingRefFromMerchantTransactionId(
+    extractWebhookFields(rawBody, headers['content-type'] ?? '').merchantTransactionId,
+  );
 
   if (bookingRef || headers['x-webhook-signature']) {
     try {

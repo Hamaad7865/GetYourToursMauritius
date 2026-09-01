@@ -8,6 +8,7 @@ import type {
 } from './types';
 import { ProviderError } from '@/lib/services/errors';
 import { log } from '@/lib/log';
+import { bookingRefFromMerchantTransactionId } from './merchant-ref';
 
 export interface PeachConfig {
   /** OAuth client credentials (sandbox Dashboard → Settings → API keys). */
@@ -147,7 +148,10 @@ export class PeachPaymentProvider implements PaymentProvider {
     const token = await this.accessToken();
     const body: Record<string, unknown> = {
       authentication: { entityId: this.config.entityId },
-      merchantTransactionId: input.bookingRef,
+      // UNIQUE PER PAYMENT ROW — never the bare booking ref. Peach refuses an id that already has a
+      // successful transaction against it, which silently made every follow-on charge on a booking
+      // unpayable. See merchant-ref.ts for the scheme and the support finding behind it.
+      merchantTransactionId: input.merchantTransactionId ?? input.bookingRef,
       amount: input.amount.toFixed(2),
       currency: input.currency,
       paymentType: 'DB',
@@ -254,7 +258,9 @@ export class PeachPaymentProvider implements PaymentProvider {
     const outcome = outcomeFor(fields.resultCode, fields.paymentType);
     return {
       outcome,
-      bookingRef: fields.merchantTransactionId,
+      // Strip the per-payment suffix back off: everything downstream (reconcile, the sync poll, the
+      // webhook fallback) resolves the BOOKING by this, and tolerates the pre-suffix shape too.
+      bookingRef: bookingRefFromMerchantTransactionId(fields.merchantTransactionId),
       providerReference: fields.transactionId ?? fields.checkoutId,
       providerCheckoutId: fields.checkoutId,
       needsReview: needsManualReview(fields.resultCode),
@@ -285,7 +291,7 @@ export class PeachPaymentProvider implements PaymentProvider {
     const amount = amountStr != null ? Number.parseFloat(amountStr) : NaN;
     return {
       outcome: outcomeFor(str('result.code'), str('paymentType')),
-      bookingRef: str('merchantTransactionId'),
+      bookingRef: bookingRefFromMerchantTransactionId(str('merchantTransactionId')),
       providerReference: str('id') ?? checkoutId,
       // The session we asked about — which is the one the money was taken on, whatever else the
       // booking has since minted. reconcilePaymentEvent uses it to credit the right payment row.

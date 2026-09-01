@@ -13,6 +13,16 @@
 export interface CreateCheckoutInput {
   /** Our booking reference (idempotency anchor across provider + webhook). */
   bookingRef: string;
+  /**
+   * What to send as Peach's `merchantTransactionId`. Defaults to {@link bookingRef} when absent.
+   *
+   * It has to be UNIQUE PER PAYMENT ROW: Peach refuses an id that already carries a successful
+   * transaction ("Order already has an existing successful initial transaction"), which is what made
+   * every follow-on charge on a booking — balance, installment, supplement, tour-change difference —
+   * undeclinably fail with result code 800.100.156. Built by `buildMerchantTransactionId`, which
+   * keeps the booking ref as a prefix so it stays traceable.
+   */
+  merchantTransactionId?: string;
   /** Amount to charge, in `currency`'s major units — the PINNED charge figure handed back by
    *  api_create_payment, never a figure computed here. */
   amount: number;
