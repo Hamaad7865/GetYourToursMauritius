@@ -1119,3 +1119,44 @@
     background: #fff !important;
   }
 }
+
+/* ── Touch: no focus-zoom ─────────────────────────────────────────────────────
+   WebKit zooms the whole page when you focus a form control whose font-size is under 16px, and it
+   does not zoom back out on blur — the viewport stays scrolled and clipped (the "Search" button and
+   "Clear all" fall off the right edge). On iOS EVERY browser is WebKit, Chrome and Firefox included,
+   so this reads as "it happens in every mobile browser". The trigger is purely the computed
+   font-size of the focused control; 15px zooms, 16px does not.
+
+   Nearly every control in this app is under the threshold — `inputClass` is `text-sm` (14px) and the
+   two search inputs are `text-[15px]` — so this is fixed once, here, rather than in 265 components.
+
+   Three things about this rule are load-bearing:
+
+   1. It must NOT live in `@layer base`. Tailwind emits the base layer BEFORE `@tailwind utilities`,
+      so a bare `input { font-size: 16px }` loses to `text-[13px]` on source order AND on specificity
+      (0-0-1 vs 0-1-0). It would look correct in the file and do nothing in the browser. Sitting at
+      the end of the stylesheet outside any layer, with every arm out-specifying a single class, is
+      what makes it actually win. That is why `textarea`/`select` carry `:not([hidden])`: it is not
+      tidiness, it is the 0-1-1 that beats `text-sm`'s 0-1-0. Drop it and those two arms go dead
+      while the `input` arm keeps working — the confusing half-fix. A hidden control needs no
+      minimum, so the exclusion is honest as well as useful.
+
+   2. It is gated on touch (`hover: none` + `pointer: coarse`), not on width. That catches iPad —
+      same WebKit, same zoom, but 768–1024px wide, so a `max-width` breakpoint would miss it — and it
+      leaves desktop untouched, so the dense 13px back-office inputs stay exactly as designed.
+
+   3. The excluded types are the ones that carry no text cursor: they never trigger the zoom, and
+      several (submit, file, button) would visibly change size if we restyled them.
+
+   NOT fixed with `maximum-scale=1` / `user-scalable=no` on the viewport meta, which is the usual
+   answer: that forbids pinch-zoom, breaking WCAG 2.1 AA 1.4.4 (Resize Text) — a standard this app
+   has already been audited against — and modern iOS Safari ignores it anyway. */
+@media (hover: none) and (pointer: coarse) {
+  input:not([type='checkbox']):not([type='radio']):not([type='button']):not([type='submit']):not(
+      [type='reset']
+    ):not([type='file']):not([type='range']):not([type='color']):not([type='image']),
+  textarea:not([hidden]),
+  select:not([hidden]) {
+    font-size: 16px;
+  }
+}
