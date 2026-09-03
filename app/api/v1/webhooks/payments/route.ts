@@ -5,7 +5,7 @@ import { preflightResponse } from '@/lib/http/cors';
 import { getPaymentProvider } from '@/lib/payments';
 import { extractWebhookFields } from '@/lib/payments/peach';
 import { bookingRefFromMerchantTransactionId } from '@/lib/payments/merchant-ref';
-import { reconcilePaymentEvent } from '@/lib/payments/reconcile';
+import { reconcilePaymentEvent, resolveBookingRef } from '@/lib/payments/reconcile';
 import { createServiceRoleClient } from '@/lib/supabase/admin';
 
 export const runtime = 'edge';
@@ -32,14 +32,16 @@ export const POST = apiHandler(async (req) => {
   req.headers.forEach((value, key) => {
     headers[key.toLowerCase()] = value;
   });
-  // The echoed merchantTransactionId carries a per-payment suffix (see merchant-ref.ts); the booking
-  // lookup below wants the ref alone. Sessions minted before that change echo the bare ref and are
-  // returned unchanged.
-  const bookingRef = bookingRefFromMerchantTransactionId(
-    extractWebhookFields(rawBody, headers['content-type'] ?? '').merchantTransactionId,
-  );
+  // The echoed merchantTransactionId is either GENERATED and opaque (resolved through
+  // payment_merchant_refs) or DERIVED from the booking ref (parsed directly). We can't tell which
+  // without a database round-trip, and this runs before the ACK — so gate on having ANY id at all and
+  // let the background task resolve it. See resolveBookingRef for why both schemes stay live.
+  const merchantTransactionId = extractWebhookFields(
+    rawBody,
+    headers['content-type'] ?? '',
+  ).merchantTransactionId;
 
-  if (bookingRef || headers['x-webhook-signature']) {
+  if (merchantTransactionId || headers['x-webhook-signature']) {
     try {
       after(async () => {
         const admin = createServiceRoleClient();
@@ -58,7 +60,7 @@ export const POST = apiHandler(async (req) => {
             // the status endpoint, whose payload is complete. Still ACK 200: a provider retry would
             // resend the same incomplete body.
             console.error('[webhook] settled event quarantined', {
-              bookingRef,
+              merchantTransactionId,
               outcome: reconciled.outcome,
             });
           }
@@ -77,6 +79,11 @@ export const POST = apiHandler(async (req) => {
         // 2) Re-query fallback (works without HMAC). The id in the webhook body 404s at the status
         //    endpoint, so we use the checkout id we stored at create time, found by the booking ref.
         try {
+          const bookingRef = await resolveBookingRef(
+            admin,
+            merchantTransactionId,
+            bookingRefFromMerchantTransactionId(merchantTransactionId),
+          );
           if (!bookingRef) return;
           const { data: booking } = await admin
             .from('bookings')

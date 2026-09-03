@@ -54,3 +54,37 @@ export function bookingRefFromMerchantTransactionId(value: string | null): strin
   if (!value) return null;
   return SUFFIX.test(value) ? value.replace(SUFFIX, '') : value;
 }
+
+/**
+ * Crockford base32 — no I, L, O or U, so an id read aloud off the Peach dashboard and typed into the
+ * admin search box can't be mistyped into a different one. 256 is an exact multiple of 32, so
+ * `byte % 32` is uniform: no modulo bias, no rejection sampling needed.
+ */
+const ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+
+/**
+ * Mint a FRESH merchantTransactionId for one checkout session.
+ *
+ * WHY GENERATED RATHER THAN DERIVED. {@link buildMerchantTransactionId} derives its id from the payment
+ * row, which fixes it for the row's whole life: once Peach has burned that id (it refuses any id already
+ * carrying a successful transaction) the row can never be paid, and the only escape is abandoning the
+ * row. A generated id is reissued instead — that is the entire point of `payment_merchant_refs`, which
+ * is what maps this opaque string back to its booking.
+ *
+ * SHAPE: `BMT` + 13 base32 characters = 16 characters, alphanumeric, uppercase — the same shape and
+ * length as a booking ref. Deliberately NOT longer: the sandbox proved /v2/checkout ACCEPTS ≥64
+ * characters when opening a session, but accepting a session is not the same as clearing at the card
+ * step, and 800.100.156 is a format error. 16 is the length we have watched settle in production
+ * thousands of times, so it is the conservative side of an unknown we have already been wrong about
+ * once.
+ *
+ * 13 × 5 = 65 bits of randomness. Uniqueness is still ENFORCED, not assumed: `merchant_txn_id` is the
+ * table's primary key and api_record_merchant_ref refuses to remap an id that belongs elsewhere.
+ */
+export function generateMerchantTransactionId(): string {
+  const bytes = new Uint8Array(13);
+  crypto.getRandomValues(bytes);
+  let out = 'BMT';
+  for (const b of bytes) out += ALPHABET[b % 32];
+  return out;
+}

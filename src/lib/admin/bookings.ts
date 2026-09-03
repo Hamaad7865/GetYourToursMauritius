@@ -200,6 +200,14 @@ export interface PaymentRow {
   refundedEur: number;
   createdAt: string;
   events: PaymentEventRow[];
+  /**
+   * The merchantTransactionIds this payment has issued to the provider, oldest first.
+   *
+   * A generated id is opaque — it carries no booking ref — so this list is how a transaction seen in
+   * the Peach dashboard is traced back to the money it was for. More than one means the session was
+   * reissued; none means the payment pre-dates the history and its id was derived from the booking ref.
+   */
+  merchantRefs: { id: string; issuedAt: string }[];
 }
 
 export interface BookingDetail extends BookingRow {
@@ -551,6 +559,10 @@ interface RawPaymentEvent {
   amount_minor: number;
   occurred_at: string;
 }
+interface RawMerchantRef {
+  merchant_txn_id: string;
+  created_at: string;
+}
 interface RawPayment {
   id: string;
   provider: string;
@@ -560,6 +572,7 @@ interface RawPayment {
   refunded_minor: number;
   created_at: string;
   payment_events: RawPaymentEvent[] | null;
+  payment_merchant_refs: RawMerchantRef[] | null;
 }
 interface RawBookingDetail extends RawBooking {
   payments: RawPayment[] | null;
@@ -573,7 +586,8 @@ export async function loadBookingDetail(id: string): Promise<BookingDetail | nul
       `${BOOKING_SELECT},
        payments (
          id, provider, status, amount_minor, paid_minor, refunded_minor, created_at,
-         payment_events ( type, amount_minor, occurred_at )
+         payment_events ( type, amount_minor, occurred_at ),
+         payment_merchant_refs ( merchant_txn_id, created_at )
        )`,
     )
     .eq('id', id)
@@ -593,6 +607,12 @@ export async function loadBookingDetail(id: string): Promise<BookingDetail | nul
     events: (p.payment_events ?? [])
       .map((e) => ({ type: e.type, amountEur: e.amount_minor / 100, occurredAt: e.occurred_at }))
       .sort((a, b) => a.occurredAt.localeCompare(b.occurredAt)),
+    // Every merchantTransactionId this payment has issued, oldest first — the chain that runs under
+    // the booking ref. A payment holds more than one whenever a session was reissued, and none at all
+    // if it pre-dates the history (its id was derived from the ref rather than recorded).
+    merchantRefs: (p.payment_merchant_refs ?? [])
+      .map((r) => ({ id: r.merchant_txn_id, issuedAt: r.created_at }))
+      .sort((a, b) => a.issuedAt.localeCompare(b.issuedAt)),
   }));
 
   return { ...mapBooking(data), payments };
@@ -703,4 +723,33 @@ export async function sendInstallmentReminder(
     amountDueMinor: body.data.amountDueMinor ?? 0,
     label: body.data.label ?? '',
   };
+}
+
+/**
+ * Which booking does a provider reference belong to?
+ *
+ * A generated merchantTransactionId is opaque — the booking ref is not inside it — so going from a row
+ * in the Peach dashboard back to a booking needs this. It is an exact primary-key hit, never a fuzzy
+ * match: an id is either one we issued or it is not ours.
+ *
+ * Only reached when the ordinary search finds nothing, so a query that IS a booking ref never gets
+ * here (the two are indistinguishable by shape — both are BMT + 13 characters).
+ */
+export async function findBookingIdByMerchantRef(merchantTxnId: string): Promise<string | null> {
+  const db = getBrowserSupabase();
+  const { data: ref, error } = await db
+    .from('payment_merchant_refs')
+    .select('payment_id')
+    .eq('merchant_txn_id', merchantTxnId.trim().toUpperCase())
+    .maybeSingle();
+  if (error) throw error;
+  if (!ref?.payment_id) return null;
+
+  const { data: payment, error: paymentErr } = await db
+    .from('payments')
+    .select('booking_id')
+    .eq('id', ref.payment_id)
+    .maybeSingle();
+  if (paymentErr) throw paymentErr;
+  return payment?.booking_id ?? null;
 }

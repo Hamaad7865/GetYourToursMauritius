@@ -80,16 +80,69 @@ async function ledgerTotals(
   return data ? { paidMinor: data.paid_minor ?? 0, totalMinor: data.amount_minor } : null;
 }
 
+/**
+ * Which booking does this provider event belong to?
+ *
+ * TWO ID SCHEMES ARE LIVE AT ONCE, and both have to resolve — forever, not just through a transition:
+ *
+ *  1. GENERATED (`BMT7K3M9QX2VDPR4`) — opaque, carries no booking ref, minted fresh per checkout
+ *     session and recorded in `payment_merchant_refs`. Looked up here.
+ *  2. DERIVED (`BMTBF62F6FB4DF4A`, or `BMTBF62F6FB4DF4A-79f378e6`) — the ref IS the id, so
+ *     `event.bookingRef` already carries it, parsed by `bookingRefFromMerchantTransactionId`.
+ *
+ * The fallback is permanent because scheme 2 never fully drains: a checkout session already open in a
+ * customer's browser keeps its id, and Peach can replay a webhook for a transaction settled long ago.
+ * Dropping the parser would strand exactly those payments — the card charged, the booking unconfirmed.
+ *
+ * A LOOKUP FAILURE THROWS rather than falling through. The caller turns that into a retry (the webhook
+ * re-delivers, the sweep re-queries); silently treating a transient database error as "unknown id"
+ * would discard a real settlement.
+ */
+export async function resolveBookingRef(
+  admin: SupabaseClient<Database>,
+  merchantTransactionId: string | null | undefined,
+  parsedBookingRef: string | null,
+): Promise<string | null> {
+  const mtid = merchantTransactionId ?? null;
+  if (!mtid) return parsedBookingRef;
+
+  const { data: mapped, error: mappedErr } = await admin
+    .from('payment_merchant_refs')
+    .select('payment_id')
+    .eq('merchant_txn_id', mtid)
+    .maybeSingle();
+  if (mappedErr) throw new Error(mappedErr.message);
+  // No mapping: a derived id from before this table existed. Scheme 2 handles it.
+  if (!mapped?.payment_id) return parsedBookingRef;
+
+  const { data: pay, error: payErr } = await admin
+    .from('payments')
+    .select('booking_id')
+    .eq('id', mapped.payment_id)
+    .maybeSingle();
+  if (payErr) throw new Error(payErr.message);
+  if (!pay?.booking_id) return parsedBookingRef;
+
+  const { data: bk, error: bkErr } = await admin
+    .from('bookings')
+    .select('ref')
+    .eq('id', pay.booking_id)
+    .maybeSingle();
+  if (bkErr) throw new Error(bkErr.message);
+  return bk?.ref ?? parsedBookingRef;
+}
+
 export async function reconcilePaymentEvent(
   admin: SupabaseClient<Database>,
   event: PaymentEvent,
 ): Promise<ReconcileResult> {
-  if (!event.bookingRef) return { found: false, confirmed: false, outcome: event.outcome };
+  const bookingRef = await resolveBookingRef(admin, event.merchantTransactionId, event.bookingRef);
+  if (!bookingRef) return { found: false, confirmed: false, outcome: event.outcome };
 
   const { data: booking, error: bookingErr } = await admin
     .from('bookings')
     .select('id, user_id')
-    .eq('ref', event.bookingRef)
+    .eq('ref', bookingRef)
     .maybeSingle();
   if (bookingErr) throw new Error(bookingErr.message); // transient → caller returns 5xx → provider retries
   if (!booking) return { found: false, confirmed: false, outcome: event.outcome };
@@ -152,7 +205,7 @@ export async function reconcilePaymentEvent(
       // Loud, structured, PII-free: refs + reason only. The sweep counts this as errored.
       log.error('reconcile_settled_quarantined', {
         reason,
-        bookingRef: event.bookingRef,
+        bookingRef,
         outcome: event.outcome,
         providerReference: event.providerReference,
         settledCurrency: eventCurrency,
@@ -169,7 +222,7 @@ export async function reconcilePaymentEvent(
           p: { paymentId: payment.id, reason },
         });
       } catch {
-        log.error('reconcile_review_flag_failed', { bookingRef: event.bookingRef, reason });
+        log.error('reconcile_review_flag_failed', { bookingRef, reason });
       }
       return { found: true, confirmed: false, outcome: `quarantined:${reason}` };
     }
@@ -254,7 +307,7 @@ export async function reconcilePaymentEvent(
     const totals = await ledgerTotals(admin, ledgerRow, payment.id);
     if (!totals || totals.paidMinor < totals.totalMinor) {
       log.error('reconcile_credit_not_applied', {
-        bookingRef: event.bookingRef,
+        bookingRef,
         providerReference: event.providerReference,
         creditedMinor: amountMinor,
         ledgerPaidMinor: totals?.paidMinor ?? null,
@@ -270,7 +323,7 @@ export async function reconcilePaymentEvent(
         });
       } catch {
         log.error('reconcile_review_flag_failed', {
-          bookingRef: event.bookingRef,
+          bookingRef,
           reason: 'credit_not_applied',
         });
       }
@@ -293,7 +346,7 @@ export async function reconcilePaymentEvent(
       });
     } catch {
       log.error('reconcile_review_flag_failed', {
-        bookingRef: event.bookingRef,
+        bookingRef,
         reason: 'provider_manual_review',
       });
     }
@@ -318,7 +371,7 @@ export async function reconcilePaymentEvent(
         },
       });
     } catch {
-      log.error('reconcile_save_card_failed', { bookingRef: event.bookingRef });
+      log.error('reconcile_save_card_failed', { bookingRef });
     }
   }
 

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildMerchantTransactionId,
   bookingRefFromMerchantTransactionId,
+  generateMerchantTransactionId,
 } from '@/lib/payments/merchant-ref';
 
 /**
@@ -62,5 +63,45 @@ describe('merchantTransactionId', () => {
   it('falls back to the bare ref when there is no payment id', () => {
     expect(buildMerchantTransactionId(REF)).toBe(REF);
     expect(buildMerchantTransactionId(REF, null)).toBe(REF);
+  });
+});
+
+/**
+ * The GENERATED scheme that replaced the derived one. The derived id is fixed for the life of a
+ * payment row, so an id Peach has burned strands that row forever; a generated id is simply reissued
+ * on the next attempt. What that costs is traceability — the booking ref is no longer inside the
+ * string — which `payment_merchant_refs` buys back.
+ */
+describe('generateMerchantTransactionId', () => {
+  it('is 16 characters, the same shape and length as a booking ref', () => {
+    // NOT longer on purpose: the sandbox proved /v2/checkout accepts ≥64 characters when OPENING a
+    // session, but 800.100.156 is a decline at the CARD step, which that probe never exercised. 16 is
+    // the length we have watched settle in production thousands of times.
+    for (let i = 0; i < 200; i += 1) {
+      const id = generateMerchantTransactionId();
+      expect(id).toHaveLength(16);
+      expect(id).toMatch(/^BMT[0-9A-HJKMNP-TV-Z]{13}$/);
+    }
+  });
+
+  it('never repeats', () => {
+    const seen = new Set<string>();
+    for (let i = 0; i < 5000; i += 1) seen.add(generateMerchantTransactionId());
+    expect(seen.size).toBe(5000);
+  });
+
+  it('excludes the characters that are misread when typed back in by hand', () => {
+    // Crockford base32: an id is read off the Peach dashboard and typed into the admin search box, so
+    // I/L/O/U must not appear — they are the ones confused with 1/1/0/V.
+    const ids = Array.from({ length: 500 }, () => generateMerchantTransactionId()).join('');
+    expect(ids.slice(3)).not.toMatch(/[ILOU]/);
+  });
+
+  it('carries no booking ref, so the parser cannot invent one from it', () => {
+    // The parser is tolerant by design (it returns an unrecognised shape untouched), so a generated id
+    // comes back as itself. That is exactly why resolution must consult payment_merchant_refs FIRST
+    // and only then fall back to the parser.
+    const id = generateMerchantTransactionId();
+    expect(bookingRefFromMerchantTransactionId(id)).toBe(id);
   });
 });

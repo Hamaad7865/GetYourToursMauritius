@@ -2,7 +2,7 @@ import type { ServiceContext } from './context';
 import { callRpc } from './rpc';
 import { CheckoutPendingError } from './errors';
 import { paymentCreateResultSchema, type PaymentLink } from '@/lib/validation/booking';
-import { buildMerchantTransactionId } from '@/lib/payments/merchant-ref';
+import { generateMerchantTransactionId } from '@/lib/payments/merchant-ref';
 
 /**
  * Can this already-minted checkout still take the customer's money?
@@ -215,14 +215,27 @@ export async function createPaymentLink(
   }
   let session;
   try {
+    // The id the provider will know this session by — FRESH per session, and recorded before we hand
+    // it over. Peach permanently refuses an id that already carries a successful transaction, which is
+    // what made every follow-on charge on a booking (a quote balance, a dated installment, a pickup
+    // supplement, a tour-change difference) fail at the card step with 800.100.156 — a decline the
+    // guest reads as "incorrect card details" and that reaches our ledger only as an abandonment.
+    // Generating per session means a burned id is simply replaced on the next attempt instead of
+    // stranding the payment row forever.
+    //
+    // RECORD FIRST, THEN CALL. If the provider call came first and this write then failed, a
+    // settlement could arrive carrying an id we cannot resolve to a booking — the card charged and
+    // the booking left unconfirmed. An orphan mapping row (recorded here, provider call then failed)
+    // is the harmless direction of that trade: nothing ever settles against it.
+    const merchantTransactionId = generateMerchantTransactionId();
+    await callRpc(adminCtx, 'api_record_merchant_ref', {
+      paymentId: payment.paymentId,
+      merchantTxnId: merchantTransactionId,
+    });
+
     session = await ctx.payments.createCheckout({
       bookingRef: payment.bookingRef,
-      // Unique per PAYMENT ROW. Peach refuses a merchantTransactionId that already carries a
-      // successful transaction, so sending the bare booking ref made every second charge on a
-      // booking — a quote balance, a dated installment, a pickup supplement, a tour-change
-      // difference — fail at the card step with 800.100.156. Derived from the row id, so a retry on
-      // the same still-unpaid row keeps the same id (the behaviour that already works).
-      merchantTransactionId: buildMerchantTransactionId(payment.bookingRef, payment.paymentId),
+      merchantTransactionId,
       amount: chargeAmount,
       currency: chargeCurrency,
       customerEmail: payment.customerEmail,

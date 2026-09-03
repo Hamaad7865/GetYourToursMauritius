@@ -12,6 +12,7 @@ import {
   saveBookingNotes,
   sendInstallmentReminder,
   bookingExtraCharges,
+  findBookingIdByMerchantRef,
   type BookingRow,
   type BookingDetail,
   type BookingStatus,
@@ -277,6 +278,31 @@ export function AdminBookings() {
     });
   }, [rows, status, pay, tour, dateF, query, sortKey, sortDir]);
 
+  // Searching a PROVIDER reference. A generated merchantTransactionId carries no booking ref, so a
+  // staffer holding one from the Peach dashboard would otherwise have nowhere to paste it. Only tried
+  // when the ordinary search comes up empty, which is what keeps a real booking ref on the fast path.
+  const [refMiss, setRefMiss] = useState(false);
+  useEffect(() => {
+    const q = query.trim().toUpperCase();
+    if (!rows || filtered.length > 0 || !/^BMT[0-9A-Z]{13}$/.test(q)) {
+      setRefMiss(false);
+      return;
+    }
+    let cancelled = false;
+    findBookingIdByMerchantRef(q)
+      .then((id) => {
+        if (cancelled) return;
+        if (id) setSelectedId(id);
+        else setRefMiss(true);
+      })
+      .catch(() => {
+        if (!cancelled) setRefMiss(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [query, rows, filtered.length]);
+
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
     else {
@@ -483,12 +509,18 @@ export function AdminBookings() {
               <IconSearch width={20} height={20} />
             </div>
             <div className="text-[15px] font-bold text-ink">
-              {rows.length === 0 ? 'No bookings yet' : 'No bookings match these filters'}
+              {refMiss
+                ? 'No booking for that reference'
+                : rows.length === 0
+                  ? 'No bookings yet'
+                  : 'No bookings match these filters'}
             </div>
             <div className="mt-1 text-[13.5px] text-ink-muted">
-              {rows.length === 0
-                ? 'They’ll appear here as customers book.'
-                : 'Try widening the date range or clearing filters.'}
+              {refMiss
+                ? 'That looks like a provider reference, but it isn’t one we issued.'
+                : rows.length === 0
+                  ? 'They’ll appear here as customers book.'
+                  : 'Try widening the date range or clearing filters.'}
             </div>
           </div>
         )}
@@ -855,9 +887,16 @@ function BookingDrawer({
             )}
 
             <section className="rounded-xl border border-ink/10 p-4">
-              <h3 className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">
-                Payments
-              </h3>
+              <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                <h3 className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">
+                  Payments
+                </h3>
+                {/* The master reference every provider id below hangs off. A generated id is opaque,
+                    so this is the only place the two are shown together. */}
+                <span className="text-[11.5px] text-ink-muted">
+                  master ref · <span className="font-mono text-ink/70">{booking.ref}</span>
+                </span>
+              </div>
               {booking.payments.length === 0 ? (
                 <p className="mt-1.5 text-[13px] text-ink-muted">No payment started yet.</p>
               ) : (
@@ -869,6 +908,29 @@ function BookingDrawer({
                       </span>
                       <Badge className={paymentClass(p.status)}>{titleCase(p.status)}</Badge>
                     </div>
+                    {/* Provider references, oldest first. Each is a merchantTransactionId this payment
+                        issued; a second one means the session was reissued after the first was refused.
+                        Searching any of them in the box above lands back on this booking. */}
+                    {p.merchantRefs.length > 0 ? (
+                      <ul className="mt-1.5 flex flex-col gap-0.5">
+                        {p.merchantRefs.map((r, i) => (
+                          <li
+                            key={r.id}
+                            className="flex flex-wrap items-baseline gap-x-2 text-[12px]"
+                          >
+                            <span className="font-mono text-ink/80">{r.id}</span>
+                            <span className="text-ink-muted">
+                              {i === 0 ? 'issued' : 'reissued'} {fmtDateTime(r.issuedAt)}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="mt-1.5 text-[12px] text-ink-muted">
+                        No provider reference recorded — this payment pre-dates the history, so its
+                        id was derived from the booking ref.
+                      </p>
+                    )}
                     {p.events.length > 0 && (
                       <ul className="mt-1.5 flex flex-col gap-1 border-l-2 border-ink/10 pl-3">
                         {p.events.map((e, i) => (

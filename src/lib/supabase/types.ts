@@ -612,6 +612,17 @@ type PaymentEventsInsert = {
   created_at?: string;
 };
 
+type PaymentMerchantRefsRow = {
+  merchant_txn_id: string;
+  payment_id: string;
+  created_at: string;
+};
+type PaymentMerchantRefsInsert = {
+  merchant_txn_id: string;
+  payment_id: string;
+  created_at?: string;
+};
+
 type NotificationOutboxRow = {
   id: string;
   channel: Database['public']['Enums']['notification_channel'];
@@ -1191,6 +1202,7 @@ export interface Database {
       booking_supplements: TableDef<BookingSupplementsRow, BookingSupplementsInsert>;
       payments: TableDef<PaymentsRow, PaymentsInsert>;
       payment_events: TableDef<PaymentEventsRow, PaymentEventsInsert>;
+      payment_merchant_refs: TableDef<PaymentMerchantRefsRow, PaymentMerchantRefsInsert>;
       booking_pickup_requests: TableDef<BookingPickupRequestsRow, BookingPickupRequestsInsert>;
       booking_change_requests: TableDef<BookingChangeRequestsRow, BookingChangeRequestsInsert>;
       notification_outbox: TableDef<NotificationOutboxRow, NotificationOutboxInsert>;

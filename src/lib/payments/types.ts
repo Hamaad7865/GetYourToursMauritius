@@ -14,13 +14,15 @@ export interface CreateCheckoutInput {
   /** Our booking reference (idempotency anchor across provider + webhook). */
   bookingRef: string;
   /**
-   * What to send as Peach's `merchantTransactionId`. Defaults to {@link bookingRef} when absent.
+   * What to send as Peach's `merchantTransactionId`. Defaults to {@link bookingRef} when absent (the
+   * dev stub and older tests; never the live path).
    *
-   * It has to be UNIQUE PER PAYMENT ROW: Peach refuses an id that already carries a successful
+   * It has to be UNIQUE PER CHECKOUT SESSION: Peach refuses an id that already carries a successful
    * transaction ("Order already has an existing successful initial transaction"), which is what made
    * every follow-on charge on a booking — balance, installment, supplement, tour-change difference —
-   * undeclinably fail with result code 800.100.156. Built by `buildMerchantTransactionId`, which
-   * keeps the booking ref as a prefix so it stays traceable.
+   * undeclinably fail with result code 800.100.156. Minted by `generateMerchantTransactionId` and
+   * recorded in `payment_merchant_refs` BEFORE the provider call, which is what maps the opaque id
+   * back to its booking at settlement — the booking ref is no longer inside the string.
    */
   merchantTransactionId?: string;
   /** Amount to charge, in `currency`'s major units — the PINNED charge figure handed back by
@@ -70,7 +72,19 @@ export type PaymentOutcome = 'paid' | 'failed' | 'pending' | 'refunded' | 'unkno
 
 export interface PaymentEvent {
   outcome: PaymentOutcome;
+  /**
+   * The booking ref as PARSED OUT of the provider's echoed merchantTransactionId — correct only for
+   * the two derived id shapes (`BMTxxx` and `BMTxxx-abcd1234`). A generated id carries no ref, so this
+   * is null for those; {@link merchantTransactionId} is what resolves them, via `payment_merchant_refs`.
+   * Kept as the fallback so every session minted under the old schemes stays confirmable.
+   */
   bookingRef: string | null;
+  /**
+   * The provider's echoed merchantTransactionId, VERBATIM. Resolution prefers looking this up in
+   * `payment_merchant_refs`; only if that misses does it fall back to {@link bookingRef}. Optional
+   * because the dev stub does not model one.
+   */
+  merchantTransactionId?: string | null;
   providerReference: string | null;
   /**
    * Settled/refunded amount in minor units as reported by the provider, when it can be parsed from

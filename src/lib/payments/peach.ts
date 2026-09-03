@@ -261,6 +261,7 @@ export class PeachPaymentProvider implements PaymentProvider {
       // Strip the per-payment suffix back off: everything downstream (reconcile, the sync poll, the
       // webhook fallback) resolves the BOOKING by this, and tolerates the pre-suffix shape too.
       bookingRef: bookingRefFromMerchantTransactionId(fields.merchantTransactionId),
+      merchantTransactionId: fields.merchantTransactionId,
       providerReference: fields.transactionId ?? fields.checkoutId,
       providerCheckoutId: fields.checkoutId,
       needsReview: needsManualReview(fields.resultCode),
@@ -292,6 +293,7 @@ export class PeachPaymentProvider implements PaymentProvider {
     return {
       outcome: outcomeFor(str('result.code'), str('paymentType')),
       bookingRef: bookingRefFromMerchantTransactionId(str('merchantTransactionId')),
+      merchantTransactionId: str('merchantTransactionId'),
       providerReference: str('id') ?? checkoutId,
       // The session we asked about — which is the one the money was taken on, whatever else the
       // booking has since minted. reconcilePaymentEvent uses it to credit the right payment row.
