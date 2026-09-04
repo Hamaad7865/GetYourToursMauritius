@@ -35087,15 +35087,22 @@ create policy pmr_staff_select on payment_merchant_refs for select
 -- called Peach first and this write then failed, a settlement could arrive carrying an id we cannot
 -- resolve — money taken, booking left unconfirmed. An orphan row (written here, provider call then
 -- failed) is harmless by comparison: nothing ever settles against it.
-create or replace function api_record_merchant_ref(payload jsonb)
-returns void
+-- Declared `p`, not `payload`: the port calls every api_* function with a single jsonb argument NAMED
+-- `p` (src/lib/supabase/rpc.ts), and PostgREST resolves by argument name — `(payload jsonb)` is simply
+-- not found, which took every checkout mint on the site down. The DROP is required because CREATE OR
+-- REPLACE cannot rename an input parameter or change a return type, and a drifting live database may
+-- still be carrying the broken `(payload jsonb) returns void` shape.
+drop function if exists api_record_merchant_ref(jsonb);
+
+create or replace function api_record_merchant_ref(p jsonb)
+returns jsonb
 language plpgsql
 security definer
 set search_path = public
 as $$
 declare
-  v_payment_id uuid := nullif(payload->>'paymentId', '')::uuid;
-  v_mtid       text := nullif(payload->>'merchantTxnId', '');
+  v_payment_id uuid := nullif(p->>'paymentId', '')::uuid;
+  v_mtid       text := nullif(p->>'merchantTxnId', '');
   v_owner      uuid;
 begin
   if v_payment_id is null or v_mtid is null then
@@ -35107,9 +35114,9 @@ begin
   on conflict (merchant_txn_id) do nothing;
 
   if not found then
-    -- Already recorded. A retry of the same mint is fine and idempotent, but the same id pointing at a
-    -- DIFFERENT payment would silently resolve one booking's settlement onto another's money. The ids
-    -- are 65 bits of randomness so this should never fire; if it ever does, failing loudly is the only
+    -- Already recorded. A retry of the same mint is idempotent and fine, but the same id pointing at
+    -- a DIFFERENT payment would resolve one booking's settlement onto another's money. The ids carry
+    -- 65 bits of randomness so this should never fire; if it ever does, failing loudly is the only
     -- safe answer.
     select payment_id into v_owner
       from payment_merchant_refs
@@ -35118,6 +35125,8 @@ begin
       raise exception 'api_record_merchant_ref: % already belongs to payment %', v_mtid, v_owner;
     end if;
   end if;
+
+  return jsonb_build_object('merchantTxnId', v_mtid, 'paymentId', v_payment_id);
 end;
 $$;
 
