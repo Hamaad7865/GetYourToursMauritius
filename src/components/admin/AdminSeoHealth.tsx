@@ -11,7 +11,17 @@ import {
   type AuditPage,
   type SeoIssue,
 } from '@/lib/seo/audit';
-import { loadSeoMetaOverrides, loadTourSeoRows } from '@/lib/admin/seo-content';
+import {
+  loadSeoMetaOverrides,
+  loadTourSeoRows,
+  saveSeoMeta,
+  saveTourSeo,
+  loadAdminPost,
+  savePost,
+  type SeoMetaInput,
+} from '@/lib/admin/seo-content';
+import { requestSeoAiFix, SeoAiNeedsReview, SeoAiUnavailable } from '@/lib/admin/seo-ai-fix';
+import type { SeoAiFixResponse } from '@/lib/validation/seo-ai-fix';
 import { SITE } from '@/lib/seo/site';
 
 /**
@@ -26,15 +36,18 @@ import { SITE } from '@/lib/seo/site';
  */
 export function AdminSeoHealth({ basePages }: { basePages: AuditPage[] }) {
   const [pages, setPages] = useState<AuditPage[] | null>(null);
+  const [overrideMap, setOverrideMap] = useState<Map<string, SeoMetaInput> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [groupFilter, setGroupFilter] = useState('all');
+  const [fixedNote, setFixedNote] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     Promise.all([loadSeoMetaOverrides(), loadTourSeoRows()])
       .then(([overrides, tours]) => {
         if (cancelled) return;
+        setOverrideMap(overrides);
         setPages([
           ...applyOverrides(basePages, overrides),
           ...tourAuditPages(tours, SITE.operator, SITE.description),
@@ -81,6 +94,53 @@ export function AdminSeoHealth({ basePages }: { basePages: AuditPage[] }) {
 
   const clean = summary.pages - summary.pagesWithIssues;
 
+  /**
+   * Persist a VERIFIED rewrite through the page's own editor path, then re-audit locally so the
+   * fixed issue disappears without a reload. Tours write only their two SEO columns (never the
+   * full activity form); blog posts reload-then-save so no field is clobbered; overrides keep
+   * their existing share image.
+   */
+  async function persistFix(path: string, fix: SeoAiFixResponse): Promise<void> {
+    const tourSlug =
+      path !== '/activities' && path.startsWith('/activities/')
+        ? path.slice('/activities/'.length)
+        : null;
+    const postSlug =
+      path !== '/blog' && path.startsWith('/blog/') ? path.slice('/blog/'.length) : null;
+    if (tourSlug) {
+      await saveTourSeo(tourSlug, fix.saveTitle, fix.saveDescription);
+    } else if (postSlug) {
+      const post = await loadAdminPost(postSlug);
+      if (!post) throw new Error('That post no longer exists — reload the page and try again.');
+      await savePost({ ...post, metaTitle: fix.saveTitle, metaDescription: fix.saveDescription });
+    } else {
+      const ogImageUrl = overrideMap?.get(path)?.ogImageUrl ?? '';
+      await saveSeoMeta({
+        path,
+        title: fix.saveTitle,
+        description: fix.saveDescription,
+        ogImageUrl,
+      });
+      setOverrideMap((prev) => {
+        const next = new Map(prev ?? []);
+        next.set(path, {
+          path,
+          title: fix.saveTitle,
+          description: fix.saveDescription,
+          ogImageUrl,
+        });
+        return next;
+      });
+    }
+    setPages((prev) =>
+      (prev ?? []).map((p) =>
+        p.path === path ? { ...p, title: fix.title, description: fix.description } : p,
+      ),
+    );
+    const cleared = fix.fixedCodes.length > 0 ? fix.fixedCodes.join(', ') : 'issue';
+    setFixedNote(`Fixed ✓ ${path} — cleared ${cleared}.`);
+  }
+
   return (
     <section className="mb-6 rounded-2xl border border-[#EAEEF0] bg-white p-5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -95,6 +155,12 @@ export function AdminSeoHealth({ basePages }: { basePages: AuditPage[] }) {
         <Stat label="Needs fixing" value={summary.errors} tone="bad" />
         <Stat label="Could be better" value={summary.warnings} tone="warn" />
       </div>
+
+      {fixedNote && (
+        <p role="status" className="mt-3 text-[13px] font-bold text-emerald-700">
+          {fixedNote}
+        </p>
+      )}
 
       {summary.byCode.length > 0 && (
         <ul className="mt-4 flex flex-wrap gap-2 p-0">
@@ -147,7 +213,15 @@ export function AdminSeoHealth({ basePages }: { basePages: AuditPage[] }) {
               </div>
               <ul className="mt-3 flex flex-col gap-2 p-0">
                 {visible.map((issue) => (
-                  <IssueRow key={`${issue.path}:${issue.code}`} issue={issue} />
+                  <IssueRow
+                    key={`${issue.path}:${issue.code}`}
+                    issue={issue}
+                    overridable={
+                      pages?.find((p) => p.path === issue.path)?.overridable ??
+                      issue.editorPath === '/admin/seo'
+                    }
+                    onSave={persistFix}
+                  />
                 ))}
               </ul>
             </>
@@ -194,7 +268,63 @@ function FilterChip({
   );
 }
 
-function IssueRow({ issue }: { issue: SeoIssue }) {
+/**
+ * Where "Fix it →" lands. Overridable pages are edited ON this screen (/admin/seo) in the
+ * editor below — so the link carries a #fix= hash the editor listens for (tab switch + scroll
+ * + highlight). A bare "/admin/seo" link was the "nothing happens" bug: same-page navigation
+ * with no anchor looks dead. Tours and posts keep their own editors.
+ */
+function fixHref(issue: SeoIssue, overridable: boolean): string {
+  if (overridable) return `/admin/seo#fix=${encodeURIComponent(issue.path)}`;
+  return issue.editorPath;
+}
+
+type FixState =
+  | { status: 'idle' }
+  | { status: 'fixing' }
+  | { status: 'fixed' }
+  | { status: 'error'; message: string }
+  | { status: 'review'; title: string; description: string; note: string };
+
+function IssueRow({
+  issue,
+  overridable,
+  onSave,
+}: {
+  issue: SeoIssue;
+  overridable: boolean;
+  onSave: (path: string, fix: SeoAiFixResponse) => Promise<void>;
+}) {
+  const [fix, setFix] = useState<FixState>({ status: 'idle' });
+
+  async function aiFix() {
+    setFix({ status: 'fixing' });
+    try {
+      const result = await requestSeoAiFix(issue.path);
+      // The server verified this rewrite against the audit — safe to persist in one click.
+      await onSave(issue.path, result);
+      setFix({ status: 'fixed' });
+    } catch (e) {
+      if (e instanceof SeoAiNeedsReview) {
+        // UNVERIFIED: shown for manual editing only. Deliberately no save button — persisting
+        // it would bypass the guarantee one-click fixes carry.
+        setFix({
+          status: 'review',
+          title: e.review.title,
+          description: e.review.description,
+          note: e.review.note,
+        });
+      } else if (e instanceof SeoAiUnavailable) {
+        setFix({
+          status: 'error',
+          message: `${e.message} Manual editing below still works.`,
+        });
+      } else {
+        setFix({ status: 'error', message: e instanceof Error ? e.message : 'AI fix failed.' });
+      }
+    }
+  }
+
   return (
     <li className="list-none rounded-xl border border-[#EAEEF0] bg-white px-4 py-3">
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
@@ -216,12 +346,65 @@ function IssueRow({ issue }: { issue: SeoIssue }) {
         </Link>
       </div>
       <p className="mt-1 text-[13px] text-ink/75">{issue.message}</p>
-      <Link
-        href={issue.editorPath}
-        className="mt-1.5 inline-block text-[12.5px] font-bold text-teal-dark underline underline-offset-2"
-      >
-        Fix it →
-      </Link>
+      <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1">
+        <Link
+          href={fixHref(issue, overridable)}
+          className="inline-block text-[12.5px] font-bold text-teal-dark underline underline-offset-2"
+        >
+          Fix it →
+        </Link>
+        {fix.status === 'idle' && (
+          <button
+            type="button"
+            onClick={() => void aiFix()}
+            className="inline-block text-[12.5px] font-bold text-teal-dark underline underline-offset-2"
+          >
+            ✨ AI fix
+          </button>
+        )}
+        {fix.status === 'fixing' && (
+          <span className="text-[12.5px] font-semibold text-ink-muted">Fixing with Gemini…</span>
+        )}
+        {fix.status === 'fixed' && (
+          <span className="text-[12.5px] font-bold text-emerald-700">Fixed ✓</span>
+        )}
+      </div>
+      {fix.status === 'error' && (
+        <p role="alert" className="mt-2 text-[12.5px] font-medium text-coral-dark">
+          {fix.message}
+        </p>
+      )}
+      {fix.status === 'review' && (
+        <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+          <p className="text-[12.5px] font-bold text-amber-800">
+            Gemini&rsquo;s suggestion didn&rsquo;t pass verification — nothing was saved.
+          </p>
+          <p className="mt-1 text-[12.5px] text-ink/75">{fix.note}</p>
+          {(fix.title || fix.description) && (
+            <blockquote className="mt-1 border-l-2 border-amber-300 pl-2 text-[12.5px] text-ink/75">
+              {fix.title && (
+                <p>
+                  <strong>Title:</strong> {fix.title}
+                </p>
+              )}
+              {fix.description && (
+                <p>
+                  <strong>Description:</strong> {fix.description}
+                </p>
+              )}
+            </blockquote>
+          )}
+          <p className="mt-1 text-[12.5px] text-ink/75">
+            Use it as a starting point via{' '}
+            <Link
+              href={fixHref(issue, overridable)}
+              className="font-bold text-teal-dark underline underline-offset-2"
+            >
+              Fix it →
+            </Link>
+          </p>
+        </div>
+      )}
     </li>
   );
 }

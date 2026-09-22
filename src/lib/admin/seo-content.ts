@@ -89,6 +89,29 @@ export async function loadTourSeoRows(): Promise<TourSeoRow[]> {
   }));
 }
 
+/**
+ * Write ONE tour's search appearance (seo_title / seo_description) by slug.
+ *
+ * Deliberately narrow: the full activity editor (updateActivity) reconciles images, options and
+ * prices, which is wrong for a title-only fix — and RLS blocks the pricing tables for the `seo`
+ * role, so routing through it would fail the save midway. The `activities_content_editor` policy
+ * (is_content_editor: staff/admin/seo) covers this targeted content update.
+ */
+export async function saveTourSeo(
+  slug: string,
+  seoTitle: string,
+  seoDescription: string,
+): Promise<void> {
+  const { error } = await getBrowserSupabase()
+    .from('activities')
+    .update({
+      seo_title: seoTitle.trim() || null,
+      seo_description: seoDescription.trim() || null,
+    })
+    .eq('slug', slug);
+  if (error) throw error;
+}
+
 // ── Blog posts ─────────────────────────────────────────────────────────────────
 
 export interface PostInput {

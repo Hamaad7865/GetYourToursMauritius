@@ -53,6 +53,7 @@ import {
   syncPaymentInputSchema,
 } from '@/lib/validation/booking';
 import { clientErrorReportSchema } from '@/lib/validation/telemetry';
+import { seoAiFixRequestSchema, seoAiFixResponseSchema } from '@/lib/validation/seo-ai-fix';
 import {
   wishlistAddResultSchema,
   wishlistInputSchema,
@@ -260,6 +261,24 @@ export const apiPaths: ZodOpenApiPathsObject = {
         '401': errorResponse('Authentication required'),
         '403': errorResponse('Content editors only'),
         '503': errorResponse('Search Console is not connected'),
+      },
+    },
+  },
+  '/seo/ai-fix': {
+    post: {
+      operationId: 'aiFixSeoIssue',
+      summary:
+        'Gemini rewrite of one SEO Health-check issue, server-verified (content editors only)',
+      tags: ['SEO'],
+      security: [{ bearerAuth: [] }],
+      requestBody: jsonBody(seoAiFixRequestSchema),
+      responses: {
+        '200': okJson(seoAiFixResponseSchema, 'Verified rewrite — safe for the browser to save'),
+        '400': errorResponse('Invalid request'),
+        '401': errorResponse('Authentication required'),
+        '403': errorResponse('Content editors only'),
+        '422': errorResponse('Rewrite failed verification — manual edit required'),
+        '503': errorResponse('Gemini is not configured'),
       },
     },
   },

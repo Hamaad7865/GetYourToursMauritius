@@ -20,11 +20,13 @@ function PageCard({
   page,
   value,
   busy,
+  flash,
   onSave,
 }: {
   page: SeoPage;
   value: SeoMetaInput | undefined;
   busy: boolean;
+  flash: boolean;
   onSave: (v: SeoMetaInput) => Promise<void>;
 }) {
   const [v, setV] = useState<SeoMetaInput>(
@@ -54,7 +56,12 @@ function PageCard({
   }
 
   return (
-    <section className="rounded-2xl border border-[#EAEEF0] bg-white p-5">
+    <section
+      id={`seo-card-${page.path}`}
+      className={`rounded-2xl border bg-white p-5 transition-shadow ${
+        flash ? 'border-teal shadow-[0_0_0_3px_rgba(13,148,136,0.35)]' : 'border-[#EAEEF0]'
+      }`}
+    >
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="text-[15px] font-extrabold text-ink">{page.label}</h2>
         <span className="text-[12px] font-semibold text-ink-muted">
@@ -146,6 +153,7 @@ export function AdminSeoMeta({ groups }: { groups: SeoPageGroup[] }) {
   const [groupKey, setGroupKey] = useState(groups[0]?.key ?? 'core');
   const [query, setQuery] = useState('');
   const [onlyOverridden, setOnlyOverridden] = useState(false);
+  const [flashPath, setFlashPath] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -159,6 +167,47 @@ export function AdminSeoMeta({ groups }: { groups: SeoPageGroup[] }) {
   useEffect(() => {
     if (canEdit) void load();
   }, [canEdit, load]);
+
+  /**
+   * The Health check's "Fix it →" deep link: /admin/seo#fix=<path>. The card may live under a
+   * different group tab, so switch to it, filter to the page, then scroll + flash the card.
+   * Without this a same-page link looks dead — the bug operators reported.
+   */
+  useEffect(() => {
+    let scrollTimer: ReturnType<typeof setTimeout> | undefined;
+    let flashTimer: ReturnType<typeof setTimeout> | undefined;
+    const applyHash = () => {
+      const m = window.location.hash.match(/^#fix=(.+)$/);
+      const raw = m?.[1];
+      if (!raw) return;
+      let target = '';
+      try {
+        target = decodeURIComponent(raw);
+      } catch {
+        return;
+      }
+      const g = groups.find((gr) => gr.pages.some((p) => p.path === target));
+      if (!g) return;
+      setGroupKey(g.key);
+      setQuery(target);
+      setFlashPath(target);
+      if (scrollTimer) clearTimeout(scrollTimer);
+      if (flashTimer) clearTimeout(flashTimer);
+      scrollTimer = setTimeout(() => {
+        document
+          .getElementById(`seo-card-${target}`)
+          ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 150);
+      flashTimer = setTimeout(() => setFlashPath(null), 3500);
+    };
+    applyHash();
+    window.addEventListener('hashchange', applyHash);
+    return () => {
+      window.removeEventListener('hashchange', applyHash);
+      if (scrollTimer) clearTimeout(scrollTimer);
+      if (flashTimer) clearTimeout(flashTimer);
+    };
+  }, [groups]);
 
   const group = groups.find((g) => g.key === groupKey) ?? groups[0];
 
@@ -246,6 +295,7 @@ export function AdminSeoMeta({ groups }: { groups: SeoPageGroup[] }) {
               page={page}
               value={overrides.get(page.path)}
               busy={busy}
+              flash={flashPath === page.path}
               onSave={async (v) => {
                 setBusy(true);
                 try {
