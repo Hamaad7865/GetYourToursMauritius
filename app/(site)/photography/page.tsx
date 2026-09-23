@@ -6,6 +6,9 @@ import { RevealGroup } from '@/components/site/RevealGroup';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { PackagesSection } from '@/components/photography/PackagesSection';
 import { PortfolioGrid, type PortfolioShot } from '@/components/photography/PortfolioGrid';
+import { BlurFade } from '@/components/photography/BlurFade';
+import { FilmStrip, type FilmFrame } from '@/components/photography/FilmStrip';
+import { FOCUS_CARDS } from '@/components/photography/motion';
 import {
   PHOTO_IMG as IMG,
   buildPackageCards,
@@ -183,6 +186,8 @@ export default async function PhotographyPage() {
       }))
     : stockShots;
 
+  const reel: FilmFrame[] = shots.map((s) => ({ key: s.key ?? s.src, src: s.src, alt: s.alt }));
+
   const steps = [
     {
       title: t('Book online'),
@@ -344,7 +349,7 @@ export default async function PhotographyPage() {
             src={slotUrl(photos, 'hero')}
             alt={t('A couple on a Mauritius beach at sunset')}
             fetchPriority="high"
-            className="absolute inset-0 -z-10 h-full w-full object-cover"
+            className="pg-focus-in absolute inset-0 -z-10 h-full w-full object-cover"
           />
           <div
             aria-hidden
@@ -388,10 +393,12 @@ export default async function PhotographyPage() {
           </div>
         </section>
 
+        <FilmStrip frames={reel} label={t('Photo reel')} />
+
         {/* Services — editorial bento. */}
         <section className="px-6 py-16 sm:py-24">
           <div className="mx-auto max-w-shell">
-            <div className="grid gap-6 md:grid-cols-2 md:items-end">
+            <BlurFade className="grid gap-6 md:grid-cols-2 md:items-end">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-teal">
                   {t('What we shoot')}
@@ -405,9 +412,11 @@ export default async function PhotographyPage() {
                   'Every shoot includes planning, location scouting, professional editing and a private online gallery.',
                 )}
               </p>
-            </div>
+            </BlurFade>
 
-            <RevealGroup className="mt-12 grid gap-4 md:grid-cols-12 md:grid-rows-[260px_260px_220px]">
+            <RevealGroup
+              className={`mt-12 grid gap-4 md:grid-cols-12 md:grid-rows-[260px_260px_220px] ${FOCUS_CARDS}`}
+            >
               {services.map((s, i) => (
                 <Link
                   key={s.n}
@@ -463,14 +472,14 @@ export default async function PhotographyPage() {
         {/* The look — dark band with the filterable masonry. */}
         <section className="bg-ink px-6 py-16 text-white sm:py-24">
           <div className="mx-auto max-w-shell">
-            <div className="text-center">
+            <BlurFade className="text-center">
               <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-teal-bright">
                 {t('The look')}
               </p>
               <h2 className="mx-auto mt-4 max-w-[18ch] text-[clamp(28px,4.4vw,56px)] font-extrabold leading-none tracking-tight">
                 {t('Real light.')} <span className="text-teal-tint">{t('No filters needed.')}</span>
               </h2>
-            </div>
+            </BlurFade>
             <PortfolioGrid shots={shots} />
           </div>
         </section>
@@ -478,12 +487,14 @@ export default async function PhotographyPage() {
         {/* Packages — live catalogue activities, or enquiry cards until they exist. */}
         <section id="packages" className="scroll-mt-24 bg-teal-tint/40 px-6 py-16 sm:py-24">
           <div className="mx-auto max-w-shell">
-            <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-teal">
-              {t('Packages')}
-            </p>
-            <h2 className="mt-4 text-[clamp(28px,4.4vw,56px)] font-extrabold leading-none tracking-tight text-ink">
-              {live.length > 0 ? t('Clear prices. Book in minutes.') : t('Choose your package.')}
-            </h2>
+            <BlurFade>
+              <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-teal">
+                {t('Packages')}
+              </p>
+              <h2 className="mt-4 text-[clamp(28px,4.4vw,56px)] font-extrabold leading-none tracking-tight text-ink">
+                {live.length > 0 ? t('Clear prices. Book in minutes.') : t('Choose your package.')}
+              </h2>
+            </BlurFade>
             <Link
               href="/photography/packages"
               className="mt-5 inline-flex items-center gap-1.5 border-b border-coral/45 pb-1 text-[13px] font-bold text-coral-dark hover:border-coral-dark"
@@ -509,13 +520,15 @@ export default async function PhotographyPage() {
         {/* How it works. */}
         <section className="px-6 py-16 sm:py-24">
           <div className="mx-auto max-w-shell">
-            <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-teal">
-              {t('How it works')}
-            </p>
-            <h2 className="mt-4 max-w-[20ch] text-[clamp(28px,4.4vw,56px)] font-extrabold leading-none tracking-tight text-ink">
-              {t('From booking to gallery,')}{' '}
-              <span className="text-teal">{t('you just show up.')}</span>
-            </h2>
+            <BlurFade>
+              <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-teal">
+                {t('How it works')}
+              </p>
+              <h2 className="mt-4 max-w-[20ch] text-[clamp(28px,4.4vw,56px)] font-extrabold leading-none tracking-tight text-ink">
+                {t('From booking to gallery,')}{' '}
+                <span className="text-teal">{t('you just show up.')}</span>
+              </h2>
+            </BlurFade>
             <RevealGroup className="relative mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {steps.map((s, i) => (
                 <article
@@ -545,7 +558,7 @@ export default async function PhotographyPage() {
                 className="absolute inset-0 h-full w-full object-cover"
               />
             </div>
-            <div className="flex flex-col justify-center">
+            <BlurFade className="flex flex-col justify-center">
               <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-teal-tint">
                 {t('Why book with us')}
               </p>
@@ -560,7 +573,7 @@ export default async function PhotographyPage() {
                   </li>
                 ))}
               </ul>
-            </div>
+            </BlurFade>
           </div>
         </section>
 
@@ -568,7 +581,7 @@ export default async function PhotographyPage() {
             internal links that tie this page to the destination guides Google already ranks. */}
         <section className="px-6 pt-16 sm:pt-24">
           <div className="mx-auto grid max-w-shell gap-10 md:grid-cols-[1fr_1.2fr] md:gap-14">
-            <div>
+            <BlurFade>
               <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-teal">
                 {t('Photographer & videographer')}
               </p>
@@ -600,8 +613,8 @@ export default async function PhotographyPage() {
                   </li>
                 ))}
               </ul>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
+            </BlurFade>
+            <RevealGroup className="grid content-start gap-4 sm:grid-cols-2">
               {specialities.map((s) => (
                 <article
                   key={s.title}
@@ -611,14 +624,14 @@ export default async function PhotographyPage() {
                   <p className="mt-2 text-[14.5px] leading-relaxed text-ink/80">{s.body}</p>
                 </article>
               ))}
-            </div>
+            </RevealGroup>
           </div>
         </section>
 
         {/* FAQ. */}
         <section className="px-6 py-16 sm:py-24">
           <div className="mx-auto grid max-w-shell gap-10 md:grid-cols-[1fr_1.5fr] md:gap-14">
-            <div>
+            <BlurFade>
               <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-teal">
                 {t('FAQ')}
               </p>
@@ -636,7 +649,7 @@ export default async function PhotographyPage() {
               >
                 {t('Chat on WhatsApp →')}
               </a>
-            </div>
+            </BlurFade>
             <div className="space-y-3">
               {faqs.map((f, i) => (
                 <details
@@ -670,7 +683,7 @@ export default async function PhotographyPage() {
             className="absolute inset-0 -z-10 h-full w-full object-cover"
           />
           <div aria-hidden className="absolute inset-0 -z-10 bg-ink/70" />
-          <div className="mx-auto max-w-shell">
+          <BlurFade className="mx-auto max-w-shell">
             <h2 className="mx-auto max-w-[18ch] text-[clamp(30px,5vw,64px)] font-extrabold leading-none tracking-tight">
               {t('Pick your date.')}{' '}
               <span className="text-teal-tint">{t('We’ll handle the light.')}</span>
@@ -692,7 +705,7 @@ export default async function PhotographyPage() {
                 {t('Pair it with a tour')}
               </Link>
             </div>
-          </div>
+          </BlurFade>
         </section>
       </main>
       <SiteFooter />

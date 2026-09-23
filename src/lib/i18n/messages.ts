@@ -3053,4 +3053,5 @@ export const fr: Record<string, string> = {
   'Family photographer': 'Photographe de famille',
   'Easy-going holiday portraits with the kids, on the beach or at your hotel or villa.':
     'Des portraits de vacances décontractés avec les enfants, sur la plage, à votre hôtel ou dans votre villa.',
+  'Photo reel': 'Pellicule photo',
 };

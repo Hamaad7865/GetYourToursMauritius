@@ -6,6 +6,8 @@ import { RevealGroup } from '@/components/site/RevealGroup';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { Price } from '@/components/site/Price';
 import { PricingGuideCard } from '@/components/photography/PricingGuideCard';
+import { BlurFade } from '@/components/photography/BlurFade';
+import { FOCUS_CARDS } from '@/components/photography/motion';
 import {
   buildPackageCards,
   loadPhotographyPackages,
@@ -111,7 +113,7 @@ export default async function PhotographyPackagesPage() {
             src={slotUrl(photos, 'pricing-hero')}
             alt={t('A couple on a Mauritius beach at sunset')}
             fetchPriority="high"
-            className="absolute inset-0 -z-10 h-full w-full object-cover object-[50%_60%]"
+            className="pg-focus-in absolute inset-0 -z-10 h-full w-full object-cover object-[50%_60%]"
           />
           <div
             aria-hidden
@@ -145,7 +147,7 @@ export default async function PhotographyPackagesPage() {
         {groups.map((g) => (
           <section key={g.id} id={g.id} className="scroll-mt-24 px-6 pt-16 sm:pt-20">
             <div className="mx-auto max-w-shell">
-              <div className="flex flex-wrap items-end justify-between gap-4">
+              <BlurFade className="flex flex-wrap items-end justify-between gap-4">
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-teal">
                     {t('Packages')}
@@ -155,8 +157,8 @@ export default async function PhotographyPackagesPage() {
                   </h2>
                 </div>
                 <p className="max-w-sm text-[15px] leading-relaxed text-ink-muted">{g.intro}</p>
-              </div>
-              <RevealGroup className="mt-8 grid gap-5 md:grid-cols-2">
+              </BlurFade>
+              <RevealGroup className={`mt-8 grid gap-5 md:grid-cols-2 ${FOCUS_CARDS}`}>
                 {packages
                   .filter((p) => p.group === g.id)
                   .map((p) => (
