@@ -65,16 +65,16 @@ export const SEO_PAGES: SeoPage[] = [
   {
     path: '/photography',
     label: 'Photography & film',
-    defaultTitle: 'Wedding & Holiday Photography in Mauritius | Belle Mare Tours',
+    defaultTitle: 'Mauritius Photographer & Videographer | Belle Mare Tours',
     defaultDescription:
-      'Wedding photography, wedding films, couples and family holiday shoots in Mauritius by a local Belle Mare team. See packages, pick a date and book online.',
+      'Local photographer in Mauritius for weddings, honeymoons, proposals and family holidays — photos, films and drone. See prices, pick a date and book online.',
   },
   {
     path: '/photography/packages',
     label: 'Photography packages & prices',
-    defaultTitle: 'Photoshoot & Wedding Photography Prices in Mauritius | Belle Mare Tours',
+    defaultTitle: 'Mauritius Photographer Prices & Packages | Belle Mare Tours',
     defaultDescription:
-      'Every photography package in one place — weddings, wedding films, couples, holiday and family shoots in Mauritius. Compare prices, add drone or extra hours, and book your date online.',
+      'Mauritius photographer prices: wedding, couples, holiday and family photo packages. Compare prices, add drone or extra hours and book your date online.',
   },
   {
     path: '/mauritius-tours',

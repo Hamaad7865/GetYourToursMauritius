@@ -37,12 +37,26 @@ export const runtime = 'edge';
  * team's own work replaces it, which is why the gallery is labelled "The look", not "Our work".
  */
 
+/** Shoot locations, each linking to its guide. Place names are proper nouns — not translated. */
+const SHOOT_LOCATIONS = [
+  { name: 'Belle Mare', href: '/belle-mare' },
+  { name: 'Trou d’Eau Douce', href: '/destinations/trou-deau-douce' },
+  { name: 'Île aux Cerfs', href: '/ile-aux-cerfs-tours' },
+  { name: 'Le Morne', href: '/destinations/le-morne' },
+  { name: 'Flic en Flac', href: '/destinations/flic-en-flac' },
+  { name: 'Grand Baie', href: '/destinations/grand-baie' },
+  { name: 'Cap Malheureux', href: '/destinations/cap-malheureux' },
+  { name: 'Blue Bay', href: '/destinations/blue-bay' },
+];
+
 const DEFAULT_METADATA: Metadata = {
-  title: { absolute: 'Wedding & Holiday Photography in Mauritius | Belle Mare Tours' },
+  title: { absolute: 'Mauritius Photographer & Videographer | Belle Mare Tours' },
   description:
-    'Wedding photography, wedding films, couples and family holiday shoots in Mauritius by a local Belle Mare team. See packages, pick a date and book online.',
+    'Local photographer in Mauritius for weddings, honeymoons, proposals and family holidays — photos, films and drone. See prices, pick a date and book online.',
   alternates: { canonical: '/photography' },
   keywords: [
+    'Mauritius photographer',
+    'photographer in Mauritius',
     'wedding photographer Mauritius',
     'wedding videographer Mauritius',
     'Mauritius photoshoot',
@@ -53,9 +67,9 @@ const DEFAULT_METADATA: Metadata = {
   openGraph: {
     type: 'website',
     url: `${SITE.url}/photography`,
-    title: 'Wedding & Holiday Photography in Mauritius | Belle Mare Tours',
+    title: 'Mauritius Photographer & Videographer | Belle Mare Tours',
     description:
-      'Wedding photos and films, couples and family shoots on the beaches of Mauritius — book online with a local team.',
+      'A local photographer & videographer in Mauritius — weddings, couples and family shoots on the island’s best beaches. Book online.',
     images: [OG_IMAGE],
   },
 };
@@ -207,7 +221,33 @@ export default async function PhotographyPage() {
     },
   ];
 
+  const fromPrices = live.map((a) => a.fromPriceEur).filter((p): p is number => p != null);
+  const cheapest = fromPrices.length ? Math.min(...fromPrices) : null;
   const faqs = [
+    {
+      q: t('How much does a photographer cost in Mauritius?'),
+      a:
+        cheapest != null
+          ? t(
+              'Our photography packages start from {price} per shoot. Extra guests, drone aerials, extra hours and albums are priced separately, and you see the full total before you pay.',
+              { price: `€${cheapest.toLocaleString('en-GB', { maximumFractionDigits: 0 })}` },
+            )
+          : t(
+              'It depends on the length of the shoot and what’s included. See every package on our price list, or message us for a quote for your date.',
+            ),
+    },
+    {
+      q: t('Where are the best places for a photoshoot in Mauritius?'),
+      a: t(
+        'Belle Mare and Trou d’Eau Douce for calm turquoise water, Le Morne for the mountain at sunset, Île aux Cerfs for white sand, and Grand Baie or Cap Malheureux in the north. We’ll suggest the best spot for your time of day.',
+      ),
+    },
+    {
+      q: t('Are you also a videographer?'),
+      a: t(
+        'Yes — we film weddings and holidays too: a cinematic edit, a short teaser to share and drone aerials where flying is permitted.',
+      ),
+    },
     {
       q: t('What if it rains on the day?'),
       a: t(
@@ -240,6 +280,31 @@ export default async function PhotographyPage() {
     },
   ];
 
+  const specialities = [
+    {
+      title: t('Wedding photographer in Mauritius'),
+      body: t(
+        'Beach ceremonies, hotel weddings and elopements, from getting ready to the first dance — with one or two photographers.',
+      ),
+    },
+    {
+      title: t('Wedding videographer & drone'),
+      body: t(
+        'A cinematic wedding film and short teaser, with drone aerials over the lagoon where flying is permitted.',
+      ),
+    },
+    {
+      title: t('Honeymoon & couples photographer'),
+      body: t('Relaxed golden-hour sessions for honeymoons, anniversaries and surprise proposals.'),
+    },
+    {
+      title: t('Family photographer'),
+      body: t(
+        'Easy-going holiday portraits with the kids, on the beach or at your hotel or villa.',
+      ),
+    },
+  ];
+
   const waGeneral = whatsappUrl(
     `Hi ${SITE.operator}! I’d like to ask about photography or filming in Mauritius.`,
     waNumber,
@@ -256,12 +321,17 @@ export default async function PhotographyPage() {
       <JsonLd data={faqPageJsonLd(faqs)} />
       <JsonLd
         data={serviceJsonLd({
-          serviceType: 'Wedding and holiday photography',
-          name: 'Wedding & holiday photography in Mauritius',
+          serviceType: 'Photographer',
+          name: 'Photographer & videographer in Mauritius',
           description:
-            'Wedding photography, wedding films, couples and family holiday shoots across Mauritius by a local Belle Mare team.',
+            'Wedding photography and films, honeymoon, couples and family holiday shoots across Mauritius by a local Belle Mare team.',
           path: '/photography',
           areaServed: 'Mauritius',
+          offers: live.map((a) => ({
+            name: a.title,
+            path: `/activities/${a.slug}`,
+            priceEur: a.fromPriceEur,
+          })),
         })}
       />
 
@@ -281,17 +351,19 @@ export default async function PhotographyPage() {
             className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,rgba(10,46,54,0.35)_0%,rgba(10,46,54,0.15)_40%,rgba(10,46,54,0.92)_100%)]"
           />
           <div className="mx-auto w-full max-w-shell px-6 pb-14 sm:pb-20">
-            <p className="bm-rise text-[11px] font-bold uppercase tracking-[0.28em] text-teal-tint [animation-delay:0.05s]">
-              {t('Photography & film · Mauritius')}
-            </p>
-            <h1 className="mt-4 font-extrabold leading-[0.95] tracking-tight [text-shadow:0_14px_60px_rgba(4,20,26,0.5)]">
+            {/* The H1 is the search term people type; the big display line below is the design's
+                headline and stays a paragraph, so the page has exactly one, keyword-first H1. */}
+            <h1 className="bm-rise text-[11px] font-bold uppercase tracking-[0.28em] text-teal-tint [animation-delay:0.05s] sm:text-[12px]">
+              {t('Mauritius photographer & videographer')}
+            </h1>
+            <p className="mt-4 font-extrabold leading-[0.95] tracking-tight [text-shadow:0_14px_60px_rgba(4,20,26,0.5)]">
               <span className="bm-rise block text-[clamp(38px,6vw,80px)] [animation-delay:0.15s]">
                 {t('Say yes where')}
               </span>
               <span className="bm-rise block text-[clamp(38px,6vw,80px)] text-teal-tint [animation-delay:0.27s]">
                 {t('the lagoon turns gold.')}
               </span>
-            </h1>
+            </p>
             <p className="bm-rise mt-6 max-w-md text-[16px] leading-relaxed text-white/85 [animation-delay:0.42s]">
               {t(
                 'Wedding photos, films and holiday shoots by a local team who know every beach, light and tide.',
@@ -488,6 +560,57 @@ export default async function PhotographyPage() {
                   </li>
                 ))}
               </ul>
+            </div>
+          </div>
+        </section>
+
+        {/* Photographer in Mauritius — the plain-language answer to the search itself, and the
+            internal links that tie this page to the destination guides Google already ranks. */}
+        <section className="px-6 pt-16 sm:pt-24">
+          <div className="mx-auto grid max-w-shell gap-10 md:grid-cols-[1fr_1.2fr] md:gap-14">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-teal">
+                {t('Photographer & videographer')}
+              </p>
+              <h2 className="mt-4 text-[clamp(26px,3.6vw,44px)] font-extrabold leading-none tracking-tight text-ink">
+                {t('Your photographer in Mauritius')}
+              </h2>
+              <p className="mt-5 text-[15px] leading-relaxed text-ink/80">
+                {t(
+                  'Looking for a photographer in Mauritius? We’re a local team based in Belle Mare on the east coast, photographing weddings, honeymoons, proposals and family holidays on beaches all around the island — and filming them too.',
+                )}
+              </p>
+              <p className="mt-4 text-[15px] leading-relaxed text-ink/80">
+                {t(
+                  'Because we plan around the island’s light and tides every day, we know which beach is calm in the morning, where the sun sets behind the mountains, and how to find a quiet spot even in high season.',
+                )}
+              </p>
+              <p className="mt-6 text-[12px] font-bold uppercase tracking-[0.2em] text-ink-muted">
+                {t('Where we shoot')}
+              </p>
+              <ul className="mt-3 flex flex-wrap gap-2">
+                {SHOOT_LOCATIONS.map((l) => (
+                  <li key={l.href}>
+                    <Link
+                      href={l.href}
+                      className="inline-block rounded-full border border-ink/15 px-3.5 py-1.5 text-[13px] font-semibold text-ink transition hover:border-teal hover:text-teal"
+                    >
+                      {l.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {specialities.map((s) => (
+                <article
+                  key={s.title}
+                  className="rounded-2xl border border-ink/10 bg-white p-6 shadow-[0_1px_3px_rgba(10,46,54,0.05)]"
+                >
+                  <h3 className="text-[17px] font-extrabold leading-snug text-ink">{s.title}</h3>
+                  <p className="mt-2 text-[14.5px] leading-relaxed text-ink/80">{s.body}</p>
+                </article>
+              ))}
             </div>
           </div>
         </section>

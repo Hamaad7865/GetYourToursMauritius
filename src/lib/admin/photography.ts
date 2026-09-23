@@ -184,6 +184,7 @@ export function photographyPackageValues(input: PhotographyPackageInput): Activi
       input.kind === 'weddings'
         ? 'Free cancellation up to 30 days before your wedding date.'
         : 'Free cancellation up to 48 hours before your shoot.',
+    ...packageSeo(title, input.summary),
     status: input.status,
     languages: ['English', 'French'],
     highlights: features,
@@ -206,6 +207,18 @@ export function photographyPackageValues(input: PhotographyPackageInput): Activi
       .filter((a) => a.name.trim() && a.priceEur >= 0)
       .map((a) => ({ name: a.name.trim(), nameFr: a.nameFr.trim(), priceEur: a.priceEur })),
   };
+}
+
+/** Default search appearance for a package: "<title> — Photographer in Mauritius" when it fits
+ *  Google's ~60-character title budget, and the summary plus the search term as the description.
+ *  Empty means the page's built-in fallback. Pure, so it's unit-tested. */
+export function packageSeo(title: string, summary: string) {
+  const t = `${title.trim()} — Photographer in Mauritius`;
+  const base = summary.trim().replace(/\s+/g, ' ');
+  const d = base
+    ? `${base.replace(/[.!]?$/, '.')} Book online with a local photographer in Mauritius.`
+    : '';
+  return { seoTitle: t.length <= 60 ? t : '', seoDescription: d.length <= 160 ? d : '' };
 }
 
 /** Create the package, then give it its per-day capacity — which also materialises its dates, so a

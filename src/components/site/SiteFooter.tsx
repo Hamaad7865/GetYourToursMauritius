@@ -32,6 +32,7 @@ const COLUMNS = [
         label: 'Sightseeing tours',
         href: `/activities?category=${encodeURIComponent('Sightseeing tours')}`,
       },
+      { label: 'Photography & film', href: '/photography' },
     ],
   },
   {

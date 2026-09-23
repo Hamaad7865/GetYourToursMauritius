@@ -243,7 +243,15 @@ export function serviceJsonLd(opts: {
   description: string;
   path: string;
   areaServed?: string;
+  /** Bookable packages of this service → `hasOfferCatalog`. Omitted when empty. */
+  offers?: { name: string; path: string; priceEur: number | null }[];
 }): Record<string, unknown> {
+  const offers = (opts.offers ?? []).map((o) => ({
+    '@type': 'Offer',
+    url: `${SITE.url}${o.path}`,
+    itemOffered: { '@type': 'Service', name: o.name },
+    ...(o.priceEur != null ? { price: o.priceEur, priceCurrency: 'EUR' } : {}),
+  }));
   return {
     '@context': 'https://schema.org',
     '@type': 'Service',
@@ -257,6 +265,15 @@ export function serviceJsonLd(opts: {
     // @id points at the full entity from organizationJsonLd, address and all.
     provider: { '@id': `${SITE.url}/#operator` },
     areaServed: { '@type': 'Place', name: opts.areaServed ?? 'Mauritius' },
+    ...(offers.length
+      ? {
+          hasOfferCatalog: {
+            '@type': 'OfferCatalog',
+            name: opts.name,
+            itemListElement: offers,
+          },
+        }
+      : {}),
   };
 }
 

@@ -15,7 +15,13 @@ import {
 import { breadcrumbTrail } from '@/lib/catalogue/detail';
 import { activityExtraSchema } from '@/lib/validation/tours';
 import { activityRow, assertPricingValid } from '@/lib/admin/activity-write';
-import { photographyPackageValues, type PhotographyPackageInput } from '@/lib/admin/photography';
+import {
+  packageSeo,
+  photographyPackageValues,
+  type PhotographyPackageInput,
+} from '@/lib/admin/photography';
+import { serviceJsonLd } from '@/lib/seo/jsonld';
+import { SEO_PAGES } from '@/lib/seo/page-registry';
 
 const INPUT: PhotographyPackageInput = {
   title: 'Couples session — Belle Mare',
@@ -179,5 +185,49 @@ describe('page photos (photography_photos)', () => {
         'why',
       ].sort(),
     );
+  });
+});
+
+describe('photography SEO', () => {
+  it('leads both page titles with the search term, inside the ~60-char budget', () => {
+    for (const path of ['/photography', '/photography/packages']) {
+      const page = SEO_PAGES.find((p) => p.path === path);
+      expect(page?.defaultTitle.startsWith('Mauritius Photographer')).toBe(true);
+      expect(page!.defaultTitle.length).toBeLessThanOrEqual(60);
+      expect(page!.defaultDescription.length).toBeLessThanOrEqual(160);
+    }
+  });
+
+  it('gives a new package a search title only when it fits', () => {
+    expect(packageSeo('Couples session', 'Golden-hour photos on the beach')).toEqual({
+      seoTitle: 'Couples session — Photographer in Mauritius',
+      seoDescription:
+        'Golden-hour photos on the beach. Book online with a local photographer in Mauritius.',
+    });
+    expect(packageSeo('A very long package name that will not fit the budget', '').seoTitle).toBe(
+      '',
+    );
+    expect(packageSeo('X', '').seoDescription).toBe('');
+    expect(photographyPackageValues(INPUT).seoTitle).toBe(
+      'Couples session — Belle Mare — Photographer in Mauritius',
+    );
+  });
+
+  it('lists packages as an offer catalogue, and omits it when there are none', () => {
+    const base = { serviceType: 'Photographer', name: 'P', description: 'D', path: '/photography' };
+    const json = serviceJsonLd({
+      ...base,
+      offers: [
+        { name: 'Couples', path: '/activities/couples', priceEur: 150 },
+        { name: 'Wedding', path: '/activities/wedding', priceEur: null },
+      ],
+    }) as { hasOfferCatalog: { itemListElement: Record<string, unknown>[] } };
+    expect(json.hasOfferCatalog.itemListElement).toHaveLength(2);
+    expect(json.hasOfferCatalog.itemListElement[0]).toMatchObject({
+      price: 150,
+      priceCurrency: 'EUR',
+    });
+    expect(json.hasOfferCatalog.itemListElement[1]).not.toHaveProperty('price');
+    expect(serviceJsonLd(base)).not.toHaveProperty('hasOfferCatalog');
   });
 });

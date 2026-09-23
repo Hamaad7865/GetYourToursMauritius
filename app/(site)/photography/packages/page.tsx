@@ -30,14 +30,14 @@ export const runtime = 'edge';
  */
 
 const DEFAULT_METADATA: Metadata = {
-  title: { absolute: 'Photoshoot & Wedding Photography Prices in Mauritius | Belle Mare Tours' },
+  title: { absolute: 'Mauritius Photographer Prices & Packages | Belle Mare Tours' },
   description:
-    'Every photography package in one place — weddings, wedding films, couples, holiday and family shoots in Mauritius. Compare prices, add drone or extra hours, and book your date online.',
+    'Mauritius photographer prices: wedding, couples, holiday and family photo packages. Compare prices, add drone or extra hours and book your date online.',
   alternates: { canonical: '/photography/packages' },
   openGraph: {
     type: 'website',
     url: `${SITE.url}/photography/packages`,
-    title: 'Photoshoot & Wedding Photography Prices in Mauritius | Belle Mare Tours',
+    title: 'Mauritius Photographer Prices & Packages | Belle Mare Tours',
     description:
       'Wedding, couples, holiday and family photography packages in Mauritius — compare and book online.',
     images: [OG_IMAGE],

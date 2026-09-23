@@ -3018,4 +3018,39 @@ export const fr: Record<string, string> = {
   Pricing: 'Tarifs',
   'Photography pricing': 'Tarifs photo',
   'Photography in Mauritius': 'Photographie à l’île Maurice',
+
+  // /photography SEO copy
+  'Mauritius photographer & videographer': 'Photographe et vidéaste à l’île Maurice',
+  'How much does a photographer cost in Mauritius?':
+    'Combien coûte un photographe à l’île Maurice ?',
+  'Our photography packages start from {price} per shoot. Extra guests, drone aerials, extra hours and albums are priced separately, and you see the full total before you pay.':
+    'Nos formules photo commencent à {price} par séance. Les invités supplémentaires, les vues aériennes par drone, les heures en plus et les albums sont facturés à part, et vous voyez le total avant de payer.',
+  'It depends on the length of the shoot and what’s included. See every package on our price list, or message us for a quote for your date.':
+    'Cela dépend de la durée de la séance et de ce qui est inclus. Consultez toutes les formules sur notre page de tarifs, ou écrivez-nous pour un devis à votre date.',
+  'Where are the best places for a photoshoot in Mauritius?':
+    'Quels sont les plus beaux lieux pour une séance photo à l’île Maurice ?',
+  'Belle Mare and Trou d’Eau Douce for calm turquoise water, Le Morne for the mountain at sunset, Île aux Cerfs for white sand, and Grand Baie or Cap Malheureux in the north. We’ll suggest the best spot for your time of day.':
+    'Belle Mare et Trou d’Eau Douce pour leurs eaux turquoise et calmes, Le Morne pour la montagne au coucher du soleil, l’Île aux Cerfs pour le sable blanc, et Grand Baie ou Cap Malheureux dans le nord. Nous vous conseillons le meilleur lieu selon l’heure.',
+  'Are you also a videographer?': 'Êtes-vous aussi vidéaste ?',
+  'Yes — we film weddings and holidays too: a cinematic edit, a short teaser to share and drone aerials where flying is permitted.':
+    'Oui — nous filmons aussi les mariages et les vacances : un montage cinématique, une courte bande-annonce à partager et des vues aériennes par drone là où c’est autorisé.',
+  'Photographer & videographer': 'Photographe et vidéaste',
+  'Your photographer in Mauritius': 'Votre photographe à l’île Maurice',
+  'Looking for a photographer in Mauritius? We’re a local team based in Belle Mare on the east coast, photographing weddings, honeymoons, proposals and family holidays on beaches all around the island — and filming them too.':
+    'Vous cherchez un photographe à l’île Maurice ? Nous sommes une équipe locale basée à Belle Mare, sur la côte est, et nous photographions mariages, lunes de miel, demandes en mariage et vacances en famille sur les plages de toute l’île — et nous les filmons aussi.',
+  'Because we plan around the island’s light and tides every day, we know which beach is calm in the morning, where the sun sets behind the mountains, and how to find a quiet spot even in high season.':
+    'Comme nous composons chaque jour avec la lumière et les marées de l’île, nous savons quelle plage est calme le matin, où le soleil se couche derrière les montagnes, et comment trouver un coin tranquille même en haute saison.',
+  'Where we shoot': 'Où nous photographions',
+  'Wedding photographer in Mauritius': 'Photographe de mariage à l’île Maurice',
+  'Beach ceremonies, hotel weddings and elopements, from getting ready to the first dance — with one or two photographers.':
+    'Cérémonies sur la plage, mariages à l’hôtel et fugues amoureuses, des préparatifs à la première danse — avec un ou deux photographes.',
+  'Wedding videographer & drone': 'Vidéaste de mariage et drone',
+  'A cinematic wedding film and short teaser, with drone aerials over the lagoon where flying is permitted.':
+    'Un film de mariage cinématique et une courte bande-annonce, avec des vues aériennes du lagon par drone là où c’est autorisé.',
+  'Honeymoon & couples photographer': 'Photographe lune de miel et couple',
+  'Relaxed golden-hour sessions for honeymoons, anniversaries and surprise proposals.':
+    'Des séances détendues à l’heure dorée pour les lunes de miel, les anniversaires et les demandes en mariage surprises.',
+  'Family photographer': 'Photographe de famille',
+  'Easy-going holiday portraits with the kids, on the beach or at your hotel or villa.':
+    'Des portraits de vacances décontractés avec les enfants, sur la plage, à votre hôtel ou dans votre villa.',
 };
