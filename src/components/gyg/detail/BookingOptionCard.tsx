@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { useBooking } from './BookingProvider';
 import { OptionSelector } from './OptionSelector';
 import { useCart } from '@/lib/cart/useCart';
@@ -10,7 +11,10 @@ import { Price } from '@/components/site/Price';
 import { SIGHTSEEING_SUV_MAX, CHILD_SEAT_EUR } from '@/lib/services/pricing';
 import { durationLabel } from '@/lib/catalogue/detail';
 import type { AltStop } from '@/lib/validation/tours';
+import { crossSellHref, isPhotographyCategory } from '@/lib/catalogue/photography';
 import {
+  IconArrowRight,
+  IconCamera,
   IconCheck,
   IconClock,
   IconGlobe,
@@ -28,6 +32,7 @@ export function BookingOptionCard() {
   const b = useBooking();
   const { add: addToCart } = useCart();
   const { showToast } = useToast();
+  const router = useRouter();
   // Pressing "Check availability" from anywhere on the page should bring the card into view. The
   // scrollTick bumps on every press, so a repeat press re-centres the card even when it's already open.
   const cardRef = useRef<HTMLDivElement>(null);
@@ -48,6 +53,17 @@ export function BookingOptionCard() {
       })
     : '';
   const occId = b.date ? b.days?.get(b.date)?.occurrenceId : undefined;
+  // Photography packages: the add-ons are per shoot (one each — drone, extra hour, album…), so they
+  // render as on/off toggles; api_book still reads each price from its row and clamps every count
+  // to the party, so a count of 1 is exactly one charge. There is no vehicle, so no child seats.
+  const isPhoto = isPhotographyCategory(b.activity.category);
+  const crossSell = b.activity.crossSell?.items.length ? b.activity.crossSell : null;
+
+  /** Put THIS booking in the cart, then open the paired product for the same day and party. */
+  function pairWith(slug: string) {
+    if (occId) handleAddToCart();
+    router.push(crossSellHref(slug, b.date, b.totalGuests));
+  }
 
   function handleAddToCart() {
     if (!occId) return;
@@ -205,6 +221,7 @@ export function BookingOptionCard() {
             capped at (and greyed out until) the party has a child/infant — see childSeatCap in the
             provider. Hidden entirely for adults-only activities (e.g. hiking — no children allowed). */}
         {!b.activity.adultsOnly &&
+          !isPhoto &&
           (() => {
             const seatsDisabled = b.childSeatCap === 0;
             return (
@@ -272,6 +289,39 @@ export function BookingOptionCard() {
             table keys on English source strings, and each label's French twin already arrived
             resolved from the DB. */}
         {b.hasSupplement &&
+          isPhoto &&
+          b.activity.supplements.map((s) => {
+            const on = (b.supplementSel[s.id] ?? 0) > 0;
+            return (
+              <button
+                key={s.id}
+                type="button"
+                aria-pressed={on}
+                onClick={() => b.setSupplementQty(s.id, on ? 0 : 1)}
+                className={`mt-3 flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-left transition ${
+                  on ? 'border-teal bg-teal/5' : 'border-ink/10 hover:border-teal/50'
+                }`}
+              >
+                <span className="min-w-0">
+                  <span className="block text-[13px] font-bold text-ink">{s.name}</span>
+                  <span className="block text-[12px] text-ink-muted">
+                    {s.priceEur
+                      ? t('+{price} per shoot', { price: money(s.priceEur) })
+                      : t('Included')}
+                  </span>
+                </span>
+                <span
+                  className={`grid h-7 w-7 shrink-0 place-items-center rounded-full border ${
+                    on ? 'border-teal bg-teal text-white' : 'border-ink/20 text-teal'
+                  }`}
+                >
+                  {on ? <IconCheck width={14} height={14} /> : <IconPlus width={14} height={14} />}
+                </span>
+              </button>
+            );
+          })}
+        {b.hasSupplement &&
+          !isPhoto &&
           b.activity.supplements.map((s) => {
             const qty = Math.min(b.supplementSel[s.id] ?? 0, b.totalGuests);
             const extra = Math.round(qty * s.priceEur * 100) / 100;
@@ -354,6 +404,59 @@ export function BookingOptionCard() {
           </div>
         </div>
       </div>
+
+      {crossSell && (
+        <div className="mt-4 rounded-xl border border-teal/25 bg-teal-tint/40 p-3.5">
+          <div className="flex items-center gap-2 text-[13px] font-extrabold text-ink">
+            <IconCamera width={16} height={16} className="text-teal" />
+            {crossSell.kind === 'photography'
+              ? t('Add a photographer to this trip')
+              : t('Make a day of it with a private tour')}
+          </div>
+          <p className="mt-1 text-[12px] leading-snug text-ink-muted">
+            {crossSell.kind === 'photography'
+              ? t('We’ll add this tour to your cart and open the shoot for the same day.')
+              : t('We’ll add this shoot to your cart and open the tour for the same day.')}
+          </p>
+          <ul className="mt-2.5 flex flex-col gap-2">
+            {crossSell.items.map((item) => (
+              <li key={item.slug}>
+                <button
+                  type="button"
+                  onClick={() => pairWith(item.slug)}
+                  className="group flex w-full items-center gap-3 rounded-lg bg-white px-2.5 py-2 text-left ring-1 ring-ink/10 transition hover:ring-teal/50"
+                >
+                  {item.image ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={item.image}
+                      alt=""
+                      className="h-10 w-10 shrink-0 rounded-md object-cover"
+                    />
+                  ) : (
+                    <span className="h-10 w-10 shrink-0 rounded-md bg-teal/10" />
+                  )}
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[13px] font-bold text-ink">
+                      {item.title}
+                    </span>
+                    {item.fromPriceEur != null && (
+                      <span className="block text-[12px] text-ink-muted">
+                        {t('from')} <Price eur={item.fromPriceEur} />
+                      </span>
+                    )}
+                  </span>
+                  <IconArrowRight
+                    width={16}
+                    height={16}
+                    className="shrink-0 text-teal transition group-hover:translate-x-0.5"
+                  />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="mt-3 flex items-center gap-2 text-[12.5px] text-ink/80">
         <IconCheck width={15} height={15} className="text-teal" />{' '}

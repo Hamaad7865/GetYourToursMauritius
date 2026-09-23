@@ -4,17 +4,19 @@ import { GygHeader } from '@/components/gyg/GygHeader';
 import { SiteFooter } from '@/components/site/SiteFooter';
 import { RevealGroup } from '@/components/site/RevealGroup';
 import { JsonLd } from '@/components/seo/JsonLd';
-import { PackagesSection, type PhotoPackage } from '@/components/photography/PackagesSection';
+import { PackagesSection } from '@/components/photography/PackagesSection';
 import { PortfolioGrid, type PortfolioShot } from '@/components/photography/PortfolioGrid';
+import {
+  PHOTO_IMG as IMG,
+  buildPackageCards,
+  loadPhotographyPackages,
+} from '@/components/photography/packages-data';
 import { IconArrowRight } from '@/components/ui/icons';
 import { breadcrumbListJsonLd, faqPageJsonLd, serviceJsonLd } from '@/lib/seo/jsonld';
 import { overrideMetadata } from '@/lib/seo/override';
 import { SITE, OG_IMAGE, whatsappUrl } from '@/lib/seo/site';
-import { getLocale, getT } from '@/lib/i18n/server';
+import { getT } from '@/lib/i18n/server';
 import { getWhatsAppNumber } from '@/lib/settings/whatsapp-number';
-import { publicServiceContext } from '@/lib/http/context';
-import { searchActivities } from '@/lib/services/activities';
-import type { TourSummary } from '@/lib/validation/tours';
 
 export const runtime = 'edge';
 
@@ -22,32 +24,16 @@ export const runtime = 'edge';
  * Photography & film — weddings, wedding films, couples/holiday and family shoots.
  *
  * BOOKING. There is no photography-specific booking code. A package is an ordinary catalogue
- * activity whose category is exactly PHOTOGRAPHY_CATEGORY, set up in /admin like any tour (pricing
- * tiers, supplements for add-ons, schedule). Its card links to /activities/<slug>, so date picking,
- * holds, Peach payment and settlement all run through the one audited money path. Until the owner
- * publishes a package, the built-in cards below render as WhatsApp enquiries instead — the page is
- * never a dead end.
+ * activity in the Photography category (see src/lib/catalogue/photography.ts), created from
+ * /admin/photography: a private option for the party (base + per extra guest), supplements for the
+ * add-ons, and its own availability. Its card links to /activities/<slug>, so date picking, holds,
+ * Peach payment and settlement all run through the one audited money path. Until the owner
+ * publishes a package, the built-in cards render as WhatsApp enquiries instead — the page is never
+ * a dead end. The full price list lives at /photography/packages.
  *
  * PHOTOS. Everything under /public/photography is licensed stand-in stock (Unsplash) until the
  * team's own work replaces it, which is why the gallery is labelled "The look", not "Our work".
  */
-
-const PHOTOGRAPHY_CATEGORY = 'Photography';
-
-const IMG = {
-  hero: '/photography/wedding-beach.jpg',
-  weddingSunset: '/photography/wedding-sunset.jpg',
-  weddingCouple: '/photography/wedding-couple.jpg',
-  weddingDetail: '/photography/wedding-detail.jpg',
-  couple: '/photography/couple.jpg',
-  family: '/photography/family.jpg',
-  family2: '/photography/family-2.jpg',
-  film: '/photography/film.jpg',
-  film2: '/photography/film-2.jpg',
-  aerial: '/hero/islands/aerial-lagoon.jpg',
-  islet: '/hero/islands/ile-aux-aigrettes.jpg',
-  passe: '/hero/islands/ile-de-la-passe.jpg',
-};
 
 const DEFAULT_METADATA: Metadata = {
   title: { absolute: 'Wedding & Holiday Photography in Mauritius | Belle Mare Tours' },
@@ -72,149 +58,10 @@ const DEFAULT_METADATA: Metadata = {
   },
 };
 
-async function loadPackages(): Promise<TourSummary[]> {
-  try {
-    const { items } = await searchActivities(publicServiceContext(await getLocale()), {
-      page: 1,
-      pageSize: 24,
-      category: PHOTOGRAPHY_CATEGORY,
-    });
-    return items;
-  } catch (error) {
-    // The built-in enquiry cards stand in, so a failed read degrades rather than breaks the page.
-    console.error('[photography] package fetch failed', error);
-    return [];
-  }
-}
-
-function isWeddingPackage(a: TourSummary): boolean {
-  return /wedding|elop|film|mariage/i.test(`${a.title} ${a.summary ?? ''}`);
-}
-
 export default async function PhotographyPage() {
   const t = await getT();
-  const [live, waNumber] = await Promise.all([loadPackages(), getWhatsAppNumber()]);
-  const enquire = (what: string) =>
-    whatsappUrl(
-      `Hi ${SITE.operator}! I’m interested in ${what} in Mauritius. Could you send availability and prices?`,
-      waNumber,
-    );
-
-  const hours = (minutes: number | null) =>
-    minutes ? t('{n} hours', { n: Math.round((minutes / 60) * 10) / 10 }) : null;
-
-  let packages: PhotoPackage[];
-  if (live.length > 0) {
-    const weddings = live.filter(isWeddingPackage);
-    const shoots = live.filter((a) => !isWeddingPackage(a));
-    const toCard = (
-      a: TourSummary,
-      group: PhotoPackage['group'],
-      i: number,
-      n: number,
-    ): PhotoPackage => ({
-      key: a.id,
-      group,
-      title: a.title,
-      meta: hours(a.durationMinutes),
-      features: [],
-      summary: a.summary,
-      image: a.heroImage?.url ?? (group === 'weddings' ? IMG.weddingSunset : IMG.couple),
-      imageAlt: a.heroImage?.alt ?? a.title,
-      priceEur: a.fromPriceEur,
-      href: `/activities/${a.slug}`,
-      external: false,
-      // The middle card of a full row of three gets the dark "our pick" treatment, as designed.
-      highlight: n === 3 && i === 1,
-    });
-    packages = [
-      ...weddings.map((a, i) => toCard(a, 'weddings', i, weddings.length)),
-      ...shoots.map((a, i) => toCard(a, 'shoots', i, shoots.length)),
-    ];
-  } else {
-    const fallback = (
-      key: string,
-      group: PhotoPackage['group'],
-      title: string,
-      meta: string,
-      features: string[],
-      image: string,
-      highlight = false,
-    ): PhotoPackage => ({
-      key,
-      group,
-      title,
-      meta,
-      features,
-      summary: null,
-      image,
-      imageAlt: title,
-      priceEur: null,
-      href: enquire(`the “${title}” package`),
-      external: true,
-      highlight,
-    });
-    packages = [
-      fallback(
-        'ceremony-photo',
-        'weddings',
-        t('Ceremony · Photo'),
-        t('4 hours · 1 photographer'),
-        [t('Edited high-resolution photos'), t('Private online gallery'), t('Location scouting')],
-        IMG.weddingDetail,
-      ),
-      fallback(
-        'ceremony-photo-film',
-        'weddings',
-        t('Ceremony · Photo + Film'),
-        t('6 hours · photographer + videographer'),
-        [
-          t('Edited high-resolution photos'),
-          t('Cinematic film + short teaser'),
-          t('Drone aerials, where permitted'),
-        ],
-        IMG.weddingCouple,
-        true,
-      ),
-      fallback(
-        'full-day',
-        'weddings',
-        t('Full day · Photo + Film'),
-        t('10 hours · 2 photographers + videographer'),
-        [
-          t('Getting ready to first dance'),
-          t('Feature film + teaser'),
-          t('Printed album available'),
-        ],
-        IMG.weddingSunset,
-      ),
-      fallback(
-        'couples',
-        'shoots',
-        t('Couples session'),
-        t('1 hour · 1 beach'),
-        [t('Sunrise or golden hour'), t('Honeymoon & proposal friendly'), t('Online gallery')],
-        IMG.couple,
-      ),
-      fallback(
-        'island-holiday',
-        'shoots',
-        t('Island holiday session'),
-        t('2 hours · 2 locations'),
-        [t('Two island backdrops'), t('Vertical reel for social'), t('Online gallery')],
-        IMG.islet,
-        true,
-      ),
-      fallback(
-        'family',
-        'shoots',
-        t('Family & kids'),
-        t('1 hour · up to 8 people'),
-        [t('Kid-paced, no stiff poses'), t('Beach, hotel or villa'), t('Online gallery')],
-        IMG.family,
-      ),
-    ];
-  }
+  const [live, waNumber] = await Promise.all([loadPhotographyPackages(), getWhatsAppNumber()]);
+  const packages = buildPackageCards(t, live, waNumber);
 
   const services = [
     {
@@ -431,12 +278,12 @@ export default async function PhotographyPage() {
               )}
             </p>
             <div className="bm-rise mt-8 flex flex-wrap items-center gap-5 [animation-delay:0.55s]">
-              <a
-                href="#packages"
+              <Link
+                href="/photography/packages"
                 className="rounded-full bg-coral px-7 py-4 text-[15px] font-bold text-white shadow-[0_14px_30px_-12px_rgba(247,108,94,0.7)] transition hover:bg-coral-dark"
               >
                 {t('See packages & book')}
-              </a>
+              </Link>
               <a
                 href={waGeneral}
                 target="_blank"
@@ -470,9 +317,9 @@ export default async function PhotographyPage() {
 
             <RevealGroup className="mt-12 grid gap-4 md:grid-cols-12 md:grid-rows-[260px_260px_220px]">
               {services.map((s, i) => (
-                <a
+                <Link
                   key={s.n}
-                  href="#packages"
+                  href={`/photography/packages#${i < 2 ? 'weddings' : 'shoots'}`}
                   className={`group relative isolate flex min-h-[240px] overflow-hidden rounded-2xl bg-ink text-white ${
                     i === 0
                       ? 'md:col-span-7 md:row-span-2'
@@ -515,7 +362,7 @@ export default async function PhotographyPage() {
                       />
                     </span>
                   </div>
-                </a>
+                </Link>
               ))}
             </RevealGroup>
           </div>
@@ -545,6 +392,13 @@ export default async function PhotographyPage() {
             <h2 className="mt-4 text-[clamp(28px,4.4vw,56px)] font-extrabold leading-none tracking-tight text-ink">
               {live.length > 0 ? t('Clear prices. Book in minutes.') : t('Choose your package.')}
             </h2>
+            <Link
+              href="/photography/packages"
+              className="mt-5 inline-flex items-center gap-1.5 border-b border-coral/45 pb-1 text-[13px] font-bold text-coral-dark hover:border-coral-dark"
+            >
+              {t('See every package & price')}
+              <IconArrowRight width={14} height={14} />
+            </Link>
             <PackagesSection
               packages={packages}
               addOnsNote={
@@ -682,12 +536,12 @@ export default async function PhotographyPage() {
               {t('Peak wedding season books up early — check your date now.')}
             </p>
             <div className="mt-9 flex flex-wrap items-center justify-center gap-5">
-              <a
-                href="#packages"
+              <Link
+                href="/photography/packages"
                 className="rounded-full bg-coral px-8 py-4 text-[15px] font-bold text-white transition hover:bg-coral-dark"
               >
                 {t('See packages & book')}
-              </a>
+              </Link>
               <Link
                 href="/activities"
                 className="border-b border-white/50 pb-1 text-[14px] font-bold text-white hover:border-white"

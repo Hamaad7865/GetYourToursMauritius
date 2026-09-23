@@ -4,6 +4,7 @@ import { Field, Section, inputClass } from '@/components/admin/fields';
 import { OptionsEditor } from './OptionsEditor';
 import type { ActivityFormValues } from '@/lib/admin/activity-write';
 import type { PaneProps } from './sections';
+import { isPhotographyCategory } from '@/lib/catalogue/photography';
 
 /** Staff-only: the restricted 'seo' content role never sees this pane (RLS blocks the tables). */
 export function PricingSection({ v, set }: PaneProps) {
@@ -68,7 +69,7 @@ export function PricingSection({ v, set }: PaneProps) {
           <OptionsEditor options={v.options} onChange={(x) => set('options', x)} />
         )}
 
-        <Field label="Optional supplements">
+        <Field label={isPhotographyCategory(v.category) ? 'Add-ons' : 'Optional supplements'}>
           <div className="flex flex-col gap-2.5">
             {v.supplements.map((s, idx) => (
               <div key={s.id ?? `new-${idx}`} className="grid gap-3 sm:grid-cols-[1fr_150px_auto]">
@@ -131,12 +132,20 @@ export function PricingSection({ v, set }: PaneProps) {
               + Add supplement
             </button>
           </div>
-          <p className="mt-1.5 text-[12px] text-ink-muted">
-            Upgrades guests can add to this activity while booking — you name each one and you price
-            it. Every price is <strong>per person</strong>: in a party of four where two want it,
-            the booking pays twice. Guests can pick any combination. A row with an empty name is
-            dropped on save; its French label lives in the Français pane.
-          </p>
+          {isPhotographyCategory(v.category) ? (
+            <p className="mt-1.5 text-[12px] text-ink-muted">
+              Photography add-ons (drone, extra hour, album…) are shown to guests as on/off toggles
+              and charged <strong>once per shoot</strong> at the price you set. A row with an empty
+              name is dropped on save; its French label lives in the Français pane.
+            </p>
+          ) : (
+            <p className="mt-1.5 text-[12px] text-ink-muted">
+              Upgrades guests can add to this activity while booking — you name each one and you
+              price it. Every price is <strong>per person</strong>: in a party of four where two
+              want it, the booking pays twice. Guests can pick any combination. A row with an empty
+              name is dropped on save; its French label lives in the Français pane.
+            </p>
+          )}
         </Field>
       </div>
     </Section>

@@ -2961,4 +2961,60 @@ export const fr: Record<string, string> = {
   'Peak wedding season books up early — check your date now.':
     'La haute saison des mariages se remplit vite — vérifiez votre date dès maintenant.',
   'Pair it with a tour': 'Associez-la à une excursion',
+
+  // /photography/packages + photography booking
+  '+{price} per shoot': '+{price} par séance',
+  'Add a photographer to this trip': 'Ajoutez un photographe à cette sortie',
+  'Make a day of it with a private tour': 'Profitez de la journée avec une excursion privée',
+  'We’ll add this tour to your cart and open the shoot for the same day.':
+    'Nous ajoutons cette excursion à votre panier et ouvrons la séance photo pour le même jour.',
+  'We’ll add this shoot to your cart and open the tour for the same day.':
+    'Nous ajoutons cette séance à votre panier et ouvrons l’excursion pour le même jour.',
+  'All packages & prices': 'Toutes les formules et tarifs',
+  'Photography packages & prices': 'Formules photo et tarifs',
+  'Your vows, the portraits and the first toast, told in stills.':
+    'Vos vœux, les portraits et le premier toast, racontés en images.',
+  'Photos and a cinematic film of the day, from the aisle to the sunset.':
+    'Des photos et un film cinématique de la journée, de l’allée au coucher du soleil.',
+  'Every moment covered, from getting ready to the last dance.':
+    'Chaque instant couvert, des préparatifs à la dernière danse.',
+  'Relaxed, romantic photos for honeymoons, anniversaries and proposals.':
+    'Des photos détendues et romantiques pour les lunes de miel, anniversaires et demandes en mariage.',
+  'Two island backdrops and a short reel to remember the trip.':
+    'Deux décors de l’île et un court reel pour garder le souvenir du voyage.',
+  'Easy-going family portraits on the beach, at your hotel or villa.':
+    'Des portraits de famille décontractés sur la plage, à votre hôtel ou villa.',
+  'Ceremony, portraits and film — for weddings, elopements and vow renewals.':
+    'Cérémonie, portraits et film — pour les mariages, les fugues amoureuses et les renouvellements de vœux.',
+  'Couples, honeymoons, proposals and families, on the beach or at your hotel.':
+    'Couples, lunes de miel, demandes en mariage et familles, sur la plage ou à votre hôtel.',
+  'Pick your date': 'Choisissez votre date',
+  'Only days we can actually shoot are shown.':
+    'Seuls les jours où nous pouvons réellement photographier sont affichés.',
+  'Add your guests': 'Ajoutez vos invités',
+  'The price covers your couple or family; add extra guests if you need to.':
+    'Le prix couvre votre couple ou votre famille ; ajoutez des invités supplémentaires si besoin.',
+  'Choose add-ons': 'Choisissez vos options',
+  'Drone aerials, an extra hour, a same-day preview or a printed album.':
+    'Vues aériennes par drone, une heure supplémentaire, un aperçu le jour même ou un album imprimé.',
+  'Pay securely': 'Payez en toute sécurité',
+  'Checkout by card, with instant confirmation — alongside any tours in your cart.':
+    'Paiement par carte, avec confirmation immédiate — en même temps que les excursions de votre panier.',
+  'Packages & prices': 'Formules et tarifs',
+  'Photoshoot pricing guide': 'Guide des tarifs photo',
+  'Packages for weddings, holidays, couples and families — pick yours and book online.':
+    'Des formules pour les mariages, les vacances, les couples et les familles — choisissez la vôtre et réservez en ligne.',
+  Enquire: 'Se renseigner',
+  'How booking works': 'Comment réserver',
+  'Your date, your party, your add-ons.': 'Votre date, votre groupe, vos options.',
+  'Make a day of it': 'Profitez de la journée',
+  'Pair your shoot with a private tour.': 'Associez votre séance à une excursion privée.',
+  'Your photographer comes along — both go in one basket and one checkout.':
+    'Votre photographe vous accompagne — tout va dans un seul panier et un seul paiement.',
+  'View tour': 'Voir l’excursion',
+  'Not sure which package fits?': 'Vous hésitez entre plusieurs formules ?',
+  'Tell us your date and what you have in mind — we’ll suggest the right shoot.':
+    'Indiquez-nous votre date et vos envies — nous vous proposerons la séance idéale.',
+  'Back to Photography & film': 'Retour à Photo et vidéo',
+  'See every package & price': 'Voir toutes les formules et tarifs',
 };

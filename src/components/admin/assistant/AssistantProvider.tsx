@@ -78,6 +78,7 @@ function screenName(path: string): string {
     ['/admin/reports', 'Reports'],
     ['/admin/vehicle-pricing', 'Vehicle pricing'],
     ['/admin/rental', 'Rental fleet'],
+    ['/admin/photography', 'Photography'],
     ['/admin/categories', 'Categories'],
     ['/admin/blog', 'Blog'],
     ['/admin/seo', 'SEO'],

@@ -1,5 +1,6 @@
 import { SITE } from '@/lib/seo/site';
 import type { Review, TourDetail, TourSummary } from '@/lib/validation/tours';
+import { isPhotographyCategory } from './photography';
 
 /** Human duration label: "min" under an hour, otherwise "h" with at most one decimal. */
 export function durationLabel(minutes: number | null): string | null {
@@ -18,6 +19,14 @@ export interface Crumb {
 
 /** Breadcrumb links (Home → section → category). The page renders the title separately. */
 export function breadcrumbTrail(activity: Pick<TourDetail, 'type' | 'category'>): Crumb[] {
+  // A photography package sits under its own section, not the tour catalogue.
+  if (isPhotographyCategory(activity.category)) {
+    return [
+      { label: 'Home', href: '/' },
+      { label: 'Photography', href: '/photography' },
+      { label: 'Packages & prices', href: '/photography/packages' },
+    ];
+  }
   return [
     { label: 'Home', href: '/' },
     {

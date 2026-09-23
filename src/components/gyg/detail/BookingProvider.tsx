@@ -38,6 +38,7 @@ import {
 import { useToast } from '@/components/site/ToastProvider';
 import { useT } from '@/components/site/PreferencesProvider';
 import { encodeParty, partyGuests } from '@/lib/services/party';
+import type { CrossSellItem } from '@/lib/catalogue/photography';
 
 export interface BookingActivity {
   slug: string;
@@ -71,6 +72,13 @@ export interface BookingActivity {
    *  this activity has none and the picker is hidden. The server re-reads each price from the DB by
    *  id — the client only ever sends id + count. */
   supplements: TourSupplement[];
+  /** The activity's category — photography packages (see src/lib/catalogue/photography.ts) show
+   *  their add-ons as per-shoot toggles and drop the child-seat add-on (there is no vehicle). */
+  category?: string;
+  /** Cross-sell shown on the option card once a date is picked: the photography packages a tour
+   *  offers (its `extra.photographyAddOns`), or private tours on a photography package. Links only —
+   *  each opens the other product's own booking card for the same day and party. */
+  crossSell?: { kind: 'photography' | 'tour'; items: CrossSellItem[] } | null;
 }
 
 /** Pickup/drop-off point captured in the widget (coords drive the transport fare; text is for records). */

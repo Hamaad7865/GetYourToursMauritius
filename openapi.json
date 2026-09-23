@@ -940,6 +940,12 @@
                             },
                             "inquiryOnly": {
                               "type": "boolean"
+                            },
+                            "photographyAddOns": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
                             }
                           },
                           "default": {}

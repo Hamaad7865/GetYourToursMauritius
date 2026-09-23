@@ -49,6 +49,12 @@ import {
 import { productJsonLd, faqPageJsonLd } from '@/lib/seo/jsonld';
 import { SITE } from '@/lib/seo/site';
 import type { TourDetail, TourSummary } from '@/lib/validation/tours';
+import {
+  isPhotographyCategory,
+  photographyAddOnSlugs,
+  type CrossSellItem,
+} from '@/lib/catalogue/photography';
+import { loadPhotographyPackages, loadPrivateTours } from '@/components/photography/packages-data';
 import { IconStar } from '@/components/ui/icons';
 
 export const runtime = 'edge';
@@ -81,6 +87,38 @@ async function loadRelated(activity: TourDetail): Promise<TourSummary[]> {
     console.error('[activity] related fetch failed', error);
     return [];
   }
+}
+
+function crossSellItem(a: TourSummary): CrossSellItem {
+  return {
+    slug: a.slug,
+    title: a.title,
+    fromPriceEur: a.fromPriceEur,
+    image: a.heroImage?.url ?? a.images[0]?.url ?? null,
+  };
+}
+
+/**
+ * The option card's pairing panel. A tour lists the photography packages its owner attached
+ * (`extra.photographyAddOns`, tour editor → Logistics), in that order, dropping any that are no
+ * longer published; a photography package offers the private tours. Best-effort: both loaders
+ * swallow their own failures, so a broken read simply hides the panel.
+ */
+async function loadCrossSell(
+  activity: TourDetail,
+): Promise<{ kind: 'photography' | 'tour'; items: CrossSellItem[] } | null> {
+  if (isPhotographyCategory(activity.category)) {
+    const tours = await loadPrivateTours(4);
+    return tours.length ? { kind: 'tour', items: tours.map(crossSellItem) } : null;
+  }
+  const slugs = photographyAddOnSlugs(activity.extra);
+  if (!slugs.length) return null;
+  const packages = await loadPhotographyPackages();
+  const items = slugs
+    .map((slug) => packages.find((p) => p.slug === slug))
+    .filter((p): p is TourSummary => !!p)
+    .map(crossSellItem);
+  return items.length ? { kind: 'photography', items } : null;
 }
 
 export async function generateMetadata({
@@ -137,7 +175,7 @@ export default async function ActivityDetailPage({
   if (CATALOGUE_HIDDEN_SLUGS.includes(activity.slug)) redirect('/airport-transfers');
 
   const t = await getT();
-  const related = await loadRelated(activity);
+  const [related, crossSell] = await Promise.all([loadRelated(activity), loadCrossSell(activity)]);
   const trail = breadcrumbTrail(activity);
   const faqs = buildFaq(activity);
   const descriptionParas = (activity.description ?? '')
@@ -275,6 +313,8 @@ export default async function ActivityDetailPage({
               transportBands: activity.transportBands ?? null,
               regionDistances: activity.regionDistances ?? null,
               supplements: activity.supplements ?? [],
+              category: activity.category,
+              crossSell,
             }}
           >
             <div className="flex flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_374px] lg:items-start lg:gap-x-8">

@@ -30,6 +30,7 @@ import {
   IconPin,
   IconSettings,
   IconStar,
+  IconTag,
   IconWallet,
   IconX,
 } from '@/components/ui/icons';
@@ -41,6 +42,7 @@ const NAV_LINKS = [
   { label: 'Rent a car or scooter', href: '/rent', icon: IconWallet },
   { label: 'Airport transfers', href: '/airport-transfers', icon: IconBolt },
   { label: 'Photography & film', href: '/photography', icon: IconCamera },
+  { label: 'Photography packages & prices', href: '/photography/packages', icon: IconTag },
   { label: 'Contact us', href: '/contact', icon: IconMail },
 ];
 

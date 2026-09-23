@@ -34,6 +34,8 @@ All of this is in `/admin`:
 | Which dates a tour is bookable, and how big  | **Tours** → tour → **Availability** (trips per day × guests per trip)                                  |
 | Any transfer or vehicle fare                 | **Pricing** (5 sections: sightseeing, road trips, transport add-on, airport transfers, hotel-to-hotel) |
 | Rental cars & scooters                       | **Rental**                                                                                             |
+| Photography packages (weddings, shoots)      | **Photography** → New package (price, guests, add-ons, shoots per day); edit it like any tour          |
+| Offer a photographer on a private tour       | **Tours** → tour → **Logistics** → **Photography add-ons**                                             |
 | The order tour cards appear in               | **Tours** → filter to one category → drag them                                                         |
 | A page's Google title & description          | **SEO** (18 pages)                                                                                     |
 | Blog posts                                   | **Blog**                                                                                               |

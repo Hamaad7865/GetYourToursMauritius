@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import {
   IconBookings,
+  IconCamera,
   IconCalendar,
   IconCar,
   IconChart,
@@ -57,6 +58,9 @@ export const ADMIN_NAV: NavItem[] = [
   { href: '/admin/content', label: 'Standard content', icon: IconDocument },
   { href: '/admin/vehicle-pricing', label: 'Pricing', icon: IconWallet },
   { href: '/admin/rental', label: 'Rental', icon: IconCar },
+  // Photography packages are catalogue activities; this is their dashboard + template. Staff-only:
+  // it creates priced, bookable products (option/supplement/capacity writes the seo role can't do).
+  { href: '/admin/photography', label: 'Photography', icon: IconCamera },
   { href: '/admin/planner-places', label: 'Places', icon: IconPin, seo: true },
   { href: '/admin/seo', label: 'SEO', icon: IconTrendUp, seo: true },
   { href: '/admin/blog', label: 'Blog', icon: IconDocument, seo: true },

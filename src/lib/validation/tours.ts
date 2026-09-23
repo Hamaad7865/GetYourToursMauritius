@@ -196,6 +196,10 @@ export const activityExtraSchema = z.object({
    *  no hold, no create_hold/api_book, no payment — the customer submits via WhatsApp or email and a
    *  lead row records the request for staff follow-up. */
   inquiryOnly: z.boolean().optional(),
+  /** Photography package slugs this tour offers as an add-on (tour editor → Logistics). The booking
+   *  card lists them after a date is picked, each opening that package for the same day and party —
+   *  it links, it never prices: the package books through its own option and supplements. */
+  photographyAddOns: z.array(z.string()).optional().catch(undefined),
 });
 export type ActivityExtra = z.infer<typeof activityExtraSchema>;
 

@@ -2,6 +2,8 @@
 
 import { Field, Section, inputClass } from '@/components/admin/fields';
 import type { PaneProps } from './sections';
+import { PhotographyAddOnsField } from './PhotographyAddOnsField';
+import { isPhotographyCategory } from '@/lib/catalogue/photography';
 
 /** How the trip runs: where it meets, when it leaves, who it takes, how it is booked. */
 export function LogisticsSection({ v, set }: PaneProps) {
@@ -97,6 +99,12 @@ export function LogisticsSection({ v, set }: PaneProps) {
             </span>
           </label>
         </div>
+        {!isPhotographyCategory(v.category) && (
+          <PhotographyAddOnsField
+            value={v.photographyAddOns}
+            onChange={(next) => set('photographyAddOns', next)}
+          />
+        )}
       </div>
     </Section>
   );
