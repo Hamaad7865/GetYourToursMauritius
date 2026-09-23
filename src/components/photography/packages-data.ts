@@ -2,11 +2,14 @@ import { publicServiceContext } from '@/lib/http/context';
 import { searchActivities } from '@/lib/services/activities';
 import { getLocale } from '@/lib/i18n/server';
 import { SITE, whatsappUrl } from '@/lib/seo/site';
+import { createUserClient } from '@/lib/supabase/client';
 import {
   PHOTOGRAPHY_CATEGORY,
   PHOTO_STOCK,
   isPhotographyCategory,
   photographyGroup,
+  savedPhotographyGroup,
+  type PhotographyGroup,
 } from '@/lib/catalogue/photography';
 import type { TourSummary } from '@/lib/validation/tours';
 import type { PhotoPackage } from './PackagesSection';
@@ -47,6 +50,29 @@ export async function loadPrivateTours(limit = 6): Promise<TourSummary[]> {
   }
 }
 
+/**
+ * slug → the group the owner chose for each published package. Catalogue summaries don't carry
+ * `extra`, so this is one direct read (the public `activities_read` policy allows published rows).
+ * Any failure → {} and every package falls back to the title-based guess.
+ */
+export async function loadPhotographyGroups(): Promise<Record<string, PhotographyGroup>> {
+  try {
+    const { data, error } = await createUserClient()
+      .from('activities')
+      .select('slug, extra')
+      .eq('category', PHOTOGRAPHY_CATEGORY as never);
+    if (error || !data) return {};
+    const out: Record<string, PhotographyGroup> = {};
+    for (const row of data) {
+      const g = savedPhotographyGroup(row.extra);
+      if (g) out[row.slug as string] = g;
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
 type T = (key: string, vars?: Record<string, string | number>) => string;
 
 /**
@@ -54,13 +80,19 @@ type T = (key: string, vars?: Record<string, string | number>) => string;
  * own /activities/<slug> page (dates, extra guests, add-ons, checkout). With none published yet the
  * built-in set renders as WhatsApp enquiries, so the page is never a dead end.
  */
-export function buildPackageCards(t: T, live: TourSummary[], waNumber: string): PhotoPackage[] {
+export function buildPackageCards(
+  t: T,
+  live: TourSummary[],
+  waNumber: string,
+  groups: Record<string, PhotographyGroup> = {},
+): PhotoPackage[] {
   const hours = (minutes: number | null) =>
     minutes ? t('{n} hours', { n: Math.round((minutes / 60) * 10) / 10 }) : null;
 
   if (live.length > 0) {
-    const weddings = live.filter((a) => photographyGroup(a) === 'weddings');
-    const shoots = live.filter((a) => photographyGroup(a) === 'shoots');
+    const groupOf = (a: TourSummary) => photographyGroup(a, groups[a.slug]);
+    const weddings = live.filter((a) => groupOf(a) === 'weddings');
+    const shoots = live.filter((a) => groupOf(a) === 'shoots');
     const toCard = (
       a: TourSummary,
       group: PhotoPackage['group'],

@@ -13,6 +13,7 @@ import {
   isPhotographyCategory,
   photographyAddOnSlugs,
   photographyGroup,
+  savedPhotographyGroup,
   toPhotographyPhoto,
   type GalleryTag,
   type PhotoSlot,
@@ -99,10 +100,10 @@ export async function loadPhotographyAdmin(): Promise<PhotographyAdminData> {
       slug: a.slug as string,
       title: a.title as string,
       status: a.status as string,
-      group: photographyGroup({
-        title: a.title as string,
-        summary: (a.summary as string | null) ?? null,
-      }),
+      group: photographyGroup(
+        { title: a.title as string, summary: (a.summary as string | null) ?? null },
+        savedPhotographyGroup(a.extra),
+      ),
       durationMinutes: (a.duration_minutes as number | null) ?? null,
       baseEur: opt?.private_base_minor != null ? opt.private_base_minor / 100 : null,
       included: opt?.private_included ?? null,
@@ -180,10 +181,10 @@ export function photographyPackageValues(input: PhotographyPackageInput): Activi
     pickupAvailable: false,
     isPrivate: true,
     pricingMode: 'per_person',
-    cancellationPolicy:
-      input.kind === 'weddings'
-        ? 'Free cancellation up to 30 days before your wedding date.'
-        : 'Free cancellation up to 48 hours before your shoot.',
+    // Must match what the platform enforces: the booking card, quick facts and api_cancel_booking
+    // all use a 24-hour free-cancellation window. A longer wedding window needs that SQL to read
+    // a per-activity setting first — writing it here alone would promise a policy nobody applies.
+    cancellationPolicy: 'Free cancellation up to 24 hours before your shoot for a full refund.',
     ...packageSeo(title, input.summary),
     status: input.status,
     languages: ['English', 'French'],
@@ -203,6 +204,7 @@ export function photographyPackageValues(input: PhotographyPackageInput): Activi
         prices: [],
       },
     ],
+    photographyGroup: input.kind,
     supplements: input.addOns
       .filter((a) => a.name.trim() && a.priceEur >= 0)
       .map((a) => ({ name: a.name.trim(), nameFr: a.nameFr.trim(), priceEur: a.priceEur })),

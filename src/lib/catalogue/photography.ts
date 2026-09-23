@@ -22,9 +22,30 @@ export function isPhotographyCategory(category: string | null | undefined): bool
 
 export type PhotographyGroup = 'weddings' | 'shoots';
 
-/** Weddings and wedding films vs every other shoot, read from the owner's own title/summary so no
- *  extra field is needed. */
-export function photographyGroup(p: { title: string; summary?: string | null }): PhotographyGroup {
+/** The `activities.extra` key holding a package's group, chosen in the admin (New package → Type,
+ *  or the tour editor's Logistics pane). */
+export const PHOTOGRAPHY_GROUP_KEY = 'photographyGroup';
+
+export function isPhotographyGroup(v: unknown): v is PhotographyGroup {
+  return v === 'weddings' || v === 'shoots';
+}
+
+/** The group saved in `extra`, or null when none was chosen (older rows). */
+export function savedPhotographyGroup(extra: unknown): PhotographyGroup | null {
+  const v =
+    extra && typeof extra === 'object'
+      ? (extra as Record<string, unknown>)[PHOTOGRAPHY_GROUP_KEY]
+      : undefined;
+  return isPhotographyGroup(v) ? v : null;
+}
+
+/** Weddings and wedding films vs every other shoot. The owner's saved choice wins; a package saved
+ *  without one falls back to reading its own title/summary. */
+export function photographyGroup(
+  p: { title: string; summary?: string | null },
+  saved?: PhotographyGroup | null,
+): PhotographyGroup {
+  if (saved) return saved;
   return /wedding|elop|film|mariage|vow/i.test(`${p.title} ${p.summary ?? ''}`)
     ? 'weddings'
     : 'shoots';

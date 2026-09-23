@@ -3054,4 +3054,13 @@ export const fr: Record<string, string> = {
   'Easy-going holiday portraits with the kids, on the beach or at your hotel or villa.':
     'Des portraits de vacances décontractés avec les enfants, sur la plage, à votre hôtel ou dans votre villa.',
   'Photo reel': 'Pellicule photo',
+  'Where should we meet you?': 'Où devons-nous vous retrouver ?',
+  'At my hotel, villa or an address': 'À mon hôtel, ma villa ou une adresse',
+  'We’ll agree the spot together': 'Nous choisirons le lieu ensemble',
+  'Your photographer will message you to choose the location.':
+    'Votre photographe vous écrira pour choisir le lieu.',
+  'Add the address, or choose “I don’t know yet”.':
+    'Ajoutez l’adresse, ou choisissez « Je ne sais pas encore ».',
+  'So your photographer can find you at the hotel.':
+    'Pour que votre photographe vous trouve à l’hôtel.',
 };

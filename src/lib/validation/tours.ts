@@ -200,6 +200,9 @@ export const activityExtraSchema = z.object({
    *  card lists them after a date is picked, each opening that package for the same day and party —
    *  it links, it never prices: the package books through its own option and supplements. */
   photographyAddOns: z.array(z.string()).optional().catch(undefined),
+  /** A photography package's listing group (weddings vs holiday/family shoots), chosen in the
+   *  admin. Absent = inferred from the title (older packages). */
+  photographyGroup: z.enum(['weddings', 'shoots']).optional().catch(undefined),
 });
 export type ActivityExtra = z.infer<typeof activityExtraSchema>;
 

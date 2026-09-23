@@ -946,6 +946,13 @@
                               "items": {
                                 "type": "string"
                               }
+                            },
+                            "photographyGroup": {
+                              "type": "string",
+                              "enum": [
+                                "weddings",
+                                "shoots"
+                              ]
                             }
                           },
                           "default": {}

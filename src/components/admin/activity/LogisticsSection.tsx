@@ -2,6 +2,7 @@
 
 import { Field, Section, inputClass } from '@/components/admin/fields';
 import type { PaneProps } from './sections';
+import type { ActivityFormValues } from '@/lib/admin/activity-write';
 import { PhotographyAddOnsField } from './PhotographyAddOnsField';
 import { isPhotographyCategory } from '@/lib/catalogue/photography';
 
@@ -99,6 +100,24 @@ export function LogisticsSection({ v, set }: PaneProps) {
             </span>
           </label>
         </div>
+        {isPhotographyCategory(v.category) && (
+          <Field label="Listed under (photography)">
+            <select
+              className={inputClass}
+              value={v.photographyGroup}
+              onChange={(e) =>
+                set('photographyGroup', e.target.value as ActivityFormValues['photographyGroup'])
+              }
+            >
+              <option value="">Automatic (from the title)</option>
+              <option value="weddings">Weddings</option>
+              <option value="shoots">Holiday &amp; family shoots</option>
+            </select>
+            <p className="mt-1.5 text-[12px] text-ink-muted">
+              Which group this package appears in on /photography and the price list.
+            </p>
+          </Field>
+        )}
         {!isPhotographyCategory(v.category) && (
           <PhotographyAddOnsField
             value={v.photographyAddOns}

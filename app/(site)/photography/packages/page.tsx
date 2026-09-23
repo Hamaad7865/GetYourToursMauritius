@@ -10,6 +10,7 @@ import { BlurFade } from '@/components/photography/BlurFade';
 import { FOCUS_CARDS } from '@/components/photography/motion';
 import {
   buildPackageCards,
+  loadPhotographyGroups,
   loadPhotographyPackages,
   loadPrivateTours,
 } from '@/components/photography/packages-data';
@@ -48,13 +49,14 @@ const DEFAULT_METADATA: Metadata = {
 
 export default async function PhotographyPackagesPage() {
   const t = await getT();
-  const [live, waNumber, privateTours, photos] = await Promise.all([
+  const [live, waNumber, privateTours, photos, savedGroups] = await Promise.all([
     loadPhotographyPackages(),
     getWhatsAppNumber(),
     loadPrivateTours(3),
     getPhotographyPhotos(),
+    loadPhotographyGroups(),
   ]);
-  const packages = buildPackageCards(t, live, waNumber);
+  const packages = buildPackageCards(t, live, waNumber, savedGroups);
   const groups = [
     {
       id: 'weddings' as const,

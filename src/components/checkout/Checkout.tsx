@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { Logo } from '@/components/site/Logo';
 import { Price } from '@/components/site/Price';
+import { isPhotographyCategory } from '@/lib/catalogue/photography';
 import { useT, useMoney } from '@/components/site/PreferencesProvider';
 import { PickupDropoffMap } from '@/components/maps/PickupDropoffMap';
 import { childSeatsCost, regionFromCoords, transportFare } from '@/lib/services/pricing';
@@ -378,6 +379,10 @@ export function Checkout() {
   // this mode makes a missing itinerary a problem worth reporting; a normal 'vehicle' sightseeing
   // tour has a fixed published route and never carries one.
   const [isCustomTrip, setIsCustomTrip] = useState(false);
+  // A photography package: nobody is driven anywhere — the same address step tells the
+  // photographer where to meet the guests, so it is worded that way. No fee rides on it (a package
+  // has no pickup fares); only the copy changes, never what is sent to the server.
+  const [isPhotoShoot, setIsPhotoShoot] = useState(false);
   const [pickupLoc, setPickupLoc] = useState(pickupParam);
   // Resolved pickup coordinates — drive the region-based transport fee the server charges. Prefilled
   // from the widget's stash (below) or captured when the customer picks a place / drags the pin here.
@@ -705,6 +710,7 @@ export function Checkout() {
       .then((r) =>
         parseApiJson<{
           pricingMode?: string;
+          category?: string;
           region?: string;
           transportBands?: TransportBands;
           regionDistances?: RegionDistances;
@@ -720,6 +726,7 @@ export function Checkout() {
         // it silently downgrades that booking to the optional "Do you want pickup?" step.
         if (a?.pricingMode) setIsVehicleTour(isVehiclePriced(a.pricingMode));
         setIsCustomTrip(a?.pricingMode === 'vehicle_custom');
+        setIsPhotoShoot(isPhotographyCategory(a?.category));
         if (a?.region && a?.transportBands && a?.regionDistances) {
           setFares({ region: a.region, bands: a.transportBands, distances: a.regionDistances });
         }
@@ -1359,15 +1366,18 @@ export function Checkout() {
           />
           {/* Toggle below the map — same point as the pickup by default. Unchecking reveals the
               drop-off input + a second pin on the SAME map above. */}
-          <label className="mt-3 flex cursor-pointer items-center gap-2 text-[13px] font-medium text-ink">
-            <input
-              type="checkbox"
-              checked={dropoffSame}
-              onChange={(e) => setDropoffSame(e.target.checked)}
-              className="h-4 w-4 rounded border-ink/30 text-teal focus:ring-teal"
-            />
-            {t('Drop-off — same as pickup')}
-          </label>
+          {/* A shoot has a meeting point, not a ride — no drop-off to choose. */}
+          {!isPhotoShoot && (
+            <label className="mt-3 flex cursor-pointer items-center gap-2 text-[13px] font-medium text-ink">
+              <input
+                type="checkbox"
+                checked={dropoffSame}
+                onChange={(e) => setDropoffSame(e.target.checked)}
+                className="h-4 w-4 rounded border-ink/30 text-teal focus:ring-teal"
+              />
+              {t('Drop-off — same as pickup')}
+            </label>
+          )}
           {/* Room number — Mauritius hotels issue a gate pass per vehicle, and the driver needs the
               guest's room to arrange it. Sent as room_or_cabin like the transfer flow already does. */}
           <label className="mt-3 block text-[13px] font-semibold text-ink">
@@ -1380,7 +1390,9 @@ export function Checkout() {
               className="mt-1 w-full rounded-xl border border-ink/15 px-3.5 py-2.5 text-sm font-normal outline-none focus:border-teal"
             />
             <span className="mt-1 block text-[12px] text-ink-muted">
-              {t('So the driver can arrange your hotel gate pass.')}
+              {isPhotoShoot
+                ? t('So your photographer can find you at the hotel.')
+                : t('So the driver can arrange your hotel gate pass.')}
             </span>
           </label>
         </>
@@ -1853,28 +1865,38 @@ export function Checkout() {
               ) : (
                 <>
                   <h1 className="font-display text-2xl font-semibold text-ink">
-                    {t('Do you want pickup?')}
+                    {isPhotoShoot ? t('Where should we meet you?') : t('Do you want pickup?')}
                   </h1>
                   <div
                     role="radiogroup"
-                    aria-label={t('Do you want pickup?')}
+                    aria-label={
+                      isPhotoShoot ? t('Where should we meet you?') : t('Do you want pickup?')
+                    }
                     className="mt-5 flex flex-col gap-2"
                   >
                     <PickRadio
                       checked={wantsPickup}
                       onClick={() => setWantsPickup(true)}
-                      title={t('Yes, pick me up')}
+                      title={
+                        isPhotoShoot ? t('At my hotel, villa or an address') : t('Yes, pick me up')
+                      }
                     >
                       {wantsPickup && pickupFields}
                     </PickRadio>
                     <PickRadio
                       checked={!wantsPickup}
                       onClick={() => setWantsPickup(false)}
-                      title={t('No, I’ll make my own way')}
+                      title={
+                        isPhotoShoot
+                          ? t('We’ll agree the spot together')
+                          : t('No, I’ll make my own way')
+                      }
                     >
                       {!wantsPickup && (
                         <span className="mt-2 block rounded-lg bg-teal/5 px-3 py-2 text-[12.5px] text-ink-muted">
-                          {t('Meet at {location}', { location: title })}
+                          {isPhotoShoot
+                            ? t('Your photographer will message you to choose the location.')
+                            : t('Meet at {location}', { location: title })}
                         </span>
                       )}
                     </PickRadio>
@@ -1902,7 +1924,9 @@ export function Checkout() {
                     ? !hotelChosen
                       ? t('Choose your hotel (or pick “My hotel isn’t listed”).')
                       : t('Add the flight number, date and time for your trip.')
-                    : t('Add your pickup address, or choose “I don’t know yet”.')
+                    : isPhotoShoot
+                      ? t('Add the address, or choose “I don’t know yet”.')
+                      : t('Add your pickup address, or choose “I don’t know yet”.')
                   : ''}
               </p>
             </section>
@@ -2200,7 +2224,8 @@ export function Checkout() {
             {supplements.map((s) => (
               <div key={s.id} className="flex items-center gap-2">
                 <IconCheck width={15} height={15} className="text-teal" />
-                {s.name || t('Supplement')} · {t('for {n} of {total}', { n: s.qty, total: qty })}
+                {s.name || t('Supplement')}
+                {!isPhotoShoot && ` · ${t('for {n} of {total}', { n: s.qty, total: qty })}`}
               </div>
             ))}
             {liveTransport > 0 && (

@@ -2,7 +2,13 @@ import { getBrowserSupabase } from '@/lib/supabase/browser';
 import { countRowsEq, countRowsIn, isForeignKeyViolation } from '@/lib/admin/delete-guards';
 import { normalizeBadges, type BadgeInput } from '@/lib/catalogue/badges';
 import type { PricingMode } from '@/lib/validation/tours';
-import { PHOTOGRAPHY_ADD_ONS_KEY, photographyAddOnSlugs } from '@/lib/catalogue/photography';
+import {
+  PHOTOGRAPHY_ADD_ONS_KEY,
+  PHOTOGRAPHY_GROUP_KEY,
+  photographyAddOnSlugs,
+  savedPhotographyGroup,
+  type PhotographyGroup,
+} from '@/lib/catalogue/photography';
 
 /* Client-side admin writes. RLS already grants staff/admin full read+write on activities and
  * their images/options/prices, so an authenticated admin performs these directly — no RPC. */
@@ -136,6 +142,9 @@ export interface ActivityFormValues {
   /** Photography package slugs this tour offers as an add-on (`extra.photographyAddOns`). Empty =
    *  no photography cross-sell on the tour's booking card. Links only — never priced here. */
   photographyAddOns: string[];
+  /** A photography package's listing group (`extra.photographyGroup`); '' = not chosen, which
+   *  falls back to reading the title. Ignored for other activities. */
+  photographyGroup: PhotographyGroup | '';
   /** The activity's `extra` as loaded — buildExtra() preserves any key the form doesn't manage
    *  (e.g. availability/returnWindow set via SQL patches), so a save can't silently destroy them. */
   sourceExtra: Record<string, unknown>;
@@ -179,6 +188,7 @@ export const EMPTY_ACTIVITY: ActivityFormValues = {
   priceListLabel: '',
   supplements: [],
   photographyAddOns: [],
+  photographyGroup: '',
   sourceExtra: {},
 };
 
@@ -218,6 +228,7 @@ const MANAGED_EXTRA_KEYS = new Set([
   'priceList',
   'inquiryOnly',
   PHOTOGRAPHY_ADD_ONS_KEY,
+  PHOTOGRAPHY_GROUP_KEY,
 ]);
 
 function buildExtra(v: ActivityFormValues) {
@@ -258,6 +269,7 @@ function buildExtra(v: ActivityFormValues) {
     [PHOTOGRAPHY_ADD_ONS_KEY]: v.photographyAddOns,
   });
   if (photographyAddOns.length) out[PHOTOGRAPHY_ADD_ONS_KEY] = photographyAddOns;
+  if (v.photographyGroup) out[PHOTOGRAPHY_GROUP_KEY] = v.photographyGroup;
   if (v.priceListUrl.trim()) {
     out.priceList = v.priceListLabel.trim()
       ? { url: v.priceListUrl.trim(), label: v.priceListLabel.trim() }
@@ -1042,6 +1054,7 @@ export async function loadActivityForEdit(id: string): Promise<ActivityFormValue
       nameFr: s.name_fr ?? '',
     })),
     photographyAddOns: photographyAddOnSlugs(act.extra),
+    photographyGroup: savedPhotographyGroup(act.extra) ?? '',
     sourceExtra: (act.extra ?? {}) as Record<string, unknown>,
   };
 }

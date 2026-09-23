@@ -114,6 +114,25 @@ describe('the admin "New package" template', () => {
     expect(v.inclusions).toEqual(['Edited photos', 'Online gallery']);
   });
 
+  it('saves the chosen Type, and only promises the 24h cancellation the platform enforces', () => {
+    const w = photographyPackageValues({
+      ...INPUT,
+      kind: 'weddings',
+      title: 'Beach ceremony',
+      summary: 'Stills',
+    });
+    expect(w.photographyGroup).toBe('weddings');
+    expect((activityRow(w, 'op') as { extra: Record<string, unknown> }).extra).toMatchObject({
+      photographyGroup: 'weddings',
+    });
+    // A saved group beats the title guess ("Beach ceremony" has no wedding keyword).
+    expect(photographyGroup({ title: w.title }, 'weddings')).toBe('weddings');
+    expect(photographyGroup({ title: w.title })).toBe('shoots');
+    for (const kind of ['weddings', 'shoots'] as const) {
+      expect(photographyPackageValues({ ...INPUT, kind }).cancellationPolicy).toMatch(/24 hours/);
+    }
+  });
+
   it('never lets max guests fall below the guests the price covers', () => {
     const w = photographyPackageValues({ ...INPUT, included: 4, maxGuests: 2 });
     expect(w.options[0]?.privateMaxGuests).toBe(4);

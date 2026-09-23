@@ -12,6 +12,7 @@ import { FOCUS_CARDS } from '@/components/photography/motion';
 import {
   PHOTO_IMG as IMG,
   buildPackageCards,
+  loadPhotographyGroups,
   loadPhotographyPackages,
 } from '@/components/photography/packages-data';
 import { IconArrowRight } from '@/components/ui/icons';
@@ -79,12 +80,13 @@ const DEFAULT_METADATA: Metadata = {
 
 export default async function PhotographyPage() {
   const t = await getT();
-  const [live, waNumber, photos] = await Promise.all([
+  const [live, waNumber, photos, groups] = await Promise.all([
     loadPhotographyPackages(),
     getWhatsAppNumber(),
     getPhotographyPhotos(),
+    loadPhotographyGroups(),
   ]);
-  const packages = buildPackageCards(t, live, waNumber);
+  const packages = buildPackageCards(t, live, waNumber, groups);
 
   const services = [
     {
