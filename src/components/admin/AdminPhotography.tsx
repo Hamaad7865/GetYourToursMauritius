@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useAuth } from '@/components/auth/AuthProvider';
 import {
   ensurePhotographyCategory,
+  importStarterPackages,
   loadPhotographyAdmin,
   type PhotographyAdminData,
 } from '@/lib/admin/photography';
@@ -43,6 +44,29 @@ export function AdminPhotography() {
     if (isStaff) void load();
   }, [isStaff, load]);
 
+  const [notice, setNotice] = useState<string | null>(null);
+
+  async function importExamples() {
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      // The examples live under the Photography category, so make sure it exists first.
+      if (data && !data.categoryExists) await ensurePhotographyCategory();
+      const created = await importStarterPackages();
+      setNotice(
+        created > 0
+          ? `Added ${created} example package${created === 1 ? '' : 's'} as drafts. Open each one, check the price and add-ons, then set it to Published.`
+          : 'The example packages are already here.',
+      );
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not add the example packages.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function createCategory() {
     setBusy(true);
     try {
@@ -75,6 +99,14 @@ export function AdminPhotography() {
       />
 
       {error && <AdminError>{error}</AdminError>}
+      {notice && (
+        <p
+          role="status"
+          className="mb-4 rounded-xl bg-teal/10 px-4 py-3 text-[13px] font-medium text-teal-dark"
+        >
+          {notice}
+        </p>
+      )}
 
       {data && !data.categoryExists && (
         <Card className="mb-5">
@@ -99,12 +131,25 @@ export function AdminPhotography() {
         ) : data.packages.length === 0 ? (
           <div className="flex flex-col items-start gap-3 py-2">
             <p className="text-sm text-ink-muted">
-              No packages yet. Until you publish one, /photography shows example packages with a
-              WhatsApp “Enquire” button instead of online booking.
+              No packages yet. The six packages on the price list right now are built-in examples
+              with a WhatsApp “Enquire” button — add them here to edit their prices, add-ons, photos
+              and dates and take bookings online. They are added as <b>drafts</b>, so nothing is
+              bookable until you publish it.
             </p>
-            <Link href="/admin/photography/new" className={BTN_PRIMARY}>
-              <IconCamera width={16} height={16} /> Create your first package
-            </Link>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void importExamples()}
+                className={BTN_PRIMARY}
+              >
+                <IconCamera width={16} height={16} />
+                {busy ? 'Adding…' : 'Add the 6 example packages'}
+              </button>
+              <Link href="/admin/photography/new" className={BTN_GHOST}>
+                <IconPlus width={16} height={16} /> Start from scratch
+              </Link>
+            </div>
           </div>
         ) : (
           <div className="-mx-5 overflow-x-auto">
@@ -167,16 +212,16 @@ export function AdminPhotography() {
                     </td>
                     <td className="whitespace-nowrap px-5 py-3 text-right">
                       <Link
-                        href={`/admin/activities/${p.id}/edit`}
+                        href={`/admin/photography/${p.id}/edit`}
                         className="rounded-lg px-2.5 py-1.5 font-bold text-teal hover:bg-cream"
                       >
                         Edit
                       </Link>
                       <Link
-                        href={`/admin/activities/${p.id}/edit?s=pricing`}
+                        href={`/admin/activities/${p.id}/edit`}
                         className="rounded-lg px-2.5 py-1.5 font-bold text-teal hover:bg-cream"
                       >
-                        Prices & add-ons
+                        Full editor
                       </Link>
                       <Link
                         href={`/admin/activities/${p.id}/availability`}

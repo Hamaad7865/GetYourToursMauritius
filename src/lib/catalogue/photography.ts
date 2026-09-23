@@ -251,3 +251,140 @@ export function toPhotographyPhoto(row: {
     position: typeof row.position === 'number' ? row.position : 0,
   };
 }
+
+/* ---------------------------------------------------------------------------------------------
+ * The six example packages. Shown on /photography and the price list while no real package is
+ * published (as WhatsApp enquiries), and imported by /admin/photography → "Add the 6 example
+ * packages" as editable DRAFT packages — one list, so what the owner imports is exactly what the
+ * page showed. English source text; the pages translate it through t() (the keys are in messages.ts).
+ * Prices are starting suggestions the owner reviews before publishing.
+ * ------------------------------------------------------------------------------------------- */
+
+export interface StarterPackage {
+  key: string;
+  kind: PhotographyGroup;
+  title: string;
+  /** Short "4 hours · 1 photographer" line under the title. */
+  meta: string;
+  summary: string;
+  features: string[];
+  image: string;
+  /** The dark "our pick" card on the example grid. */
+  highlight: boolean;
+  durationHours: number;
+  baseEur: number;
+  included: number;
+  extraEur: number;
+  maxGuests: number;
+  shootsPerDay: number;
+  minAdvanceDays: number;
+}
+
+export const PHOTOGRAPHY_STARTER_PACKAGES: StarterPackage[] = [
+  {
+    key: 'ceremony-photo',
+    kind: 'weddings',
+    title: 'Ceremony · Photo',
+    meta: '4 hours · 1 photographer',
+    summary: 'Your vows, the portraits and the first toast, told in stills.',
+    features: ['Edited high-resolution photos', 'Private online gallery', 'Location scouting'],
+    image: PHOTO_STOCK.weddingDetail,
+    highlight: false,
+    durationHours: 4,
+    baseEur: 650,
+    included: 2,
+    extraEur: 0,
+    maxGuests: 2,
+    shootsPerDay: 1,
+    minAdvanceDays: 7,
+  },
+  {
+    key: 'ceremony-photo-film',
+    kind: 'weddings',
+    title: 'Ceremony · Photo + Film',
+    meta: '6 hours · photographer + videographer',
+    summary: 'Photos and a cinematic film of the day, from the aisle to the sunset.',
+    features: [
+      'Edited high-resolution photos',
+      'Cinematic film + short teaser',
+      'Drone aerials, where permitted',
+    ],
+    image: PHOTO_STOCK.weddingCouple,
+    highlight: true,
+    durationHours: 6,
+    baseEur: 1150,
+    included: 2,
+    extraEur: 0,
+    maxGuests: 2,
+    shootsPerDay: 1,
+    minAdvanceDays: 7,
+  },
+  {
+    key: 'full-day',
+    kind: 'weddings',
+    title: 'Full day · Photo + Film',
+    meta: '10 hours · 2 photographers + videographer',
+    summary: 'Every moment covered, from getting ready to the last dance.',
+    features: ['Getting ready to first dance', 'Feature film + teaser', 'Printed album available'],
+    image: PHOTO_STOCK.weddingSunset,
+    highlight: false,
+    durationHours: 10,
+    baseEur: 1890,
+    included: 2,
+    extraEur: 0,
+    maxGuests: 2,
+    shootsPerDay: 1,
+    minAdvanceDays: 14,
+  },
+  {
+    key: 'couples',
+    kind: 'shoots',
+    title: 'Couples session',
+    meta: '1 hour · 1 beach',
+    summary: 'Relaxed, romantic photos for honeymoons, anniversaries and proposals.',
+    features: ['Sunrise or golden hour', 'Honeymoon & proposal friendly', 'Online gallery'],
+    image: PHOTO_STOCK.couple,
+    highlight: false,
+    durationHours: 1,
+    baseEur: 150,
+    included: 2,
+    extraEur: 25,
+    maxGuests: 4,
+    shootsPerDay: 2,
+    minAdvanceDays: 1,
+  },
+  {
+    key: 'island-holiday',
+    kind: 'shoots',
+    title: 'Island holiday session',
+    meta: '2 hours · 2 locations',
+    summary: 'Two island backdrops and a short reel to remember the trip.',
+    features: ['Two island backdrops', 'Vertical reel for social', 'Online gallery'],
+    image: PHOTO_STOCK.islet,
+    highlight: true,
+    durationHours: 2,
+    baseEur: 390,
+    included: 2,
+    extraEur: 30,
+    maxGuests: 6,
+    shootsPerDay: 2,
+    minAdvanceDays: 1,
+  },
+  {
+    key: 'family',
+    kind: 'shoots',
+    title: 'Family & kids',
+    meta: '1 hour · up to 8 people',
+    summary: 'Easy-going family portraits on the beach, at your hotel or villa.',
+    features: ['Kid-paced, no stiff poses', 'Beach, hotel or villa', 'Online gallery'],
+    image: PHOTO_STOCK.family,
+    highlight: false,
+    durationHours: 1,
+    baseEur: 210,
+    included: 4,
+    extraEur: 20,
+    maxGuests: 8,
+    shootsPerDay: 2,
+    minAdvanceDays: 1,
+  },
+];

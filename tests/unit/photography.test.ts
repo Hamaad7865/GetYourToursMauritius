@@ -16,10 +16,14 @@ import { breadcrumbTrail } from '@/lib/catalogue/detail';
 import { activityExtraSchema } from '@/lib/validation/tours';
 import { activityRow, assertPricingValid } from '@/lib/admin/activity-write';
 import {
+  applyPackageInput,
+  packageInputFromValues,
   packageSeo,
   photographyPackageValues,
+  starterPackageInput,
   type PhotographyPackageInput,
 } from '@/lib/admin/photography';
+import { PHOTOGRAPHY_STARTER_PACKAGES } from '@/lib/catalogue/photography';
 import { serviceJsonLd } from '@/lib/seo/jsonld';
 import { SEO_PAGES } from '@/lib/seo/page-registry';
 import { renderPhotoBalanceEmail } from '@/lib/email/photography';
@@ -281,5 +285,76 @@ describe('the "photos delivered" balance email', () => {
 
   it('refuses to email a balance of nothing', () => {
     expect(() => renderPhotoBalanceEmail({ ...base, balanceDueMinor: 0 })).toThrow();
+  });
+});
+
+describe('the six example packages', () => {
+  it('each becomes a valid draft package, matching the card shown on the site', () => {
+    expect(PHOTOGRAPHY_STARTER_PACKAGES).toHaveLength(6);
+    for (const p of PHOTOGRAPHY_STARTER_PACKAGES) {
+      const v = photographyPackageValues(starterPackageInput(p.key));
+      expect(v.status).toBe('draft');
+      expect(v.title).toBe(p.title);
+      expect(v.summary).toBe(p.summary);
+      expect(v.inclusions).toEqual(p.features);
+      expect(v.images[0]?.url).toBe(p.image);
+      expect(v.photographyGroup).toBe(p.kind);
+      expect(() => assertPricingValid(v)).not.toThrow();
+    }
+    expect(new Set(PHOTOGRAPHY_STARTER_PACKAGES.map((p) => p.key)).size).toBe(6);
+  });
+});
+
+describe('editing an existing package', () => {
+  // A package as saved, then touched in the full tour editor (longer description, more photos,
+  // an itinerary stop, a separately curated highlight, a saved add-on id).
+  const saved = {
+    ...photographyPackageValues(INPUT),
+    description: 'A much longer description written in the tour editor.',
+    images: [
+      { url: '/a.jpg', alt: 'A' },
+      { url: '/b.jpg', alt: 'B' },
+    ],
+    highlights: ['Hand-picked highlight'],
+    supplements: [{ id: 'sup-1', name: 'Drone aerials', nameFr: 'Drone', priceEur: 120 }],
+    options: photographyPackageValues(INPUT).options.map((o) => ({ ...o, id: 'opt-1' })),
+  };
+
+  it('loads into the form and saves back unchanged when nothing is edited', () => {
+    const input = packageInputFromValues(saved, 2);
+    expect(input).toMatchObject({
+      baseEur: 150,
+      included: 2,
+      extraEur: 25,
+      maxGuests: 8,
+      shootsPerDay: 2,
+    });
+    expect(input.addOns[0]).toMatchObject({ id: 'sup-1', priceEur: 120 });
+    expect(applyPackageInput(saved, input)).toEqual(saved);
+  });
+
+  it('changes only what the form shows, keeping ids and everything from the full editor', () => {
+    const input = packageInputFromValues(saved, 2);
+    const next = applyPackageInput(saved, {
+      ...input,
+      baseEur: 175,
+      imageUrl: '/new-cover.jpg',
+      addOns: [
+        { ...input.addOns[0]!, priceEur: 140 },
+        { name: 'Album', nameFr: '', priceEur: 180 },
+      ],
+      status: 'published',
+    });
+    expect(next.options[0]).toMatchObject({ id: 'opt-1', privateBaseEur: 175 });
+    expect(next.supplements).toEqual([
+      { id: 'sup-1', name: 'Drone aerials', nameFr: 'Drone', priceEur: 140 },
+      { name: 'Album', nameFr: '', priceEur: 180 },
+    ]);
+    expect(next.images.map((i) => i.url)).toEqual(['/new-cover.jpg', '/b.jpg']);
+    expect(next.description).toBe(saved.description);
+    expect(next.highlights).toEqual(['Hand-picked highlight']);
+    expect(next.slug).toBe(saved.slug);
+    expect(next.status).toBe('published');
+    expect(() => assertPricingValid(next)).not.toThrow();
   });
 });

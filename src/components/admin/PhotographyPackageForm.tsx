@@ -1,9 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { createPhotographyPackage, type PhotographyPackageInput } from '@/lib/admin/photography';
+import {
+  createPhotographyPackage,
+  loadPhotographyPackage,
+  savePhotographyPackage,
+  type LoadedPackage,
+  type PhotographyPackageInput,
+} from '@/lib/admin/photography';
 import { PHOTOGRAPHY_ADD_ON_PRESETS } from '@/lib/catalogue/photography';
 import { IconChevron, IconPlus, IconX } from '@/components/ui/icons';
 import {
@@ -41,18 +47,45 @@ function num(v: string): number {
 }
 
 /**
- * The "New package" template. It asks only what a photography package needs and writes an ordinary
+ * The package form — "New package" (the template) and "Edit package" (`packageId` set). It asks only what a photography package needs and writes an ordinary
  * activity: a private option (base price for N guests + per extra guest, capped), one supplement per
  * add-on, and the shoots-per-day capacity that makes dates bookable. Everything is editable later in
  * the full tour editor, which is where this sends you once it is saved.
  */
-export function PhotographyPackageForm() {
+export function PhotographyPackageForm({ packageId }: { packageId?: string } = {}) {
   const router = useRouter();
+  const editing = Boolean(packageId);
   const [v, setV] = useState<PhotographyPackageInput>(START);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Edit mode: the saved package, loaded once. Everything the simple form does not show (slug,
+  // description, more photos, French, itinerary…) rides through `loaded.values` unchanged on save.
+  const [loaded, setLoaded] = useState<LoadedPackage | null>(null);
+  const [loading, setLoading] = useState(editing);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    if (!packageId) return;
+    let active = true;
+    loadPhotographyPackage(packageId)
+      .then((pkg) => {
+        if (!active) return;
+        setLoaded(pkg);
+        setV(pkg.input);
+      })
+      .catch((err: unknown) => {
+        if (active) setError(err instanceof Error ? err.message : 'Could not load the package.');
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [packageId]);
 
   function set<K extends keyof PhotographyPackageInput>(k: K, val: PhotographyPackageInput[K]) {
+    setSaved(false);
     setV((cur) => ({ ...cur, [k]: val }));
   }
 
@@ -66,13 +99,42 @@ export function PhotographyPackageForm() {
       return setError('Max guests can’t be below the guests the price covers.');
     setBusy(true);
     try {
+      if (packageId && loaded) {
+        await savePhotographyPackage(packageId, loaded, v);
+        // Reload so new add-ons pick up their ids — the next save then updates them in place.
+        const fresh = await loadPhotographyPackage(packageId);
+        setLoaded(fresh);
+        setV(fresh.input);
+        setSaved(true);
+        setBusy(false);
+        router.refresh();
+        return;
+      }
       const id = await createPhotographyPackage(v);
-      router.replace(`/admin/activities/${id}/edit?saved=1`);
+      router.replace(`/admin/photography/${id}/edit`);
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not create the package.');
+      setError(
+        err instanceof Error
+          ? err.message
+          : editing
+            ? 'Could not save the package.'
+            : 'Could not create the package.',
+      );
       setBusy(false);
     }
+  }
+
+  if (loading) return <p className="text-sm text-ink-muted">Loading the package…</p>;
+  if (editing && !loaded) {
+    return (
+      <div>
+        <AdminError>{error ?? 'Package not found.'}</AdminError>
+        <Link href="/admin/photography" className={BTN_GHOST}>
+          Back to photography
+        </Link>
+      </div>
+    );
   }
 
   return (
@@ -84,9 +146,36 @@ export function PhotographyPackageForm() {
         <IconChevron width={15} height={15} className="rotate-90" /> Back to photography
       </Link>
       <AdminHeading
-        title="New photography package"
-        subtitle="Creates a bookable package — dates, extra guests and add-ons included. You can fine-tune everything in the tour editor afterwards."
+        title={editing ? 'Edit package' : 'New photography package'}
+        subtitle={
+          editing
+            ? 'Changes save straight to the live package. Photos, the long description, French and search settings are in the full editor.'
+            : 'Creates a bookable package — dates, extra guests and add-ons included. You can fine-tune everything in the tour editor afterwards.'
+        }
+        action={
+          editing && packageId && loaded ? (
+            <div className="flex flex-wrap gap-2">
+              <a
+                href={`/activities/${loaded.values.slug}`}
+                target="_blank"
+                rel="noreferrer"
+                className={BTN_GHOST}
+              >
+                View package
+              </a>
+              <Link href={`/admin/activities/${packageId}/edit`} className={BTN_GHOST}>
+                Full editor (photos, French, SEO)
+              </Link>
+            </div>
+          ) : undefined
+        }
       />
+      {editing && v.status === 'draft' && (
+        <p className="mb-4 rounded-xl bg-amber-100/60 px-4 py-3 text-[13px] font-medium text-amber-800">
+          This package is a draft — guests can’t see or book it. Check the price and add-ons, then
+          set Status to “Published” and save.
+        </p>
+      )}
       {error && <AdminError>{error}</AdminError>}
 
       <div className="grid gap-5 lg:grid-cols-2">
@@ -333,11 +422,16 @@ export function PhotographyPackageForm() {
 
       <div className="sticky bottom-0 mt-5 flex items-center gap-2 border-t border-[#EAEEF0] bg-white/95 py-4 backdrop-blur">
         <button type="submit" disabled={busy} className={BTN_PRIMARY}>
-          {busy ? 'Creating…' : 'Create package'}
+          {busy ? (editing ? 'Saving…' : 'Creating…') : editing ? 'Save changes' : 'Create package'}
         </button>
         <Link href="/admin/photography" className={BTN_GHOST}>
-          Cancel
+          {editing ? 'Back to photography' : 'Cancel'}
         </Link>
+        {saved && (
+          <span role="status" className="ml-auto text-[12.5px] font-bold text-teal">
+            Saved ✓
+          </span>
+        )}
       </div>
     </form>
   );

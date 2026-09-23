@@ -34,7 +34,7 @@ All of this is in `/admin`:
 | Which dates a tour is bookable, and how big  | **Tours** → tour → **Availability** (trips per day × guests per trip)                                  |
 | Any transfer or vehicle fare                 | **Pricing** (5 sections: sightseeing, road trips, transport add-on, airport transfers, hotel-to-hotel) |
 | Rental cars & scooters                       | **Rental**                                                                                             |
-| Photography packages (weddings, shoots)      | **Photography** → New package (price, guests, add-ons, shoots per day); edit it like any tour          |
+| Photography packages (weddings, shoots)      | **Photography** → New package, or **Edit** on a package (price, guests, add-ons, per day, publish)     |
 | Offer a photographer on a private tour       | **Tours** → tour → **Logistics** → **Photography add-ons**                                             |
 | Photos on /photography and the price list    | **Photography** → **Page photos** (upload, replace, tag and reorder the gallery)                       |
 | Collect a photography balance (photos done)  | **Photography** → **Balances to collect** → **Request balance** (emails the guest a pay link)          |
@@ -46,6 +46,12 @@ All of this is in `/admin`:
 
 Prices are typed in euros and take effect immediately — the server prices every new quote from those
 rows.
+
+**The six example photography packages.** Until a package is published, /photography and the price list
+show six built-in examples with a WhatsApp "Enquire" button. **Photography → Add the 6 example packages**
+turns them into real packages as **drafts** — open each with **Edit**, check the price and add-ons, set
+Status to **Published** and save. Published packages replace the examples on the site (the examples all
+disappear once any package is published, so publish the ones you want together).
 
 **Photography is paid in two halves.** A guest booking any Photography package pays a **50% deposit**
 by card to book the date — it is **non-refundable** (the same rule as a quote deposit: "Mark refunded"

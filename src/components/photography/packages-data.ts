@@ -6,6 +6,7 @@ import { createUserClient } from '@/lib/supabase/client';
 import {
   PHOTOGRAPHY_CATEGORY,
   PHOTO_STOCK,
+  PHOTOGRAPHY_STARTER_PACKAGES,
   isPhotographyCategory,
   photographyGroup,
   savedPhotographyGroup,
@@ -86,8 +87,11 @@ export function buildPackageCards(
   waNumber: string,
   groups: Record<string, PhotographyGroup> = {},
 ): PhotoPackage[] {
-  const hours = (minutes: number | null) =>
-    minutes ? t('{n} hours', { n: Math.round((minutes / 60) * 10) / 10 }) : null;
+  const hours = (minutes: number | null) => {
+    if (!minutes) return null;
+    const n = Math.round((minutes / 60) * 10) / 10;
+    return n === 1 ? t('{n} hour', { n }) : t('{n} hours', { n });
+  };
 
   if (live.length > 0) {
     const groupOf = (a: TourSummary) => photographyGroup(a, groups[a.slug]);
@@ -127,89 +131,23 @@ export function buildPackageCards(
       `Hi ${SITE.operator}! I’m interested in the “${title}” photography package in Mauritius. Could you send availability and prices?`,
       waNumber,
     );
-  const fallback = (
-    key: string,
-    group: PhotoPackage['group'],
-    title: string,
-    meta: string,
-    summary: string,
-    features: string[],
-    image: string,
-    highlight = false,
-  ): PhotoPackage => ({
-    key,
-    group,
-    title,
-    meta,
-    features,
-    summary,
-    image,
-    imageAlt: title,
-    priceEur: null,
-    href: enquire(title),
-    external: true,
-    highlight,
+  // No package published yet: the six examples, as WhatsApp enquiries. The same list /admin imports
+  // as editable drafts (PHOTOGRAPHY_STARTER_PACKAGES), so the owner edits exactly what is shown here.
+  return PHOTOGRAPHY_STARTER_PACKAGES.map((p) => {
+    const title = t(p.title);
+    return {
+      key: p.key,
+      group: p.kind,
+      title,
+      meta: t(p.meta),
+      features: p.features.map((f) => t(f)),
+      summary: t(p.summary),
+      image: p.image,
+      imageAlt: title,
+      priceEur: null,
+      href: enquire(title),
+      external: true,
+      highlight: p.highlight,
+    };
   });
-  return [
-    fallback(
-      'ceremony-photo',
-      'weddings',
-      t('Ceremony · Photo'),
-      t('4 hours · 1 photographer'),
-      t('Your vows, the portraits and the first toast, told in stills.'),
-      [t('Edited high-resolution photos'), t('Private online gallery'), t('Location scouting')],
-      PHOTO_IMG.weddingDetail,
-    ),
-    fallback(
-      'ceremony-photo-film',
-      'weddings',
-      t('Ceremony · Photo + Film'),
-      t('6 hours · photographer + videographer'),
-      t('Photos and a cinematic film of the day, from the aisle to the sunset.'),
-      [
-        t('Edited high-resolution photos'),
-        t('Cinematic film + short teaser'),
-        t('Drone aerials, where permitted'),
-      ],
-      PHOTO_IMG.weddingCouple,
-      true,
-    ),
-    fallback(
-      'full-day',
-      'weddings',
-      t('Full day · Photo + Film'),
-      t('10 hours · 2 photographers + videographer'),
-      t('Every moment covered, from getting ready to the last dance.'),
-      [t('Getting ready to first dance'), t('Feature film + teaser'), t('Printed album available')],
-      PHOTO_IMG.weddingSunset,
-    ),
-    fallback(
-      'couples',
-      'shoots',
-      t('Couples session'),
-      t('1 hour · 1 beach'),
-      t('Relaxed, romantic photos for honeymoons, anniversaries and proposals.'),
-      [t('Sunrise or golden hour'), t('Honeymoon & proposal friendly'), t('Online gallery')],
-      PHOTO_IMG.couple,
-    ),
-    fallback(
-      'island-holiday',
-      'shoots',
-      t('Island holiday session'),
-      t('2 hours · 2 locations'),
-      t('Two island backdrops and a short reel to remember the trip.'),
-      [t('Two island backdrops'), t('Vertical reel for social'), t('Online gallery')],
-      PHOTO_IMG.islet,
-      true,
-    ),
-    fallback(
-      'family',
-      'shoots',
-      t('Family & kids'),
-      t('1 hour · up to 8 people'),
-      t('Easy-going family portraits on the beach, at your hotel or villa.'),
-      [t('Kid-paced, no stiff poses'), t('Beach, hotel or villa'), t('Online gallery')],
-      PHOTO_IMG.family,
-    ),
-  ];
 }

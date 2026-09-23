@@ -2,14 +2,19 @@ import { getBrowserSupabase } from '@/lib/supabase/browser';
 import {
   EMPTY_ACTIVITY,
   createActivity,
+  loadActivityForEdit,
   slugify,
+  updateActivity,
   uploadActivityImage,
   type ActivityFormValues,
+  type OptionInput,
 } from '@/lib/admin/activity-write';
-import { setDailyCapacity } from '@/lib/admin/availability-write';
+import { loadAvailabilityState, setDailyCapacity } from '@/lib/admin/availability-write';
 import { createCategory } from '@/lib/admin/categories';
 import {
+  PHOTOGRAPHY_ADD_ON_PRESETS,
   PHOTOGRAPHY_CATEGORY,
+  PHOTOGRAPHY_STARTER_PACKAGES,
   isPhotographyCategory,
   photographyAddOnSlugs,
   photographyGroup,
@@ -154,7 +159,9 @@ export interface PhotographyPackageInput {
   shootsPerDay: number;
   minAdvanceDays: number;
   features: string[];
-  addOns: { name: string; nameFr: string; priceEur: number }[];
+  /** `id` = an existing supplement row, updated IN PLACE on edit so the booking_supplements that
+   *  reference it keep their link; absent = a new add-on. */
+  addOns: { id?: string; name: string; nameFr: string; priceEur: number }[];
   imageUrl: string;
   status: 'draft' | 'published';
 }
@@ -389,4 +396,193 @@ export async function requestPhotoBalance(ref: string): Promise<{ url: string; e
     throw new Error(body?.error?.message ?? 'Could not request the balance.');
   }
   return { url: body.data.url, emailed: Boolean(body.data.emailed) };
+}
+
+/* ---------------------------------------------------------------------------------------------
+ * Editing an existing package, and importing the six examples.
+ * ------------------------------------------------------------------------------------------- */
+
+/** The package's private option — the one the form edits (price for N guests, extra guest, max). */
+function privateOptionIndex(v: ActivityFormValues): number {
+  const live = v.options.findIndex((o) => o.isPrivateOption && o.status !== 'archived');
+  return live >= 0 ? live : v.options.findIndex((o) => o.isPrivateOption);
+}
+
+/** The simple form's view of a saved package. Pure, so it's unit-tested. */
+export function packageInputFromValues(
+  v: ActivityFormValues,
+  shootsPerDay: number | null,
+): PhotographyPackageInput {
+  const opt = v.options[privateOptionIndex(v)];
+  return {
+    title: v.title,
+    kind: v.photographyGroup || photographyGroup({ title: v.title, summary: v.summary }),
+    summary: v.summary,
+    durationHours: v.durationMinutes ? Math.round((v.durationMinutes / 60) * 100) / 100 : 1,
+    baseEur: opt?.privateBaseEur ?? 0,
+    included: opt?.privateIncluded ?? 2,
+    extraEur: opt?.privateExtraEur ?? 0,
+    maxGuests: opt?.privateMaxGuests ?? opt?.privateIncluded ?? 2,
+    shootsPerDay: shootsPerDay ?? 1,
+    minAdvanceDays: v.minAdvanceDays,
+    features: v.inclusions.length ? [...v.inclusions] : [...v.highlights],
+    addOns: v.supplements.map((s) => ({
+      id: s.id,
+      name: s.name,
+      nameFr: s.nameFr,
+      priceEur: s.priceEur ?? 0,
+    })),
+    imageUrl: v.images[0]?.url ?? '',
+    status: v.status,
+  };
+}
+
+/**
+ * Apply the simple form's edits onto the full saved package, touching ONLY what the form shows. The
+ * slug, description, photos after the first, itinerary, French, badges, other options — everything
+ * edited in the full tour editor — is carried through unchanged. Pure, so it's unit-tested.
+ */
+export function applyPackageInput(
+  v: ActivityFormValues,
+  input: PhotographyPackageInput,
+): ActivityFormValues {
+  const title = input.title.trim();
+  const summary = input.summary.trim();
+  const features = input.features.map((f) => f.trim()).filter(Boolean);
+  const included = Math.max(1, Math.round(input.included));
+  const privateFields: Partial<OptionInput> = {
+    isPrivateOption: true,
+    privateBaseEur: input.baseEur,
+    privateIncluded: included,
+    privateExtraEur: Math.max(0, input.extraEur),
+    privateMaxGuests: Math.max(included, Math.round(input.maxGuests)),
+    prices: [],
+  };
+  const idx = privateOptionIndex(v);
+  const options =
+    idx >= 0
+      ? v.options.map((o, i) => (i === idx ? { ...o, ...privateFields } : o))
+      : [
+          ...v.options,
+          {
+            name: input.kind === 'weddings' ? 'Wedding coverage' : 'Private shoot',
+            durationMinutes: null,
+            startWindow: '',
+            ...privateFields,
+          } as OptionInput,
+        ];
+  const cover = input.imageUrl.trim();
+  const images = cover
+    ? v.images[0]?.url === cover
+      ? v.images
+      : [{ url: cover, alt: v.images[0]?.alt || title }, ...v.images.slice(1)]
+    : v.images.slice(1);
+  // Highlights follow the "What's included" list only while they were the same list (the template
+  // writes both); highlights the owner curated separately in the tour editor are left alone.
+  const sameLists = v.highlights.join('\n') === v.inclusions.join('\n');
+  return {
+    ...v,
+    title,
+    summary,
+    // The description is the summary until the owner writes a longer one in the tour editor.
+    description:
+      !v.description.trim() || v.description.trim() === v.summary.trim() ? summary : v.description,
+    durationMinutes: Math.max(15, Math.round(input.durationHours * 60)),
+    minAdvanceDays: Math.max(0, Math.round(input.minAdvanceDays)),
+    status: input.status,
+    photographyGroup: input.kind,
+    inclusions: features,
+    highlights: sameLists ? features : v.highlights,
+    images,
+    options,
+    supplements: input.addOns
+      .filter((a) => a.name.trim() && a.priceEur >= 0)
+      .map((a) => ({
+        ...(a.id ? { id: a.id } : {}),
+        name: a.name.trim(),
+        nameFr: a.nameFr.trim(),
+        priceEur: a.priceEur,
+      })),
+  };
+}
+
+export interface LoadedPackage {
+  values: ActivityFormValues;
+  input: PhotographyPackageInput;
+  shootsPerDay: number | null;
+}
+
+export async function loadPhotographyPackage(id: string): Promise<LoadedPackage> {
+  const [values, availability] = await Promise.all([
+    loadActivityForEdit(id),
+    loadAvailabilityState(id),
+  ]);
+  if (!values) throw new Error('Package not found.');
+  if (!isPhotographyCategory(values.category)) {
+    throw new Error('This is not a photography package — edit it in Tours instead.');
+  }
+  return {
+    values,
+    input: packageInputFromValues(values, availability.capacity),
+    shootsPerDay: availability.capacity,
+  };
+}
+
+/** Save the simple form's edits in place (the tour editor's own update path — options and add-ons
+ *  are reconciled by id, never recreated), then the shoots-per-day capacity if it changed. */
+export async function savePhotographyPackage(
+  id: string,
+  loaded: LoadedPackage,
+  input: PhotographyPackageInput,
+): Promise<void> {
+  await updateActivity(id, applyPackageInput(loaded.values, input));
+  const perDay = Math.max(1, Math.round(input.shootsPerDay));
+  if (perDay !== loaded.shootsPerDay) await setDailyCapacity(id, perDay);
+}
+
+/** The form input for one of the six examples. */
+export function starterPackageInput(
+  key: string,
+  status: PhotographyPackageInput['status'] = 'draft',
+): PhotographyPackageInput {
+  const p = PHOTOGRAPHY_STARTER_PACKAGES.find((s) => s.key === key);
+  if (!p) throw new Error(`Unknown example package: ${key}`);
+  return {
+    title: p.title,
+    kind: p.kind,
+    summary: p.summary,
+    durationHours: p.durationHours,
+    baseEur: p.baseEur,
+    included: p.included,
+    extraEur: p.extraEur,
+    maxGuests: p.maxGuests,
+    shootsPerDay: p.shootsPerDay,
+    minAdvanceDays: p.minAdvanceDays,
+    features: [...p.features],
+    addOns: PHOTOGRAPHY_ADD_ON_PRESETS.map((a) => ({ ...a })),
+    imageUrl: p.image,
+    status,
+  };
+}
+
+/**
+ * Turn the six example cards into real packages — as DRAFTS, so nothing becomes bookable at a price
+ * the owner has not reviewed. Skips any whose slug already exists (re-running is safe). Returns how
+ * many were created.
+ */
+export async function importStarterPackages(): Promise<number> {
+  const slugs = PHOTOGRAPHY_STARTER_PACKAGES.map((p) => slugify(p.title));
+  const { data, error } = await getBrowserSupabase()
+    .from('activities')
+    .select('slug')
+    .in('slug', slugs);
+  if (error) throw error;
+  const existing = new Set((data ?? []).map((r) => r.slug as string));
+  let created = 0;
+  for (const p of PHOTOGRAPHY_STARTER_PACKAGES) {
+    if (existing.has(slugify(p.title))) continue;
+    await createPhotographyPackage(starterPackageInput(p.key, 'draft'));
+    created += 1;
+  }
+  return created;
 }
