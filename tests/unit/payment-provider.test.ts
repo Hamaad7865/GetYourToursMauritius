@@ -82,6 +82,52 @@ describe('getPaymentProvider — fail-closed', () => {
   });
 });
 
+/**
+ * PAYMENTS_STUB=true lets `next dev` use the stub even with Peach test keys set (Peach refuses a
+ * checkout from a domain not allow-listed in its dashboard). It must be impossible anywhere else.
+ */
+describe('getPaymentProvider — PAYMENTS_STUB (local development only)', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    clearPeachKeys();
+    process.env.PEACH_ENVIRONMENT = 'test';
+    resetServerEnvCache();
+  });
+
+  it('serves the stub in development even when Peach keys are set', () => {
+    setRealPeachKeys();
+    vi.stubEnv('NODE_ENV', 'development');
+    vi.stubEnv('PAYMENTS_STUB', 'true');
+    resetServerEnvCache();
+    expect(getPaymentProvider().name).toBe('stub');
+  });
+
+  it('is ignored outside development — a production build keeps Peach', () => {
+    setRealPeachKeys();
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('PAYMENTS_STUB', 'true');
+    resetServerEnvCache();
+    expect(getPaymentProvider().name).toBe('peach');
+  });
+
+  it('is ignored when the runtime is production-like (live Peach environment)', () => {
+    setRealPeachKeys();
+    vi.stubEnv('NODE_ENV', 'test');
+    vi.stubEnv('PAYMENTS_STUB', 'true');
+    process.env.PEACH_ENVIRONMENT = 'live';
+    resetServerEnvCache();
+    expect(getPaymentProvider().name).toBe('peach');
+  });
+
+  it('only switches on the exact value "true"', () => {
+    setRealPeachKeys();
+    vi.stubEnv('NODE_ENV', 'development');
+    vi.stubEnv('PAYMENTS_STUB', '1');
+    resetServerEnvCache();
+    expect(getPaymentProvider().name).toBe('peach');
+  });
+});
+
 const CONFIG = {
   clientId: 'c',
   clientSecret: 's',

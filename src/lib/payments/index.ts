@@ -67,6 +67,18 @@ export function getPeachWidgetConfig(): { entityId: string; scriptUrl: string } 
  */
 export function getPaymentProvider(): PaymentProvider {
   const env = getServerEnv();
+  // LOCAL DEVELOPMENT ONLY: `PAYMENTS_STUB=true` forces the stub even when Peach test keys are set.
+  // Peach refuses any checkout from a domain not allow-listed in its dashboard ("Merchant domain is
+  // not allowlisted") and rejects a bare `localhost` return URL outright, so `next dev` on a laptop
+  // can never open a real Peach session. Gated on NODE_ENV=development AND a non-production-like
+  // runtime: a production build inlines NODE_ENV=production, so this branch cannot run there.
+  if (
+    process.env.NODE_ENV === 'development' &&
+    process.env.PAYMENTS_STUB === 'true' &&
+    !isProductionLikeRuntime(env)
+  ) {
+    return new StubPaymentProvider();
+  }
   const peach = peachConfigFromEnv(env);
   if (peach) return new PeachPaymentProvider(peach);
   if (isProductionLikeRuntime(env)) {

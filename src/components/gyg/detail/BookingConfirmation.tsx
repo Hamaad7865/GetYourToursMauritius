@@ -26,6 +26,7 @@ import {
 } from '@/lib/checkout/confirm-poll';
 import { LatePickupPanel } from './LatePickupPanel';
 import { isPhotographyCategory } from '@/lib/catalogue/photography';
+import { readChargeHandoff } from '@/lib/checkout/charge-handoff';
 
 interface BookingItem {
   priceLabel: string;
@@ -467,13 +468,23 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
     setError(null);
     try {
       // Simulates the payment provider's webhook (a real provider calls this server-to-server).
+      // A real provider reports the amount it settled; settlement quarantines an event without one.
+      // The stub's own memory of the charge lives in another route's module in dev, so report the
+      // pinned charge the checkout handed over (the figure api_create_payment pinned for this booking).
+      const charge = readChargeHandoff(bookingRef);
       const res = await fetch('/api/v1/webhooks/payments', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           bookingRef,
+          // The webhook only schedules reconciliation when the body echoes a merchant transaction
+          // id (Peach always does); the booking ref is a valid derived one for the stub.
+          merchantTransactionId: bookingRef,
           outcome: 'paid',
           providerReference: `stub_ref_${bookingRef}`,
+          ...(charge
+            ? { amountMinor: charge.chargeAmountMinor, currency: charge.chargeCurrency }
+            : {}),
         }),
       }).then((r) => r.json());
       if (!res.ok) throw new Error(res.error?.message ?? t('Payment could not be completed.'));

@@ -124,7 +124,15 @@ export function useResumePayment(
         }
         window.location.href = `/bookings/${bookingRef}/pay?cid=${encodeURIComponent(link.checkoutId)}`;
       } else if (link.redirectUrl) {
-        // Hosted redirect (and the dev stub).
+        // Hosted redirect (and the dev stub). Hand over the pinned charge too — the dev stub's
+        // "Complete payment (test)" reports it back as the settled amount.
+        if (typeof link.chargeAmountMinor === 'number' && link.chargeCurrency) {
+          saveChargeHandoff({
+            ref: bookingRef,
+            chargeCurrency: link.chargeCurrency,
+            chargeAmountMinor: link.chargeAmountMinor,
+          });
+        }
         window.location.href = link.redirectUrl;
       } else {
         throw new Error(t('Could not start payment.'));

@@ -1350,7 +1350,16 @@ export function Checkout() {
         }
         window.location.href = `/bookings/${ref}/pay?cid=${encodeURIComponent(link.checkoutId)}`;
       } else if (link.redirectUrl) {
-        // Hosted redirect (and the dev stub) — a third-party page we don't render, so no hand-off.
+        // Hosted redirect (and the dev stub) — no pay page of ours, so no progress hand-off. The pinned
+        // charge IS still handed over: the dev stub's "Complete payment (test)" button reports it back
+        // as the settled amount, exactly as a real provider would (display-only everywhere else).
+        if (typeof link.chargeAmountMinor === 'number' && link.chargeCurrency) {
+          saveChargeHandoff({
+            ref,
+            chargeCurrency: link.chargeCurrency,
+            chargeAmountMinor: link.chargeAmountMinor,
+          });
+        }
         window.location.href = link.redirectUrl;
       } else {
         throw new Error(t('Could not start payment.'));

@@ -25,8 +25,15 @@ Without Supabase credentials the app **still boots** — it silently serves an i
 the catalogue renders but nothing persists. That's deliberate (it lets CI build with no accounts) but it
 means _"the site loads"_ is not evidence that your config is correct.
 
-In `next dev`, payments and email always use **stubs**, even with real credentials, because
-`NODE_ENV=development` exempts the app from the production fail-closed gate.
+In `next dev`, email always uses a **stub**, even with real credentials, because
+`NODE_ENV=development` exempts the app from the production fail-closed gate. **Payments are
+different:** with Peach **test** keys in `.env.local`, `next dev` calls the real Peach sandbox — and
+Peach refuses a checkout from localhost ("Invalid request body: shopperResultUrl" for a bare
+`localhost` return URL, then "Merchant domain is not allowlisted" for anything not in the Peach
+dashboard's allow-list). Checkout then fails with "An upstream service is unavailable". Set
+`PAYMENTS_STUB=true` in `.env.local` to use the test stub instead (development only — ignored by any
+production build), then press **Complete payment (test)** on the booking page. To exercise real Peach
+test payments, use an allow-listed domain (e.g. a tunnel added in the Peach dashboard).
 
 > **Windows note.** If `next dev` misbehaves, use `npx next dev --turbopack`.
 

@@ -214,6 +214,9 @@ export class PeachPaymentProvider implements PaymentProvider {
         body: detail,
         amount: body.amount,
         currency: body.currency,
+        // The return URL we sent — Peach validates it against a strict host pattern (a bare
+        // `localhost` is rejected), so it is the first thing to check on a shopperResultUrl error.
+        shopperResultUrl: body.shopperResultUrl,
         entityId: this.config.entityId,
         environment: this.config.environment,
         checkoutBaseUrl: this.config.checkoutBaseUrl,
