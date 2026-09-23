@@ -2822,4 +2822,143 @@ export const fr: Record<string, string> = {
   'Or open this link:': 'Ou ouvrez ce lien :',
   'Something to change? Reply to this email, or contact us at {emailLink} or {phone}.':
     'Une modification ? Répondez à cet e-mail ou contactez-nous à {emailLink} ou au {phone}.',
+
+  // /photography
+  'Photography & film': 'Photo et vidéo',
+  Weddings: 'Mariages',
+  'Holiday & family shoots': 'Séances vacances et famille',
+  'Package type': 'Type de formule',
+  'Enquire on WhatsApp': 'Se renseigner sur WhatsApp',
+  'Check dates & book': 'Voir les dates et réserver',
+  'Our pick': 'Notre choix',
+  'Price on request': 'Prix sur demande',
+  Films: 'Films',
+  Couples: 'Couples',
+  Family: 'Famille',
+  'Filter shots': 'Filtrer les photos',
+  'Ceremony · Photo': 'Cérémonie · Photo',
+  '4 hours · 1 photographer': '4 heures · 1 photographe',
+  'Edited high-resolution photos': 'Photos retouchées en haute résolution',
+  'Private online gallery': 'Galerie privée en ligne',
+  'Location scouting': 'Repérage des lieux',
+  'Ceremony · Photo + Film': 'Cérémonie · Photo + Film',
+  '6 hours · photographer + videographer': '6 heures · photographe + vidéaste',
+  'Cinematic film + short teaser': 'Film cinématique + courte bande-annonce',
+  'Drone aerials, where permitted': 'Vues aériennes par drone, là où c’est autorisé',
+  'Full day · Photo + Film': 'Journée complète · Photo + Film',
+  '10 hours · 2 photographers + videographer': '10 heures · 2 photographes + vidéaste',
+  'Getting ready to first dance': 'Des préparatifs à la première danse',
+  'Feature film + teaser': 'Film long + bande-annonce',
+  'Printed album available': 'Album imprimé disponible',
+  'Couples session': 'Séance couple',
+  '1 hour · 1 beach': '1 heure · 1 plage',
+  'Sunrise or golden hour': 'Lever du soleil ou heure dorée',
+  'Honeymoon & proposal friendly': 'Idéal pour une lune de miel ou une demande en mariage',
+  'Online gallery': 'Galerie en ligne',
+  'Island holiday session': 'Séance vacances sur l’île',
+  '2 hours · 2 locations': '2 heures · 2 lieux',
+  'Two island backdrops': 'Deux décors de l’île',
+  'Vertical reel for social': 'Reel vertical pour les réseaux sociaux',
+  'Family & kids': 'Famille et enfants',
+  '1 hour · up to 8 people': '1 heure · jusqu’à 8 personnes',
+  'Kid-paced, no stiff poses': 'Au rythme des enfants, sans poses figées',
+  'Beach, hotel or villa': 'Plage, hôtel ou villa',
+  'Wedding photography': 'Photographie de mariage',
+  'Getting ready to first dance, with one or two photographers.':
+    'Des préparatifs à la première danse, avec un ou deux photographes.',
+  'Wedding films': 'Films de mariage',
+  'A cinematic edit, drone aerials and a short teaser to share.':
+    'Un montage cinématique, des vues aériennes par drone et une courte bande-annonce à partager.',
+  'Couples & holidays': 'Couples et vacances',
+  'Honeymoons, proposals, anniversaries and babymoons.':
+    'Lunes de miel, demandes en mariage, anniversaires et babymoons.',
+  'Family shoots': 'Séances en famille',
+  'Relaxed, kid-friendly sessions on the beach or at your villa.':
+    'Des séances détendues, adaptées aux enfants, sur la plage ou à votre villa.',
+  'Bride and groom by the water': 'Les mariés au bord de l’eau',
+  'Filming a wedding on the beach': 'Tournage d’un mariage sur la plage',
+  Film: 'Film',
+  'Couple on a Mauritius beach': 'Couple sur une plage de l’île Maurice',
+  'Wedding details': 'Détails du mariage',
+  'Family on the beach': 'Famille sur la plage',
+  'Aerial view of a Mauritius lagoon': 'Vue aérienne d’un lagon de l’île Maurice',
+  Drone: 'Drone',
+  'Couple at sunset': 'Couple au coucher du soleil',
+  'Family holiday portrait': 'Portrait de famille en vacances',
+  'Island backdrop for a couples shoot': 'Décor insulaire pour une séance couple',
+  'Book online': 'Réservez en ligne',
+  'Pick a package, a date and a time, and pay securely by card.':
+    'Choisissez une formule, une date et une heure, puis payez en toute sécurité par carte.',
+  'Plan together': 'On prépare ensemble',
+  'Your photographer messages you to plan the shot list, location and timing.':
+    'Votre photographe vous écrit pour préparer la liste de photos, le lieu et l’horaire.',
+  'Shoot day': 'Le jour J',
+  'We meet you at your hotel or the spot you’ve chosen — you just enjoy it.':
+    'Nous vous retrouvons à votre hôtel ou au lieu choisi — vous n’avez qu’à profiter.',
+  'Your gallery': 'Votre galerie',
+  'Your edited photos and films arrive in a private online gallery.':
+    'Vos photos et films retouchés arrivent dans une galerie privée en ligne.',
+  'A local team': 'Une équipe locale',
+  'We live and work in Belle Mare, so we know where the light falls and when the beaches are quiet.':
+    'Nous vivons et travaillons à Belle Mare : nous savons où tombe la lumière et quand les plages sont calmes.',
+  'One booking for your trip': 'Une seule réservation pour votre séjour',
+  'Add a shoot to your catamaran day or island tour and pay for everything in one checkout.':
+    'Ajoutez une séance à votre journée en catamaran ou à votre excursion et payez le tout en une seule fois.',
+  'Secure online payment': 'Paiement en ligne sécurisé',
+  'Book and pay by card on this site, with instant confirmation by email.':
+    'Réservez et payez par carte sur ce site, avec confirmation immédiate par e-mail.',
+  'What if it rains on the day?': 'Et s’il pleut le jour J ?',
+  'Tropical showers usually pass quickly. If the weather really doesn’t cooperate, we’ll work with you to move the shoot to another day of your stay.':
+    'Les averses tropicales passent généralement vite. Si la météo ne coopère vraiment pas, nous déplaçons la séance avec vous à un autre jour de votre séjour.',
+  'When do we get our photos and film?': 'Quand recevons-nous nos photos et notre film ?',
+  'Your photographer confirms delivery timing when you book. Photos come first; wedding films take longer to edit.':
+    'Votre photographe confirme le délai de livraison à la réservation. Les photos arrivent en premier ; le montage des films de mariage prend plus de temps.',
+  'Can we cancel or change the date?': 'Pouvons-nous annuler ou changer de date ?',
+  'Every package shows its cancellation policy before you pay. To change your date, message us and we’ll move it if the new day is free.':
+    'Chaque formule affiche sa politique d’annulation avant le paiement. Pour changer de date, écrivez-nous et nous la déplaçons si le nouveau jour est libre.',
+  'Do you shoot anywhere on the island?': 'Photographiez-vous partout sur l’île ?',
+  'Yes — we shoot all around Mauritius. Tell us your hotel or dream location and we’ll plan around it.':
+    'Oui — nous photographions partout à l’île Maurice. Indiquez-nous votre hôtel ou le lieu de vos rêves et nous organisons tout autour.',
+  'Can we combine a shoot with a tour?': 'Peut-on combiner une séance avec une excursion ?',
+  'Yes. Book a shoot alongside a catamaran day or island tour and it all goes in one basket and one checkout.':
+    'Oui. Réservez une séance avec une journée en catamaran ou une excursion : tout va dans un seul panier et un seul paiement.',
+  'A couple on a Mauritius beach at sunset':
+    'Un couple sur une plage de l’île Maurice au coucher du soleil',
+  'Photography & film · Mauritius': 'Photo et vidéo · île Maurice',
+  'Say yes where': 'Dites oui là où',
+  'the lagoon turns gold.': 'le lagon devient or.',
+  'Wedding photos, films and holiday shoots by a local team who know every beach, light and tide.':
+    'Photos et films de mariage, séances de vacances par une équipe locale qui connaît chaque plage, chaque lumière et chaque marée.',
+  'See packages & book': 'Voir les formules et réserver',
+  'Ask us on WhatsApp': 'Posez-nous vos questions sur WhatsApp',
+  'What we shoot': 'Ce que nous photographions',
+  'Four ways to take the island home with you.': 'Quatre façons de ramener l’île avec vous.',
+  'Every shoot includes planning, location scouting, professional editing and a private online gallery.':
+    'Chaque séance comprend la préparation, le repérage, la retouche professionnelle et une galerie privée en ligne.',
+  'See packages': 'Voir les formules',
+  'The look': 'L’esthétique',
+  'Real light.': 'Une vraie lumière.',
+  'No filters needed.': 'Aucun filtre nécessaire.',
+  Packages: 'Formules',
+  'Clear prices. Book in minutes.': 'Des prix clairs. Réservez en quelques minutes.',
+  'Choose your package.': 'Choisissez votre formule.',
+  'Add drone aerials, extra hours, a same-day preview or a printed album when you book. Prices are per shoot, not per person.':
+    'Ajoutez des vues aériennes par drone, des heures supplémentaires, un aperçu le jour même ou un album imprimé lors de la réservation. Les prix sont par séance, pas par personne.',
+  'Drone aerials, extra hours, a same-day preview and printed albums are all available. Message us for a quote for your date.':
+    'Vues aériennes par drone, heures supplémentaires, aperçu le jour même et albums imprimés sont disponibles. Écrivez-nous pour un devis à votre date.',
+  'From booking to gallery,': 'De la réservation à la galerie,',
+  'you just show up.': 'vous n’avez qu’à venir.',
+  'Why book with us': 'Pourquoi réserver avec nous',
+  'Born here.': 'Nés ici.',
+  'Shooting here.': 'Photographes ici.',
+  'Good questions,': 'De bonnes questions,',
+  'straight answers.': 'des réponses claires.',
+  'Something else on your mind? Message us on WhatsApp.':
+    'Une autre question ? Écrivez-nous sur WhatsApp.',
+  'Chat on WhatsApp →': 'Discuter sur WhatsApp →',
+  'Pick your date.': 'Choisissez votre date.',
+  'We’ll handle the light.': 'Nous nous occupons de la lumière.',
+  'Peak wedding season books up early — check your date now.':
+    'La haute saison des mariages se remplit vite — vérifiez votre date dès maintenant.',
+  'Pair it with a tour': 'Associez-la à une excursion',
 };

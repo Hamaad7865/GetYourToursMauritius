@@ -63,6 +63,13 @@ export const SEO_PAGES: SeoPage[] = [
       'Self-drive car and scooter rental for guests staying in the Belle Mare area, Mauritius. Free local delivery, full insurance, unlimited mileage and 24/7 support.',
   },
   {
+    path: '/photography',
+    label: 'Photography & film',
+    defaultTitle: 'Wedding & Holiday Photography in Mauritius | Belle Mare Tours',
+    defaultDescription:
+      'Wedding photography, wedding films, couples and family holiday shoots in Mauritius by a local Belle Mare team. See packages, pick a date and book online.',
+  },
+  {
     path: '/mauritius-tours',
     label: 'Mauritius tours (hub)',
     defaultTitle: 'Mauritius Tours & Day Trips — Book Direct | Belle Mare Tours',

@@ -61,6 +61,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { path: '/destinations', meta: { changeFrequency: 'weekly', priority: 0.7 } },
     { path: '/ai-road-trip-planner', meta: { changeFrequency: 'monthly', priority: 0.6 } },
     { path: '/rent', meta: { changeFrequency: 'monthly', priority: 0.4 } },
+    { path: '/photography', meta: { changeFrequency: 'monthly', priority: 0.6 } },
     { path: '/contact', meta: { changeFrequency: 'monthly', priority: 0.4 } },
     { path: '/about', meta: { changeFrequency: 'monthly', priority: 0.4 } },
     { path: '/help', meta: { changeFrequency: 'monthly', priority: 0.4 } },

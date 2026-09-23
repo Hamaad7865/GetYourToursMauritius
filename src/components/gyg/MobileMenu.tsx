@@ -18,6 +18,7 @@ import {
   IconBell,
   IconBolt,
   IconBookings,
+  IconCamera,
   IconCart,
   IconChevronRight,
   IconGlobe,
@@ -39,6 +40,7 @@ const NAV_LINKS = [
   { label: 'AI Trip Planner', href: '/ai-road-trip-planner', icon: IconPin },
   { label: 'Rent a car or scooter', href: '/rent', icon: IconWallet },
   { label: 'Airport transfers', href: '/airport-transfers', icon: IconBolt },
+  { label: 'Photography & film', href: '/photography', icon: IconCamera },
   { label: 'Contact us', href: '/contact', icon: IconMail },
 ];
 

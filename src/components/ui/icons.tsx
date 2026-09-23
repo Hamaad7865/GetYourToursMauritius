@@ -196,6 +196,13 @@ export const IconClock = (p: SVGProps<SVGSVGElement>) => (
   </Svg>
 );
 
+export const IconCamera = (p: SVGProps<SVGSVGElement>) => (
+  <Svg {...p}>
+    <path d="M14.5 4h-5L7.5 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3.5z" />
+    <circle cx="12" cy="13" r="3.5" />
+  </Svg>
+);
+
 export const IconUsers = (p: SVGProps<SVGSVGElement>) => (
   <Svg {...p}>
     <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
