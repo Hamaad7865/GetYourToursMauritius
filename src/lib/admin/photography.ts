@@ -21,6 +21,7 @@ import {
   savedPhotographyGroup,
   toPhotographyPhoto,
   type GalleryTag,
+  type PhotoMediaType,
   type PhotoSlot,
   type PhotographyGroup,
   type PhotographyPhoto,
@@ -246,7 +247,7 @@ export async function createPhotographyPackage(input: PhotographyPackageInput): 
 export async function loadPhotographyPhotos(): Promise<PhotographyPhoto[]> {
   const { data, error } = await getBrowserSupabase()
     .from('photography_photos')
-    .select('id, slot, url, alt, tags, position')
+    .select('id, slot, url, alt, tags, position, media_type, poster_url')
     .order('position')
     .order('created_at');
   if (error) throw error;
@@ -262,7 +263,14 @@ export function uploadPhotographyPhoto(file: File): Promise<string> {
  *  one out — the page shows the first photo of a slot, so leftovers would just be dead rows. */
 export async function addPhotographyPhoto(
   slot: PhotoSlot,
-  input: { url: string; alt?: string | null; tags?: GalleryTag[] },
+  input: {
+    url: string;
+    alt?: string | null;
+    tags?: GalleryTag[];
+    /** 'video' only in the gallery slot. */
+    mediaType?: PhotoMediaType;
+    posterUrl?: string | null;
+  },
   opts: { replace?: boolean } = {},
 ): Promise<void> {
   const sb = getBrowserSupabase();
@@ -284,17 +292,20 @@ export async function addPhotographyPhoto(
     alt: input.alt?.trim() || null,
     tags: input.tags ?? [],
     position: ((last?.position as number | undefined) ?? -1) + 1,
+    media_type: slot === 'gallery' && input.mediaType === 'video' ? 'video' : 'image',
+    poster_url: input.posterUrl?.trim() || null,
   });
   if (error) throw error;
 }
 
 export async function updatePhotographyPhoto(
   id: string,
-  patch: { alt?: string | null; tags?: GalleryTag[] },
+  patch: { alt?: string | null; tags?: GalleryTag[]; posterUrl?: string | null },
 ): Promise<void> {
-  const row: { alt?: string | null; tags?: GalleryTag[] } = {};
+  const row: { alt?: string | null; tags?: GalleryTag[]; poster_url?: string | null } = {};
   if ('alt' in patch) row.alt = patch.alt?.trim() || null;
   if (patch.tags) row.tags = patch.tags;
+  if ('posterUrl' in patch) row.poster_url = patch.posterUrl?.trim() || null;
   const { error } = await getBrowserSupabase().from('photography_photos').update(row).eq('id', id);
   if (error) throw error;
 }

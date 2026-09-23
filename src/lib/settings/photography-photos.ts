@@ -12,7 +12,7 @@ export async function readPhotographyPhotos(): Promise<PhotographyPhoto[]> {
   try {
     const { data, error } = await createUserClient()
       .from('photography_photos')
-      .select('id, slot, url, alt, tags, position')
+      .select('id, slot, url, alt, tags, position, media_type, poster_url')
       .order('position')
       .order('created_at');
     if (error || !data) return [];

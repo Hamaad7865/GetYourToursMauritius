@@ -12,7 +12,9 @@ import {
 import {
   GALLERY_TAGS,
   PHOTO_SLOTS,
+  mediaThumb,
   photosIn,
+  videoSource,
   type GalleryTag,
   type PhotoSlot,
   type PhotographyPhoto,
@@ -116,8 +118,26 @@ function SlotRow({
     const list = multi ? Array.from(files) : [files[0]!];
     await run(async () => {
       for (const [i, file] of list.entries()) {
-        const url = await uploadPhotographyPhoto(file);
-        await addPhotographyPhoto(slot.id, { url }, { replace: !multi && i === 0 });
+        const isVideo = file.type.startsWith('video/');
+        if (isVideo && !multi) throw new Error('Videos can only go in the gallery.');
+        let url: string;
+        try {
+          url = await uploadPhotographyPhoto(file);
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          // Storage caps a single upload's size — a long film belongs on YouTube / Vimeo instead.
+          if (/exceed|too large|payload/i.test(msg)) {
+            throw new Error(
+              `“${file.name}” is too large to upload. Put long films on YouTube or Vimeo and paste the link here instead.`,
+            );
+          }
+          throw err;
+        }
+        await addPhotographyPhoto(
+          slot.id,
+          { url, mediaType: isVideo ? 'video' : 'image' },
+          { replace: !multi && i === 0 },
+        );
       }
     });
     if (fileRef.current) fileRef.current.value = '';
@@ -126,7 +146,15 @@ function SlotRow({
   async function addLink() {
     const url = link.trim();
     if (!/^https?:\/\/|^\//.test(url)) return;
-    await run(() => addPhotographyPhoto(slot.id, { url }, { replace: !multi }));
+    const isVideo = videoSource(url) !== null;
+    await run(async () => {
+      if (isVideo && !multi) throw new Error('Videos can only go in the gallery.');
+      await addPhotographyPhoto(
+        slot.id,
+        { url, mediaType: isVideo ? 'video' : 'image' },
+        { replace: !multi },
+      );
+    });
     setLink('');
   }
 
@@ -153,7 +181,7 @@ function SlotRow({
           <input
             ref={fileRef}
             type="file"
-            accept="image/*"
+            accept={multi ? 'image/*,video/*' : 'image/*'}
             multiple={multi}
             className="hidden"
             onChange={(e) => void addFiles(e.target.files)}
@@ -163,7 +191,7 @@ function SlotRow({
             {busy
               ? 'Saving…'
               : multi
-                ? 'Upload photos'
+                ? 'Upload photos or videos'
                 : photos.length
                   ? 'Replace photo'
                   : 'Upload photo'}
@@ -193,12 +221,12 @@ function SlotRow({
         {shown.map((p, i) => (
           <figure key={p.id} className="w-40">
             <div className="relative">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={p.url}
-                alt={p.alt ?? ''}
-                className="aspect-[4/3] w-full rounded-lg object-cover"
-              />
+              <MediaThumb photo={p} />
+              {p.mediaType === 'video' && (
+                <span className="absolute left-1.5 top-1.5 rounded-full bg-ink/70 px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-wide text-white">
+                  Video
+                </span>
+              )}
               <button
                 type="button"
                 aria-label="Remove photo"
@@ -234,6 +262,7 @@ function SlotRow({
               )}
             </div>
             <AltInput photo={p} run={run} />
+            {p.mediaType === 'video' && <CoverControl photo={p} run={run} />}
             {multi && (
               <div className="mt-1 flex flex-wrap gap-1">
                 {GALLERY_TAGS.map((tag) => {
@@ -269,7 +298,11 @@ function SlotRow({
           className={INPUT_CLS}
           value={link}
           onChange={(e) => setLink(e.target.value)}
-          placeholder="…or paste an image link (https://…)"
+          placeholder={
+            multi
+              ? '…or paste an image, YouTube or Vimeo link'
+              : '…or paste an image link (https://…)'
+          }
           aria-label={`Image link for ${slot.label}`}
         />
         <button
@@ -306,5 +339,80 @@ function AltInput({
       aria-label="Photo description"
       className="mt-1.5 w-full rounded-md border border-[#E2E7EA] bg-[#F7F8FA] px-2 py-1 text-[12px] text-ink outline-none focus:border-teal focus:bg-white"
     />
+  );
+}
+
+/** What a tile shows: the photo, a video's cover / YouTube frame, or an uploaded video's first frame. */
+function MediaThumb({ photo }: { photo: PhotographyPhoto }) {
+  const thumb = mediaThumb(photo);
+  if (thumb) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={thumb}
+        alt={photo.alt ?? ''}
+        className="aspect-[4/3] w-full rounded-lg object-cover"
+      />
+    );
+  }
+  const src = videoSource(photo.url);
+  return src?.kind === 'file' ? (
+    <video
+      src={`${src.src}#t=0.1`}
+      muted
+      playsInline
+      preload="metadata"
+      className="aspect-[4/3] w-full rounded-lg bg-ink object-cover"
+    />
+  ) : (
+    <span className="grid aspect-[4/3] w-full place-items-center rounded-lg bg-ink text-[11px] font-bold text-white/70">
+      Video link
+    </span>
+  );
+}
+
+/** A video's cover image — shown on the tile and in the film strip before it plays. */
+function CoverControl({
+  photo,
+  run,
+}: {
+  photo: PhotographyPhoto;
+  run: (fn: () => Promise<void>) => Promise<void>;
+}) {
+  const ref = useRef<HTMLInputElement>(null);
+  return (
+    <div className="mt-1 flex flex-wrap gap-1">
+      <input
+        ref={ref}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (!file) return;
+          void run(async () => {
+            const url = await uploadPhotographyPhoto(file);
+            await updatePhotographyPhoto(photo.id, { posterUrl: url });
+          });
+          e.target.value = '';
+        }}
+      />
+      <button
+        type="button"
+        onClick={() => ref.current?.click()}
+        className="rounded-full bg-ink/[0.06] px-2 py-0.5 text-[11px] font-bold text-ink-muted hover:text-ink"
+      >
+        {photo.posterUrl ? 'Replace cover' : 'Add cover image'}
+      </button>
+      {photo.posterUrl && (
+        <button
+          type="button"
+          onClick={() => void run(() => updatePhotographyPhoto(photo.id, { posterUrl: null }))}
+          className="rounded-full bg-ink/[0.06] px-2 py-0.5 text-[11px] font-bold text-ink-muted hover:text-coral"
+        >
+          Remove cover
+        </button>
+      )}
+    </div>
   );
 }

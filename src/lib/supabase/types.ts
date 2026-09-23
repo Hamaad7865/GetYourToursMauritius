@@ -1089,6 +1089,10 @@ type PhotographyPhotosRow = {
   tags: string[];
   position: number;
   created_at: string;
+  /** 20261011000000 — 'image' | 'video'; videos only in the gallery slot. */
+  media_type: string;
+  /** Optional cover image for a video. */
+  poster_url: string | null;
 };
 type PhotographyPhotosInsert = {
   id?: string;
@@ -1098,6 +1102,8 @@ type PhotographyPhotosInsert = {
   tags?: string[];
   position?: number;
   created_at?: string;
+  media_type?: string;
+  poster_url?: string | null;
 };
 
 /** 20260927000000 — the Documents module: standalone quotes/invoices/proformas/receipts + a

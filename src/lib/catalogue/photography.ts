@@ -143,7 +143,8 @@ export type PhotoSlot =
   | 'gallery'
   | 'why'
   | 'cta'
-  | 'pricing-hero';
+  | 'pricing-hero'
+  | 'gallery-hero';
 
 /** Every slot, in page order, with its admin label and stand-in (the gallery has many photos and
  *  falls back to a built-in set instead). Mirrors the migration's CHECK list. */
@@ -182,7 +183,7 @@ export const PHOTO_SLOTS: { id: PhotoSlot; label: string; hint: string; standIn:
     {
       id: 'gallery',
       label: 'The look — gallery',
-      hint: 'As many as you like. Tag each photo so it shows under the right filter tab.',
+      hint: 'Photos and videos — as many as you like. Tag each one so it shows under the right category (on /photography and the gallery page). Long films are best as a YouTube or Vimeo link.',
       standIn: null,
     },
     {
@@ -203,11 +204,19 @@ export const PHOTO_SLOTS: { id: PhotoSlot; label: string; hint: string; standIn:
       hint: 'The banner at the top of /photography/packages.',
       standIn: PHOTO_STOCK.hero,
     },
+    {
+      id: 'gallery-hero',
+      label: 'Gallery page banner',
+      hint: 'The banner at the top of /photography/gallery.',
+      standIn: PHOTO_STOCK.passe,
+    },
   ];
 
 export function isPhotoSlot(v: unknown): v is PhotoSlot {
   return PHOTO_SLOTS.some((s) => s.id === v);
 }
+
+export type PhotoMediaType = 'image' | 'video';
 
 export interface PhotographyPhoto {
   id: string;
@@ -216,6 +225,10 @@ export interface PhotographyPhoto {
   alt: string | null;
   tags: GalleryTag[];
   position: number;
+  /** 'video' only in the gallery slot (a DB CHECK enforces it). */
+  mediaType: PhotoMediaType;
+  /** Optional cover image for a video. */
+  posterUrl: string | null;
 }
 
 /** Photos of one slot, in display order (position, then insertion order as the reader returns it). */
@@ -236,6 +249,8 @@ export function toPhotographyPhoto(row: {
   alt?: unknown;
   tags?: unknown;
   position?: unknown;
+  media_type?: unknown;
+  poster_url?: unknown;
 }): PhotographyPhoto | null {
   if (typeof row.id !== 'string' || typeof row.url !== 'string' || !row.url.trim()) return null;
   if (!isPhotoSlot(row.slot)) return null;
@@ -249,7 +264,72 @@ export function toPhotographyPhoto(row: {
     alt: typeof row.alt === 'string' && row.alt.trim() ? row.alt : null,
     tags,
     position: typeof row.position === 'number' ? row.position : 0,
+    mediaType: row.media_type === 'video' ? 'video' : 'image',
+    posterUrl:
+      typeof row.poster_url === 'string' && row.poster_url.trim() ? row.poster_url.trim() : null,
   };
+}
+
+/* ---------------------------------------------------------------------------------------------
+ * Videos: an uploaded file (mp4 / webm / mov) or a YouTube / Vimeo link. One parser decides how the
+ * gallery plays it and what it shows before it plays — so the admin, the grid and the viewer agree.
+ * ------------------------------------------------------------------------------------------- */
+
+export type VideoSource =
+  | { kind: 'youtube'; id: string; embedUrl: string; thumbUrl: string }
+  | { kind: 'vimeo'; id: string; embedUrl: string; thumbUrl: null }
+  | { kind: 'file'; src: string; thumbUrl: null };
+
+const YOUTUBE_ID = /^[A-Za-z0-9_-]{11}$/;
+
+/** How to play `url`, or null when it is not a recognisable video. */
+export function videoSource(url: string): VideoSource | null {
+  let u: URL;
+  try {
+    u = new URL(url.trim(), 'https://placeholder.invalid');
+  } catch {
+    return null;
+  }
+  const host = u.hostname.replace(/^www\./, '').replace(/^m\./, '');
+  let yt: string | null = null;
+  if (host === 'youtu.be') yt = u.pathname.slice(1).split('/')[0] ?? null;
+  else if (host === 'youtube.com' || host === 'youtube-nocookie.com') {
+    const parts = u.pathname.split('/').filter(Boolean);
+    yt =
+      u.searchParams.get('v') ??
+      (['embed', 'shorts', 'live', 'v'].includes(parts[0] ?? '') ? (parts[1] ?? null) : null);
+  }
+  if (yt && YOUTUBE_ID.test(yt)) {
+    return {
+      kind: 'youtube',
+      id: yt,
+      embedUrl: `https://www.youtube-nocookie.com/embed/${yt}?autoplay=1&rel=0&playsinline=1`,
+      thumbUrl: `https://i.ytimg.com/vi/${yt}/hqdefault.jpg`,
+    };
+  }
+  if (host === 'vimeo.com' || host === 'player.vimeo.com') {
+    const id = u.pathname.split('/').filter((p) => /^\d+$/.test(p))[0];
+    if (id) {
+      return {
+        kind: 'vimeo',
+        id,
+        embedUrl: `https://player.vimeo.com/video/${id}?autoplay=1`,
+        thumbUrl: null,
+      };
+    }
+  }
+  if (/\.(mp4|webm|mov|m4v|ogv)$/i.test(u.pathname)) {
+    return { kind: 'file', src: url.trim(), thumbUrl: null };
+  }
+  return null;
+}
+
+/** The still to show for a gallery item before it plays: its cover, a YouTube frame, or nothing. */
+export function mediaThumb(
+  p: Pick<PhotographyPhoto, 'mediaType' | 'url' | 'posterUrl'>,
+): string | null {
+  if (p.mediaType === 'image') return p.url;
+  return p.posterUrl ?? videoSource(p.url)?.thumbUrl ?? null;
 }
 
 /* ---------------------------------------------------------------------------------------------

@@ -8,10 +8,14 @@ import {
   PHOTO_STOCK,
   PHOTOGRAPHY_STARTER_PACKAGES,
   isPhotographyCategory,
+  mediaThumb,
   photographyGroup,
+  photosIn,
   savedPhotographyGroup,
   type PhotographyGroup,
+  type PhotographyPhoto,
 } from '@/lib/catalogue/photography';
+import type { GalleryItem } from './GalleryGrid';
 import type { TourSummary } from '@/lib/validation/tours';
 import type { PhotoPackage } from './PackagesSection';
 
@@ -150,4 +154,57 @@ export function buildPackageCards(
       highlight: p.highlight,
     };
   });
+}
+
+/** Mixed ratios cycle so the masonry reads as a contact sheet, not a grid of identical tiles. */
+const ASPECTS = ['aspect-[4/5]', 'aspect-video', 'aspect-square', 'aspect-[3/4]', 'aspect-[4/3]'];
+
+/**
+ * The gallery, as both /photography ("The look") and /photography/gallery render it: the owner's
+ * photos and videos from /admin/photography → Page photos, in their order, or — until they add any —
+ * the built-in stand-in set. Server-side, so the alt text is translated once.
+ */
+export function buildGalleryItems(t: T, photos: PhotographyPhoto[]): GalleryItem[] {
+  const own = photosIn(photos, 'gallery');
+  if (own.length) {
+    return own.map((p, i) => ({
+      key: p.id,
+      kind: p.mediaType,
+      src: p.url,
+      thumb: mediaThumb(p),
+      alt:
+        p.alt ??
+        (p.mediaType === 'video'
+          ? t('Photography film in Mauritius')
+          : t('Photography in Mauritius')),
+      categories: p.tags,
+      aspect:
+        p.mediaType === 'video' ? 'aspect-video' : (ASPECTS[i % ASPECTS.length] ?? 'aspect-[4/5]'),
+    }));
+  }
+  const stock = (
+    key: keyof typeof PHOTO_STOCK,
+    alt: string,
+    categories: GalleryItem['categories'],
+    aspect: string,
+  ): GalleryItem => ({
+    key,
+    kind: 'image',
+    src: PHOTO_STOCK[key],
+    thumb: PHOTO_STOCK[key],
+    alt,
+    categories,
+    aspect,
+  });
+  return [
+    stock('weddingCouple', t('Bride and groom by the water'), ['weddings'], 'aspect-[4/5]'),
+    stock('film2', t('Filming a wedding on the beach'), ['films'], 'aspect-video'),
+    stock('couple', t('Couple on a Mauritius beach'), ['couples'], 'aspect-square'),
+    stock('weddingDetail', t('Wedding details'), ['weddings'], 'aspect-[3/4]'),
+    stock('family2', t('Family on the beach'), ['family'], 'aspect-[4/3]'),
+    stock('aerial', t('Aerial view of a Mauritius lagoon'), ['films', 'weddings'], 'aspect-[4/5]'),
+    stock('weddingSunset', t('Couple at sunset'), ['weddings'], 'aspect-[4/3]'),
+    stock('family', t('Family holiday portrait'), ['family'], 'aspect-[3/4]'),
+    stock('passe', t('Island backdrop for a couples shoot'), ['couples'], 'aspect-[4/3]'),
+  ];
 }

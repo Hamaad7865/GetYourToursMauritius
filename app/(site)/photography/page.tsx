@@ -5,12 +5,12 @@ import { SiteFooter } from '@/components/site/SiteFooter';
 import { RevealGroup } from '@/components/site/RevealGroup';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { PackagesSection } from '@/components/photography/PackagesSection';
-import { PortfolioGrid, type PortfolioShot } from '@/components/photography/PortfolioGrid';
+import { GalleryGrid } from '@/components/photography/GalleryGrid';
 import { BlurFade } from '@/components/photography/BlurFade';
 import { FilmStrip, type FilmFrame } from '@/components/photography/FilmStrip';
 import { FOCUS_CARDS } from '@/components/photography/motion';
 import {
-  PHOTO_IMG as IMG,
+  buildGalleryItems,
   buildPackageCards,
   loadPhotographyGroups,
   loadPhotographyPackages,
@@ -22,7 +22,7 @@ import { SITE, OG_IMAGE, whatsappUrl } from '@/lib/seo/site';
 import { getT } from '@/lib/i18n/server';
 import { getWhatsAppNumber } from '@/lib/settings/whatsapp-number';
 import { getPhotographyPhotos } from '@/lib/settings/photography-photos';
-import { photosIn, slotUrl } from '@/lib/catalogue/photography';
+import { slotUrl } from '@/lib/catalogue/photography';
 
 export const runtime = 'edge';
 
@@ -115,80 +115,11 @@ export default async function PhotographyPage() {
     },
   ];
 
-  // The owner's gallery when there is one (mixed ratios cycle so it still reads as a contact
-  // sheet), else the built-in stand-in set.
-  const ASPECTS = ['aspect-[4/5]', 'aspect-video', 'aspect-square', 'aspect-[3/4]', 'aspect-[4/3]'];
-  const ownGallery = photosIn(photos, 'gallery');
-  const stockShots: PortfolioShot[] = [
-    {
-      src: IMG.weddingCouple,
-      alt: t('Bride and groom by the water'),
-      categories: ['weddings'],
-      aspect: 'aspect-[4/5]',
-    },
-    {
-      src: IMG.film2,
-      alt: t('Filming a wedding on the beach'),
-      categories: ['films'],
-      aspect: 'aspect-video',
-      badge: t('Film'),
-    },
-    {
-      src: IMG.couple,
-      alt: t('Couple on a Mauritius beach'),
-      categories: ['couples'],
-      aspect: 'aspect-square',
-    },
-    {
-      src: IMG.weddingDetail,
-      alt: t('Wedding details'),
-      categories: ['weddings'],
-      aspect: 'aspect-[3/4]',
-    },
-    {
-      src: IMG.family2,
-      alt: t('Family on the beach'),
-      categories: ['family'],
-      aspect: 'aspect-[4/3]',
-    },
-    {
-      src: IMG.aerial,
-      alt: t('Aerial view of a Mauritius lagoon'),
-      categories: ['films', 'weddings'],
-      aspect: 'aspect-[4/5]',
-      badge: t('Drone'),
-    },
-    {
-      src: IMG.weddingSunset,
-      alt: t('Couple at sunset'),
-      categories: ['weddings'],
-      aspect: 'aspect-[4/3]',
-    },
-    {
-      src: IMG.family,
-      alt: t('Family holiday portrait'),
-      categories: ['family'],
-      aspect: 'aspect-[3/4]',
-    },
-    {
-      src: IMG.passe,
-      alt: t('Island backdrop for a couples shoot'),
-      categories: ['couples'],
-      aspect: 'aspect-[4/3]',
-    },
-  ];
-
-  const shots: PortfolioShot[] = ownGallery.length
-    ? ownGallery.map((p, i) => ({
-        key: p.id,
-        src: p.url,
-        alt: p.alt ?? t('Photography in Mauritius'),
-        categories: p.tags,
-        aspect: ASPECTS[i % ASPECTS.length] ?? 'aspect-[4/5]',
-      }))
-    : stockShots;
-
-  const reel: FilmFrame[] = shots.map((s) => ({ key: s.key ?? s.src, src: s.src, alt: s.alt }));
+  const gallery = buildGalleryItems(t, photos);
+  // The reel under the hero: every gallery item that has a still (videos use their cover).
+  const reel: FilmFrame[] = gallery
+    .filter((g) => g.thumb)
+    .map((g) => ({ key: g.key, src: g.thumb as string, alt: g.alt }));
 
   const steps = [
     {
@@ -490,7 +421,16 @@ export default async function PhotographyPage() {
                 {t('Real light.')} <span className="text-teal-tint">{t('No filters needed.')}</span>
               </h2>
             </BlurFade>
-            <PortfolioGrid shots={shots} />
+            <GalleryGrid items={gallery} limit={9} />
+            <div className="mt-10 text-center">
+              <Link
+                href="/photography/gallery"
+                className="inline-flex items-center gap-2 rounded-full border border-white/30 px-6 py-3 text-sm font-bold text-white transition hover:border-white hover:bg-white/10"
+              >
+                {t('See the full gallery')}
+                <IconArrowRight width={16} height={16} />
+              </Link>
+            </div>
           </div>
         </section>
 
