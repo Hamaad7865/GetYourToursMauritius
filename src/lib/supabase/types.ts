@@ -1078,6 +1078,28 @@ type BusinessSettingsInsert = {
   updated_by?: string | null;
 };
 
+/** 20261009000000 — the /photography page photos, managed in /admin/photography. One row per photo in
+ *  a slot (hero, service-*, gallery, why, cta, pricing-hero); `tags` are the gallery filter tabs.
+ *  Public read, staff write. */
+type PhotographyPhotosRow = {
+  id: string;
+  slot: string;
+  url: string;
+  alt: string | null;
+  tags: string[];
+  position: number;
+  created_at: string;
+};
+type PhotographyPhotosInsert = {
+  id?: string;
+  slot: string;
+  url: string;
+  alt?: string | null;
+  tags?: string[];
+  position?: number;
+  created_at?: string;
+};
+
 /** 20260927000000 — the Documents module: standalone quotes/invoices/proformas/receipts + a
  *  self-building bill-to list + the numbering counter. Staff-only (RLS). See src/lib/documents/. */
 type DocumentClientsRow = {
@@ -1234,6 +1256,7 @@ export interface Database {
       >;
       error_logs: TableDef<ErrorLogsRow, ErrorLogsInsert>;
       business_settings: TableDef<BusinessSettingsRow, BusinessSettingsInsert>;
+      photography_photos: TableDef<PhotographyPhotosRow, PhotographyPhotosInsert>;
       document_clients: TableDef<DocumentClientsRow, DocumentClientsInsert>;
       documents: TableDef<DocumentsRow, DocumentsInsert>;
       document_counters: TableDef<DocumentCountersRow, DocumentCountersInsert>;

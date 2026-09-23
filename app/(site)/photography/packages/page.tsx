@@ -7,7 +7,6 @@ import { JsonLd } from '@/components/seo/JsonLd';
 import { Price } from '@/components/site/Price';
 import { PricingGuideCard } from '@/components/photography/PricingGuideCard';
 import {
-  PHOTO_IMG as IMG,
   buildPackageCards,
   loadPhotographyPackages,
   loadPrivateTours,
@@ -18,6 +17,8 @@ import { overrideMetadata } from '@/lib/seo/override';
 import { SITE, OG_IMAGE, whatsappUrl } from '@/lib/seo/site';
 import { getT } from '@/lib/i18n/server';
 import { getWhatsAppNumber } from '@/lib/settings/whatsapp-number';
+import { getPhotographyPhotos } from '@/lib/settings/photography-photos';
+import { slotUrl } from '@/lib/catalogue/photography';
 
 export const runtime = 'edge';
 
@@ -45,10 +46,11 @@ const DEFAULT_METADATA: Metadata = {
 
 export default async function PhotographyPackagesPage() {
   const t = await getT();
-  const [live, waNumber, privateTours] = await Promise.all([
+  const [live, waNumber, privateTours, photos] = await Promise.all([
     loadPhotographyPackages(),
     getWhatsAppNumber(),
     loadPrivateTours(3),
+    getPhotographyPhotos(),
   ]);
   const packages = buildPackageCards(t, live, waNumber);
   const groups = [
@@ -106,7 +108,7 @@ export default async function PhotographyPackagesPage() {
         <section className="relative isolate flex min-h-[420px] items-center overflow-hidden bg-ink text-white sm:min-h-[480px]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={IMG.hero}
+            src={slotUrl(photos, 'pricing-hero')}
             alt={t('A couple on a Mauritius beach at sunset')}
             fetchPriority="high"
             className="absolute inset-0 -z-10 h-full w-full object-cover object-[50%_60%]"

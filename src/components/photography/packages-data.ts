@@ -4,28 +4,15 @@ import { getLocale } from '@/lib/i18n/server';
 import { SITE, whatsappUrl } from '@/lib/seo/site';
 import {
   PHOTOGRAPHY_CATEGORY,
+  PHOTO_STOCK,
   isPhotographyCategory,
   photographyGroup,
 } from '@/lib/catalogue/photography';
 import type { TourSummary } from '@/lib/validation/tours';
 import type { PhotoPackage } from './PackagesSection';
 
-/** Stand-in photography (licensed Unsplash stock under /public/photography, plus our own island
- *  shots) until the team's own work replaces it. */
-export const PHOTO_IMG = {
-  hero: '/photography/wedding-beach.jpg',
-  weddingSunset: '/photography/wedding-sunset.jpg',
-  weddingCouple: '/photography/wedding-couple.jpg',
-  weddingDetail: '/photography/wedding-detail.jpg',
-  couple: '/photography/couple.jpg',
-  family: '/photography/family.jpg',
-  family2: '/photography/family-2.jpg',
-  film: '/photography/film.jpg',
-  film2: '/photography/film-2.jpg',
-  aerial: '/hero/islands/aerial-lagoon.jpg',
-  islet: '/hero/islands/ile-aux-aigrettes.jpg',
-  passe: '/hero/islands/ile-de-la-passe.jpg',
-};
+/** Built-in stand-in photos (see PHOTO_STOCK). */
+export const PHOTO_IMG = PHOTO_STOCK;
 
 /** The published packages — catalogue activities in the Photography category. */
 export async function loadPhotographyPackages(): Promise<TourSummary[]> {

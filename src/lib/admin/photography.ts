@@ -3,6 +3,7 @@ import {
   EMPTY_ACTIVITY,
   createActivity,
   slugify,
+  uploadActivityImage,
   type ActivityFormValues,
 } from '@/lib/admin/activity-write';
 import { setDailyCapacity } from '@/lib/admin/availability-write';
@@ -12,7 +13,11 @@ import {
   isPhotographyCategory,
   photographyAddOnSlugs,
   photographyGroup,
+  toPhotographyPhoto,
+  type GalleryTag,
+  type PhotoSlot,
   type PhotographyGroup,
+  type PhotographyPhoto,
 } from '@/lib/catalogue/photography';
 
 /* The /admin/photography module. A photography package IS a catalogue activity (category
@@ -209,4 +214,78 @@ export async function createPhotographyPackage(input: PhotographyPackageInput): 
   const id = await createActivity(photographyPackageValues(input));
   await setDailyCapacity(id, Math.max(1, Math.round(input.shootsPerDay)));
   return id;
+}
+
+/* ---------------------------------------------------------------------------------------------
+ * Page photos (photography_photos). Staff RLS grants insert/update/delete; the public reads them.
+ * ------------------------------------------------------------------------------------------- */
+
+export async function loadPhotographyPhotos(): Promise<PhotographyPhoto[]> {
+  const { data, error } = await getBrowserSupabase()
+    .from('photography_photos')
+    .select('id, slot, url, alt, tags, position')
+    .order('position')
+    .order('created_at');
+  if (error) throw error;
+  return (data ?? []).map(toPhotographyPhoto).filter((p): p is PhotographyPhoto => p !== null);
+}
+
+/** Upload a file to the public activity-images bucket (under photography/) and return its URL. */
+export function uploadPhotographyPhoto(file: File): Promise<string> {
+  return uploadActivityImage(file, 'photography');
+}
+
+/** Add a photo at the END of its slot. For a single-photo slot pass `replace` to swap the current
+ *  one out — the page shows the first photo of a slot, so leftovers would just be dead rows. */
+export async function addPhotographyPhoto(
+  slot: PhotoSlot,
+  input: { url: string; alt?: string | null; tags?: GalleryTag[] },
+  opts: { replace?: boolean } = {},
+): Promise<void> {
+  const sb = getBrowserSupabase();
+  if (opts.replace) {
+    const { error } = await sb.from('photography_photos').delete().eq('slot', slot);
+    if (error) throw error;
+  }
+  const { data: last, error: lastErr } = await sb
+    .from('photography_photos')
+    .select('position')
+    .eq('slot', slot)
+    .order('position', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (lastErr) throw lastErr;
+  const { error } = await sb.from('photography_photos').insert({
+    slot,
+    url: input.url.trim(),
+    alt: input.alt?.trim() || null,
+    tags: input.tags ?? [],
+    position: ((last?.position as number | undefined) ?? -1) + 1,
+  });
+  if (error) throw error;
+}
+
+export async function updatePhotographyPhoto(
+  id: string,
+  patch: { alt?: string | null; tags?: GalleryTag[] },
+): Promise<void> {
+  const row: { alt?: string | null; tags?: GalleryTag[] } = {};
+  if ('alt' in patch) row.alt = patch.alt?.trim() || null;
+  if (patch.tags) row.tags = patch.tags;
+  const { error } = await getBrowserSupabase().from('photography_photos').update(row).eq('id', id);
+  if (error) throw error;
+}
+
+export async function deletePhotographyPhoto(id: string): Promise<void> {
+  const { error } = await getBrowserSupabase().from('photography_photos').delete().eq('id', id);
+  if (error) throw error;
+}
+
+/** Re-number a slot in the given order (0, 1, 2…). */
+export async function reorderPhotographyPhotos(orderedIds: string[]): Promise<void> {
+  const sb = getBrowserSupabase();
+  for (const [position, id] of orderedIds.entries()) {
+    const { error } = await sb.from('photography_photos').update({ position }).eq('id', id);
+    if (error) throw error;
+  }
 }

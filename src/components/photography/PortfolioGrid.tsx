@@ -6,6 +6,8 @@ import { useT } from '@/components/site/PreferencesProvider';
 export type PortfolioCategory = 'weddings' | 'films' | 'couples' | 'family';
 
 export interface PortfolioShot {
+  /** Stable React key (the photo id); defaults to `src`. */
+  key?: string;
   src: string;
   alt: string;
   categories: PortfolioCategory[];
@@ -52,7 +54,10 @@ export function PortfolioGrid({ shots }: { shots: PortfolioShot[] }) {
 
       <div className="mt-12 columns-1 gap-5 sm:columns-2 lg:columns-3 [&>*]:mb-5">
         {visible.map((s) => (
-          <figure key={s.src} className="relative break-inside-avoid overflow-hidden rounded-2xl">
+          <figure
+            key={s.key ?? s.src}
+            className="relative break-inside-avoid overflow-hidden rounded-2xl"
+          >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={s.src}

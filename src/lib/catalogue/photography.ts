@@ -73,3 +73,145 @@ export const PHOTOGRAPHY_ADD_ON_PRESETS: { name: string; nameFr: string; priceEu
   { name: 'Same-day preview photos', nameFr: 'Aperçu photo le jour même', priceEur: 40 },
   { name: 'Printed album', nameFr: 'Album imprimé', priceEur: 180 },
 ];
+
+/* ---------------------------------------------------------------------------------------------
+ * Page photos (photography_photos, 20261009000000) — managed in /admin/photography.
+ * ------------------------------------------------------------------------------------------- */
+
+/** Built-in stand-in photos (licensed Unsplash stock under /public/photography, plus our own island
+ *  shots). Every slot falls back to one of these until the owner uploads their own. */
+export const PHOTO_STOCK = {
+  hero: '/photography/wedding-beach.jpg',
+  weddingSunset: '/photography/wedding-sunset.jpg',
+  weddingCouple: '/photography/wedding-couple.jpg',
+  weddingDetail: '/photography/wedding-detail.jpg',
+  couple: '/photography/couple.jpg',
+  family: '/photography/family.jpg',
+  family2: '/photography/family-2.jpg',
+  film: '/photography/film.jpg',
+  film2: '/photography/film-2.jpg',
+  aerial: '/hero/islands/aerial-lagoon.jpg',
+  islet: '/hero/islands/ile-aux-aigrettes.jpg',
+  passe: '/hero/islands/ile-de-la-passe.jpg',
+};
+
+export const GALLERY_TAGS = ['weddings', 'films', 'couples', 'family'] as const;
+export type GalleryTag = (typeof GALLERY_TAGS)[number];
+
+export type PhotoSlot =
+  | 'hero'
+  | 'service-weddings'
+  | 'service-films'
+  | 'service-couples'
+  | 'service-family'
+  | 'gallery'
+  | 'why'
+  | 'cta'
+  | 'pricing-hero';
+
+/** Every slot, in page order, with its admin label and stand-in (the gallery has many photos and
+ *  falls back to a built-in set instead). Mirrors the migration's CHECK list. */
+export const PHOTO_SLOTS: { id: PhotoSlot; label: string; hint: string; standIn: string | null }[] =
+  [
+    {
+      id: 'hero',
+      label: 'Hero',
+      hint: 'The big opening photo on /photography.',
+      standIn: PHOTO_STOCK.hero,
+    },
+    {
+      id: 'service-weddings',
+      label: 'What we shoot — Wedding photography',
+      hint: 'Large card.',
+      standIn: PHOTO_STOCK.weddingSunset,
+    },
+    {
+      id: 'service-films',
+      label: 'What we shoot — Wedding films',
+      hint: '',
+      standIn: PHOTO_STOCK.film,
+    },
+    {
+      id: 'service-couples',
+      label: 'What we shoot — Couples & holidays',
+      hint: '',
+      standIn: PHOTO_STOCK.couple,
+    },
+    {
+      id: 'service-family',
+      label: 'What we shoot — Family shoots',
+      hint: 'Wide card — a landscape photo works best.',
+      standIn: PHOTO_STOCK.family,
+    },
+    {
+      id: 'gallery',
+      label: 'The look — gallery',
+      hint: 'As many as you like. Tag each photo so it shows under the right filter tab.',
+      standIn: null,
+    },
+    {
+      id: 'why',
+      label: 'Why book with us',
+      hint: 'Shown beside the three reasons.',
+      standIn: PHOTO_STOCK.weddingSunset,
+    },
+    {
+      id: 'cta',
+      label: 'Closing banner',
+      hint: 'Background of the final “Pick your date” banner (darkened).',
+      standIn: PHOTO_STOCK.aerial,
+    },
+    {
+      id: 'pricing-hero',
+      label: 'Price list banner',
+      hint: 'The banner at the top of /photography/packages.',
+      standIn: PHOTO_STOCK.hero,
+    },
+  ];
+
+export function isPhotoSlot(v: unknown): v is PhotoSlot {
+  return PHOTO_SLOTS.some((s) => s.id === v);
+}
+
+export interface PhotographyPhoto {
+  id: string;
+  slot: PhotoSlot;
+  url: string;
+  alt: string | null;
+  tags: GalleryTag[];
+  position: number;
+}
+
+/** Photos of one slot, in display order (position, then insertion order as the reader returns it). */
+export function photosIn(photos: PhotographyPhoto[], slot: PhotoSlot): PhotographyPhoto[] {
+  return photos.filter((p) => p.slot === slot).sort((a, b) => a.position - b.position);
+}
+
+/** The URL a single-photo slot renders: the owner's first photo, else the built-in stand-in. */
+export function slotUrl(photos: PhotographyPhoto[], slot: Exclude<PhotoSlot, 'gallery'>): string {
+  return photosIn(photos, slot)[0]?.url ?? PHOTO_SLOTS.find((s) => s.id === slot)?.standIn ?? '';
+}
+
+/** Coerce a raw DB row into a PhotographyPhoto, or null if it can't be placed. */
+export function toPhotographyPhoto(row: {
+  id: unknown;
+  slot: unknown;
+  url: unknown;
+  alt?: unknown;
+  tags?: unknown;
+  position?: unknown;
+}): PhotographyPhoto | null {
+  if (typeof row.id !== 'string' || typeof row.url !== 'string' || !row.url.trim()) return null;
+  if (!isPhotoSlot(row.slot)) return null;
+  const tags = Array.isArray(row.tags)
+    ? row.tags.filter((t): t is GalleryTag => (GALLERY_TAGS as readonly unknown[]).includes(t))
+    : [];
+  return {
+    id: row.id,
+    slot: row.slot,
+    url: row.url,
+    alt: typeof row.alt === 'string' && row.alt.trim() ? row.alt : null,
+    tags,
+    position: typeof row.position === 'number' ? row.position : 0,
+  };
+}

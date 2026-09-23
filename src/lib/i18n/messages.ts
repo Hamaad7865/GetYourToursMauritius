@@ -2970,8 +2970,6 @@ export const fr: Record<string, string> = {
     'Nous ajoutons cette excursion à votre panier et ouvrons la séance photo pour le même jour.',
   'We’ll add this shoot to your cart and open the tour for the same day.':
     'Nous ajoutons cette séance à votre panier et ouvrons l’excursion pour le même jour.',
-  'All packages & prices': 'Toutes les formules et tarifs',
-  'Photography packages & prices': 'Formules photo et tarifs',
   'Your vows, the portraits and the first toast, told in stills.':
     'Vos vœux, les portraits et le premier toast, racontés en images.',
   'Photos and a cinematic film of the day, from the aisle to the sunset.':
@@ -3017,4 +3015,7 @@ export const fr: Record<string, string> = {
     'Indiquez-nous votre date et vos envies — nous vous proposerons la séance idéale.',
   'Back to Photography & film': 'Retour à Photo et vidéo',
   'See every package & price': 'Voir toutes les formules et tarifs',
+  Pricing: 'Tarifs',
+  'Photography pricing': 'Tarifs photo',
+  'Photography in Mauritius': 'Photographie à l’île Maurice',
 };

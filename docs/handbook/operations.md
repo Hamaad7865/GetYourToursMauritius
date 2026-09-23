@@ -36,6 +36,7 @@ All of this is in `/admin`:
 | Rental cars & scooters                       | **Rental**                                                                                             |
 | Photography packages (weddings, shoots)      | **Photography** → New package (price, guests, add-ons, shoots per day); edit it like any tour          |
 | Offer a photographer on a private tour       | **Tours** → tour → **Logistics** → **Photography add-ons**                                             |
+| Photos on /photography and the price list    | **Photography** → **Page photos** (upload, replace, tag and reorder the gallery)                       |
 | The order tour cards appear in               | **Tours** → filter to one category → drag them                                                         |
 | A page's Google title & description          | **SEO** (18 pages)                                                                                     |
 | Blog posts                                   | **Blog**                                                                                               |

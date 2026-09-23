@@ -3,8 +3,6 @@
 import Link from 'next/link';
 import { useCategories } from '@/lib/categories/useCategories';
 import { useT } from '@/components/site/PreferencesProvider';
-import { Price } from '@/components/site/Price';
-import { usePhotographyPackages } from '@/lib/photography/usePhotographyPackages';
 import { useHomeShowcase, showActivitiesOnHome } from './HomeShowcaseContext';
 import { IconChevron } from '@/components/ui/icons';
 
@@ -71,51 +69,18 @@ function CategoriesMenu() {
   );
 }
 
-/** The photography packages (live catalogue activities), then the price list and the overview. With
- *  no package published yet it still offers the two groups on the price list. */
+/** Photography's dropdown: one entry, the price list of every package (/photography/packages).
+ *  The "Photography" label itself opens the /photography overview. */
 function PhotographyMenu() {
   const t = useT();
-  const packages = usePhotographyPackages();
-  const link =
-    'block rounded-lg px-3 py-2 text-sm font-medium text-ink hover:bg-cream hover:text-teal';
   return (
-    <div className="invisible absolute left-0 top-full z-50 w-72 -translate-y-1 rounded-2xl border border-ink/10 bg-white p-2 opacity-0 shadow-[0_30px_60px_-25px_rgba(10,46,54,0.45)] transition group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100">
-      <p className="px-3 pb-1 pt-2 text-[10.5px] font-bold uppercase tracking-[0.22em] text-teal">
-        {t('Packages')}
-      </p>
-      {packages.length > 0 ? (
-        packages.slice(0, 8).map((p) => (
-          <Link
-            key={p.slug}
-            href={`/activities/${p.slug}`}
-            className={`${link} flex items-baseline justify-between gap-3`}
-          >
-            <span className="min-w-0 truncate">{p.title}</span>
-            {p.fromPriceEur != null && (
-              <span className="shrink-0 text-[12px] text-ink-muted">
-                {t('from')} <Price eur={p.fromPriceEur} />
-              </span>
-            )}
-          </Link>
-        ))
-      ) : (
-        <>
-          <Link href="/photography/packages#weddings" className={link}>
-            {t('Weddings')}
-          </Link>
-          <Link href="/photography/packages#shoots" className={link}>
-            {t('Holiday & family shoots')}
-          </Link>
-        </>
-      )}
-      <div className="mt-1 border-t border-ink/10 pt-1">
-        <Link href="/photography/packages" className={`${link} font-bold text-teal-dark`}>
-          {t('All packages & prices')}
-        </Link>
-        <Link href="/photography" className={link}>
-          {t('Photography & film')}
-        </Link>
-      </div>
+    <div className="invisible absolute left-0 top-full z-50 w-56 -translate-y-1 rounded-2xl border border-ink/10 bg-white p-2 opacity-0 shadow-[0_30px_60px_-25px_rgba(10,46,54,0.45)] transition group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100">
+      <Link
+        href="/photography/packages"
+        className="block rounded-lg px-3 py-2 text-sm font-medium text-ink hover:bg-cream hover:text-teal"
+      >
+        {t('Pricing')}
+      </Link>
     </div>
   );
 }

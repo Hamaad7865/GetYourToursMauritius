@@ -10,6 +10,7 @@ import {
 } from '@/lib/admin/photography';
 import { IconCamera, IconExternalLink, IconPlus } from '@/components/ui/icons';
 import { AdminError, AdminHeading, BTN_GHOST, BTN_PRIMARY, Card } from '@/components/admin/ui';
+import { PhotographyPhotosManager } from '@/components/admin/PhotographyPhotosManager';
 
 function eur(n: number | null): string {
   return n == null ? '—' : `€${n.toLocaleString('en-GB', { maximumFractionDigits: 2 })}`;
@@ -59,7 +60,7 @@ export function AdminPhotography() {
     <div>
       <AdminHeading
         title="Photography"
-        subtitle="Wedding, couples, holiday and family packages — booked online like any tour."
+        subtitle="Packages, page photos and tour pairings — packages are booked online like any tour."
         action={
           <div className="flex flex-wrap gap-2">
             <a href="/photography/packages" target="_blank" rel="noreferrer" className={BTN_GHOST}>
@@ -198,6 +199,8 @@ export function AdminPhotography() {
           </div>
         )}
       </Card>
+
+      {isStaff && <PhotographyPhotosManager />}
 
       <Card title="Offered on private tours" className="mb-5">
         <p className="mb-3 text-[13px] text-ink-muted">

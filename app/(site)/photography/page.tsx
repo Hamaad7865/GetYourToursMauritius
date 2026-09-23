@@ -17,6 +17,8 @@ import { overrideMetadata } from '@/lib/seo/override';
 import { SITE, OG_IMAGE, whatsappUrl } from '@/lib/seo/site';
 import { getT } from '@/lib/i18n/server';
 import { getWhatsAppNumber } from '@/lib/settings/whatsapp-number';
+import { getPhotographyPhotos } from '@/lib/settings/photography-photos';
+import { photosIn, slotUrl } from '@/lib/catalogue/photography';
 
 export const runtime = 'edge';
 
@@ -60,7 +62,11 @@ const DEFAULT_METADATA: Metadata = {
 
 export default async function PhotographyPage() {
   const t = await getT();
-  const [live, waNumber] = await Promise.all([loadPhotographyPackages(), getWhatsAppNumber()]);
+  const [live, waNumber, photos] = await Promise.all([
+    loadPhotographyPackages(),
+    getWhatsAppNumber(),
+    getPhotographyPhotos(),
+  ]);
   const packages = buildPackageCards(t, live, waNumber);
 
   const services = [
@@ -68,29 +74,33 @@ export default async function PhotographyPage() {
       n: '01',
       title: t('Wedding photography'),
       body: t('Getting ready to first dance, with one or two photographers.'),
-      img: IMG.weddingSunset,
+      img: slotUrl(photos, 'service-weddings'),
     },
     {
       n: '02',
       title: t('Wedding films'),
       body: t('A cinematic edit, drone aerials and a short teaser to share.'),
-      img: IMG.film,
+      img: slotUrl(photos, 'service-films'),
     },
     {
       n: '03',
       title: t('Couples & holidays'),
       body: t('Honeymoons, proposals, anniversaries and babymoons.'),
-      img: IMG.couple,
+      img: slotUrl(photos, 'service-couples'),
     },
     {
       n: '04',
       title: t('Family shoots'),
       body: t('Relaxed, kid-friendly sessions on the beach or at your villa.'),
-      img: IMG.family,
+      img: slotUrl(photos, 'service-family'),
     },
   ];
 
-  const shots: PortfolioShot[] = [
+  // The owner's gallery when there is one (mixed ratios cycle so it still reads as a contact
+  // sheet), else the built-in stand-in set.
+  const ASPECTS = ['aspect-[4/5]', 'aspect-video', 'aspect-square', 'aspect-[3/4]', 'aspect-[4/3]'];
+  const ownGallery = photosIn(photos, 'gallery');
+  const stockShots: PortfolioShot[] = [
     {
       src: IMG.weddingCouple,
       alt: t('Bride and groom by the water'),
@@ -148,6 +158,16 @@ export default async function PhotographyPage() {
       aspect: 'aspect-[4/3]',
     },
   ];
+
+  const shots: PortfolioShot[] = ownGallery.length
+    ? ownGallery.map((p, i) => ({
+        key: p.id,
+        src: p.url,
+        alt: p.alt ?? t('Photography in Mauritius'),
+        categories: p.tags,
+        aspect: ASPECTS[i % ASPECTS.length] ?? 'aspect-[4/5]',
+      }))
+    : stockShots;
 
   const steps = [
     {
@@ -251,7 +271,7 @@ export default async function PhotographyPage() {
         <section className="relative isolate flex h-[min(86svh,780px)] min-h-[560px] items-end overflow-hidden bg-ink text-white">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={IMG.hero}
+            src={slotUrl(photos, 'hero')}
             alt={t('A couple on a Mauritius beach at sunset')}
             fetchPriority="high"
             className="absolute inset-0 -z-10 h-full w-full object-cover"
@@ -447,7 +467,7 @@ export default async function PhotographyPage() {
             <div className="relative min-h-[320px] overflow-hidden rounded-2xl">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={IMG.weddingSunset}
+                src={slotUrl(photos, 'why')}
                 alt={t('Couple at sunset')}
                 loading="lazy"
                 className="absolute inset-0 h-full w-full object-cover"
@@ -521,7 +541,7 @@ export default async function PhotographyPage() {
         <section className="relative isolate overflow-hidden px-6 py-20 text-center text-white sm:py-28">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={IMG.aerial}
+            src={slotUrl(photos, 'cta')}
             alt=""
             loading="lazy"
             className="absolute inset-0 -z-10 h-full w-full object-cover"

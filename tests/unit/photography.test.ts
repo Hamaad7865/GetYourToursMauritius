@@ -6,6 +6,11 @@ import {
   isPhotographyCategory,
   photographyAddOnSlugs,
   photographyGroup,
+  PHOTO_SLOTS,
+  photosIn,
+  slotUrl,
+  toPhotographyPhoto,
+  type PhotographyPhoto,
 } from '@/lib/catalogue/photography';
 import { breadcrumbTrail } from '@/lib/catalogue/detail';
 import { activityExtraSchema } from '@/lib/validation/tours';
@@ -118,5 +123,61 @@ describe('the admin "New package" template', () => {
       extra: Record<string, unknown>;
     };
     expect(none.extra).not.toHaveProperty('photographyAddOns');
+  });
+});
+
+describe('page photos (photography_photos)', () => {
+  const rows = [
+    {
+      id: '1',
+      slot: 'gallery',
+      url: 'https://x/b.jpg',
+      alt: '',
+      tags: ['films', 'pets'],
+      position: 1,
+    },
+    {
+      id: '2',
+      slot: 'gallery',
+      url: 'https://x/a.jpg',
+      alt: 'Vows',
+      tags: ['weddings'],
+      position: 0,
+    },
+    { id: '3', slot: 'hero', url: 'https://x/hero.jpg', alt: null, tags: [], position: 0 },
+    { id: '4', slot: 'footer', url: 'https://x/nope.jpg', alt: null, tags: [], position: 0 },
+    { id: '5', slot: 'why', url: '  ', alt: null, tags: [], position: 0 },
+  ];
+  const photos = rows.map(toPhotographyPhoto).filter((p): p is PhotographyPhoto => p !== null);
+
+  it('drops rows it cannot place and unknown tags', () => {
+    expect(photos.map((p) => p.id)).toEqual(['1', '2', '3']);
+    expect(photos.find((p) => p.id === '1')?.tags).toEqual(['films']);
+    expect(photos.find((p) => p.id === '1')?.alt).toBeNull();
+  });
+
+  it('orders a slot by position', () => {
+    expect(photosIn(photos, 'gallery').map((p) => p.id)).toEqual(['2', '1']);
+  });
+
+  it("uses the owner's photo, else the built-in stand-in", () => {
+    expect(slotUrl(photos, 'hero')).toBe('https://x/hero.jpg');
+    expect(slotUrl(photos, 'why')).toBe(PHOTO_SLOTS.find((s) => s.id === 'why')?.standIn);
+  });
+
+  it('lists exactly the slots the migration allows', () => {
+    expect(PHOTO_SLOTS.map((s) => s.id).sort()).toEqual(
+      [
+        'cta',
+        'gallery',
+        'hero',
+        'pricing-hero',
+        'service-couples',
+        'service-family',
+        'service-films',
+        'service-weddings',
+        'why',
+      ].sort(),
+    );
   });
 });
