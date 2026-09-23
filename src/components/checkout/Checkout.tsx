@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { Logo } from '@/components/site/Logo';
 import { Price } from '@/components/site/Price';
-import { isPhotographyCategory } from '@/lib/catalogue/photography';
+import { isPhotographyCategory, photographyDepositMinor } from '@/lib/catalogue/photography';
 import { useT, useMoney } from '@/components/site/PreferencesProvider';
 import { PickupDropoffMap } from '@/components/maps/PickupDropoffMap';
 import { childSeatsCost, regionFromCoords, transportFare } from '@/lib/services/pricing';
@@ -527,6 +527,12 @@ export function Checkout() {
   const expectedTotal = total ? Number(total) + liveTransport : null;
   // Numeric EUR amount for <Price>/money() — null when we have nothing to show yet.
   const displayTotalNum = serverTotal != null ? serverTotal : expectedTotal;
+  // Photography: what the card is charged now — half the total, the SQL trigger's figure mirrored for
+  // DISPLAY (set_photography_deposit charges it; the pay page shows the exact server amount).
+  const photoDeposit =
+    isPhotoShoot && displayTotalNum != null
+      ? photographyDepositMinor(Math.round(displayTotalNum * 100)) / 100
+      : null;
 
   // Runs only in the browser, only after hydration — the one safe place to read a clock-and-storage
   // derived value. Replaces the SSR-safe 30:00 seed above with what's actually left on the hold.
@@ -1306,6 +1312,23 @@ export function Checkout() {
         chargeAmountMinor?: number;
         chargeCurrency?: string;
       };
+      // A photography booking is charged its 50% deposit, which the database sets at COMMIT — after
+      // api_book returned — so read it back from the committed booking for the pay page's "€X deposit
+      // now" line. Display only (the server charges its pinned amount); a failed read just drops the
+      // line to the generic MUR sentence.
+      let depositEurMinor: number | undefined;
+      if (isPhotoShoot && link.checkoutId) {
+        try {
+          const b = await fetch(`/api/v1/bookings/${encodeURIComponent(ref)}`, { headers }).then(
+            (r) => parseApiJson<{ depositEur?: number }>(r),
+          );
+          if (b.ok && typeof b.data?.depositEur === 'number' && b.data.depositEur > 0) {
+            depositEurMinor = Math.round(b.data.depositEur * 100);
+          }
+        } catch {
+          /* generic disclosure */
+        }
+      }
       if (link.checkoutId) {
         // Embedded Peach checkout: mount the widget on the pay step. The booking is confirmed by
         // the verified webhook, never by this navigation.
@@ -1322,6 +1345,7 @@ export function Checkout() {
             chargeCurrency: link.chargeCurrency,
             chargeAmountMinor: link.chargeAmountMinor,
             totalEurMinor: displayTotalNum != null ? Math.round(displayTotalNum * 100) : undefined,
+            ...(depositEurMinor ? { depositEurMinor } : {}),
           });
         }
         window.location.href = `/bookings/${ref}/pay?cid=${encodeURIComponent(link.checkoutId)}`;
@@ -2087,7 +2111,9 @@ export function Checkout() {
                 </span>
                 <span className="flex items-center gap-1.5">
                   <IconCheck width={15} height={15} className="text-teal" />{' '}
-                  {t('Free cancellation up to 24 hours before')}
+                  {isPhotoShoot
+                    ? t('50% now, 50% when your photos are delivered')
+                    : t('Free cancellation up to 24 hours before')}
                 </span>
               </div>
 
@@ -2138,7 +2164,15 @@ export function Checkout() {
                   <Spinner label={t('Loading')} />
                 ) : displayTotalNum != null ? (
                   <span>
-                    {t('Pay')} <Price eur={displayTotalNum} />
+                    {isPhotoShoot && photoDeposit != null ? (
+                      <>
+                        {t('Pay deposit')} <Price eur={photoDeposit} />
+                      </>
+                    ) : (
+                      <>
+                        {t('Pay')} <Price eur={displayTotalNum} />
+                      </>
+                    )}
                   </span>
                 ) : (
                   t('Continue to payment')
@@ -2244,9 +2278,27 @@ export function Checkout() {
               {displayTotalNum != null ? <Price eur={displayTotalNum} /> : '—'}
             </span>
           </div>
+          {isPhotoShoot && photoDeposit != null && displayTotalNum != null && (
+            <div className="mt-3 space-y-1 rounded-xl bg-teal-tint/50 px-3 py-2.5 text-[13px]">
+              <div className="flex justify-between gap-3">
+                <span className="font-bold text-ink">{t('Pay now (50% deposit)')}</span>
+                <span className="font-bold text-ink">
+                  <Price eur={photoDeposit} />
+                </span>
+              </div>
+              <div className="flex justify-between gap-3 text-ink-muted">
+                <span>{t('When your photos are delivered')}</span>
+                <span>
+                  <Price eur={Math.round((displayTotalNum - photoDeposit) * 100) / 100} />
+                </span>
+              </div>
+            </div>
+          )}
           <div className="mt-3 flex items-center gap-2 text-[12.5px] text-ink/80">
             <IconCheck width={15} height={15} className="text-teal" />{' '}
-            {t('Free cancellation up to 24 hours before')}
+            {isPhotoShoot
+              ? t('The deposit books your date and is non-refundable.')
+              : t('Free cancellation up to 24 hours before')}
           </div>
         </aside>
       </main>
@@ -2298,7 +2350,15 @@ export function Checkout() {
               <Spinner label={t('Loading')} />
             ) : displayTotalNum != null ? (
               <span>
-                {t('Pay')} <Price eur={displayTotalNum} />
+                {isPhotoShoot && photoDeposit != null ? (
+                  <>
+                    {t('Pay deposit')} <Price eur={photoDeposit} />
+                  </>
+                ) : (
+                  <>
+                    {t('Pay')} <Price eur={displayTotalNum} />
+                  </>
+                )}
               </span>
             ) : (
               t('Continue to payment')

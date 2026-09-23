@@ -5,6 +5,7 @@ import { useBooking } from './BookingProvider';
 import { durationLabel } from '@/lib/catalogue/detail';
 import { badgeIcon } from '@/components/ui/badge-icons';
 import { RevealGroup } from '@/components/site/RevealGroup';
+import { isPhotographyCategory } from '@/lib/catalogue/photography';
 import {
   IconBolt,
   IconCalendar,
@@ -83,7 +84,8 @@ export function QuickFacts({
   if (cancellationPolicy) {
     facts.push({
       icon: <IconCalendar width={22} height={22} />,
-      title: t('Free cancellation'),
+      // A photography package's terms are a deposit, not free cancellation.
+      title: isPhotographyCategory(activity.category) ? t('Booking terms') : t('Free cancellation'),
       sub: cancellationPolicy,
     });
   }

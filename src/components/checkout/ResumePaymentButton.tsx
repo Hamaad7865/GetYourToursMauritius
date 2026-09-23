@@ -32,7 +32,7 @@ export function useResumePayment(
    *  'change_addon' the price difference on a staff-proposed move to a different tour — both are
    *  separate payments rows on the same booking, so the booking's own already-paid state is no
    *  obstacle (api_create_payment scopes its guards by purpose). */
-  purpose?: 'booking' | 'pickup_addon' | 'change_addon',
+  purpose?: 'booking' | 'pickup_addon' | 'change_addon' | 'balance',
   /** EUR deposit + total for a genuine PARTIAL deposit (0 < deposit < total). When present, the pay
    *  page discloses "€X deposit now, €Y balance later" instead of a bare MUR figure that can read like
    *  a bad exchange rate. A full charge leaves this undefined. */
@@ -81,7 +81,11 @@ export function useResumePayment(
       }
 
       if (!res.ok) {
-        if (res.error?.code === 'booking_not_payable') {
+        // 'balance_already_paid': the balance cleared in another tab — nothing left to open.
+        if (
+          res.error?.code === 'booking_not_payable' ||
+          res.error?.code === 'balance_already_paid'
+        ) {
           setNotPayable(true);
           setError(t('This booking is already paid or has expired.'));
           setBusy(false);
@@ -154,7 +158,7 @@ export function ResumePaymentButton({
   /** Which money to reopen. Defaults to the booking's own payment; pass 'change_addon' to pay the
    *  difference on an open tour change, whose booking is confirmed + paid and therefore unpayable
    *  under the default purpose. */
-  purpose?: 'booking' | 'pickup_addon' | 'change_addon';
+  purpose?: 'booking' | 'pickup_addon' | 'change_addon' | 'balance';
   /** EUR deposit + total (minor units) for a PARTIAL-deposit booking, so the pay page can disclose the
    *  deposit/balance split. Pass both; a full charge (deposit 0 or == total) discloses nothing extra. */
   depositMinor?: number;

@@ -81,8 +81,8 @@ export default async function PhotographyPackagesPage() {
       body: t('Drone aerials, an extra hour, a same-day preview or a printed album.'),
     },
     {
-      title: t('Pay securely'),
-      body: t('Checkout by card, with instant confirmation — alongside any tours in your cart.'),
+      title: t('Pay 50% to book'),
+      body: t('Pay half by card to secure your date — the rest when your photos are delivered.'),
     },
   ];
 

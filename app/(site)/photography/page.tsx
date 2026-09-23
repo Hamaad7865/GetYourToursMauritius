@@ -193,7 +193,7 @@ export default async function PhotographyPage() {
   const steps = [
     {
       title: t('Book online'),
-      body: t('Pick a package, a date and a time, and pay securely by card.'),
+      body: t('Pick a package and a date, and pay a 50% deposit by card to book.'),
     },
     {
       title: t('Plan together'),
@@ -205,7 +205,9 @@ export default async function PhotographyPage() {
     },
     {
       title: t('Your gallery'),
-      body: t('Your edited photos and films arrive in a private online gallery.'),
+      body: t(
+        'Your edited photos and films arrive in a private online gallery — the balance is due then.',
+      ),
     },
   ];
 
@@ -268,9 +270,15 @@ export default async function PhotographyPage() {
       ),
     },
     {
+      q: t('How does payment work?'),
+      a: t(
+        'You pay 50% by card to book your date, and the other 50% when your photos are delivered — we email you a link to pay it online.',
+      ),
+    },
+    {
       q: t('Can we cancel or change the date?'),
       a: t(
-        'Every package shows its cancellation policy before you pay. To change your date, message us and we’ll move it if the new day is free.',
+        'The 50% deposit secures your date and is non-refundable. To change your date, message us and we’ll move it if the new day is free.',
       ),
     },
     {

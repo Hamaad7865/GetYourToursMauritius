@@ -11,7 +11,11 @@ import { Price } from '@/components/site/Price';
 import { SIGHTSEEING_SUV_MAX, CHILD_SEAT_EUR } from '@/lib/services/pricing';
 import { durationLabel } from '@/lib/catalogue/detail';
 import type { AltStop } from '@/lib/validation/tours';
-import { crossSellHref, isPhotographyCategory } from '@/lib/catalogue/photography';
+import {
+  crossSellHref,
+  isPhotographyCategory,
+  photographyDepositMinor,
+} from '@/lib/catalogue/photography';
 import {
   IconArrowRight,
   IconCamera,
@@ -384,6 +388,13 @@ export function BookingOptionCard() {
               {b.total != null ? <Price eur={b.total} /> : '—'}
             </div>
             <div className="text-[12px] text-ink-muted">{t('All taxes and fees included')}</div>
+            {isPhoto && b.total != null && b.total > 0 && (
+              <div className="mt-0.5 text-[12px] font-semibold text-teal-dark">
+                {t('{deposit} today to book · the rest on delivery', {
+                  deposit: money(photographyDepositMinor(Math.round(b.total * 100)) / 100),
+                })}
+              </div>
+            )}
           </div>
           <div className="flex flex-col items-stretch gap-2">
             <button
@@ -460,7 +471,9 @@ export function BookingOptionCard() {
 
       <div className="mt-3 flex items-center gap-2 text-[12.5px] text-ink/80">
         <IconCheck width={15} height={15} className="text-teal" />{' '}
-        {t('Free cancellation up to 24 hours before')}
+        {isPhoto
+          ? t('Pay 50% now to book — the rest when your photos are delivered.')
+          : t('Free cancellation up to 24 hours before')}
       </div>
     </div>
   );

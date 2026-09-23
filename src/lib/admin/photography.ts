@@ -181,10 +181,11 @@ export function photographyPackageValues(input: PhotographyPackageInput): Activi
     pickupAvailable: false,
     isPrivate: true,
     pricingMode: 'per_person',
-    // Must match what the platform enforces: the booking card, quick facts and api_cancel_booking
-    // all use a 24-hour free-cancellation window. A longer wedding window needs that SQL to read
-    // a per-activity setting first — writing it here alone would promise a policy nobody applies.
-    cancellationPolicy: 'Free cancellation up to 24 hours before your shoot for a full refund.',
+    // Must match what the platform enforces: set_photography_deposit charges 50% up front, and
+    // api_mark_refunded keeps a genuine partial deposit on cancellation — so the terms say exactly
+    // that, never "free cancellation".
+    cancellationPolicy:
+      'A 50% deposit books your date and is non-refundable. The balance is paid when your photos are delivered.',
     ...packageSeo(title, input.summary),
     status: input.status,
     languages: ['English', 'French'],
@@ -303,4 +304,89 @@ export async function reorderPhotographyPhotos(orderedIds: string[]): Promise<vo
     const { error } = await sb.from('photography_photos').update({ position }).eq('id', id);
     if (error) throw error;
   }
+}
+
+/* ---------------------------------------------------------------------------------------------
+ * Balances to collect. A photography booking is paid 50% up front (set_photography_deposit,
+ * 20261010000000); the rest is due when the photos are delivered. Staff RLS reads bookings.
+ * ------------------------------------------------------------------------------------------- */
+
+export interface PhotoBalanceRow {
+  ref: string;
+  customerName: string;
+  customerEmail: string;
+  packageTitle: string;
+  shootDate: string | null;
+  totalEur: number;
+  depositEur: number;
+  balanceDueEur: number;
+}
+
+/** Confirmed photography bookings that still owe their balance, shoot date first. */
+export async function loadPhotoBalances(): Promise<PhotoBalanceRow[]> {
+  const { data, error } = await getBrowserSupabase()
+    .from('booking_items')
+    .select(
+      'booking_id, bookings!inner(ref, status, customer_name, customer_email, total_minor, deposit_minor, balance_due_minor), activity_options!inner(activities!inner(title, category)), session_occurrences(starts_at)' as never,
+    )
+    .eq('activity_options.activities.category' as never, PHOTOGRAPHY_CATEGORY as never)
+    .eq('bookings.status' as never, 'confirmed' as never);
+  if (error) throw error;
+  type Item = {
+    booking_id: string;
+    bookings: {
+      ref: string;
+      customer_name: string;
+      customer_email: string;
+      total_minor: number;
+      deposit_minor: number | null;
+      balance_due_minor: number | null;
+    };
+    activity_options: { activities: { title: string } };
+    session_occurrences: { starts_at: string } | null;
+  };
+  const seen = new Set<string>();
+  const rows: PhotoBalanceRow[] = [];
+  for (const it of (data ?? []) as unknown as Item[]) {
+    if (seen.has(it.booking_id)) continue;
+    seen.add(it.booking_id);
+    const b = it.bookings;
+    const deposit = Number(b.deposit_minor ?? 0);
+    const balance = Number(b.balance_due_minor ?? 0);
+    if (!(deposit > 0 && deposit < Number(b.total_minor)) || balance <= 0) continue;
+    rows.push({
+      ref: b.ref,
+      customerName: b.customer_name,
+      customerEmail: b.customer_email,
+      packageTitle: it.activity_options?.activities?.title ?? '',
+      shootDate: it.session_occurrences?.starts_at ?? null,
+      totalEur: Number(b.total_minor) / 100,
+      depositEur: deposit / 100,
+      balanceDueEur: balance / 100,
+    });
+  }
+  return rows.sort((a, b) => (a.shootDate ?? '').localeCompare(b.shootDate ?? ''));
+}
+
+/** "Photos delivered — request balance": emails the guest a link to their booking page. */
+export async function requestPhotoBalance(ref: string): Promise<{ url: string; emailed: boolean }> {
+  const { data: auth } = await getBrowserSupabase().auth.getSession();
+  const token = auth.session?.access_token;
+  const res = await fetch(`/api/v1/admin/bookings/${encodeURIComponent(ref)}/photo-balance`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      ...(token ? { authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({}),
+  });
+  const body = (await res.json().catch(() => null)) as {
+    ok?: boolean;
+    data?: { url?: string; emailed?: boolean };
+    error?: { message?: string };
+  } | null;
+  if (!res.ok || !body?.ok || !body.data?.url) {
+    throw new Error(body?.error?.message ?? 'Could not request the balance.');
+  }
+  return { url: body.data.url, emailed: Boolean(body.data.emailed) };
 }

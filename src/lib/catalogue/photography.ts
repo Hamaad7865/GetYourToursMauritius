@@ -20,6 +20,21 @@ export function isPhotographyCategory(category: string | null | undefined): bool
   return (category ?? '').trim().toLowerCase() === PHOTOGRAPHY_CATEGORY.toLowerCase();
 }
 
+/**
+ * Photography is paid in two halves: this share up front to book the date (non-refundable — the
+ * existing partial-deposit rule in api_mark_refunded), the rest when the photos are delivered.
+ * The charge itself is set in SQL by `set_photography_deposit()` (20261010000000); this is its
+ * DISPLAY mirror only, pinned to it by tests/integration/photography-deposit.test.ts.
+ */
+export const PHOTOGRAPHY_DEPOSIT_PERCENT = 50;
+
+/** Half the total rounded UP to the cent — `(total + 1) / 2` in integer minor units, exactly as the
+ *  trigger computes it. A total under 2 cents carries no deposit (paid in full), as in SQL. */
+export function photographyDepositMinor(totalMinor: number): number {
+  const total = Math.round(totalMinor);
+  return total < 2 ? 0 : Math.floor((total + 1) / 2);
+}
+
 export type PhotographyGroup = 'weddings' | 'shoots';
 
 /** The `activities.extra` key holding a package's group, chosen in the admin (New package → Type,

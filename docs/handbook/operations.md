@@ -37,6 +37,7 @@ All of this is in `/admin`:
 | Photography packages (weddings, shoots)      | **Photography** → New package (price, guests, add-ons, shoots per day); edit it like any tour          |
 | Offer a photographer on a private tour       | **Tours** → tour → **Logistics** → **Photography add-ons**                                             |
 | Photos on /photography and the price list    | **Photography** → **Page photos** (upload, replace, tag and reorder the gallery)                       |
+| Collect a photography balance (photos done)  | **Photography** → **Balances to collect** → **Request balance** (emails the guest a pay link)          |
 | The order tour cards appear in               | **Tours** → filter to one category → drag them                                                         |
 | A page's Google title & description          | **SEO** (18 pages)                                                                                     |
 | Blog posts                                   | **Blog**                                                                                               |
@@ -45,6 +46,13 @@ All of this is in `/admin`:
 
 Prices are typed in euros and take effect immediately — the server prices every new quote from those
 rows.
+
+**Photography is paid in two halves.** A guest booking any Photography package pays a **50% deposit**
+by card to book the date — it is **non-refundable** (the same rule as a quote deposit: "Mark refunded"
+keeps it and refunds only anything paid beyond it). When the gallery is ready, open **Photography →
+Balances to collect** and press **Request balance**: the guest is emailed a link to their booking, where
+they pay the rest by card. They receive a deposit receipt first and the full VAT invoice once the balance
+is paid. The 50% is set by the database, not the page, so it cannot be skipped.
 
 **The optional supplements** are the extras a guest can add to a tour while booking, and you own both
 halves of each: type the name ("Lobster for lunch", "Snorkel gear") and the price per person — add as

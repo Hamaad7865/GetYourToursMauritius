@@ -1163,6 +1163,43 @@ export const apiPaths: ZodOpenApiPathsObject = {
       },
     },
   },
+  '/admin/bookings/{ref}/photo-balance': {
+    post: {
+      operationId: 'requestPhotoBalance',
+      summary:
+        'Email a photography guest their balance link once the photos are delivered (staff-only)',
+      description:
+        'A photography booking is paid in two halves: the 50% deposit (set by the ' +
+        'set_photography_deposit trigger) confirms it, and the balance is due on delivery. This ' +
+        'emails the guest a link to their OWN booking page, where the signed-in owner pays the ' +
+        'balance (create_payment purpose=balance — the amount is the booking’s balance_due_minor, ' +
+        'never anything sent here). No token is minted. STAFF ONLY via profiles.role; "seo" is ' +
+        'excluded. A send failure still returns 200 with emailed:false and the URL to copy.',
+      tags: ['Bookings'],
+      security: [{ bearerAuth: [] }],
+      requestParams: { path: refParam },
+      requestBody: jsonBody(z.object({})),
+      responses: {
+        '200': okJson(
+          z.object({
+            url: z.string().describe('The guest’s booking page, where they pay the balance'),
+            emailed: z.boolean(),
+            balanceDueMinor: z.number().int(),
+          }),
+          'The balance request was sent (or the link returned to copy)',
+        ),
+        '400': errorResponse('Invalid request'),
+        '401': errorResponse('Authentication required'),
+        '403': errorResponse('Staff only'),
+        '404': errorResponse('No such booking'),
+        '409': errorResponse(
+          'Not a photography booking, not confirmed, paid in full, or nothing is owed',
+        ),
+        '429': errorResponse('Too many requests'),
+        '500': errorResponse('Site URL is not configured'),
+      },
+    },
+  },
   '/admin/bookings/{ref}/installments/{seq}/remind': {
     post: {
       operationId: 'sendInstallmentReminder',

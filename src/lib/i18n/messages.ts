@@ -3063,4 +3063,44 @@ export const fr: Record<string, string> = {
     'Ajoutez l’adresse, ou choisissez « Je ne sais pas encore ».',
   'So your photographer can find you at the hotel.':
     'Pour que votre photographe vous trouve à l’hôtel.',
+
+  // Photography deposit (50% to book, 50% on delivery)
+  'The balance is due when your photos are delivered — we’ll email you as soon as they’re ready.':
+    'Le solde est dû à la livraison de vos photos — nous vous écrirons dès qu’elles seront prêtes.',
+  'Cancel {name}’s booking? The {deposit} deposit is non-refundable and is kept; anything paid beyond it goes back to the guest’s card.':
+    'Annuler la réservation de {name} ? L’acompte de {deposit} n’est pas remboursable et est conservé ; tout montant payé en plus est reversé sur la carte du client.',
+  'Cancel this booking? Your {deposit} deposit is non-refundable; anything you paid beyond it is refunded to your card within a few business days.':
+    'Annuler cette réservation ? Votre acompte de {deposit} n’est pas remboursable ; tout montant payé en plus est remboursé sur votre carte sous quelques jours ouvrés.',
+  'Pay now (50% deposit)': 'À payer maintenant (acompte de 50 %)',
+  'When your photos are delivered': 'À la livraison de vos photos',
+  'The deposit books your date and is non-refundable.':
+    'L’acompte réserve votre date et n’est pas remboursable.',
+  'Pay deposit': 'Payer l’acompte',
+  '{deposit} today to book · the rest on delivery':
+    '{deposit} aujourd’hui pour réserver · le reste à la livraison',
+  'Pay 50% now to book — the rest when your photos are delivered.':
+    'Payez 50 % maintenant pour réserver — le reste à la livraison de vos photos.',
+  'Booking terms': 'Conditions de réservation',
+  'Pick a package and a date, and pay a 50% deposit by card to book.':
+    'Choisissez une formule et une date, puis payez un acompte de 50 % par carte pour réserver.',
+  'Your edited photos and films arrive in a private online gallery — the balance is due then.':
+    'Vos photos et films retouchés arrivent dans une galerie privée en ligne — le solde est dû à ce moment-là.',
+  'How does payment work?': 'Comment se passe le paiement ?',
+  'You pay 50% by card to book your date, and the other 50% when your photos are delivered — we email you a link to pay it online.':
+    'Vous payez 50 % par carte pour réserver votre date, et les 50 % restants à la livraison de vos photos — nous vous envoyons un lien pour payer en ligne.',
+  'The 50% deposit secures your date and is non-refundable. To change your date, message us and we’ll move it if the new day is free.':
+    'L’acompte de 50 % garantit votre date et n’est pas remboursable. Pour changer de date, écrivez-nous et nous la déplaçons si le nouveau jour est libre.',
+  'Pay 50% to book': 'Payez 50 % pour réserver',
+  'Pay half by card to secure your date — the rest when your photos are delivered.':
+    'Payez la moitié par carte pour garantir votre date — le reste à la livraison de vos photos.',
+  'your photography booking': 'votre séance photo',
+  'Your photos are ready — balance for booking {ref}':
+    'Vos photos sont prêtes — solde de la réservation {ref}',
+  'Your photos from {package} are ready. To receive your gallery, please pay the remaining balance of {amount}.':
+    'Vos photos de {package} sont prêtes. Pour recevoir votre galerie, merci de régler le solde restant de {amount}.',
+  'Open your booking and press “Pay the balance” — you can pay securely by card in a minute.':
+    'Ouvrez votre réservation et cliquez sur « Payer le solde » — le paiement sécurisé par carte prend une minute.',
+  'Thank you for shooting with {operator}!': 'Merci d’avoir choisi {operator} pour vos photos !',
+  '50% now, 50% when your photos are delivered':
+    '50 % maintenant, 50 % à la livraison de vos photos',
 };

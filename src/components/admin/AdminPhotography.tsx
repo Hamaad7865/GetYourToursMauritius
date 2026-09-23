@@ -11,6 +11,7 @@ import {
 import { IconCamera, IconExternalLink, IconPlus } from '@/components/ui/icons';
 import { AdminError, AdminHeading, BTN_GHOST, BTN_PRIMARY, Card } from '@/components/admin/ui';
 import { PhotographyPhotosManager } from '@/components/admin/PhotographyPhotosManager';
+import { PhotoBalancesCard } from '@/components/admin/PhotoBalancesCard';
 
 function eur(n: number | null): string {
   return n == null ? '—' : `€${n.toLocaleString('en-GB', { maximumFractionDigits: 2 })}`;
@@ -200,6 +201,8 @@ export function AdminPhotography() {
         )}
       </Card>
 
+      {isStaff && <PhotoBalancesCard />}
+
       {isStaff && <PhotographyPhotosManager />}
 
       <Card title="Offered on private tours" className="mb-5">
@@ -242,8 +245,13 @@ export function AdminPhotography() {
             per head, up to the maximum) and any <b>add-ons</b> (each charged once per shoot).
           </li>
           <li>
-            Payment, confirmation emails, the calendar and invoices work exactly like a tour — the
-            booking appears in Bookings and Calendar.
+            Payment is in two halves: the guest pays a <b>50% deposit</b> by card to book (it is
+            non-refundable), and the rest when the photos are delivered — use <b>Request balance</b>{' '}
+            above. They get a deposit receipt first and the full invoice once the balance is paid.
+          </li>
+          <li>
+            Confirmation emails, the calendar and invoices work exactly like a tour — the booking
+            appears in Bookings and Calendar.
           </li>
           <li>
             Package titles or summaries mentioning “wedding” or “film” are listed under Weddings;

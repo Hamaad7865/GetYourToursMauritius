@@ -22,6 +22,8 @@ import {
 } from '@/lib/admin/photography';
 import { serviceJsonLd } from '@/lib/seo/jsonld';
 import { SEO_PAGES } from '@/lib/seo/page-registry';
+import { renderPhotoBalanceEmail } from '@/lib/email/photography';
+import { SITE } from '@/lib/seo/site';
 
 const INPUT: PhotographyPackageInput = {
   title: 'Couples session — Belle Mare',
@@ -114,7 +116,7 @@ describe('the admin "New package" template', () => {
     expect(v.inclusions).toEqual(['Edited photos', 'Online gallery']);
   });
 
-  it('saves the chosen Type, and only promises the 24h cancellation the platform enforces', () => {
+  it('saves the chosen Type, and states the deposit terms the platform enforces', () => {
     const w = photographyPackageValues({
       ...INPUT,
       kind: 'weddings',
@@ -129,7 +131,9 @@ describe('the admin "New package" template', () => {
     expect(photographyGroup({ title: w.title }, 'weddings')).toBe('weddings');
     expect(photographyGroup({ title: w.title })).toBe('shoots');
     for (const kind of ['weddings', 'shoots'] as const) {
-      expect(photographyPackageValues({ ...INPUT, kind }).cancellationPolicy).toMatch(/24 hours/);
+      expect(photographyPackageValues({ ...INPUT, kind }).cancellationPolicy).toMatch(
+        /50% deposit .* non-refundable/,
+      );
     }
   });
 
@@ -248,5 +252,34 @@ describe('photography SEO', () => {
     });
     expect(json.hasOfferCatalog.itemListElement[1]).not.toHaveProperty('price');
     expect(serviceJsonLd(base)).not.toHaveProperty('hasOfferCatalog');
+  });
+});
+
+describe('the "photos delivered" balance email', () => {
+  const base = {
+    ref: 'BMTABC123',
+    customerName: 'Anna Smith',
+    packageTitle: 'Couples session',
+    currency: 'EUR',
+    balanceDueMinor: 14750,
+    locale: 'en',
+  };
+
+  it('links to the guest’s own booking page and states the balance', () => {
+    const e = renderPhotoBalanceEmail(base);
+    expect(e.subject).toContain('BMTABC123');
+    expect(e.html).toContain(`${SITE.url}/bookings/BMTABC123`);
+    expect(e.text).toContain('EUR 147.50');
+    expect(e.text).toContain('Hi Anna,');
+  });
+
+  it('writes French for a French booking', () => {
+    expect(renderPhotoBalanceEmail({ ...base, locale: 'fr' }).subject).toMatch(
+      /Vos photos sont prêtes/,
+    );
+  });
+
+  it('refuses to email a balance of nothing', () => {
+    expect(() => renderPhotoBalanceEmail({ ...base, balanceDueMinor: 0 })).toThrow();
   });
 });

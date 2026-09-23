@@ -25,6 +25,7 @@ import {
   shouldKeepPollingPickup,
 } from '@/lib/checkout/confirm-poll';
 import { LatePickupPanel } from './LatePickupPanel';
+import { isPhotographyCategory } from '@/lib/catalogue/photography';
 
 interface BookingItem {
   priceLabel: string;
@@ -175,6 +176,26 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
   // so we show a Refresh affordance instead of a cold dead-end.
   const [confirming, setConfirming] = useState(justPaid);
   const [pollExhausted, setPollExhausted] = useState(false);
+  // A photography booking: its balance falls due when the photos are DELIVERED (after the shoot),
+  // not 24h before it, and the guest pays it here themselves. Read from the activity's category —
+  // display only; the deposit itself is set in SQL (set_photography_deposit).
+  const [isPhotoShoot, setIsPhotoShoot] = useState(false);
+  const activitySlug = booking?.activitySlug ?? null;
+  useEffect(() => {
+    if (!activitySlug) return;
+    let active = true;
+    fetch(`/api/v1/activities/${encodeURIComponent(activitySlug)}`)
+      .then((r) => r.json())
+      .then((body: { ok?: boolean; data?: { category?: string } }) => {
+        if (active && body?.ok) setIsPhotoShoot(isPhotographyCategory(body.data?.category));
+      })
+      .catch(() => {
+        /* the generic balance copy stands in */
+      });
+    return () => {
+      active = false;
+    };
+  }, [activitySlug]);
 
   // Fetch the booking and return it so callers (the poll loop) can decide whether to keep going.
   const fetchBooking = useCallback(async (): Promise<Booking | null> => {
@@ -735,6 +756,22 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
                   )}
                 </p>
               </div>
+            ) : isPhotoShoot ? (
+              <>
+                <p className="mt-1.5 text-[12.5px] leading-relaxed text-ink-muted">
+                  {t(
+                    'The balance is due when your photos are delivered — we’ll email you as soon as they’re ready.',
+                  )}
+                </p>
+                {!staffView && (
+                  <ResumePaymentButton
+                    bookingRef={booking.ref}
+                    purpose="balance"
+                    label={t('Pay the balance')}
+                    className="mt-3 inline-flex items-center justify-center rounded-full bg-teal px-4 py-2 text-[13px] font-bold text-white hover:bg-teal-dark disabled:opacity-60"
+                  />
+                )}
+              </>
             ) : (
               <>
                 {balanceDueBy && (
@@ -1065,14 +1102,28 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
                   className="mt-4 rounded-xl border border-coral/30 bg-coral/[0.06] p-4"
                 >
                   <p className="text-[13px] text-ink">
-                    {staffView
-                      ? t(
-                          'Cancel {name}’s booking and start their refund? The refund goes back to the guest’s card within a few business days.',
-                          { name: booking.customerName },
-                        )
-                      : t(
-                          'Cancel this booking and claim a refund? Your refund is processed back to your card within a few business days.',
-                        )}
+                    {/* A genuine partial deposit is KEPT on cancellation (api_mark_refunded's forfeit
+                        rule) — say so before the guest confirms, rather than promise a full refund. */}
+                    {booking.depositEur &&
+                    booking.depositEur > 0 &&
+                    booking.depositEur < booking.totalEur
+                      ? staffView
+                        ? t(
+                            'Cancel {name}’s booking? The {deposit} deposit is non-refundable and is kept; anything paid beyond it goes back to the guest’s card.',
+                            { name: booking.customerName, deposit: money(booking.depositEur) },
+                          )
+                        : t(
+                            'Cancel this booking? Your {deposit} deposit is non-refundable; anything you paid beyond it is refunded to your card within a few business days.',
+                            { deposit: money(booking.depositEur) },
+                          )
+                      : staffView
+                        ? t(
+                            'Cancel {name}’s booking and start their refund? The refund goes back to the guest’s card within a few business days.',
+                            { name: booking.customerName },
+                          )
+                        : t(
+                            'Cancel this booking and claim a refund? Your refund is processed back to your card within a few business days.',
+                          )}
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2">
                     <button
@@ -1179,6 +1230,16 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
               <ResumePaymentButton
                 bookingRef={booking.ref}
                 label={t('Complete payment')}
+                // A partial-deposit booking (photography: 50%) — lets the pay page say "€X deposit now,
+                // €Y later" instead of a bare MUR figure that reads like a bad exchange rate.
+                depositMinor={
+                  booking.depositEur &&
+                  booking.depositEur > 0 &&
+                  booking.depositEur < booking.totalEur
+                    ? Math.round(booking.depositEur * 100)
+                    : undefined
+                }
+                totalMinor={Math.round(booking.totalEur * 100)}
                 className="rounded-full border border-teal/40 px-4 py-2 text-[13px] font-bold text-teal hover:bg-teal/5 disabled:opacity-60"
               />
               {/* Starting…/error/already-paid copy renders inside ResumePaymentButton. */}
