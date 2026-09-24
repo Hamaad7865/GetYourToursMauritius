@@ -109,7 +109,7 @@ const nextConfig = {
       "img-src 'self' data: blob: https:",
       "font-src 'self' data: https://fonts.gstatic.com",
       "connect-src 'self' https://*.supabase.co https://*.googleapis.com https://*.gstatic.com https://*.peachpayments.com https://*.oppwa.com https://*.jscrambler.com",
-      "frame-src 'self' https://*.peachpayments.com https://*.supabase.co https://*.oppwa.com",
+      "frame-src 'self' https://*.peachpayments.com https://*.supabase.co https://*.oppwa.com https://www.youtube-nocookie.com https://player.vimeo.com",
       "frame-ancestors 'self'",
       "base-uri 'self'",
       "form-action 'self'",

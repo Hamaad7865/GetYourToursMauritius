@@ -11,6 +11,7 @@ import {
   type PhotographyPackageInput,
 } from '@/lib/admin/photography';
 import { PHOTOGRAPHY_ADD_ON_PRESETS } from '@/lib/catalogue/photography';
+import type { PhotographyShoot } from '@/lib/catalogue/photography-shoots';
 import { IconChevron, IconPlus, IconX } from '@/components/ui/icons';
 import {
   AdminError,
@@ -52,10 +53,25 @@ function num(v: string): number {
  * add-on, and the shoots-per-day capacity that makes dates bookable. Everything is editable later in
  * the full tour editor, which is where this sends you once it is saved.
  */
-export function PhotographyPackageForm({ packageId }: { packageId?: string } = {}) {
+export function PhotographyPackageForm({
+  packageId,
+  template,
+}: { packageId?: string; template?: PhotographyShoot } = {}) {
   const router = useRouter();
   const editing = Boolean(packageId);
-  const [v, setV] = useState<PhotographyPackageInput>(START);
+  const [v, setV] = useState<PhotographyPackageInput>(() =>
+    template
+      ? {
+          ...START,
+          title: template.title,
+          summary: template.summary,
+          imageUrl: template.image,
+          baseEur: 0,
+          extraEur: 0,
+          status: 'draft',
+        }
+      : START,
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Edit mode: the saved package, loaded once. Everything the simple form does not show (slug,

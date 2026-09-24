@@ -45,7 +45,15 @@ function Tile({
 
 /** GetYourGuide-style gallery: one large image + a 2×2 grid (equal height), with a
  *  "View all photos" button opening a keyboard-navigable lightbox. */
-export function Gallery({ images, title }: { images: TourImage[]; title: string }) {
+export function Gallery({
+  images,
+  title,
+  leadOnly = false,
+}: {
+  images: TourImage[];
+  title: string;
+  leadOnly?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const [index, setIndex] = useState(0);
   const t = useT();
@@ -90,7 +98,9 @@ export function Gallery({ images, title }: { images: TourImage[]; title: string 
     <div className="mb-6">
       {/* grid-rows-1 clamps the row to the pinned height — without it a portrait photo's
           intrinsic ratio inflates the implicit row and the tiles paint over the content below. */}
-      <div className="relative grid h-[240px] grid-rows-1 gap-2 sm:h-[360px] sm:grid-cols-[1.6fr_1fr]">
+      <div
+        className={`relative grid h-[240px] grid-rows-1 gap-2 sm:h-[360px] ${leadOnly ? '' : 'sm:grid-cols-[1.6fr_1fr]'}`}
+      >
         <Tile
           image={grid[0]!}
           title={title}
@@ -99,7 +109,7 @@ export function Gallery({ images, title }: { images: TourImage[]; title: string 
           onOpen={() => openAt(0)}
           rounded="rounded-2xl"
         />
-        {grid.length > 1 && (
+        {!leadOnly && grid.length > 1 && (
           <div className="hidden grid-cols-2 grid-rows-2 gap-2 sm:grid">
             {grid.slice(1, 5).map((img, i) => (
               <Tile

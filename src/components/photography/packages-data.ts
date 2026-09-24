@@ -5,19 +5,22 @@ import { SITE, whatsappUrl } from '@/lib/seo/site';
 import { createUserClient } from '@/lib/supabase/client';
 import {
   PHOTOGRAPHY_CATEGORY,
+  PHOTOGRAPHY_GALLERY_DEFAULTS,
   PHOTO_STOCK,
-  PHOTOGRAPHY_STARTER_PACKAGES,
+  galleryTagForPackage,
   isPhotographyCategory,
   mediaThumb,
   photographyGroup,
   photosIn,
   savedPhotographyGroup,
+  type GalleryTag,
   type PhotographyGroup,
   type PhotographyPhoto,
 } from '@/lib/catalogue/photography';
 import type { GalleryItem } from './GalleryGrid';
 import type { TourSummary } from '@/lib/validation/tours';
 import type { PhotoPackage } from './PackagesSection';
+import { PHOTOGRAPHY_SHOOTS, matchesPhotographyShoot } from '@/lib/catalogue/photography-shoots';
 
 /** Built-in stand-in photos (see PHOTO_STOCK). */
 export const PHOTO_IMG = PHOTO_STOCK;
@@ -82,8 +85,8 @@ type T = (key: string, vars?: Record<string, string | number>) => string;
 
 /**
  * The package cards both /photography and /photography/packages render. Live packages link to their
- * own /activities/<slug> page (dates, extra guests, add-ons, checkout). With none published yet the
- * built-in set renders as WhatsApp enquiries, so the page is never a dead end.
+ * own /activities/<slug> page (dates, add-ons, checkout). Missing shoot types render as WhatsApp
+ * enquiries with no invented price; matching published packages replace those enquiry cards.
  */
 export function buildPackageCards(
   t: T,
@@ -97,7 +100,7 @@ export function buildPackageCards(
     return n === 1 ? t('{n} hour', { n }) : t('{n} hours', { n });
   };
 
-  if (live.length > 0) {
+  const publishedCards = (): PhotoPackage[] => {
     const groupOf = (a: TourSummary) => photographyGroup(a, groups[a.slug]);
     const weddings = live.filter((a) => groupOf(a) === 'weddings');
     const shoots = live.filter((a) => groupOf(a) === 'shoots');
@@ -128,32 +131,40 @@ export function buildPackageCards(
       ...weddings.map((a, i) => toCard(a, 'weddings', i, weddings.length)),
       ...shoots.map((a, i) => toCard(a, 'shoots', i, shoots.length)),
     ];
-  }
+  };
 
   const enquire = (title: string) =>
     whatsappUrl(
       `Hi ${SITE.operator}! I’m interested in the “${title}” photography package in Mauritius. Could you send availability and prices?`,
       waNumber,
     );
-  // No package published yet: the six examples, as WhatsApp enquiries. The same list /admin imports
-  // as editable drafts (PHOTOGRAPHY_STARTER_PACKAGES), so the owner edits exactly what is shown here.
-  return PHOTOGRAPHY_STARTER_PACKAGES.map((p) => {
+  const cards = publishedCards();
+  const used = new Set<string>();
+  const shoots: PhotoPackage[] = PHOTOGRAPHY_SHOOTS.map((p) => {
+    const existing = live.find(
+      (a) => !used.has(a.id) && (matchesPhotographyShoot(p, a) || a.title === t(p.title)),
+    );
+    if (existing) {
+      used.add(existing.id);
+      return cards.find((card) => card.key === existing.id)!;
+    }
     const title = t(p.title);
     return {
       key: p.key,
-      group: p.kind,
+      group: 'shoots',
       title,
-      meta: t(p.meta),
-      features: p.features.map((f) => t(f)),
+      meta: null,
+      features: [],
       summary: t(p.summary),
       image: p.image,
       imageAlt: title,
       priceEur: null,
       href: enquire(title),
       external: true,
-      highlight: p.highlight,
+      highlight: false,
     };
   });
+  return [...shoots, ...cards.filter((card) => !used.has(card.key))];
 }
 
 /** Mixed ratios cycle so the masonry reads as a contact sheet, not a grid of identical tiles. */
@@ -196,15 +207,27 @@ export function buildGalleryItems(t: T, photos: PhotographyPhoto[]): GalleryItem
     categories,
     aspect,
   });
-  return [
-    stock('weddingCouple', t('Bride and groom by the water'), ['weddings'], 'aspect-[4/5]'),
-    stock('film2', t('Filming a wedding on the beach'), ['films'], 'aspect-video'),
-    stock('couple', t('Couple on a Mauritius beach'), ['couples'], 'aspect-square'),
-    stock('weddingDetail', t('Wedding details'), ['weddings'], 'aspect-[3/4]'),
-    stock('family2', t('Family on the beach'), ['family'], 'aspect-[4/3]'),
-    stock('aerial', t('Aerial view of a Mauritius lagoon'), ['films', 'weddings'], 'aspect-[4/5]'),
-    stock('weddingSunset', t('Couple at sunset'), ['weddings'], 'aspect-[4/3]'),
-    stock('family', t('Family holiday portrait'), ['family'], 'aspect-[3/4]'),
-    stock('passe', t('Island backdrop for a couples shoot'), ['couples'], 'aspect-[4/3]'),
-  ];
+  return PHOTOGRAPHY_GALLERY_DEFAULTS.map((photo) =>
+    stock(photo.key, t(photo.alt), photo.tags, photo.aspect),
+  );
+}
+
+/**
+ * A package's "Get inspired by these {category} shots" strip: the same gallery
+ * (owner photos, or the built-in stand-ins), filtered to the category that best fits this
+ * package, image items only (a thumbnail is enough to preview — the full gallery still plays
+ * videos), capped so the row stays a fixed size regardless of how many photos are tagged.
+ */
+export function buildInspirationItems(
+  t: T,
+  photos: PhotographyPhoto[],
+  activity: { title: string; summary?: string | null },
+  group: PhotographyGroup,
+  limit = 6,
+): { tag: GalleryTag; items: GalleryItem[] } {
+  const tag = galleryTagForPackage(activity, group);
+  const items = buildGalleryItems(t, photos)
+    .filter((item) => item.kind === 'image' && item.categories.includes(tag))
+    .slice(0, limit);
+  return { tag, items };
 }

@@ -63,6 +63,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { path: '/rent', meta: { changeFrequency: 'monthly', priority: 0.4 } },
     { path: '/photography', meta: { changeFrequency: 'monthly', priority: 0.6 } },
     { path: '/photography/packages', meta: { changeFrequency: 'weekly', priority: 0.6 } },
+    { path: '/photography/gallery', meta: { changeFrequency: 'weekly', priority: 0.5 } },
     { path: '/contact', meta: { changeFrequency: 'monthly', priority: 0.4 } },
     { path: '/about', meta: { changeFrequency: 'monthly', priority: 0.4 } },
     { path: '/help', meta: { changeFrequency: 'monthly', priority: 0.4 } },

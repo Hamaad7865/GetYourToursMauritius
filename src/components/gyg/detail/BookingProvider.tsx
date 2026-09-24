@@ -38,7 +38,7 @@ import {
 import { useToast } from '@/components/site/ToastProvider';
 import { useT } from '@/components/site/PreferencesProvider';
 import { encodeParty, partyGuests } from '@/lib/services/party';
-import type { CrossSellItem } from '@/lib/catalogue/photography';
+import { isPhotographyCategory, type CrossSellItem } from '@/lib/catalogue/photography';
 
 export interface BookingActivity {
   slug: string;
@@ -94,6 +94,7 @@ interface DayInfo {
 }
 
 interface BookingState {
+  checkoutParams: URLSearchParams;
   activity: BookingActivity;
   participants: number;
   setParticipants: (n: number) => void;
@@ -208,6 +209,7 @@ export function BookingProvider({
   // Resolve the option the widget opens on up-front, so the initial party can default to a private
   // option's covered count (`included`) with no flash from the generic default of 2.
   const initialOptionId = defaultOptionId(activity.options, activity.pricingMode === 'vehicle');
+  const isPhoto = isPhotographyCategory(activity.category);
   const initialOption =
     activity.options.find((o) => o.id === initialOptionId) ?? activity.options[0] ?? null;
   const initialPrivate = initialOption ? privateConfig(initialOption) : null;
@@ -327,6 +329,8 @@ export function BookingProvider({
   // (adult) band plus whichever non-primary band's label looks like "child" (best-effort — price-tier
   // labels are admin free text, so there's no guaranteed "Child" band to target).
   useEffect(() => {
+    // Photography is date-only: search-header party parameters must not add hidden guest charges.
+    if (isPhoto) return;
     let params: URLSearchParams;
     try {
       params = new URLSearchParams(window.location.search);
@@ -356,7 +360,7 @@ export function BookingProvider({
     const qs = params.toString();
     window.history.replaceState(null, '', qs ? `?${qs}` : window.location.pathname);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAgeBanded, primaryLabel]);
+  }, [isAgeBanded, primaryLabel, isPhoto]);
   const totalGuests = isAgeBanded ? partyGuests(bandCounts) : participants;
 
   const today = useMemo(() => {
@@ -428,15 +432,17 @@ export function BookingProvider({
     : isVehicle
       ? Math.max(1, vehicleCfg.maxParty)
       : Math.max(1, Math.min(16, tierCap, tripCap, date ? seatsLeft : 16));
-  const unitLabel = privateCfg
-    ? 'per private trip'
-    : isVehicle
-      ? 'per vehicle'
-      : groupSize
-        ? `per group up to ${groupSize}`
-        : activity.type === 'transport'
-          ? 'per vehicle'
-          : 'per person';
+  const unitLabel = isPhoto
+    ? 'per shoot'
+    : privateCfg
+      ? 'per private trip'
+      : isVehicle
+        ? 'per vehicle'
+        : groupSize
+          ? `per group up to ${groupSize}`
+          : activity.type === 'transport'
+            ? 'per vehicle'
+            : 'per person';
   const suvActive = isVehicle && suv && participants <= SIGHTSEEING_SUV_MAX;
 
   const setBand = useCallback(
@@ -652,6 +658,36 @@ export function BookingProvider({
       ? { [priceLabel]: participants }
       : {};
 
+  const dateText = date
+    ? new Date(`${date}T00:00:00`).toLocaleDateString('en-GB', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      })
+    : '';
+  const checkoutParams = new URLSearchParams({
+    occ: date ? (days?.get(date)?.occurrenceId ?? '') : '',
+    label: priceLabel,
+    qty: String(totalGuests),
+    party: isAgeBanded ? encodeParty(party) : '',
+    slug: activity.slug,
+    title: activity.title,
+    lang,
+    total: total != null ? String(total) : '',
+    when: dateText,
+    guests: String(totalGuests),
+    unit: unitLabel,
+    suv: suvActive ? '1' : '0',
+    childSeats: String(activity.adultsOnly ? 0 : childSeats),
+    supps: chosenSupplements.length ? JSON.stringify(chosenSupplements) : '',
+    pickupcap:
+      (activity.pricingMode === 'per_person' || activity.pricingMode === 'per_group') &&
+      activity.pickupAvailable
+        ? '1'
+        : '',
+    from: 'widget',
+  });
+
   async function continueToCheckout() {
     const occ = date ? days?.get(date)?.occurrenceId : undefined;
     if (!occ) return;
@@ -687,11 +723,6 @@ export function BookingProvider({
     } catch {
       /* sessionStorage unavailable — checkout will create the hold at pay */
     }
-    const dateText = new Date(`${date}T00:00:00`).toLocaleDateString('en-GB', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
     // Mirror this Book-now reservation into the cart as an on-hold line (same shape as Add-to-cart),
     // keyed by occurrence, so leaving checkout doesn't hide the held spot. Checkout reads this on mount
     // and upserts it with the hold details; the cart's timer + reconcile + expiry bell own it after.
@@ -729,40 +760,11 @@ export function BookingProvider({
     } catch {
       /* sessionStorage unavailable — the on-hold cart line just won't appear; checkout still works */
     }
-    const q = new URLSearchParams({
-      occ,
-      label: priceLabel,
-      qty: String(totalGuests),
-      // Age-banded: the full per-band map so the server prices each band; `label`/`qty` stay for the
-      // single-tier back-compat path + display. Empty for a normal single-tier booking.
-      party: isAgeBanded ? encodeParty(party) : '',
-      slug: activity.slug,
-      title: activity.title,
-      lang,
-      total: total != null ? String(total) : '',
-      when: dateText,
-      guests: String(totalGuests),
-      unit: unitLabel,
-      suv: suvActive ? '1' : '0',
-      childSeats: String(activity.adultsOnly ? 0 : childSeats),
-      // The chosen supplements as compact JSON [{id, qty, name, unitEur}]. The ids + counts are what
-      // the server prices (by id, from the DB); name/unitEur ride only so checkout's order summary
-      // can render the lines without another fetch.
-      supps: chosenSupplements.length ? JSON.stringify(chosenSupplements) : '',
-      // Pickup CAPABILITY: seeds checkout step ①'s "want pickup?" default to Yes for a pickup-capable
-      // (per_person/per_group with pickup) activity. The pickup itself + the transport fee are chosen
-      // and priced AT CHECKOUT now, not here.
-      pickupcap:
-        (activity.pricingMode === 'per_person' || activity.pricingMode === 'per_group') &&
-        activity.pickupAvailable
-          ? '1'
-          : '',
-      from: 'widget',
-    });
-    router.push(`/checkout?${q.toString()}`);
+    router.push(`/checkout?${checkoutParams.toString()}`);
   }
 
   const value: BookingState = {
+    checkoutParams,
     activity,
     participants,
     setParticipants,

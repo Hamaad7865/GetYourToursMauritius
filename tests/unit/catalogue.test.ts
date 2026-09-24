@@ -171,6 +171,12 @@ describe('quickFacts', () => {
 });
 
 describe('buildFaq', () => {
+  it('does not describe photography packages as guided tours', () => {
+    const photo = detail({ category: 'Photography', languages: ['English', 'French'] });
+    expect(buildFaq(photo).some((f) => /languages|guided/i.test(`${f.q} ${f.a}`))).toBe(false);
+    expect(quickFacts(photo).some((f) => /guide/i.test(f.label))).toBe(false);
+  });
+
   it('includes the cancellation policy and a pickup answer when applicable', () => {
     const faqs = buildFaq(detail());
     expect(faqs[0]!.q).toMatch(/cancellation/i);

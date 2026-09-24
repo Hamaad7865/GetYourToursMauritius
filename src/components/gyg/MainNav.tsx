@@ -69,8 +69,7 @@ function CategoriesMenu() {
   );
 }
 
-/** Photography's dropdown: one entry, the price list of every package (/photography/packages).
- *  The "Photography" label itself opens the /photography overview. */
+/** Photography's package catalogue and categorized photo/video gallery. */
 function PhotographyMenu() {
   const t = useT();
   return (
@@ -80,6 +79,12 @@ function PhotographyMenu() {
         className="block rounded-lg px-3 py-2 text-sm font-medium text-ink hover:bg-cream hover:text-teal"
       >
         {t('Pricing')}
+      </Link>
+      <Link
+        href="/photography/gallery"
+        className="block rounded-lg px-3 py-2 text-sm font-medium text-ink hover:bg-cream hover:text-teal"
+      >
+        {t('Gallery')}
       </Link>
     </div>
   );

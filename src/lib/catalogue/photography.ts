@@ -134,6 +134,52 @@ export const PHOTO_STOCK = {
 export const GALLERY_TAGS = ['weddings', 'films', 'couples', 'family'] as const;
 export type GalleryTag = (typeof GALLERY_TAGS)[number];
 
+/** The gallery category a package's own "Get inspired" strip pulls from: the owner's saved
+ *  weddings/shoots group first, then a family/kids title match, else the general couples bucket
+ *  (most non-wedding packages — holiday, beach, trip, proposal, fashion — read as lifestyle shoots).
+ *  Best-effort only: it picks a plausible category for a preview, not a strict classification. */
+export function galleryTagForPackage(
+  p: { title: string; summary?: string | null },
+  group: PhotographyGroup,
+): GalleryTag {
+  if (group === 'weddings') return 'weddings';
+  if (/family|kids|child/i.test(p.title)) return 'family';
+  return 'couples';
+}
+
+/** The same sample gallery is shown publicly and offered for editing in admin. */
+export const PHOTOGRAPHY_GALLERY_DEFAULTS: {
+  key: keyof typeof PHOTO_STOCK;
+  alt: string;
+  tags: GalleryTag[];
+  aspect: string;
+}[] = [
+  {
+    key: 'weddingCouple',
+    alt: 'Bride and groom by the water',
+    tags: ['weddings'],
+    aspect: 'aspect-[4/5]',
+  },
+  { key: 'film2', alt: 'Filming a wedding on the beach', tags: ['films'], aspect: 'aspect-video' },
+  { key: 'couple', alt: 'Couple on a Mauritius beach', tags: ['couples'], aspect: 'aspect-square' },
+  { key: 'weddingDetail', alt: 'Wedding details', tags: ['weddings'], aspect: 'aspect-[3/4]' },
+  { key: 'family2', alt: 'Family on the beach', tags: ['family'], aspect: 'aspect-[4/3]' },
+  {
+    key: 'aerial',
+    alt: 'Aerial view of a Mauritius lagoon',
+    tags: ['films', 'weddings'],
+    aspect: 'aspect-[4/5]',
+  },
+  { key: 'weddingSunset', alt: 'Couple at sunset', tags: ['weddings'], aspect: 'aspect-[4/3]' },
+  { key: 'family', alt: 'Family holiday portrait', tags: ['family'], aspect: 'aspect-[3/4]' },
+  {
+    key: 'passe',
+    alt: 'Island backdrop for a couples shoot',
+    tags: ['couples'],
+    aspect: 'aspect-[4/3]',
+  },
+];
+
 export type PhotoSlot =
   | 'hero'
   | 'service-weddings'

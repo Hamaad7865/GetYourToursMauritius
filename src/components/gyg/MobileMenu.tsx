@@ -43,6 +43,7 @@ const NAV_LINKS = [
   { label: 'Airport transfers', href: '/airport-transfers', icon: IconBolt },
   { label: 'Photography & film', href: '/photography', icon: IconCamera },
   { label: 'Photography pricing', href: '/photography/packages', icon: IconTag },
+  { label: 'Photography gallery', href: '/photography/gallery', icon: IconCamera },
   { label: 'Contact us', href: '/contact', icon: IconMail },
 ];
 

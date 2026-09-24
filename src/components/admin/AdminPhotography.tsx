@@ -13,6 +13,7 @@ import { IconCamera, IconExternalLink, IconPlus } from '@/components/ui/icons';
 import { AdminError, AdminHeading, BTN_GHOST, BTN_PRIMARY, Card } from '@/components/admin/ui';
 import { PhotographyPhotosManager } from '@/components/admin/PhotographyPhotosManager';
 import { PhotoBalancesCard } from '@/components/admin/PhotoBalancesCard';
+import { PHOTOGRAPHY_SHOOTS, matchesPhotographyShoot } from '@/lib/catalogue/photography-shoots';
 
 function eur(n: number | null): string {
   return n == null ? '—' : `€${n.toLocaleString('en-GB', { maximumFractionDigits: 2 })}`;
@@ -88,6 +89,9 @@ export function AdminPhotography() {
         subtitle="Packages, page photos and tour pairings — packages are booked online like any tour."
         action={
           <div className="flex flex-wrap gap-2">
+            <a href="#photography-gallery" className={BTN_GHOST}>
+              <IconCamera width={15} height={15} /> Manage gallery
+            </a>
             <a href="/photography/packages" target="_blank" rel="noreferrer" className={BTN_GHOST}>
               <IconExternalLink width={15} height={15} /> View price list
             </a>
@@ -131,10 +135,9 @@ export function AdminPhotography() {
         ) : data.packages.length === 0 ? (
           <div className="flex flex-col items-start gap-3 py-2">
             <p className="text-sm text-ink-muted">
-              No packages yet. The six packages on the price list right now are built-in examples
-              with a WhatsApp “Enquire” button — add them here to edit their prices, add-ons, photos
-              and dates and take bookings online. They are added as <b>drafts</b>, so nothing is
-              bookable until you publish it.
+              No published packages yet. Set up the shoot types below, or import the original
+              wedding and couples presets as drafts. Review prices, photos and dates before
+              publishing.
             </p>
             <div className="flex flex-wrap gap-2">
               <button
@@ -144,7 +147,7 @@ export function AdminPhotography() {
                 className={BTN_PRIMARY}
               >
                 <IconCamera width={16} height={16} />
-                {busy ? 'Adding…' : 'Add the 6 example packages'}
+                {busy ? 'Adding…' : 'Add wedding & couples presets'}
               </button>
               <Link href="/admin/photography/new" className={BTN_GHOST}>
                 <IconPlus width={16} height={16} /> Start from scratch
@@ -245,6 +248,36 @@ export function AdminPhotography() {
           </div>
         )}
       </Card>
+
+      {isStaff && data && (
+        <Card title="Shoot types" className="mb-5">
+          <p className="mb-4 text-sm text-ink-muted">
+            Unconfigured shoots show “Price on request” on the website. Set your own price,
+            duration, photos and dates, then publish. Existing packages keep their current settings.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {PHOTOGRAPHY_SHOOTS.map((shoot) => {
+              const existing = data.packages.find((p) => matchesPhotographyShoot(shoot, p));
+              return (
+                <Link
+                  key={shoot.key}
+                  href={
+                    existing
+                      ? `/admin/photography/${existing.id}/edit`
+                      : `/admin/photography/new?template=${shoot.key}`
+                  }
+                  className="flex items-center justify-between gap-3 rounded-lg border border-ink/10 p-3 text-sm hover:border-teal"
+                >
+                  <span>{shoot.title}</span>
+                  <span className="font-semibold text-teal-dark">
+                    {existing ? 'Edit package' : 'Set up package'}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        </Card>
+      )}
 
       {isStaff && <PhotoBalancesCard />}
 

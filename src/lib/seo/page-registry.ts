@@ -77,6 +77,13 @@ export const SEO_PAGES: SeoPage[] = [
       'Mauritius photographer prices: wedding, couples, holiday and family photo packages. Compare prices, add drone or extra hours and book your date online.',
   },
   {
+    path: '/photography/gallery',
+    label: 'Photography gallery',
+    defaultTitle: 'Mauritius Photographer Gallery | Belle Mare Tours',
+    defaultDescription:
+      'Wedding photos and films, couples, honeymoon and family shoots on the beaches of Mauritius. Browse the gallery by category, then book your own shoot online.',
+  },
+  {
     path: '/mauritius-tours',
     label: 'Mauritius tours (hub)',
     defaultTitle: 'Mauritius Tours & Day Trips — Book Direct | Belle Mare Tours',

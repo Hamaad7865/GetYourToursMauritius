@@ -15,6 +15,8 @@ import {
   PHOTOGRAPHY_ADD_ON_PRESETS,
   PHOTOGRAPHY_CATEGORY,
   PHOTOGRAPHY_STARTER_PACKAGES,
+  PHOTOGRAPHY_GALLERY_DEFAULTS,
+  PHOTO_STOCK,
   isPhotographyCategory,
   photographyAddOnSlugs,
   photographyGroup,
@@ -300,13 +302,56 @@ export async function addPhotographyPhoto(
 
 export async function updatePhotographyPhoto(
   id: string,
-  patch: { alt?: string | null; tags?: GalleryTag[]; posterUrl?: string | null },
+  patch: {
+    alt?: string | null;
+    tags?: GalleryTag[];
+    posterUrl?: string | null;
+    url?: string;
+    mediaType?: PhotoMediaType;
+  },
 ): Promise<void> {
-  const row: { alt?: string | null; tags?: GalleryTag[]; poster_url?: string | null } = {};
+  const row: {
+    alt?: string | null;
+    tags?: GalleryTag[];
+    poster_url?: string | null;
+    url?: string;
+    media_type?: PhotoMediaType;
+  } = {};
+  if (patch.url !== undefined) {
+    const url = patch.url.trim();
+    if (!/^(https?:\/\/|\/(?!\/))/.test(url))
+      throw new Error('Enter an image or video URL starting with https:// or /.');
+    row.url = url;
+  }
+  if (patch.mediaType !== undefined) row.media_type = patch.mediaType;
   if ('alt' in patch) row.alt = patch.alt?.trim() || null;
   if (patch.tags) row.tags = patch.tags;
   if ('posterUrl' in patch) row.poster_url = patch.posterUrl?.trim() || null;
   const { error } = await getBrowserSupabase().from('photography_photos').update(row).eq('id', id);
+  if (error) throw error;
+}
+
+/** Import the sample set once, in one insert, without overwriting an existing gallery. */
+export async function importPhotographyGallery(): Promise<void> {
+  const sb = getBrowserSupabase();
+  const { data, error: readError } = await sb
+    .from('photography_photos')
+    .select('id')
+    .eq('slot', 'gallery')
+    .limit(1);
+  if (readError) throw readError;
+  if (data?.length) return;
+  const { error } = await sb.from('photography_photos').insert(
+    PHOTOGRAPHY_GALLERY_DEFAULTS.map((photo, position) => ({
+      slot: 'gallery',
+      url: PHOTO_STOCK[photo.key],
+      alt: photo.alt,
+      tags: photo.tags,
+      position,
+      media_type: 'image',
+      poster_url: null,
+    })),
+  );
   if (error) throw error;
 }
 

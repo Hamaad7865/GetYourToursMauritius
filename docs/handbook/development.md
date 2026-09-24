@@ -196,6 +196,52 @@ offending pane and the save can jump to it — with only one pane on screen, an 
 field is invisible otherwise. It calls `assertPricingValid` rather than restating it, so the pre-save
 check and the save cannot drift apart.
 
+### Change shared photography information
+
+Photography's fixed benefits and useful-information copy live in
+`src/lib/catalogue/photography-content.ts`. Photography package detail pages render the useful-information
+accordions through `PhotographyInformation.tsx`; the longer benefits panel is not shown in the simplified
+booking layout. These are not package-level
+admin fields. Keep their French keys in `messages.ts` in sync (covered by
+`tests/unit/photography-content.test.ts`). These are editorial constants, not booking rules:
+the existing non-refundable 50% deposit and balance-on-delivery terms remain unchanged. Delivery
+timing is confirmed at booking; no universal turnaround or free-rescheduling deadline is promised.
+
+Photography's booking widget is date-only: it hides participants, guide language and trip-unit
+labels. The private option's included guest count remains internal for pricing and capacity; URL
+party parameters must not override it and create hidden extra-guest charges. Tours keep their
+participant and guide controls. Photography add-ons and the deposit checkout are unchanged.
+
+`/photography` and `/photography/packages` share `PhotographyPricingPage.tsx`: a compact banner,
+package grid and categorized gallery preview. Package names, prices, covers and booking links still
+come from the admin-managed catalogue. Banner images use the existing `hero` and `pricing-hero`
+slots; the gallery uses the `gallery` slot. Removed marketing-section photo slots remain stored
+but are no longer rendered on these pages. `/photography/gallery` keeps the full photo/video
+viewer and is linked from desktop and mobile navigation.
+
+In admin, **Manage gallery → Gallery & page images** lists gallery media first, then the three
+active banners. **Replace image/video** uploads a new file or accepts a replacement URL and updates
+the existing row, preserving its caption, tags and position. When the gallery is still using sample
+images, **Make sample gallery editable** imports the shared `PHOTOGRAPHY_GALLERY_DEFAULTS` set;
+it does not overwrite an existing gallery. Deleting every saved gallery item restores the sample
+fallback. Public pages use request-scoped reads, so saved changes appear on the next page load.
+
+Published photography package links still use `/activities/[slug]`, but render
+`PhotographyPackageDetail`: photos and inclusions beside the price and **Book now**.
+That link opens `?booking=1` (noindex), where `PhotographyBooking` collects the date and optional
+extras. **Continue to details** uses the existing hold/session handoff to `/checkout` for meeting
+location, contact and payment. No inline checkout or separate payment implementation:
+the deposit still uses authenticated `api_book`, server-price reconciliation and Peach. Contact
+drafts, booking identity and double-charge guards remain unchanged. Photography drops guide/guest
+captions from the order summary; tours retain their existing selectors and stepped checkout.
+
+`photography-shoots.ts` lists eight shoot types (Holiday, Beach shoot, Trip explorer, Babymoon,
+Proposal, Family & kids, Boat row and Fashion). They appear as price-on-request enquiries until
+a matching published activity exists; published prices and covers win, and other existing packages
+remain listed. `/admin/photography` provides a setup/edit link for each type. Setup prefills copy
+and a stand-in image, starts as draft with no price, and requires the owner to set a positive price
+before saving. No competitor prices, durations or inclusions are imported.
+
 ### Add a translation
 
 French only. The lookup is an **exact match on the English source string** — including curly apostrophes

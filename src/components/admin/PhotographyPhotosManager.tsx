@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   addPhotographyPhoto,
+  importPhotographyGallery,
   deletePhotographyPhoto,
   loadPhotographyPhotos,
   reorderPhotographyPhotos,
@@ -12,6 +13,8 @@ import {
 import {
   GALLERY_TAGS,
   PHOTO_SLOTS,
+  PHOTOGRAPHY_GALLERY_DEFAULTS,
+  PHOTO_STOCK,
   mediaThumb,
   photosIn,
   videoSource,
@@ -29,6 +32,8 @@ const TAG_LABEL: Record<GalleryTag, string> = {
   family: 'Family',
 };
 
+const ACTIVE_SLOTS: PhotoSlot[] = ['gallery', 'hero', 'pricing-hero', 'gallery-hero'];
+
 /**
  * Every photo on /photography and /photography/packages, slot by slot: upload (or paste a link),
  * replace, remove, and — for the gallery — tag and reorder. Changes save immediately and show on the
@@ -45,7 +50,6 @@ export function PhotographyPhotosManager() {
       setPhotos(await loadPhotographyPhotos());
       setError(null);
     } catch (err) {
-      setPhotos([]);
       setError(
         err instanceof Error
           ? `${err.message} — has the photography_photos migration been applied?`
@@ -72,23 +76,31 @@ export function PhotographyPhotosManager() {
   }
 
   return (
-    <Card title="Page photos" className="mb-5">
+    <Card title="Gallery & page images" className="mb-5">
       <p className="mb-4 text-[13px] text-ink-muted">
-        The photos on <b>/photography</b> and the price list. Upload your own to replace the
-        built-in stand-ins — changes are live on the next page load. Each package’s photos are
-        edited with the package (Edit → Photos &amp; files).
+        Manage the gallery on <b>/photography</b>, the price list and <b>/photography/gallery</b>.
+        Replace any image, edit its description, choose categories or change the order. Changes are
+        live on the next page load. Each package’s photos are edited with the package (Edit → Photos
+        &amp; files).
       </p>
-      {error && <AdminError>{error}</AdminError>}
+      {error && (
+        <>
+          <AdminError>{error}</AdminError>
+          <button type="button" onClick={() => void load()} className={BTN_GHOST}>
+            Reload images
+          </button>
+        </>
+      )}
       {photos === null ? (
         <p className="text-sm text-ink-muted">Loading…</p>
       ) : (
         <div className="flex flex-col divide-y divide-[#F2F4F6]">
-          {PHOTO_SLOTS.map((slot) => (
+          {ACTIVE_SLOTS.map((id) => PHOTO_SLOTS.find((slot) => slot.id === id)!).map((slot) => (
             <SlotRow
               key={slot.id}
               slot={slot}
               photos={photosIn(photos, slot.id)}
-              busy={busySlot === slot.id}
+              busy={busySlot !== null}
               run={(fn) => run(slot.id, fn)}
             />
           ))}
@@ -169,7 +181,10 @@ function SlotRow({
   const shown = multi ? photos : photos.slice(0, 1);
 
   return (
-    <section
+    <fieldset
+      id={`photography-${slot.id}`}
+      aria-label={slot.label}
+      disabled={busy}
       className={`py-4 first:pt-0 last:pb-0 ${busy ? 'pointer-events-none opacity-60' : ''}`}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -213,10 +228,32 @@ function SlotRow({
             </figcaption>
           </figure>
         )}
-        {shown.length === 0 && !slot.standIn && (
-          <p className="text-[12.5px] text-ink-muted">
-            No photos yet — the page shows its built-in stand-in set until you add some.
-          </p>
+        {shown.length === 0 && multi && (
+          <div>
+            <p className="mb-3 text-[12.5px] text-ink-muted">
+              These sample images are currently on the website. Make them editable to swap
+              individual photos, or upload your own to start a new gallery.
+            </p>
+            <div className="mb-3 flex flex-wrap gap-2">
+              {PHOTOGRAPHY_GALLERY_DEFAULTS.map((photo) => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  key={photo.key}
+                  src={PHOTO_STOCK[photo.key]}
+                  alt={photo.alt}
+                  className="h-20 w-24 rounded-lg object-cover"
+                />
+              ))}
+            </div>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void run(importPhotographyGallery)}
+              className={BTN_GHOST}
+            >
+              Make sample gallery editable
+            </button>
+          </div>
         )}
         {shown.map((p, i) => (
           <figure key={p.id} className="w-40">
@@ -261,6 +298,7 @@ function SlotRow({
                 </div>
               )}
             </div>
+            <ReplaceMedia photo={p} run={run} />
             <AltInput photo={p} run={run} />
             {p.mediaType === 'video' && <CoverControl photo={p} run={run} />}
             {multi && (
@@ -314,7 +352,76 @@ function SlotRow({
           {multi ? 'Add' : 'Use'}
         </button>
       </div>
-    </section>
+    </fieldset>
+  );
+}
+
+function ReplaceMedia({
+  photo,
+  run,
+}: {
+  photo: PhotographyPhoto;
+  run: (fn: () => Promise<void>) => Promise<void>;
+}) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [link, setLink] = useState('');
+  return (
+    <div className="mt-2">
+      <input
+        ref={fileRef}
+        type="file"
+        accept={photo.slot === 'gallery' ? 'image/*,video/*' : 'image/*'}
+        aria-label="Replacement file"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (!file) return;
+          void run(async () => {
+            const mediaType = file.type.startsWith('video/') ? 'video' : 'image';
+            if (!file.type.startsWith('image/') && mediaType !== 'video')
+              throw new Error('Choose an image or video file.');
+            if (mediaType === 'video' && photo.slot !== 'gallery')
+              throw new Error('Videos can only go in the gallery.');
+            const url = await uploadPhotographyPhoto(file);
+            await updatePhotographyPhoto(photo.id, { url, mediaType, posterUrl: null });
+          });
+          e.target.value = '';
+        }}
+      />
+      <button
+        type="button"
+        onClick={() => fileRef.current?.click()}
+        className={`${BTN_GHOST} w-full`}
+      >
+        {photo.mediaType === 'video' ? 'Replace video' : 'Replace image'}
+      </button>
+      <details className="mt-1 text-xs text-ink-muted">
+        <summary className="cursor-pointer py-1">Replace using a link</summary>
+        <input
+          value={link}
+          onChange={(e) => setLink(e.target.value)}
+          aria-label="Replacement URL"
+          placeholder="https://…"
+          className={`${INPUT_CLS} mt-1`}
+        />
+        <button
+          type="button"
+          disabled={!link.trim()}
+          className={`${BTN_GHOST} mt-1`}
+          onClick={() =>
+            void run(async () => {
+              const mediaType = videoSource(link) ? 'video' : 'image';
+              if (mediaType === 'video' && photo.slot !== 'gallery')
+                throw new Error('Videos can only go in the gallery.');
+              await updatePhotographyPhoto(photo.id, { url: link, mediaType, posterUrl: null });
+              setLink('');
+            })
+          }
+        >
+          Save replacement
+        </button>
+      </details>
+    </div>
   );
 }
 

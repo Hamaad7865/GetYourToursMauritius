@@ -106,7 +106,7 @@ export function QuickFacts({
       sub: effStartWindow ?? t('Check availability for start times'),
     });
   }
-  if (languages.length > 0) {
+  if (languages.length > 0 && !isPhotographyCategory(activity.category)) {
     facts.push({
       icon: <IconGlobe width={22} height={22} />,
       title: t('Live tour guide'),

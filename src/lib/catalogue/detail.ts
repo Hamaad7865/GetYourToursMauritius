@@ -53,7 +53,7 @@ export function quickFacts(activity: TourDetail): QuickFact[] {
   const facts: QuickFact[] = [];
   const duration = durationLabel(activity.durationMinutes);
   if (duration) facts.push({ label: 'Duration', sub: duration });
-  if (activity.languages.length > 0) {
+  if (activity.languages.length > 0 && !isPhotographyCategory(activity.category)) {
     facts.push({ label: 'Live guide', sub: activity.languages.join(', ') });
   }
   facts.push(
@@ -110,7 +110,7 @@ export function buildFaq(activity: TourDetail): Faq[] {
   } else if (activity.meetingPoint) {
     faqs.push({ q: 'Where do we meet?', a: activity.meetingPoint });
   }
-  if (activity.languages.length > 0) {
+  if (activity.languages.length > 0 && !isPhotographyCategory(activity.category)) {
     faqs.push({
       q: 'Which languages are available?',
       a: `This experience is guided in ${activity.languages.join(' and ')}.`,

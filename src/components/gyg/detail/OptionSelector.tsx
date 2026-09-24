@@ -5,6 +5,7 @@ import { useBooking } from './BookingProvider';
 import { useT, useMoney } from '@/components/site/PreferencesProvider';
 import { optionCardSummary, privateConfig } from '@/lib/catalogue/options';
 import { durationLabel } from '@/lib/catalogue/detail';
+import { isPhotographyCategory } from '@/lib/catalogue/photography';
 import { IconCheck, IconClock, IconUsers } from '@/components/ui/icons';
 
 /**
@@ -20,6 +21,7 @@ export function OptionSelector() {
   const money = useMoney();
   const b = useBooking();
   const { activity, selectedOptionId, setSelectedOption } = b;
+  const isPhoto = isPhotographyCategory(activity.category);
   // Roving-tabindex focus targets: arrow keys must move FOCUS with the selection (ARIA radio pattern).
   const radioRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
@@ -106,7 +108,7 @@ export function OptionSelector() {
                         .join(' · ')}
                     </div>
                   )}
-                  {summary.maxGuests != null && (
+                  {!isPhoto && summary.maxGuests != null && (
                     <div className="mt-1 flex items-center gap-1.5 text-[12px] text-ink/70">
                       <IconUsers width={13} height={13} className="text-teal" />
                       {t('fits up to {n}', { n: summary.maxGuests })}
@@ -118,7 +120,7 @@ export function OptionSelector() {
                     <div className="text-[15px] font-extrabold tracking-tight text-ink">
                       {money(summary.fromPriceEur)}
                     </div>
-                    {priv ? (
+                    {isPhoto ? null : priv ? (
                       // Honest private pricing: the base covers `included` guests; extras cost per head.
                       <div className="text-[11px] text-ink-muted">
                         {t('for up to {n} guests', { n: priv.included })}

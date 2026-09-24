@@ -203,6 +203,7 @@ describe('page photos (photography_photos)', () => {
       [
         'cta',
         'gallery',
+        'gallery-hero',
         'hero',
         'pricing-hero',
         'service-couples',

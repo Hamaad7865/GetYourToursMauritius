@@ -9,6 +9,7 @@ import type { Locale } from '@/lib/i18n/config';
 import { Price } from '@/components/site/Price';
 import { ageBandLabel, VEHICLE_BANDS } from '@/lib/services/pricing';
 import { activityFromPriceEur } from '@/lib/catalogue/options';
+import { isPhotographyCategory } from '@/lib/catalogue/photography';
 import {
   IconBolt,
   IconCalendar,
@@ -108,7 +109,7 @@ function MonthGrid({
  * button. All selection state lives in BookingProvider; pressing the button reveals the option card
  * (BookingOptionCard) in the page body. The vehicle (Sedan/SUV) + price + Continue live in that card.
  */
-export function BookingWidget() {
+export function BookingWidget({ hideAction = false }: { hideAction?: boolean }) {
   const t = useT();
   const { language } = usePreferences();
   const b = useBooking();
@@ -134,6 +135,7 @@ export function BookingWidget() {
     touch,
   } = b;
   const isTransport = activity.type === 'transport';
+  const isPhoto = isPhotographyCategory(activity.category);
   const isVehicle = activity.pricingMode === 'vehicle';
   const isGroup = b.groupSize != null;
   // "From" headline: falls back to a private option's base when the activity has no tier prices
@@ -271,7 +273,11 @@ export function BookingWidget() {
           showSellOut ? 'bg-gradient-to-r from-coral to-[#e8584a]' : 'bg-teal'
         }`}
       >
-        {showSellOut ? (
+        {isPhoto ? (
+          <>
+            <IconShield width={15} height={15} /> {t('Pay 50% to book')}
+          </>
+        ) : showSellOut ? (
           <>
             <IconBolt width={15} height={15} /> {t('Likely to sell out')}
           </>
@@ -293,176 +299,184 @@ export function BookingWidget() {
             {headlineFrom != null ? <Price eur={headlineFrom} /> : t('On request')}
           </span>
         </div>
-        <div className="text-[13px] text-ink-muted">
-          {unitLabelText}
-          {b.privateCfg != null && <> · {t('up to {n} people', { n: b.privateCfg.included })}</>}
-        </div>
+        {!isPhoto && (
+          <div className="text-[13px] text-ink-muted">
+            {unitLabelText}
+            {b.privateCfg != null && <> · {t('up to {n} people', { n: b.privateCfg.included })}</>}
+          </div>
+        )}
 
         <div className="mt-4 flex flex-col gap-2.5">
           {/* Participants */}
-          <div className="relative">
-            <button
-              ref={partsTriggerRef}
-              type="button"
-              onClick={() => setOpen((o) => (o === 'parts' ? null : 'parts'))}
-              aria-haspopup="dialog"
-              aria-expanded={open === 'parts'}
-              className={rowClass}
-            >
-              <IconUsers width={18} height={18} className="text-teal" />
-              <span className="flex-1 text-[14px] font-semibold text-ink">
-                {isAgeBanded ? t('Guests') : t('Participants')}{' '}
-                <span className="text-ink-muted">× {totalGuests}</span>
-              </span>
-              <IconChevron width={16} height={16} className="text-ink-muted" />
-            </button>
-            {open === 'parts' && (
-              <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-20 rounded-xl border border-ink/15 bg-white p-4 shadow-[0_24px_50px_-22px_rgba(10,46,54,0.4)]">
-                {isAgeBanded ? (
-                  <div className="flex flex-col divide-y divide-ink/[0.08]">
-                    {bandTiers.map((tier) => {
-                      const count = bandCounts[tier.label] ?? 0;
-                      const range = ageBandLabel(tier.minAge, tier.maxAge);
-                      const atCap =
-                        totalGuests >= partyCap ||
-                        (tier.maxGuests != null && count >= tier.maxGuests);
-                      // The full-price (adult) band always keeps ≥1 — no €0 / infant-only bookings.
-                      const isPrimary = tier.label === primaryBandLabel;
-                      return (
-                        <div key={tier.id} className="flex items-center justify-between gap-3 py-2">
-                          <div>
-                            <p className="text-sm font-bold text-ink">{tier.label}</p>
-                            <p className="text-[12px] text-ink-muted">
-                              {range && <span>{range} · </span>}
-                              {tier.amountEur > 0 ? (
-                                <Price eur={tier.amountEur} />
-                              ) : (
-                                <span className="font-bold text-teal-dark">{t('Free')}</span>
-                              )}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-2.5">
-                            <button
-                              type="button"
-                              aria-label={`${t('Remove')} ${tier.label}`}
-                              onClick={() => setBand(tier.label, count - 1)}
-                              disabled={isPrimary ? count <= 1 : count <= 0}
-                              className="grid h-11 w-11 place-items-center text-teal disabled:opacity-40"
-                            >
-                              <span className="grid h-9 w-9 place-items-center rounded-full border border-ink/20 hover:border-teal">
-                                <IconMinus width={15} height={15} />
+          {!isPhoto && (
+            <div className="relative">
+              <button
+                ref={partsTriggerRef}
+                type="button"
+                onClick={() => setOpen((o) => (o === 'parts' ? null : 'parts'))}
+                aria-haspopup="dialog"
+                aria-expanded={open === 'parts'}
+                className={rowClass}
+              >
+                <IconUsers width={18} height={18} className="text-teal" />
+                <span className="flex-1 text-[14px] font-semibold text-ink">
+                  {isAgeBanded ? t('Guests') : t('Participants')}{' '}
+                  <span className="text-ink-muted">× {totalGuests}</span>
+                </span>
+                <IconChevron width={16} height={16} className="text-ink-muted" />
+              </button>
+              {open === 'parts' && (
+                <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-20 rounded-xl border border-ink/15 bg-white p-4 shadow-[0_24px_50px_-22px_rgba(10,46,54,0.4)]">
+                  {isAgeBanded ? (
+                    <div className="flex flex-col divide-y divide-ink/[0.08]">
+                      {bandTiers.map((tier) => {
+                        const count = bandCounts[tier.label] ?? 0;
+                        const range = ageBandLabel(tier.minAge, tier.maxAge);
+                        const atCap =
+                          totalGuests >= partyCap ||
+                          (tier.maxGuests != null && count >= tier.maxGuests);
+                        // The full-price (adult) band always keeps ≥1 — no €0 / infant-only bookings.
+                        const isPrimary = tier.label === primaryBandLabel;
+                        return (
+                          <div
+                            key={tier.id}
+                            className="flex items-center justify-between gap-3 py-2"
+                          >
+                            <div>
+                              <p className="text-sm font-bold text-ink">{tier.label}</p>
+                              <p className="text-[12px] text-ink-muted">
+                                {range && <span>{range} · </span>}
+                                {tier.amountEur > 0 ? (
+                                  <Price eur={tier.amountEur} />
+                                ) : (
+                                  <span className="font-bold text-teal-dark">{t('Free')}</span>
+                                )}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2.5">
+                              <button
+                                type="button"
+                                aria-label={`${t('Remove')} ${tier.label}`}
+                                onClick={() => setBand(tier.label, count - 1)}
+                                disabled={isPrimary ? count <= 1 : count <= 0}
+                                className="grid h-11 w-11 place-items-center text-teal disabled:opacity-40"
+                              >
+                                <span className="grid h-9 w-9 place-items-center rounded-full border border-ink/20 hover:border-teal">
+                                  <IconMinus width={15} height={15} />
+                                </span>
+                              </button>
+                              <span className="w-6 text-center text-[15px] font-bold tabular-nums text-ink">
+                                {count}
                               </span>
-                            </button>
-                            <span className="w-6 text-center text-[15px] font-bold tabular-nums text-ink">
-                              {count}
-                            </span>
-                            <button
-                              type="button"
-                              aria-label={`${t('Add')} ${tier.label}`}
-                              onClick={() => setBand(tier.label, count + 1)}
-                              disabled={atCap}
-                              className="grid h-11 w-11 place-items-center text-teal disabled:opacity-40"
-                            >
-                              <span className="grid h-9 w-9 place-items-center rounded-full border border-ink/20 hover:border-teal">
-                                <IconPlus width={15} height={15} />
-                              </span>
-                            </button>
+                              <button
+                                type="button"
+                                aria-label={`${t('Add')} ${tier.label}`}
+                                onClick={() => setBand(tier.label, count + 1)}
+                                disabled={atCap}
+                                className="grid h-11 w-11 place-items-center text-teal disabled:opacity-40"
+                              >
+                                <span className="grid h-9 w-9 place-items-center rounded-full border border-ink/20 hover:border-teal">
+                                  <IconPlus width={15} height={15} />
+                                </span>
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-bold text-ink">
-                        {activity.pricingMode === 'vehicle'
-                          ? t('Passengers')
-                          : isGroup
-                            ? t('Group size')
-                            : t('Participants')}
-                      </p>
-                      <p className="text-[12px] text-ink-muted">{t('All ages welcome')}</p>
+                        );
+                      })}
                     </div>
-                    <div className="flex items-center gap-2.5">
-                      <button
-                        type="button"
-                        aria-label={t('Remove participant')}
-                        onClick={() => {
-                          setParticipants(Math.max(1, participants - 1));
-                          touch();
-                        }}
-                        disabled={participants <= 1}
-                        className="grid h-11 w-11 place-items-center text-teal disabled:opacity-40"
-                      >
-                        <span className="grid h-9 w-9 place-items-center rounded-full border border-ink/20 hover:border-teal">
-                          <IconMinus width={15} height={15} />
-                        </span>
-                      </button>
-                      <input
-                        type="number"
-                        inputMode="numeric"
-                        min={1}
-                        max={partyCap}
-                        value={participants}
-                        aria-label={t('Number of participants')}
-                        onChange={(e) => {
-                          const n = parseInt(e.target.value, 10);
-                          if (!Number.isNaN(n)) setParticipants(Math.max(1, Math.min(partyCap, n)));
-                          touch();
-                        }}
-                        className="h-9 w-14 rounded-lg border border-ink/15 text-center text-[15px] font-bold tabular-nums text-ink outline-none focus:border-teal [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
-                      />
-                      <button
-                        type="button"
-                        aria-label={t('Add participant')}
-                        onClick={() => {
-                          setParticipants(Math.min(partyCap, participants + 1));
-                          touch();
-                        }}
-                        disabled={participants >= partyCap}
-                        className="grid h-11 w-11 place-items-center text-teal disabled:opacity-40"
-                      >
-                        <span className="grid h-9 w-9 place-items-center rounded-full border border-ink/20 hover:border-teal">
-                          <IconPlus width={15} height={15} />
-                        </span>
-                      </button>
+                  ) : (
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-bold text-ink">
+                          {activity.pricingMode === 'vehicle'
+                            ? t('Passengers')
+                            : isGroup
+                              ? t('Group size')
+                              : t('Participants')}
+                        </p>
+                        <p className="text-[12px] text-ink-muted">{t('All ages welcome')}</p>
+                      </div>
+                      <div className="flex items-center gap-2.5">
+                        <button
+                          type="button"
+                          aria-label={t('Remove participant')}
+                          onClick={() => {
+                            setParticipants(Math.max(1, participants - 1));
+                            touch();
+                          }}
+                          disabled={participants <= 1}
+                          className="grid h-11 w-11 place-items-center text-teal disabled:opacity-40"
+                        >
+                          <span className="grid h-9 w-9 place-items-center rounded-full border border-ink/20 hover:border-teal">
+                            <IconMinus width={15} height={15} />
+                          </span>
+                        </button>
+                        <input
+                          type="number"
+                          inputMode="numeric"
+                          min={1}
+                          max={partyCap}
+                          value={participants}
+                          aria-label={t('Number of participants')}
+                          onChange={(e) => {
+                            const n = parseInt(e.target.value, 10);
+                            if (!Number.isNaN(n))
+                              setParticipants(Math.max(1, Math.min(partyCap, n)));
+                            touch();
+                          }}
+                          className="h-9 w-14 rounded-lg border border-ink/15 text-center text-[15px] font-bold tabular-nums text-ink outline-none focus:border-teal [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+                        />
+                        <button
+                          type="button"
+                          aria-label={t('Add participant')}
+                          onClick={() => {
+                            setParticipants(Math.min(partyCap, participants + 1));
+                            touch();
+                          }}
+                          disabled={participants >= partyCap}
+                          className="grid h-11 w-11 place-items-center text-teal disabled:opacity-40"
+                        >
+                          <span className="grid h-9 w-9 place-items-center rounded-full border border-ink/20 hover:border-teal">
+                            <IconPlus width={15} height={15} />
+                          </span>
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                )}
-                {isAgeBanded && b.total != null && (
-                  <div className="mt-3 flex items-center justify-between border-t border-ink/10 pt-3">
-                    <span className="text-[13px] text-ink-muted">{t('Total')}</span>
-                    <span className="text-[17px] font-extrabold text-ink">
-                      <Price eur={b.total} />
-                    </span>
-                  </div>
-                )}
-                {/* aria-live so a screen reader hears the over-cap note appear/clear as the count crosses MAX_PARTY. */}
-                <div aria-live="polite">
-                  {(isAgeBanded ? totalGuests : participants) >= MAX_PARTY && (
-                    <p className="mt-3 text-[12.5px] text-ink-muted">
-                      {t('Travelling with more than {n}?', { n: MAX_PARTY })}{' '}
-                      <Link
-                        href="/contact"
-                        className="font-bold text-teal-dark underline underline-offset-2"
-                      >
-                        {t('Contact us')}
-                      </Link>{' '}
-                      {t('for a quote.')}
-                    </p>
                   )}
+                  {isAgeBanded && b.total != null && (
+                    <div className="mt-3 flex items-center justify-between border-t border-ink/10 pt-3">
+                      <span className="text-[13px] text-ink-muted">{t('Total')}</span>
+                      <span className="text-[17px] font-extrabold text-ink">
+                        <Price eur={b.total} />
+                      </span>
+                    </div>
+                  )}
+                  {/* aria-live so a screen reader hears the over-cap note appear/clear as the count crosses MAX_PARTY. */}
+                  <div aria-live="polite">
+                    {(isAgeBanded ? totalGuests : participants) >= MAX_PARTY && (
+                      <p className="mt-3 text-[12.5px] text-ink-muted">
+                        {t('Travelling with more than {n}?', { n: MAX_PARTY })}{' '}
+                        <Link
+                          href="/contact"
+                          className="font-bold text-teal-dark underline underline-offset-2"
+                        >
+                          {t('Contact us')}
+                        </Link>{' '}
+                        {t('for a quote.')}
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => closePopover('parts')}
+                    className="mt-4 w-full rounded-full bg-teal-dark px-4 py-2.5 text-sm font-bold text-white hover:bg-teal-dark/90"
+                  >
+                    {t('Continue')}
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => closePopover('parts')}
-                  className="mt-4 w-full rounded-full bg-teal-dark px-4 py-2.5 text-sm font-bold text-white hover:bg-teal-dark/90"
-                >
-                  {t('Continue')}
-                </button>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
 
           {/* Date */}
           <div>
@@ -585,7 +599,7 @@ export function BookingWidget() {
           </div>
 
           {/* Language */}
-          {activity.languages.length > 0 && (
+          {!isPhoto && activity.languages.length > 0 && (
             <div className="relative">
               <button
                 ref={langTriggerRef}
@@ -644,35 +658,37 @@ export function BookingWidget() {
           )}
         </div>
 
-        <button
-          type="button"
-          // seatsLeft counts PEOPLE for per-person options but whole UNITS for vehicle/private (one
-          // booking = one vehicle/trip) — so a 1-left day must still accept a party of 6 there.
-          // Compare the REAL headcount (totalGuests): in age-banded mode `participants` is the untouched
-          // single-mode default, and gating on it made a valid 1-adult booking unbookable on a 1-seat day.
-          // With NO date chosen the button stays ENABLED and its click opens the date picker (below) —
-          // a dead/disabled button left the customer stuck with no cue to pick a date first. The seat
-          // gates only bite once a date is selected; `noAvailability` (genuinely no dates) still
-          // disables it, matching the date trigger.
-          disabled={
-            noAvailability ||
-            (!!date &&
-              (seatsForDate <= 0 || (!isVehicle && !b.privateCfg && seatsForDate < totalGuests)))
-          }
-          onClick={() => {
-            if (!date) {
-              // No date yet → guide the customer straight to the calendar (retry first if the
-              // availability fetch had failed, mirroring the date trigger's own click).
-              if (availabilityError) reloadAvailability();
-              else setOpen('date');
-              return;
+        {!hideAction && (
+          <button
+            type="button"
+            // seatsLeft counts PEOPLE for per-person options but whole UNITS for vehicle/private (one
+            // booking = one vehicle/trip) — so a 1-left day must still accept a party of 6 there.
+            // Compare the REAL headcount (totalGuests): in age-banded mode `participants` is the untouched
+            // single-mode default, and gating on it made a valid 1-adult booking unbookable on a 1-seat day.
+            // With NO date chosen the button stays ENABLED and its click opens the date picker (below) —
+            // a dead/disabled button left the customer stuck with no cue to pick a date first. The seat
+            // gates only bite once a date is selected; `noAvailability` (genuinely no dates) still
+            // disables it, matching the date trigger.
+            disabled={
+              noAvailability ||
+              (!!date &&
+                (seatsForDate <= 0 || (!isVehicle && !b.privateCfg && seatsForDate < totalGuests)))
             }
-            checkAvailability();
-          }}
-          className="gyt-press mt-4 flex w-full items-center justify-center rounded-xl bg-teal-dark px-4 py-[15px] text-base font-bold text-white shadow-[0_12px_24px_-12px_rgba(11,92,99,0.7)] hover:bg-teal-dark/90 disabled:cursor-not-allowed disabled:bg-teal-dark/85"
-        >
-          {t('Check availability')}
-        </button>
+            onClick={() => {
+              if (!date) {
+                // No date yet → guide the customer straight to the calendar (retry first if the
+                // availability fetch had failed, mirroring the date trigger's own click).
+                if (availabilityError) reloadAvailability();
+                else setOpen('date');
+                return;
+              }
+              checkAvailability();
+            }}
+            className="gyt-press mt-4 flex w-full items-center justify-center rounded-xl bg-teal-dark px-4 py-[15px] text-base font-bold text-white shadow-[0_12px_24px_-12px_rgba(11,92,99,0.7)] hover:bg-teal-dark/90 disabled:cursor-not-allowed disabled:bg-teal-dark/85"
+          >
+            {t('Check availability')}
+          </button>
+        )}
         {/* aria-live so a screen reader hears the low-availability warning when it appears/updates. */}
         <div aria-live="polite">
           {date &&

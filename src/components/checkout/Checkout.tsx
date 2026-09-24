@@ -382,7 +382,7 @@ export function Checkout() {
   // A photography package: nobody is driven anywhere — the same address step tells the
   // photographer where to meet the guests, so it is worded that way. No fee rides on it (a package
   // has no pickup fares); only the copy changes, never what is sent to the server.
-  const [isPhotoShoot, setIsPhotoShoot] = useState(false);
+  const [isPhotoShoot, setIsPhotoShoot] = useState(unit === 'per shoot');
   const [pickupLoc, setPickupLoc] = useState(pickupParam);
   // Resolved pickup coordinates — drive the region-based transport fee the server charges. Prefilled
   // from the widget's stash (below) or captured when the customer picks a place / drags the pin here.
@@ -1458,41 +1458,67 @@ export function Checkout() {
         <div className="mx-auto flex max-w-5xl items-center gap-6 px-6 py-3">
           <Logo tone="light" />
           <ol className="ml-auto flex items-center gap-3 text-[13px] font-bold sm:gap-7">
-            {STEPS.map((s, i) => {
-              const n = i + 1;
-              const done = step > n;
-              const active = step === n;
-              return (
-                <li
-                  key={s}
-                  aria-current={active ? 'step' : undefined}
-                  className="flex items-center gap-2"
+            {isPhotoShoot && (
+              <li>
+                <Link
+                  href={`/activities/${slug}?booking=1`}
+                  aria-label={t('Date & extras')}
+                  className="flex items-center gap-2 text-teal-dark"
                 >
-                  <span
-                    className={`grid h-6 w-6 place-items-center rounded-full text-[12px] ${
-                      done
-                        ? 'bg-teal text-white'
-                        : active
-                          ? 'bg-ink text-white'
-                          : 'bg-ink/10 text-ink-muted'
-                    }`}
-                  >
-                    {done ? '✓' : n}
+                  <span className="grid h-6 w-6 place-items-center rounded-full bg-teal text-white">
+                    ✓
                   </span>
-                  <span
-                    className={`hidden sm:inline ${active || done ? 'text-ink' : 'text-ink-muted'}`}
+                  <span className="hidden sm:inline">{t('Date & extras')}</span>
+                </Link>
+              </li>
+            )}
+            {(isPhotoShoot ? ['Meeting location', 'Your details', 'Payment'] : STEPS).map(
+              (s, i) => {
+                const n = i + 1;
+                const done = step > n;
+                const active = step === n;
+                return (
+                  <li
+                    key={s}
+                    aria-current={active ? 'step' : undefined}
+                    className="flex items-center gap-2"
                   >
-                    {t(s)}
-                  </span>
-                </li>
-              );
-            })}
+                    <span
+                      className={`grid h-6 w-6 place-items-center rounded-full text-[12px] ${
+                        done
+                          ? 'bg-teal text-white'
+                          : active
+                            ? 'bg-ink text-white'
+                            : 'bg-ink/10 text-ink-muted'
+                      }`}
+                    >
+                      {done ? '✓' : isPhotoShoot ? n + 1 : n}
+                    </span>
+                    <span
+                      className={`hidden sm:inline ${active || done ? 'text-ink' : 'text-ink-muted'}`}
+                    >
+                      {t(s)}
+                    </span>
+                  </li>
+                );
+              },
+            )}
           </ol>
         </div>
       </header>
 
       <main className="mx-auto grid max-w-5xl gap-8 px-6 pb-28 pt-8 lg:grid-cols-[1fr_340px] lg:pb-8">
         <div>
+          {isPhotoShoot && step > 1 && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => setStep(step - 1)}
+              className="mb-4 block text-sm font-bold text-teal-dark underline underline-offset-4"
+            >
+              {t('Back')}
+            </button>
+          )}
           <div className="mb-5 inline-flex items-center gap-2 rounded-lg bg-coral/10 px-3 py-2 text-[13px] font-semibold text-coral-dark">
             <IconClock width={15} height={15} />{' '}
             {t('We’ll hold your spot for {time} minutes.', { time: `${mm}:${ss}` })}
@@ -2208,12 +2234,14 @@ export function Checkout() {
             <div className="flex items-center gap-2">
               <IconCalendar width={15} height={15} className="text-teal" /> {when || '—'}
             </div>
-            <div className="flex items-center gap-2">
-              <IconUsers width={15} height={15} className="text-teal" /> {guests}{' '}
-              {Number(guests) === 1 ? t('guest') : t('guests')}
-              {unit ? ` · ${unit}` : ''}
-            </div>
-            {!isAirport && !isHotelTransfer && (
+            {!isPhotoShoot && (
+              <div className="flex items-center gap-2">
+                <IconUsers width={15} height={15} className="text-teal" /> {guests}{' '}
+                {Number(guests) === 1 ? t('guest') : t('guests')}
+                {unit ? ` · ${unit}` : ''}
+              </div>
+            )}
+            {!isPhotoShoot && !isAirport && !isHotelTransfer && (
               <div className="flex items-center gap-2">
                 <IconGlobe width={15} height={15} className="text-teal" /> {lang}
               </div>

@@ -6,6 +6,99 @@
  * Largely generated from the component fan-out; edit freely.
  */
 export const fr: Record<string, string> = {
+  Back: 'Retour',
+  'Choose your date': 'Choisissez votre date',
+  'View full gallery': 'Voir toute la galerie',
+  'Not included': 'Non inclus',
+  'Book your photoshoot': 'Réservez votre séance photo',
+  'Optional extras': 'Options supplémentaires',
+  'Package details': 'Détails du forfait',
+  'Back to package': 'Retour au forfait',
+  'Booking steps': 'Étapes de réservation',
+  'Date & extras': 'Date et options',
+  'Meeting location': 'Lieu de rendez-vous',
+  'Continue to details': 'Continuer vers les détails',
+  'Choose a date to continue.': 'Choisissez une date pour continuer.',
+  'Get inspired by these {category} shots': 'Inspirez-vous de ces séances {category}',
+  'See more photos': 'Voir plus de photos',
+  wedding: 'mariage',
+  film: 'film',
+  couple: 'couple',
+  family: 'famille',
+  Holiday: 'Vacances',
+  'Beach shoot': 'Séance à la plage',
+  'Trip explorer': 'Exploration de l’île',
+  Babymoon: 'Séjour avant bébé',
+  Proposal: 'Demande en mariage',
+  'Boat row': 'Séance en barque',
+  Fashion: 'Mode',
+  'A relaxed photo session to remember your time in Mauritius.':
+    'Une séance photo décontractée pour garder un souvenir de votre séjour à Maurice.',
+  'Portraits by the lagoon, with the sand and sea as your backdrop.':
+    'Des portraits au bord du lagon, avec le sable et la mer en toile de fond.',
+  'Plan a photo outing around the island locations you would like to explore.':
+    'Organisez une sortie photo autour des lieux de l’île que vous souhaitez découvrir.',
+  'An unhurried maternity session to celebrate the next chapter of your family.':
+    'Une séance maternité tout en douceur pour célébrer la prochaine étape de votre famille.',
+  'Plan the surprise together and capture the moment, followed by portraits as a couple.':
+    'Préparons ensemble la surprise pour immortaliser ce moment, puis réaliser des portraits de couple.',
+  'Natural family photographs with time for the little ones to be themselves.':
+    'Des photos de famille naturelles, en laissant aux petits le temps d’être eux-mêmes.',
+  'A waterside portrait session with a rowboat setting, arranged on request.':
+    'Une séance de portraits au bord de l’eau dans un décor de barque, organisée sur demande.',
+  'An editorial portrait session built around your outfits, style and chosen location.':
+    'Une séance de portraits éditoriaux autour de vos tenues, de votre style et du lieu choisi.',
+  'Photoshoot packages in Mauritius': 'Formules photo à l’île Maurice',
+  'Choose your shoot. Pick a date. We will take care of the photos.':
+    'Choisissez votre séance et votre date. Nous nous occupons des photos.',
+  'Photography packages for weddings, couples and family holidays in Mauritius.':
+    'Des formules photo pour les mariages, les couples et les vacances en famille à Maurice.',
+  'Pay 50% to book your date. The balance is due when your photos are delivered.':
+    'Payez 50 % pour réserver votre date. Le solde est dû à la livraison de vos photos.',
+  'Photography gallery': 'Galerie photo',
+  'Gallery categories': 'Catégories de la galerie',
+  'Play video: {title}': 'Lire la vidéo : {title}',
+  'Open photo: {title}': 'Ouvrir la photo : {title}',
+  'Photography film in Mauritius': 'Film à l’île Maurice',
+  Gallery: 'Galerie',
+  'The gallery': 'La galerie',
+  'Weddings, films, couples and families — shot on the beaches and islands of Mauritius.':
+    'Mariages, films, couples et familles — sur les plages et les îles de Maurice.',
+  'Like what you see?': 'Ces images vous plaisent ?',
+  'Book your own shoot.': 'Réservez votre séance.',
+  'Pick a package and a date — 50% books it, the rest when your photos are delivered.':
+    'Choisissez une formule et une date — 50 % à la réservation, le reste à la livraison de vos photos.',
+  'See the full gallery': 'Voir toute la galerie',
+  'per shoot': 'par séance',
+  'Why take photos with us?': 'Pourquoi faire une séance photo avec nous ?',
+  'Useful information': 'Informations utiles',
+  'Celebrate your milestones': 'Immortalisez vos moments importants',
+  'From a proposal to a family holiday, make time for photographs of the moments that matter to you.':
+    'D’une demande en mariage à des vacances en famille, prenez le temps de photographier les moments qui comptent pour vous.',
+  'Guidance from your photographer': 'Votre photographe vous guide',
+  'You do not need to know how to pose. Your photographer helps you find the light, feel comfortable and enjoy the shoot.':
+    'Pas besoin de savoir poser. Votre photographe vous aide à trouver la lumière, à vous sentir à l’aise et à profiter de la séance.',
+  'Carefully edited photos': 'Des photos soigneusement retouchées',
+  'Your package includes edited, high-resolution photographs to keep and share. Check the package for its included photos and extras.':
+    'Votre formule comprend des photos retouchées en haute résolution, à conserver et à partager. Consultez la formule pour connaître les photos incluses et les suppléments.',
+  'Your private gallery': 'Votre galerie privée',
+  'Receive your edited photos in a private online gallery. Your photographer confirms the delivery schedule when you book.':
+    'Recevez vos photos retouchées dans une galerie privée en ligne. Votre photographe confirme le délai de livraison lors de la réservation.',
+  'Rescheduling your shoot': 'Reporter votre séance',
+  'To change your date, contact us as soon as possible. We will check availability with your photographer before confirming a new date.':
+    'Pour changer de date, contactez-nous dès que possible. Nous vérifierons les disponibilités avec votre photographe avant de confirmer une nouvelle date.',
+  'What to wear': 'Comment vous habiller',
+  'Choose clothes you feel comfortable moving in. Light, breathable fabrics work well in Mauritius. Coordinate colours without needing identical outfits, and bring comfortable shoes for walking between locations.':
+    'Choisissez des vêtements dans lesquels vous pouvez bouger confortablement. Les tissus légers et respirants conviennent bien à Maurice. Harmonisez les couleurs sans porter forcément des tenues identiques, et prévoyez des chaussures confortables pour marcher entre les lieux.',
+  'Choosing the best time': 'Choisir le meilleur moment',
+  'Morning light often suits east- and south-coast shoots, while late afternoon works well in the north and west. We will plan around your location, shade and weather, avoiding harsh midday light where possible.':
+    'La lumière du matin convient souvent aux séances sur les côtes est et sud, tandis que la fin d’après-midi est idéale au nord et à l’ouest. Nous tiendrons compte du lieu, de l’ombre et de la météo, en évitant si possible la lumière intense de midi.',
+  'Transport and entrance fees': 'Transport et droits d’entrée',
+  'Check your package inclusions before booking. For hotel grounds, private venues or paid attractions, contact us to confirm access, photographer transport and any entrance fees before choosing the location.':
+    'Consultez les prestations incluses avant de réserver. Pour les hôtels, lieux privés ou sites payants, contactez-nous afin de confirmer l’accès, le transport du photographe et les éventuels droits d’entrée avant de choisir le lieu.',
+  'Payment and cancellation': 'Paiement et annulation',
+  'The 50% deposit secures your date and is non-refundable. The remaining 50% is due when your photos are delivered. Contact us if you need to cancel or discuss a change of date.':
+    'L’acompte de 50 % réserve votre date et n’est pas remboursable. Les 50 % restants sont dus à la livraison de vos photos. Contactez-nous pour annuler ou discuter d’un changement de date.',
   'About Us': 'À propos',
   Activities: 'Activités',
   'AI Trip Planner': 'Planificateur de voyage IA',

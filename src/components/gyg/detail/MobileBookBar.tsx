@@ -7,6 +7,7 @@ import { Price } from '@/components/site/Price';
 import { activityFromPriceEur } from '@/lib/catalogue/options';
 import { useBottomBarOffset } from '@/lib/ui/useBottomBarOffset';
 import { VEHICLE_BANDS } from '@/lib/services/pricing';
+import { isPhotographyCategory } from '@/lib/catalogue/photography';
 
 /**
  * Mobile-only sticky bottom bar (phones/tablets) carrying the "From" price + a "Check availability"
@@ -40,7 +41,9 @@ export function MobileBookBar() {
           <span className="text-[19px] font-extrabold tracking-tight text-ink">
             {price != null ? <Price eur={price} /> : t('On request')}
           </span>
-          <span className="truncate text-[11px] text-ink-muted">{unitLabelText}</span>
+          {!isPhotographyCategory(b.activity.category) && (
+            <span className="truncate text-[11px] text-ink-muted">{unitLabelText}</span>
+          )}
         </div>
       </div>
       <button

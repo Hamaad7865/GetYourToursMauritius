@@ -43,11 +43,13 @@ export function GalleryGrid({
   limit,
   initialFilter = 'all',
   syncUrl = false,
+  tone = 'dark',
 }: {
   items: GalleryItem[];
   limit?: number;
   initialFilter?: Filter;
   syncUrl?: boolean;
+  tone?: 'dark' | 'light';
 }) {
   const t = useT();
   const [filter, setFilter] = useState<Filter>(initialFilter);
@@ -85,7 +87,7 @@ export function GalleryGrid({
         <div
           role="tablist"
           aria-label={t('Gallery categories')}
-          className="mx-auto mt-10 flex w-fit max-w-full gap-1 overflow-x-auto rounded-full bg-white/[0.06] p-1.5"
+          className={`mx-auto mt-8 flex w-fit max-w-full gap-1 overflow-x-auto rounded-lg p-1.5 ${tone === 'light' ? 'bg-teal-tint/50' : 'bg-white/[0.06]'}`}
         >
           {tabs.map((tab) => (
             <button
@@ -95,21 +97,23 @@ export function GalleryGrid({
               aria-selected={filter === tab}
               onClick={() => choose(tab)}
               className={`whitespace-nowrap rounded-full px-5 py-2 text-sm font-bold transition ${
-                filter === tab ? 'bg-white text-ink' : 'text-white/70 hover:text-white'
+                filter === tab
+                  ? tone === 'light'
+                    ? 'bg-teal-dark text-white'
+                    : 'bg-white text-ink'
+                  : tone === 'light'
+                    ? 'text-ink-muted hover:text-teal-dark'
+                    : 'text-white/70 hover:text-white'
               }`}
             >
               {t(TAB_LABEL[tab])}
-              <span
-                className={`ml-1.5 text-[12px] ${filter === tab ? 'text-ink/50' : 'text-white/40'}`}
-              >
-                {counts[tab]}
-              </span>
+              <span className="ml-1.5 text-[12px] opacity-70">{counts[tab]}</span>
             </button>
           ))}
         </div>
       )}
 
-      <div className="mt-12 columns-1 gap-5 sm:columns-2 lg:columns-3 [&>*]:mb-5">
+      <div className="mt-8 columns-1 gap-5 sm:columns-2 lg:columns-3 [&>*]:mb-5">
         {visible.map((item, i) => (
           <button
             key={item.key}

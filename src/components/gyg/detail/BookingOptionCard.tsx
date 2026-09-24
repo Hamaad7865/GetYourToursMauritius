@@ -162,9 +162,11 @@ export function BookingOptionCard() {
             <IconClock width={15} height={15} className="text-teal" /> {dur}
           </span>
         )}
-        <span className="flex items-center gap-1.5">
-          <IconGlobe width={15} height={15} className="text-teal" /> {b.lang}
-        </span>
+        {!isPhoto && (
+          <span className="flex items-center gap-1.5">
+            <IconGlobe width={15} height={15} className="text-teal" /> {b.lang}
+          </span>
+        )}
         <span className="flex items-center gap-1.5">
           <IconPin width={15} height={15} className="text-teal" />
           {b.activity.pickupAvailable ? t('Hotel pickup') : t('Meeting point')}
@@ -173,7 +175,7 @@ export function BookingOptionCard() {
 
       <div className="mt-4 border-t border-ink/10 pt-3">
         <div className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">
-          {t('Starting time')}
+          {isPhoto ? t('Date') : t('Starting time')}
         </div>
         <div className="text-[15px] font-semibold text-ink">{whenText}</div>
       </div>
