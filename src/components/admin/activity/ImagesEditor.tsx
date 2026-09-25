@@ -134,10 +134,10 @@ export function ImagesEditor({
 
       <div className="flex flex-wrap gap-2">
         <label className="cursor-pointer rounded-full border border-ink/15 px-4 py-2 text-sm font-bold text-ink hover:border-teal hover:text-teal">
-          {uploading ? 'Uploading…' : 'Upload photos'}
+          {uploading ? 'Uploading…' : 'Upload photos or videos'}
           <input
             type="file"
-            accept="image/*"
+            accept="image/*,video/*"
             multiple
             className="hidden"
             disabled={uploading}

@@ -5,7 +5,10 @@ import {
   crossSellHref,
   isPhotographyCategory,
   photographyAddOnSlugs,
+  photographyCover,
   photographyGroup,
+  photographyInspirationIds,
+  photographySpecs,
   PHOTO_SLOTS,
   photosIn,
   slotUrl,
@@ -24,9 +27,10 @@ import {
   type PhotographyPackageInput,
 } from '@/lib/admin/photography';
 import { PHOTOGRAPHY_STARTER_PACKAGES } from '@/lib/catalogue/photography';
+import { buildInspirationItems } from '@/components/photography/packages-data';
 import { serviceJsonLd } from '@/lib/seo/jsonld';
 import { SEO_PAGES } from '@/lib/seo/page-registry';
-import { renderPhotoBalanceEmail } from '@/lib/email/photography';
+import { renderGalleryReadyEmail, renderPhotoBalanceEmail } from '@/lib/email/photography';
 import { SITE } from '@/lib/seo/site';
 
 const INPUT: PhotographyPackageInput = {
@@ -44,6 +48,16 @@ const INPUT: PhotographyPackageInput = {
   addOns: PHOTOGRAPHY_ADD_ON_PRESETS.map((a) => ({ ...a })),
   imageUrl: '',
   status: 'published',
+  bestSeller: false,
+  photoCount: 0,
+  locationLine: '',
+  deliveryLine: '',
+  showDuration: true,
+  showGuests: true,
+  showAddOns: true,
+  showDeposit: true,
+  showDetails: true,
+  inspiration: [],
 };
 
 describe('photography catalogue rules', () => {
@@ -74,6 +88,118 @@ describe('photography catalogue rules', () => {
       'x',
     ]);
     expect(activityExtraSchema.parse({ photographyAddOns: 'x' }).photographyAddOns).toBeUndefined();
+  });
+
+  it('reads the price-card specs defensively, and keeps them through the extra schema', () => {
+    expect(
+      photographySpecs({
+        photographyBestSeller: true,
+        photographyPhotoCount: 40,
+        photographyLocation: ' Beach of your choice ',
+        photographyDelivery: 'Delivery in 3 weeks',
+      }),
+    ).toEqual({
+      bestSeller: true,
+      photoCount: 40,
+      location: 'Beach of your choice',
+      delivery: 'Delivery in 3 weeks',
+      showDuration: true,
+      showGuests: true,
+      showAddOns: true,
+      showDeposit: true,
+      showDetails: true,
+    });
+    // Unknown shapes read as unset, never as a badge or a tick.
+    expect(photographySpecs(null)).toEqual({
+      bestSeller: false,
+      photoCount: null,
+      location: null,
+      delivery: null,
+      showDuration: true,
+      showGuests: true,
+      showAddOns: true,
+      showDeposit: true,
+      showDetails: true,
+    });
+    expect(photographySpecs({ photographyBestSeller: 'yes', photographyPhotoCount: -3 })).toEqual({
+      bestSeller: false,
+      photoCount: null,
+      location: null,
+      delivery: null,
+      showDuration: true,
+      showGuests: true,
+      showAddOns: true,
+      showDeposit: true,
+      showDetails: true,
+    });
+    // Tick visibility is opt-out: only an explicit false hides one.
+    expect(
+      photographySpecs({ photographyShowGuests: false, photographyShowDeposit: 0 }),
+    ).toMatchObject({ showGuests: false, showDuration: true, showDeposit: true });
+    expect(photographySpecs({ photographyShowDetails: false }).showDetails).toBe(false);
+    const parsed = activityExtraSchema.parse({
+      photographyBestSeller: true,
+      photographyPhotoCount: 40,
+      photographyLocation: 'Beach of your choice',
+      photographyDelivery: 'Delivery in 3 weeks',
+      photographyPhotoCount_bad: 1,
+    });
+    expect(parsed.photographyBestSeller).toBe(true);
+    expect(parsed.photographyPhotoCount).toBe(40);
+    expect(parsed.photographyLocation).toBe('Beach of your choice');
+    expect(parsed.photographyDelivery).toBe('Delivery in 3 weeks');
+  });
+
+  it('reads the package’s own inspiration photo urls in order, defensively', () => {
+    expect(
+      photographyInspirationIds({
+        photographyInspiration: ['https://x/b.jpg', ' /a.jpg ', 'https://x/b.jpg', 3, ''],
+      }),
+    ).toEqual(['https://x/b.jpg', '/a.jpg']);
+    expect(photographyInspirationIds({ photographyInspiration: 'a' })).toEqual([]);
+    expect(photographyInspirationIds(null)).toEqual([]);
+    expect(
+      activityExtraSchema.parse({ photographyInspiration: ['https://x/b.jpg'] })
+        .photographyInspiration,
+    ).toEqual(['https://x/b.jpg']);
+  });
+
+  it('prefers the package’s own inspiration photos, falling back to the tag filter', () => {
+    const t = (key: string) => key;
+    const photos: PhotographyPhoto[] = [
+      {
+        id: 'p1',
+        slot: 'gallery',
+        url: 'https://x/1.jpg',
+        alt: 'One',
+        tags: ['couples'],
+        position: 0,
+        mediaType: 'image',
+        posterUrl: null,
+      },
+      {
+        id: 'p2',
+        slot: 'gallery',
+        url: 'https://x/2.jpg',
+        alt: 'Two',
+        tags: ['weddings'],
+        position: 1,
+        mediaType: 'image',
+        posterUrl: null,
+      },
+    ];
+    const act = { title: 'Couples session', summary: null };
+    const picked = buildInspirationItems(t, photos, act, 'shoots', 6, [
+      'https://own/2.jpg',
+      'https://own/1.jpg',
+    ]);
+    expect(picked.items.map((i) => i.src)).toEqual(['https://own/2.jpg', 'https://own/1.jpg']);
+    expect(picked.items.every((i) => i.kind === 'image')).toBe(true);
+    // Non-urls resolve to nothing → the tag filter (couples → p1).
+    expect(
+      buildInspirationItems(t, photos, act, 'shoots', 6, ['gone']).items.map((i) => i.key),
+    ).toEqual(['p1']);
+    expect(buildInspirationItems(t, photos, act, 'shoots').items.map((i) => i.key)).toEqual(['p1']);
   });
 
   it('deep-links the paired product for the same day and party', () => {
@@ -156,6 +282,100 @@ describe('the admin "New package" template', () => {
       extra: Record<string, unknown>;
     };
     expect(none.extra).not.toHaveProperty('photographyAddOns');
+  });
+
+  it('writes the price-card specs to extra, and omits them when unset', () => {
+    const spec = photographyPackageValues({
+      ...INPUT,
+      bestSeller: true,
+      photoCount: 40,
+      locationLine: 'Beach of your choice',
+      deliveryLine: 'Delivery in 3 weeks',
+      inspiration: ['https://own/2.jpg', 'https://own/1.jpg'],
+    });
+    expect((activityRow(spec, 'op') as { extra: Record<string, unknown> }).extra).toMatchObject({
+      photographyBestSeller: true,
+      photographyPhotoCount: 40,
+      photographyLocation: 'Beach of your choice',
+      photographyDelivery: 'Delivery in 3 weeks',
+      photographyInspiration: ['https://own/2.jpg', 'https://own/1.jpg'],
+    });
+    const plain = activityRow(v, 'op') as { extra: Record<string, unknown> };
+    for (const key of [
+      'photographyBestSeller',
+      'photographyPhotoCount',
+      'photographyLocation',
+      'photographyDelivery',
+      'photographyShowDuration',
+      'photographyShowGuests',
+      'photographyShowAddOns',
+      'photographyShowDeposit',
+      'photographyShowDetails',
+      'photographyInspiration',
+    ]) {
+      expect(plain.extra).not.toHaveProperty(key);
+    }
+    // Unticking a box writes an explicit false; ticked boxes stay out of extra entirely.
+    const hidden = activityRow(
+      photographyPackageValues({ ...INPUT, showGuests: false, showDeposit: false }),
+      'op',
+    ) as { extra: Record<string, unknown> };
+    expect(hidden.extra).toMatchObject({
+      photographyShowGuests: false,
+      photographyShowDeposit: false,
+    });
+    expect(hidden.extra).not.toHaveProperty('photographyShowDuration');
+    expect(hidden.extra).not.toHaveProperty('photographyShowAddOns');
+    // The details section hides the same way.
+    const noDetails = activityRow(
+      photographyPackageValues({ ...INPUT, showDetails: false }),
+      'op',
+    ) as { extra: Record<string, unknown> };
+    expect(noDetails.extra).toMatchObject({ photographyShowDetails: false });
+    // The edit form reads them back, and a save carries them through unchanged.
+    const row = activityRow(spec, 'op') as { extra: Record<string, unknown> };
+    const input = packageInputFromValues({ ...spec, sourceExtra: row.extra }, 2);
+    expect(input).toMatchObject({
+      bestSeller: true,
+      photoCount: 40,
+      locationLine: 'Beach of your choice',
+      deliveryLine: 'Delivery in 3 weeks',
+      inspiration: ['https://own/2.jpg', 'https://own/1.jpg'],
+      showDetails: true,
+    });
+    const next = applyPackageInput({ ...spec, sourceExtra: row.extra }, input);
+    expect((activityRow(next, 'op') as { extra: Record<string, unknown> }).extra).toMatchObject(
+      row.extra,
+    );
+  });
+
+  it('tracks the cover photo in extra, and reads it back into the form', () => {
+    expect(photographyCover({ photographyCover: ' https://x/cover.jpg ' })).toBe(
+      'https://x/cover.jpg',
+    );
+    expect(photographyCover(null)).toBeNull();
+    expect(
+      activityExtraSchema.parse({ photographyCover: 'https://x/cover.jpg' }).photographyCover,
+    ).toBe('https://x/cover.jpg');
+    // The template writes the cover URL to extra; an empty cover writes nothing.
+    const withCover = activityRow(
+      photographyPackageValues({ ...INPUT, imageUrl: 'https://x/cover.jpg' }),
+      'op',
+    ) as { extra: Record<string, unknown> };
+    expect(withCover.extra).toMatchObject({ photographyCover: 'https://x/cover.jpg' });
+    const withoutCover = activityRow(photographyPackageValues(INPUT), 'op') as {
+      extra: Record<string, unknown>;
+    };
+    expect(withoutCover.extra).not.toHaveProperty('photographyCover');
+    // The edit form prefers the stored cover over the first image.
+    const input = packageInputFromValues(
+      {
+        ...photographyPackageValues({ ...INPUT, imageUrl: 'https://x/cover.jpg' }),
+        sourceExtra: withCover.extra,
+      },
+      2,
+    );
+    expect(input.imageUrl).toBe('https://x/cover.jpg');
   });
 });
 
@@ -289,6 +509,34 @@ describe('the "photos delivered" balance email', () => {
   });
 });
 
+describe('the "gallery ready" email', () => {
+  const base = {
+    ref: 'BMTABC123',
+    customerName: 'Anna Smith',
+    packageTitle: 'Couples session',
+    photoCount: 40,
+    locale: 'en',
+  };
+
+  it('links to the guest’s private gallery and states the photo count', () => {
+    const e = renderGalleryReadyEmail(base);
+    expect(e.subject).toContain('BMTABC123');
+    expect(e.html).toContain(`${SITE.url}/bookings/BMTABC123#gallery`);
+    expect(e.text).toContain('40');
+    expect(e.text).toContain('Hi Anna,');
+  });
+
+  it('writes French for a French booking', () => {
+    expect(renderGalleryReadyEmail({ ...base, locale: 'fr' }).subject).toMatch(
+      /Votre galerie est prête/,
+    );
+  });
+
+  it('refuses to email a gallery with no photos', () => {
+    expect(() => renderGalleryReadyEmail({ ...base, photoCount: 0 })).toThrow();
+  });
+});
+
 describe('the six example packages', () => {
   it('each becomes a valid draft package, matching the card shown on the site', () => {
     expect(PHOTOGRAPHY_STARTER_PACKAGES).toHaveLength(6);
@@ -316,6 +564,8 @@ describe('editing an existing package', () => {
       { url: '/a.jpg', alt: 'A' },
       { url: '/b.jpg', alt: 'B' },
     ],
+    // As saved through the package form: the cover is explicit in extra, not just images[0].
+    photographyCover: '/a.jpg',
     highlights: ['Hand-picked highlight'],
     supplements: [{ id: 'sup-1', name: 'Drone aerials', nameFr: 'Drone', priceEur: 120 }],
     options: photographyPackageValues(INPUT).options.map((o) => ({ ...o, id: 'opt-1' })),

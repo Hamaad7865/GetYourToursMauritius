@@ -39,6 +39,8 @@ import {
   PhotographyBenefits,
   PhotographyInformation,
 } from '@/components/photography/PhotographyInformation';
+import { PrivateTourPhotography } from '@/components/photography/PrivateTourPhotography';
+import { isSightseeingCategory } from '@/lib/categories/categories';
 import { SiteFooter } from '@/components/site/SiteFooter';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { getLocale, getT } from '@/lib/i18n/server';
@@ -198,6 +200,15 @@ export default async function ActivityDetailPage({
   const badges = activity.extra.badges ?? [];
   // Skydiving-style activities that need personal planning skip checkout entirely — see InquiryWidget.
   const isInquiryOnly = Boolean(activity.extra.inquiryOnly);
+  // Private tours (the admin's "private/exclusive" flag) can attach a photographer — except
+  // sightseeing tours (vehicle-priced day tours: the vehicle is the product, not the group) and
+  // photography packages themselves.
+  const showPhotoAttach =
+    !isPhoto &&
+    !isInquiryOnly &&
+    (activity.extra.isPrivate ?? false) &&
+    activity.pricingMode !== 'vehicle' &&
+    !isSightseeingCategory(activity.category);
 
   // Standard content per CATEGORY, editable in /admin/content (was two hardcoded files keyed off
   // pricingMode/category). Highlights are REPLACED by the category's standard set; the other lists
@@ -613,6 +624,8 @@ export default async function ActivityDetailPage({
                         )}
                       </section>
                     )}
+
+                    {showPhotoAttach && <PrivateTourPhotography />}
 
                     {isPhotographyCategory(activity.category) && (
                       <div className="mt-8 space-y-10 border-t border-ink/10 pt-7 text-ink">

@@ -1106,6 +1106,22 @@ type PhotographyPhotosInsert = {
   poster_url?: string | null;
 };
 
+/** 20261012000000 — the customer's private gallery: one row per photo of one booking. */
+type BookingPhotosRow = {
+  id: string;
+  booking_id: string;
+  url: string;
+  position: number;
+  created_at: string;
+};
+type BookingPhotosInsert = {
+  id?: string;
+  booking_id: string;
+  url: string;
+  position?: number;
+  created_at?: string;
+};
+
 /** 20260927000000 — the Documents module: standalone quotes/invoices/proformas/receipts + a
  *  self-building bill-to list + the numbering counter. Staff-only (RLS). See src/lib/documents/. */
 type DocumentClientsRow = {
@@ -1263,6 +1279,7 @@ export interface Database {
       error_logs: TableDef<ErrorLogsRow, ErrorLogsInsert>;
       business_settings: TableDef<BusinessSettingsRow, BusinessSettingsInsert>;
       photography_photos: TableDef<PhotographyPhotosRow, PhotographyPhotosInsert>;
+      booking_photos: TableDef<BookingPhotosRow, BookingPhotosInsert>;
       document_clients: TableDef<DocumentClientsRow, DocumentClientsInsert>;
       documents: TableDef<DocumentsRow, DocumentsInsert>;
       document_counters: TableDef<DocumentCountersRow, DocumentCountersInsert>;

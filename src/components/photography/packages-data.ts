@@ -3,6 +3,7 @@ import { searchActivities } from '@/lib/services/activities';
 import { getLocale } from '@/lib/i18n/server';
 import { SITE, whatsappUrl } from '@/lib/seo/site';
 import { createUserClient } from '@/lib/supabase/client';
+import { isVideoUrl } from '@/lib/media';
 import {
   PHOTOGRAPHY_CATEGORY,
   PHOTOGRAPHY_GALLERY_DEFAULTS,
@@ -11,6 +12,7 @@ import {
   isPhotographyCategory,
   mediaThumb,
   photographyGroup,
+  photographySpecs,
   photosIn,
   savedPhotographyGroup,
   type GalleryTag,
@@ -81,6 +83,28 @@ export async function loadPhotographyGroups(): Promise<Record<string, Photograph
   }
 }
 
+/**
+ * Slugs of packages the owner flagged "Best seller" (`extra.photographyBestSeller`). Same one-read
+ * pattern as the groups above — summaries don't carry `extra`. The badge shows on the package
+ * grid and the package page; the owner ticks only one package in /admin/photography.
+ */
+export async function loadPhotographyBestSellers(): Promise<Set<string>> {
+  try {
+    const { data, error } = await createUserClient()
+      .from('activities')
+      .select('slug, extra')
+      .eq('category', PHOTOGRAPHY_CATEGORY as never);
+    if (error || !data) return new Set();
+    return new Set(
+      (data as { slug: unknown; extra: unknown }[])
+        .filter((row) => typeof row.slug === 'string' && photographySpecs(row.extra).bestSeller)
+        .map((row) => row.slug as string),
+    );
+  } catch {
+    return new Set();
+  }
+}
+
 type T = (key: string, vars?: Record<string, string | number>) => string;
 
 /**
@@ -93,6 +117,7 @@ export function buildPackageCards(
   live: TourSummary[],
   waNumber: string,
   groups: Record<string, PhotographyGroup> = {},
+  bestSellers: Set<string> = new Set(),
 ): PhotoPackage[] {
   const hours = (minutes: number | null) => {
     if (!minutes) return null;
@@ -126,6 +151,7 @@ export function buildPackageCards(
       external: false,
       // The middle card of a full row of three gets the dark "our pick" treatment, as designed.
       highlight: n === 3 && i === 1,
+      bestSeller: bestSellers.has(a.slug),
     });
     return [
       ...weddings.map((a, i) => toCard(a, 'weddings', i, weddings.length)),
@@ -162,6 +188,7 @@ export function buildPackageCards(
       href: enquire(title),
       external: true,
       highlight: false,
+      bestSeller: false,
     };
   });
   return [...shoots, ...cards.filter((card) => !used.has(card.key))];
@@ -213,10 +240,11 @@ export function buildGalleryItems(t: T, photos: PhotographyPhoto[]): GalleryItem
 }
 
 /**
- * A package's "Get inspired by these {category} shots" strip: the same gallery
- * (owner photos, or the built-in stand-ins), filtered to the category that best fits this
- * package, image items only (a thumbnail is enough to preview — the full gallery still plays
- * videos), capped so the row stays a fixed size regardless of how many photos are tagged.
+ * A package's "Get inspired by these {category} shots" strip: the package's own photos
+ * (`extra.photographyInspiration`, uploaded in /admin/photography → Edit package) when set —
+ * else the shared gallery filtered to the category that best fits this package. Image items
+ * only (a thumbnail is enough to preview — the full gallery still plays videos), capped so the
+ * row stays a fixed size regardless of how many photos there are.
  */
 export function buildInspirationItems(
   t: T,
@@ -224,9 +252,27 @@ export function buildInspirationItems(
   activity: { title: string; summary?: string | null },
   group: PhotographyGroup,
   limit = 6,
+  pickUrls: string[] = [],
 ): { tag: GalleryTag; items: GalleryItem[] } {
   const tag = galleryTagForPackage(activity, group);
-  const items = buildGalleryItems(t, photos)
+  if (pickUrls.length) {
+    // Photos only — the strip renders <img> tiles, so uploaded videos stay in the main gallery.
+    const picked = pickUrls
+      .filter((url) => /^(https?:\/\/|\/)/i.test(url) && !isVideoUrl(url))
+      .slice(0, limit)
+      .map((url) => ({
+        key: url,
+        kind: 'image' as const,
+        src: url,
+        thumb: url,
+        alt: activity.title,
+        categories: [] as GalleryTag[],
+        aspect: 'aspect-[4/3]',
+      }));
+    if (picked.length) return { tag, items: picked };
+  }
+  const gallery = buildGalleryItems(t, photos);
+  const items = gallery
     .filter((item) => item.kind === 'image' && item.categories.includes(tag))
     .slice(0, limit);
   return { tag, items };

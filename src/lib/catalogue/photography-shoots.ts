@@ -1,66 +1,18 @@
-import { PHOTO_STOCK } from './photography';
+/**
+ * Fallback shoot-type enquiry cards (WhatsApp "Price on request" cards on /photography when no
+ * live package matches). Emptied 2026-09-25 by the owner: only real bookable packages show now.
+ * Kept as a typed empty list (with the matcher below) so /admin/photography/new keeps working
+ * and a shoot type can be re-added here later without rewiring the callers.
+ */
+export interface PhotographyShoot {
+  key: string;
+  title: string;
+  summary: string;
+  image: string;
+  aliases: readonly string[];
+}
 
-export const PHOTOGRAPHY_SHOOTS = [
-  {
-    key: 'holiday',
-    title: 'Holiday',
-    summary: 'A relaxed photo session to remember your time in Mauritius.',
-    image: PHOTO_STOCK.couple,
-    aliases: ['holiday'],
-  },
-  {
-    key: 'beach-shoot',
-    title: 'Beach shoot',
-    summary: 'Portraits by the lagoon, with the sand and sea as your backdrop.',
-    image: PHOTO_STOCK.hero,
-    aliases: ['beach-shoot', 'beach-shooting'],
-  },
-  {
-    key: 'trip-explorer',
-    title: 'Trip explorer',
-    summary: 'Plan a photo outing around the island locations you would like to explore.',
-    image: PHOTO_STOCK.passe,
-    aliases: ['trip-explorer', 'trip-explorer-photo-experience'],
-  },
-  {
-    key: 'babymoon',
-    title: 'Babymoon',
-    summary: 'An unhurried maternity session to celebrate the next chapter of your family.',
-    image: PHOTO_STOCK.family2,
-    aliases: ['babymoon'],
-  },
-  {
-    key: 'proposal',
-    title: 'Proposal',
-    summary:
-      'Plan the surprise together and capture the moment, followed by portraits as a couple.',
-    image: PHOTO_STOCK.weddingSunset,
-    aliases: ['proposal'],
-  },
-  {
-    key: 'family-kids',
-    title: 'Family & kids',
-    summary: 'Natural family photographs with time for the little ones to be themselves.',
-    image: PHOTO_STOCK.family,
-    aliases: ['family', 'family-kids', 'family-and-kids'],
-  },
-  {
-    key: 'boat-row',
-    title: 'Boat row',
-    summary: 'A waterside portrait session with a rowboat setting, arranged on request.',
-    image: PHOTO_STOCK.aerial,
-    aliases: ['boat-row'],
-  },
-  {
-    key: 'fashion',
-    title: 'Fashion',
-    summary: 'An editorial portrait session built around your outfits, style and chosen location.',
-    image: PHOTO_STOCK.weddingDetail,
-    aliases: ['fashion'],
-  },
-] as const;
-
-export type PhotographyShoot = (typeof PHOTOGRAPHY_SHOOTS)[number];
+export const PHOTOGRAPHY_SHOOTS: readonly PhotographyShoot[] = [];
 
 /** Match existing renamed packages too, without creating a second card for the same shoot. */
 export function matchesPhotographyShoot(

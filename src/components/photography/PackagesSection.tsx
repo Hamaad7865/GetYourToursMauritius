@@ -25,6 +25,8 @@ export interface PhotoPackage {
   /** True for the WhatsApp enquiry fallback (opens in a new tab). */
   external: boolean;
   highlight: boolean;
+  /** The owner's "Best seller" pick (`extra.photographyBestSeller`) — badged on the card. */
+  bestSeller: boolean;
 }
 
 /**
@@ -108,6 +110,14 @@ function PackageCard({ pkg }: { pkg: PhotoPackage }) {
       {dark && (
         <span className="absolute -top-3 left-6 rounded-full bg-gold-light px-3 py-1 text-[11px] font-extrabold uppercase tracking-wide text-ink">
           {t('Our pick')}
+        </span>
+      )}
+      {/* The dark "our pick" card keeps its left ribbon; the seller badge docks right instead. */}
+      {pkg.bestSeller && (
+        <span
+          className={`absolute -top-3 rounded-full bg-coral px-3 py-1 text-[11px] font-extrabold uppercase tracking-wide text-white ${dark ? 'right-6' : 'left-6'}`}
+        >
+          {t('Best seller')}
         </span>
       )}
       {/* eslint-disable-next-line @next/next/no-img-element */}

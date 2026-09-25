@@ -23,6 +23,7 @@ interface BookingItem {
 }
 
 interface BookingRow {
+  id: string;
   ref: string;
   status: string;
   payment_state: string;
@@ -81,7 +82,7 @@ function tripTitle(b: BookingRow): string | null {
   return custom?.description?.trim() ?? null;
 }
 
-function BookingCard({ b }: { b: BookingRow }) {
+function BookingCard({ b, galleryCount }: { b: BookingRow; galleryCount: number }) {
   const t = useT();
   const { language } = usePreferences();
   // Vehicle bookings store the headcount in pax (quantity is the vehicle count = 1); fall back to
@@ -135,6 +136,17 @@ function BookingCard({ b }: { b: BookingRow }) {
             />
           </div>
         )}
+        {galleryCount > 0 && (
+          // Above the stretched link, like Pay — lands on the booking's private gallery.
+          <div className="relative z-10 mt-2">
+            <Link
+              href={`/bookings/${b.ref}#gallery`}
+              className="inline-flex items-center gap-1.5 text-[13px] font-bold text-teal-dark hover:underline"
+            >
+              {t('View gallery')} ({galleryCount})
+            </Link>
+          </div>
+        )}
       </div>
       <div className="shrink-0 text-right">
         <div className="font-bold text-ink">
@@ -158,6 +170,8 @@ export function AccountBookings() {
   const { user, loading: authLoading } = useAuth();
   const [bookings, setBookings] = useState<BookingRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /** booking id → gallery photo count (only bookings with photos get a gallery link). */
+  const [galleryCounts, setGalleryCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (!user) return;
@@ -166,7 +180,7 @@ export function AccountBookings() {
       const { data, error } = await getBrowserSupabase()
         .from('bookings')
         .select(
-          'ref, status, payment_state, total_minor, deposit_minor, balance_due_minor, currency, created_at, booking_items(price_label, quantity, pax, session_occurrences(starts_at, activity_options(activities(title, slug)))), booking_custom_items(description, quantity)',
+          'id, ref, status, payment_state, total_minor, deposit_minor, balance_due_minor, currency, created_at, booking_items(price_label, quantity, pax, session_occurrences(starts_at, activity_options(activities(title, slug)))), booking_custom_items(description, quantity)',
         )
         // Filter to the SIGNED-IN user's OWN bookings explicitly. For a customer this just matches RLS;
         // for a staff/admin it stops "My bookings" (a personal view) from listing every booking in the
@@ -180,7 +194,23 @@ export function AccountBookings() {
         // Still render both sections (with empty states) rather than collapsing to a bare error.
         setBookings([]);
       } else {
-        setBookings(data ?? []);
+        const rows = data ?? [];
+        setBookings(rows);
+        // Gallery counts for these bookings only — one read; a booking with photos gets its
+        // "View gallery" link (RLS shows the caller their own rows, nothing else).
+        const ids = rows.map((b) => b.id).filter(Boolean);
+        if (ids.length) {
+          const { data: photos } = await getBrowserSupabase()
+            .from('booking_photos')
+            .select('booking_id')
+            .in('booking_id', ids);
+          if (!active) return;
+          const counts: Record<string, number> = {};
+          for (const p of (photos ?? []) as unknown as { booking_id: string }[]) {
+            counts[p.booking_id] = (counts[p.booking_id] ?? 0) + 1;
+          }
+          setGalleryCounts(counts);
+        }
       }
     })();
     return () => {
@@ -245,7 +275,7 @@ export function AccountBookings() {
             ) : (
               <ul className="mt-3 flex flex-col gap-3">
                 {upcoming.map((b) => (
-                  <BookingCard key={b.ref} b={b} />
+                  <BookingCard key={b.ref} b={b} galleryCount={galleryCounts[b.id] ?? 0} />
                 ))}
               </ul>
             )}
@@ -262,7 +292,7 @@ export function AccountBookings() {
             ) : (
               <ul className="mt-3 flex flex-col gap-3">
                 {past.map((b) => (
-                  <BookingCard key={b.ref} b={b} />
+                  <BookingCard key={b.ref} b={b} galleryCount={galleryCounts[b.id] ?? 0} />
                 ))}
               </ul>
             )}

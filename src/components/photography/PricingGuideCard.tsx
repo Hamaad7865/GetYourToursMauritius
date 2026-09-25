@@ -11,17 +11,24 @@ export function PricingGuideCard({
   fromLabel,
   onRequestLabel,
   ctaLabel,
+  bestSellerLabel,
 }: {
   pkg: PhotoPackage;
   fromLabel: string;
   onRequestLabel: string;
   ctaLabel: string;
+  bestSellerLabel: string;
 }) {
   const cls =
-    'group grid grid-cols-[1.1fr_1fr] overflow-hidden bg-teal-tint/40 transition-colors hover:bg-teal-tint/80 focus-visible:outline-teal-dark';
+    'group relative grid grid-cols-[1.1fr_1fr] overflow-hidden bg-teal-tint/40 transition-colors hover:bg-teal-tint/80 focus-visible:outline-teal-dark';
   const inner = (
     <>
       <div className="flex min-h-[290px] min-w-0 flex-col p-5 sm:min-h-[310px] sm:p-7">
+        {pkg.bestSeller && (
+          <p className="mb-2 text-[11px] font-extrabold uppercase tracking-[0.18em] text-coral">
+            {bestSellerLabel}
+          </p>
+        )}
         <h2 className="break-words text-[19px] font-semibold leading-tight tracking-tight text-ink sm:text-[23px]">
           {pkg.title}
         </h2>

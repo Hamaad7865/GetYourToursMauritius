@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import type { TourImage } from '@/lib/validation/tours';
-import { IconChevronLeft, IconChevronRight, IconX } from '@/components/ui/icons';
+import { isVideoUrl } from '@/lib/media';
+import { Lightbox } from '@/components/ui/Lightbox';
 import { useT } from '@/components/site/PreferencesProvider';
 import { useDialog } from '@/lib/a11y/useDialog';
 
@@ -31,14 +32,24 @@ function Tile({
       onClick={onOpen}
       className={`group relative h-full w-full overflow-hidden ${rounded}`}
     >
-      <img
-        src={image.url}
-        alt={image.alt ?? `${title} — photo ${position}`}
-        loading={priority ? 'eager' : 'lazy'}
-        fetchPriority={priority ? 'high' : undefined}
-        decoding="async"
-        className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
-      />
+      {isVideoUrl(image.url) ? (
+        <video
+          src={image.url}
+          muted
+          playsInline
+          preload="metadata"
+          className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+        />
+      ) : (
+        <img
+          src={image.url}
+          alt={image.alt ?? `${title} — photo ${position}`}
+          loading={priority ? 'eager' : 'lazy'}
+          fetchPriority={priority ? 'high' : undefined}
+          decoding="async"
+          className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+        />
+      )}
     </button>
   );
 }
@@ -133,54 +144,22 @@ export function Gallery({
       </div>
 
       {open && (
-        <div
-          ref={dialogRef}
-          className="fixed inset-0 z-[300] flex flex-col bg-[rgba(7,30,36,0.94)] p-4 sm:p-8"
-          role="dialog"
-          aria-modal="true"
-          aria-label={t('Photo gallery')}
-        >
-          <div className="flex items-center justify-between text-white">
-            <span className="text-sm font-semibold">
-              {index + 1} / {images.length}
-            </span>
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              aria-label={t('Close gallery')}
-              className="grid h-10 w-10 place-items-center rounded-full bg-white/15 hover:bg-white/25"
-            >
-              <IconX width={20} height={20} />
-            </button>
-          </div>
-          <div className="relative flex flex-1 items-center justify-center overflow-hidden">
-            {images.length > 1 && (
-              <button
-                type="button"
-                onClick={() => go(-1)}
-                aria-label={t('Previous photo')}
-                className="absolute left-2 top-1/2 z-10 grid h-12 w-12 -translate-y-1/2 place-items-center rounded-full bg-ink/65 text-white shadow-lg ring-1 ring-white/25 backdrop-blur-sm transition hover:bg-ink/85 sm:left-4"
-              >
-                <IconChevronLeft width={26} height={26} />
-              </button>
-            )}
-            <img
-              src={images[index]!.url}
-              alt={images[index]!.alt ?? title}
-              className="max-h-full max-w-full select-none rounded-xl object-contain"
-            />
-            {images.length > 1 && (
-              <button
-                type="button"
-                onClick={() => go(1)}
-                aria-label={t('Next photo')}
-                className="absolute right-2 top-1/2 z-10 grid h-12 w-12 -translate-y-1/2 place-items-center rounded-full bg-ink/65 text-white shadow-lg ring-1 ring-white/25 backdrop-blur-sm transition hover:bg-ink/85 sm:right-4"
-              >
-                <IconChevronRight width={26} height={26} />
-              </button>
-            )}
-          </div>
-        </div>
+        <Lightbox
+          items={images.map((img, i) => ({
+            src: img.url,
+            alt: img.alt ?? `${title} — photo ${i + 1}`,
+            video: isVideoUrl(img.url),
+          }))}
+          index={index}
+          onIndex={setIndex}
+          onClose={() => setOpen(false)}
+          dialogRef={dialogRef}
+          closeLabel={t('Close gallery')}
+          prevLabel={t('Previous photo')}
+          nextLabel={t('Next photo')}
+          zoomInLabel={t('Zoom in')}
+          zoomOutLabel={t('Zoom out')}
+        />
       )}
     </div>
   );

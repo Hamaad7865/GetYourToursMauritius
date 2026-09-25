@@ -54,6 +54,70 @@ export function savedPhotographyGroup(extra: unknown): PhotographyGroup | null {
   return isPhotographyGroup(v) ? v : null;
 }
 
+/* ---------------------------------------------------------------------------------------------
+ * Price-card specs (20261011+): the reference-style ticks on a package page — edited-photos
+ * count, location line, delivery line — plus the owner's "best seller" badge. All live in
+ * `activities.extra` (no migration): set in /admin/photography → Edit package, read here.
+ * ------------------------------------------------------------------------------------------- */
+/** `activities.extra` keys a package's price-card specs. */
+export const PHOTOGRAPHY_BEST_SELLER_KEY = 'photographyBestSeller';
+export const PHOTOGRAPHY_PHOTO_COUNT_KEY = 'photographyPhotoCount';
+export const PHOTOGRAPHY_LOCATION_KEY = 'photographyLocation';
+export const PHOTOGRAPHY_DELIVERY_KEY = 'photographyDelivery';
+/** `activities.extra` key for a package's own inspiration strip ("Get inspired by these …
+ *  shots"): the package's own photo URLs, in display order — uploaded in /admin/photography →
+ *  Edit package, stored on the package itself (not the shared gallery). Empty/absent = the
+ *  tag-based fallback. */
+export const PHOTOGRAPHY_INSPIRATION_KEY = 'photographyInspiration';
+/** `activities.extra` key for the package's cover photo URL. The cover shows on cards, search
+ *  and SEO — but NOT in the package page's own gallery. */
+export const PHOTOGRAPHY_COVER_KEY = 'photographyCover';
+/** Per-tick visibility on the price card. Only an explicit `false` hides a tick — older packages
+ *  without these keys keep showing everything they used to. */
+export const PHOTOGRAPHY_SHOW_DURATION_KEY = 'photographyShowDuration';
+export const PHOTOGRAPHY_SHOW_GUESTS_KEY = 'photographyShowGuests';
+export const PHOTOGRAPHY_SHOW_ADD_ONS_KEY = 'photographyShowAddOns';
+export const PHOTOGRAPHY_SHOW_DEPOSIT_KEY = 'photographyShowDeposit';
+/** Visibility of the "Package details" collapsible on the package page. Same opt-out rule. */
+export const PHOTOGRAPHY_SHOW_DETAILS_KEY = 'photographyShowDetails';
+
+export interface PhotographySpecs {
+  /** The owner's pick — the only package that gets the "Best seller" badge. */
+  bestSeller: boolean;
+  /** Edited photos included ("Up to 40 edited photos"), or null when unset. */
+  photoCount: number | null;
+  /** Location line as written by the owner ("Beach of your choice"), or null. */
+  location: string | null;
+  /** Delivery line as written by the owner ("Delivery in 3 weeks"), or null. */
+  delivery: string | null;
+  /** Which of the automatic ticks the card shows. All default to true. */
+  showDuration: boolean;
+  showGuests: boolean;
+  showAddOns: boolean;
+  showDeposit: boolean;
+  /** Whether the "Package details" collapsible shows. Defaults to true. */
+  showDetails: boolean;
+}
+
+/** Normalise whatever `extra` holds into clean specs — unknown shapes read as unset. */
+export function photographySpecs(extra: unknown): PhotographySpecs {
+  const rec = extra && typeof extra === 'object' ? (extra as Record<string, unknown>) : {};
+  const count = rec[PHOTOGRAPHY_PHOTO_COUNT_KEY];
+  const location = rec[PHOTOGRAPHY_LOCATION_KEY];
+  const delivery = rec[PHOTOGRAPHY_DELIVERY_KEY];
+  return {
+    bestSeller: rec[PHOTOGRAPHY_BEST_SELLER_KEY] === true,
+    photoCount: typeof count === 'number' && Number.isInteger(count) && count > 0 ? count : null,
+    location: typeof location === 'string' && location.trim() ? location.trim() : null,
+    delivery: typeof delivery === 'string' && delivery.trim() ? delivery.trim() : null,
+    showDuration: rec[PHOTOGRAPHY_SHOW_DURATION_KEY] !== false,
+    showGuests: rec[PHOTOGRAPHY_SHOW_GUESTS_KEY] !== false,
+    showAddOns: rec[PHOTOGRAPHY_SHOW_ADD_ONS_KEY] !== false,
+    showDeposit: rec[PHOTOGRAPHY_SHOW_DEPOSIT_KEY] !== false,
+    showDetails: rec[PHOTOGRAPHY_SHOW_DETAILS_KEY] !== false,
+  };
+}
+
 /** Weddings and wedding films vs every other shoot. The owner's saved choice wins; a package saved
  *  without one falls back to reading its own title/summary. */
 export function photographyGroup(
@@ -66,8 +130,9 @@ export function photographyGroup(
     : 'shoots';
 }
 
-/** Normalise whatever `extra.photographyAddOns` holds into a clean, de-duplicated slug list. */
-export function photographyAddOnSlugs(extra: unknown): string[] {
+/** Normalise whatever `extra.photographyAddOns` holds into a clean, de-duplicated slug list. */ export function photographyAddOnSlugs(
+  extra: unknown,
+): string[] {
   const raw =
     extra && typeof extra === 'object'
       ? (extra as Record<string, unknown>)[PHOTOGRAPHY_ADD_ONS_KEY]
@@ -80,6 +145,33 @@ export function photographyAddOnSlugs(extra: unknown): string[] {
     if (s && !out.includes(s)) out.push(s);
   }
   return out;
+}
+
+/** Normalise whatever `extra.photographyInspiration` holds into a clean list of the package's
+ *  own photo URLs, in display order. Anything else reads as "no photos" (the tag fallback
+ *  applies). Gallery ids saved by the short-lived picker are resolved at render, not here. */
+export function photographyInspirationIds(extra: unknown): string[] {
+  const raw =
+    extra && typeof extra === 'object'
+      ? (extra as Record<string, unknown>)[PHOTOGRAPHY_INSPIRATION_KEY]
+      : undefined;
+  if (!Array.isArray(raw)) return [];
+  const out: string[] = [];
+  for (const v of raw) {
+    if (typeof v !== 'string') continue;
+    const s = v.trim();
+    if (s && !out.includes(s)) out.push(s);
+  }
+  return out;
+}
+
+/** The package's cover photo URL (`extra.photographyCover`), or null when none was set. */
+export function photographyCover(extra: unknown): string | null {
+  const v =
+    extra && typeof extra === 'object'
+      ? (extra as Record<string, unknown>)[PHOTOGRAPHY_COVER_KEY]
+      : undefined;
+  return typeof v === 'string' && v.trim() ? v.trim() : null;
 }
 
 /** One cross-sell card on a booking card: a photography package on a tour, or a private tour on a

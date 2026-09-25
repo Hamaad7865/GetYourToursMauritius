@@ -20,6 +20,9 @@ import {
   isPhotographyCategory,
   photographyAddOnSlugs,
   photographyGroup,
+  photographyCover,
+  photographyInspirationIds,
+  photographySpecs,
   savedPhotographyGroup,
   toPhotographyPhoto,
   type GalleryTag,
@@ -167,6 +170,22 @@ export interface PhotographyPackageInput {
   addOns: { id?: string; name: string; nameFr: string; priceEur: number }[];
   imageUrl: string;
   status: 'draft' | 'published';
+  /** The owner's pick for the price-card badge — only one package should have it. */
+  bestSeller: boolean;
+  /** Edited photos included (0 = hide the tick). */
+  photoCount: number;
+  /** Price-card spec lines as written by the owner ('' = hidden). */
+  locationLine: string;
+  deliveryLine: string;
+  /** Price-card tick visibility. All default to shown. */
+  showDuration: boolean;
+  showGuests: boolean;
+  showAddOns: boolean;
+  showDeposit: boolean;
+  /** "Package details" collapsible visibility. Defaults to shown. */
+  showDetails: boolean;
+  /** Hand-picked inspiration photo ids, in display order. Empty = the tag fallback. */
+  inspiration: string[];
 }
 
 /**
@@ -216,6 +235,17 @@ export function photographyPackageValues(input: PhotographyPackageInput): Activi
       },
     ],
     photographyGroup: input.kind,
+    photographyBestSeller: input.bestSeller,
+    photographyPhotoCount: input.photoCount > 0 ? Math.round(input.photoCount) : null,
+    photographyLocation: input.locationLine.trim(),
+    photographyDelivery: input.deliveryLine.trim(),
+    photographyShowDuration: input.showDuration,
+    photographyShowGuests: input.showGuests,
+    photographyShowAddOns: input.showAddOns,
+    photographyShowDeposit: input.showDeposit,
+    photographyShowDetails: input.showDetails,
+    photographyInspiration: [...input.inspiration],
+    photographyCover: input.imageUrl.trim(),
     supplements: input.addOns
       .filter((a) => a.name.trim() && a.priceEur >= 0)
       .map((a) => ({ name: a.name.trim(), nameFr: a.nameFr.trim(), priceEur: a.priceEur })),
@@ -259,6 +289,11 @@ export async function loadPhotographyPhotos(): Promise<PhotographyPhoto[]> {
 /** Upload a file to the public activity-images bucket (under photography/) and return its URL. */
 export function uploadPhotographyPhoto(file: File): Promise<string> {
   return uploadActivityImage(file, 'photography');
+}
+
+/** Upload a customer-gallery file under galleries/<booking-ref>/ and return its public URL. */
+export function uploadGalleryPhoto(file: File, ref: string): Promise<string> {
+  return uploadActivityImage(file, `gallery-${ref}`);
 }
 
 /** Add a photo at the END of its slot. For a single-photo slot pass `replace` to swap the current
@@ -470,6 +505,7 @@ export function packageInputFromValues(
   shootsPerDay: number | null,
 ): PhotographyPackageInput {
   const opt = v.options[privateOptionIndex(v)];
+  const specs = photographySpecs(v.sourceExtra);
   return {
     title: v.title,
     kind: v.photographyGroup || photographyGroup({ title: v.title, summary: v.summary }),
@@ -488,8 +524,18 @@ export function packageInputFromValues(
       nameFr: s.nameFr,
       priceEur: s.priceEur ?? 0,
     })),
-    imageUrl: v.images[0]?.url ?? '',
+    imageUrl: photographyCover(v.sourceExtra) ?? v.images[0]?.url ?? '',
     status: v.status,
+    bestSeller: specs.bestSeller,
+    photoCount: specs.photoCount ?? 0,
+    locationLine: specs.location ?? '',
+    deliveryLine: specs.delivery ?? '',
+    showDuration: specs.showDuration,
+    showGuests: specs.showGuests,
+    showAddOns: specs.showAddOns,
+    showDeposit: specs.showDeposit,
+    showDetails: specs.showDetails,
+    inspiration: photographyInspirationIds(v.sourceExtra),
   };
 }
 
@@ -547,6 +593,17 @@ export function applyPackageInput(
     minAdvanceDays: Math.max(0, Math.round(input.minAdvanceDays)),
     status: input.status,
     photographyGroup: input.kind,
+    photographyBestSeller: input.bestSeller,
+    photographyPhotoCount: input.photoCount > 0 ? Math.round(input.photoCount) : null,
+    photographyLocation: input.locationLine.trim(),
+    photographyDelivery: input.deliveryLine.trim(),
+    photographyShowDuration: input.showDuration,
+    photographyShowGuests: input.showGuests,
+    photographyShowAddOns: input.showAddOns,
+    photographyShowDeposit: input.showDeposit,
+    photographyShowDetails: input.showDetails,
+    photographyInspiration: [...input.inspiration],
+    photographyCover: input.imageUrl.trim(),
     inclusions: features,
     highlights: sameLists ? features : v.highlights,
     images,
@@ -618,6 +675,16 @@ export function starterPackageInput(
     addOns: PHOTOGRAPHY_ADD_ON_PRESETS.map((a) => ({ ...a })),
     imageUrl: p.image,
     status,
+    bestSeller: false,
+    photoCount: 0,
+    locationLine: '',
+    deliveryLine: '',
+    showDuration: true,
+    showGuests: true,
+    showAddOns: true,
+    showDeposit: true,
+    showDetails: true,
+    inspiration: [],
   };
 }
 
@@ -641,4 +708,159 @@ export async function importStarterPackages(): Promise<number> {
     created += 1;
   }
   return created;
+}
+
+/* ---------------------------------------------------------------------------------------------
+ * Customer galleries. One gallery per photography booking: the studio uploads the finished
+ * photos here, then "Send gallery link" emails the guest their private gallery
+ * (/bookings/:ref#gallery). Reads/writes go through the browser client — staff RLS on
+ * booking_photos admits them; only the send goes through a staff-gated API route.
+ * ------------------------------------------------------------------------------------------- */
+
+export interface CustomerGalleryRow {
+  bookingId: string;
+  ref: string;
+  customerName: string;
+  customerEmail: string;
+  packageTitle: string;
+  shootDate: string | null;
+  photoCount: number;
+  /** The gallery thumbnails, oldest first. Loaded per booking on expand. */
+  photos?: { id: string; url: string }[];
+}
+
+/** Confirmed photography bookings with their gallery photo counts, shoot date first. */
+export async function loadCustomerGalleries(): Promise<CustomerGalleryRow[]> {
+  const { data, error } = await getBrowserSupabase()
+    .from('booking_items')
+    .select(
+      'booking_id, bookings!inner(id, ref, status, customer_name, customer_email), activity_options!inner(activities!inner(title, category)), session_occurrences(starts_at)' as never,
+    )
+    .eq('activity_options.activities.category' as never, PHOTOGRAPHY_CATEGORY as never)
+    .eq('bookings.status' as never, 'confirmed' as never);
+  if (error) throw error;
+  type Item = {
+    booking_id: string;
+    bookings: { id: string; ref: string; customer_name: string; customer_email: string };
+    activity_options: { activities: { title: string } };
+    session_occurrences: { starts_at: string } | null;
+  };
+  const seen = new Map<string, CustomerGalleryRow>();
+  for (const it of (data ?? []) as unknown as Item[]) {
+    if (seen.has(it.booking_id)) continue;
+    seen.set(it.booking_id, {
+      bookingId: it.booking_id,
+      ref: it.bookings.ref,
+      customerName: it.bookings.customer_name,
+      customerEmail: it.bookings.customer_email,
+      packageTitle: it.activity_options?.activities?.title ?? '',
+      shootDate: it.session_occurrences?.starts_at ?? null,
+      photoCount: 0,
+    });
+  }
+  const rows = [...seen.values()];
+  if (!rows.length) return rows;
+  let counts: Map<string, number>;
+  try {
+    const { data: photos, error: photosError } = await getBrowserSupabase()
+      .from('booking_photos')
+      .select('booking_id')
+      .in(
+        'booking_id',
+        rows.map((r) => r.bookingId),
+      );
+    if (photosError) throw photosError;
+    counts = new Map<string, number>();
+    for (const p of (photos ?? []) as unknown as { booking_id: string }[]) {
+      counts.set(p.booking_id, (counts.get(p.booking_id) ?? 0) + 1);
+    }
+  } catch (err) {
+    // The gallery migration hasn't been applied to this database yet (catch-up.sql) — say so
+    // plainly instead of "Could not load galleries".
+    throw new Error(
+      'Gallery storage is not set up yet (booking_photos is missing) — run supabase/catch-up.sql on the database, then reload.',
+      { cause: err },
+    );
+  }
+  for (const r of rows) r.photoCount = counts.get(r.bookingId) ?? 0;
+  return rows.sort((a, b) => (a.shootDate ?? '').localeCompare(b.shootDate ?? ''));
+}
+
+/** One booking's gallery photos, oldest first. */
+export async function loadGalleryPhotos(bookingId: string): Promise<{ id: string; url: string }[]> {
+  const { data, error } = await getBrowserSupabase()
+    .from('booking_photos')
+    .select('id, url')
+    .eq('booking_id', bookingId)
+    .order('position', { ascending: true })
+    .order('created_at', { ascending: true });
+  if (error) throw error;
+  return ((data ?? []) as unknown as { id: string; url: string }[]).map((p) => ({
+    id: p.id,
+    url: p.url,
+  }));
+}
+
+/** Upload files for a booking and append them to its gallery, in order. */
+export async function addGalleryPhotos(
+  ref: string,
+  bookingId: string,
+  files: File[],
+  onProgress?: (done: number, total: number) => void,
+): Promise<void> {
+  const sb = getBrowserSupabase();
+  const { data: existing, error: countError } = await sb
+    .from('booking_photos')
+    .select('id')
+    .eq('booking_id', bookingId);
+  if (countError) throw countError;
+  let position = (existing ?? []).length;
+  let done = 0;
+  for (const file of files) {
+    const url = await uploadGalleryPhoto(file, ref);
+    position += 1;
+    const { error } = await sb.from('booking_photos').insert({
+      booking_id: bookingId,
+      url,
+      position,
+    } as never);
+    if (error) throw error;
+    done += 1;
+    onProgress?.(done, files.length);
+  }
+}
+
+/** Remove one photo from a booking's gallery. */
+export async function removeGalleryPhoto(photoId: string): Promise<void> {
+  const { error } = await getBrowserSupabase().from('booking_photos').delete().eq('id', photoId);
+  if (error) throw error;
+}
+
+/** "Send gallery link": emails the guest their private gallery URL. */
+export async function sendGalleryLink(
+  ref: string,
+): Promise<{ url: string; emailed: boolean; photoCount: number }> {
+  const { data: auth } = await getBrowserSupabase().auth.getSession();
+  const token = auth.session?.access_token;
+  const res = await fetch(`/api/v1/admin/bookings/${encodeURIComponent(ref)}/gallery/send`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      ...(token ? { authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({}),
+  });
+  const body = (await res.json().catch(() => null)) as {
+    ok?: boolean;
+    data?: { url?: string; emailed?: boolean; photoCount?: number };
+    error?: { message?: string };
+  } | null;
+  if (!res.ok || !body?.ok || !body.data?.url) {
+    throw new Error(body?.error?.message ?? 'Could not send the gallery link.');
+  }
+  return {
+    url: body.data.url,
+    emailed: Boolean(body.data.emailed),
+    photoCount: Number(body.data.photoCount ?? 0),
+  };
 }

@@ -27,32 +27,18 @@ const activity = (id: string, title: string, slug: string) =>
     heroImage: { id: 'cover', position: 0, url: '/owner.jpg', alt: 'Owner photo' },
   });
 
-describe('eight photography shoot types', () => {
-  it('offers all eight as honest enquiries when not configured', () => {
-    const cards = buildPackageCards(t, [], '23057729919');
-    expect(cards.map((card) => card.title)).toEqual([
-      'Holiday',
-      'Beach shoot',
-      'Trip explorer',
-      'Babymoon',
-      'Proposal',
-      'Family & kids',
-      'Boat row',
-      'Fashion',
-    ]);
-    expect(
-      cards.every(
-        (card) => card.external && card.priceEur === null && card.href.startsWith('https://wa.me/'),
-      ),
-    ).toBe(true);
+describe('photography shoot types (owner emptied the fallback list)', () => {
+  it('renders no enquiry cards when nothing is configured — only live packages show', () => {
+    expect(PHOTOGRAPHY_SHOOTS).toHaveLength(0);
+    expect(buildPackageCards(t, [], '23057729919')).toEqual([]);
   });
 
   it('uses real published data even when the owner renamed an older package', () => {
     const holiday = activity('existing', 'Holiday', 'ceremony-photo');
     const wedding = activity('wedding', 'Full wedding day', 'full-day');
     const cards = buildPackageCards(t, [holiday, wedding], '23057729919');
-    expect(cards).toHaveLength(9);
-    expect(cards[0]).toMatchObject({
+    expect(cards).toHaveLength(2);
+    expect(cards.find((card) => card.key === 'existing')).toMatchObject({
       key: 'existing',
       title: 'Holiday',
       priceEur: 325,
@@ -65,15 +51,17 @@ describe('eight photography shoot types', () => {
     expect(cards.find((card) => card.key === 'wedding')?.href).toBe('/activities/full-day');
   });
 
-  it('recognizes family aliases without losing other published packages', () => {
+  it('matches renamed packages without creating a second card for the same shoot', () => {
+    const familyShoot = {
+      key: 'family-kids',
+      title: 'Family & kids',
+      summary: 'Natural family photographs.',
+      image: '/x.jpg',
+      aliases: ['family', 'family-kids', 'family-and-kids'],
+    } as const;
+    expect(matchesPhotographyShoot(familyShoot, { title: 'Famille', slug: 'family' })).toBe(true);
     expect(
-      matchesPhotographyShoot(PHOTOGRAPHY_SHOOTS[5], { title: 'Famille', slug: 'family' }),
-    ).toBe(true);
-    expect(
-      matchesPhotographyShoot(PHOTOGRAPHY_SHOOTS[0], {
-        title: 'Not a holiday package',
-        slug: 'custom',
-      }),
+      matchesPhotographyShoot(familyShoot, { title: 'Not a holiday package', slug: 'custom' }),
     ).toBe(false);
   });
 
@@ -83,11 +71,11 @@ describe('eight photography shoot types', () => {
       [activity('existing', 'Vacances', 'ceremony-photo')],
       '23057729919',
     );
-    expect(cards).toHaveLength(8);
+    expect(cards).toHaveLength(1);
     expect(cards[0]).toMatchObject({ title: 'Vacances', external: false, priceEur: 325 });
   });
 
-  it('translates every new title and description', () => {
+  it('translates every shoot title and description', () => {
     for (const shoot of PHOTOGRAPHY_SHOOTS) {
       expect(fr[shoot.title], shoot.title).toBeTruthy();
       expect(fr[shoot.summary], shoot.summary).toBeTruthy();

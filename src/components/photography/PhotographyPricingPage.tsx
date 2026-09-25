@@ -7,6 +7,7 @@ import { PricingGuideCard } from './PricingGuideCard';
 import {
   buildGalleryItems,
   buildPackageCards,
+  loadPhotographyBestSellers,
   loadPhotographyGroups,
   loadPhotographyPackages,
 } from './packages-data';
@@ -24,13 +25,14 @@ export async function PhotographyPricingPage({
   path: '/photography' | '/photography/packages';
 }) {
   const t = await getT();
-  const [live, photos, waNumber, groups] = await Promise.all([
+  const [live, photos, waNumber, groups, bestSellers] = await Promise.all([
     loadPhotographyPackages(),
     getPhotographyPhotos(),
     getWhatsAppNumber(),
     loadPhotographyGroups(),
+    loadPhotographyBestSellers(),
   ]);
-  const packages = buildPackageCards(t, live, waNumber, groups);
+  const packages = buildPackageCards(t, live, waNumber, groups, bestSellers);
   const gallery = buildGalleryItems(t, photos);
   const contact = whatsappUrl(
     `Hi ${SITE.operator}! I’d like help choosing a photography package in Mauritius.`,
@@ -122,6 +124,7 @@ export async function PhotographyPricingPage({
                 fromLabel={t('From')}
                 onRequestLabel={t('Price on request')}
                 ctaLabel={pkg.external ? t('Enquire') : t('See more')}
+                bestSellerLabel={t('Best seller')}
               />
             ))}
           </div>

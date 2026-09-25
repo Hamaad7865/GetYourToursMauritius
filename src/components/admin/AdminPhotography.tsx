@@ -13,6 +13,7 @@ import { IconCamera, IconExternalLink, IconPlus } from '@/components/ui/icons';
 import { AdminError, AdminHeading, BTN_GHOST, BTN_PRIMARY, Card } from '@/components/admin/ui';
 import { PhotographyPhotosManager } from '@/components/admin/PhotographyPhotosManager';
 import { PhotoBalancesCard } from '@/components/admin/PhotoBalancesCard';
+import { CustomerGalleriesCard } from '@/components/admin/CustomerGalleriesCard';
 import { PHOTOGRAPHY_SHOOTS, matchesPhotographyShoot } from '@/lib/catalogue/photography-shoots';
 
 function eur(n: number | null): string {
@@ -280,6 +281,8 @@ export function AdminPhotography() {
       )}
 
       {isStaff && <PhotoBalancesCard />}
+
+      {isStaff && <CustomerGalleriesCard />}
 
       {isStaff && <PhotographyPhotosManager />}
 

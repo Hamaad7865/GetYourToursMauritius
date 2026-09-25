@@ -7,6 +7,7 @@ import {
   createPhotographyPackage,
   loadPhotographyPackage,
   savePhotographyPackage,
+  uploadPhotographyPhoto,
   type LoadedPackage,
   type PhotographyPackageInput,
 } from '@/lib/admin/photography';
@@ -40,6 +41,16 @@ const START: PhotographyPackageInput = {
   addOns: PHOTOGRAPHY_ADD_ON_PRESETS.map((a) => ({ ...a })),
   imageUrl: '',
   status: 'published',
+  bestSeller: false,
+  photoCount: 0,
+  locationLine: '',
+  deliveryLine: '',
+  showDuration: true,
+  showGuests: true,
+  showAddOns: true,
+  showDeposit: true,
+  showDetails: true,
+  inspiration: [],
 };
 
 function num(v: string): number {
@@ -79,6 +90,8 @@ export function PhotographyPackageForm({
   const [loaded, setLoaded] = useState<LoadedPackage | null>(null);
   const [loading, setLoading] = useState(editing);
   const [saved, setSaved] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
 
   useEffect(() => {
     if (!packageId) return;
@@ -103,6 +116,43 @@ export function PhotographyPackageForm({
   function set<K extends keyof PhotographyPackageInput>(k: K, val: PhotographyPackageInput[K]) {
     setSaved(false);
     setV((cur) => ({ ...cur, [k]: val }));
+  }
+
+  async function uploadCover(file: File | undefined) {
+    if (!file || uploadingCover) return;
+    setUploadingCover(true);
+    setError(null);
+    try {
+      set('imageUrl', await uploadPhotographyPhoto(file));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not upload the cover photo.');
+    } finally {
+      setUploadingCover(false);
+    }
+  }
+
+  function removeInspiration(url: string) {
+    set(
+      'inspiration',
+      v.inspiration.filter((x) => x !== url),
+    );
+  }
+
+  async function uploadInspiration(files: FileList | null) {
+    if (!files?.length || uploading) return;
+    setUploading(true);
+    setError(null);
+    try {
+      const urls: string[] = [];
+      for (const file of Array.from(files)) {
+        urls.push(await uploadPhotographyPhoto(file));
+      }
+      set('inspiration', [...v.inspiration, ...urls]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not upload the photo.');
+    } finally {
+      setUploading(false);
+    }
   }
 
   async function save(e: React.FormEvent) {
@@ -251,13 +301,44 @@ export function PhotographyPackageForm({
                 />
               </Field>
             </div>
-            <Field label="Cover photo URL (optional)" hint="Add more photos later in the editor.">
-              <input
-                className={INPUT_CLS}
-                value={v.imageUrl}
-                onChange={(e) => set('imageUrl', e.target.value)}
-                placeholder="https://…"
-              />
+            <Field
+              label="Cover photo (optional)"
+              hint="Upload, or paste a URL. Add more photos later in the editor."
+            >
+              {v.imageUrl.trim() && (
+                <span className="mb-2 block overflow-hidden rounded-lg">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={v.imageUrl}
+                    alt=""
+                    loading="lazy"
+                    className="aspect-[16/10] w-full object-cover"
+                  />
+                </span>
+              )}
+              <div className="flex gap-2">
+                <input
+                  className={INPUT_CLS}
+                  value={v.imageUrl}
+                  onChange={(e) => set('imageUrl', e.target.value)}
+                  placeholder="https://…"
+                />
+                <label
+                  className={`${BTN_GHOST} shrink-0 cursor-pointer ${uploadingCover ? 'opacity-50' : ''}`}
+                >
+                  {uploadingCover ? 'Uploading…' : 'Upload'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    disabled={uploadingCover}
+                    className="sr-only"
+                    onChange={(e) => {
+                      void uploadCover(e.target.files?.[0]);
+                      e.target.value = '';
+                    }}
+                  />
+                </label>
+              </div>
             </Field>
           </div>
         </Card>
@@ -324,6 +405,94 @@ export function PhotographyPackageForm({
                 <option value="draft">Draft — hidden until you publish it</option>
               </select>
             </Field>
+          </div>
+        </Card>
+
+        <Card title="Price-card specs">
+          <div className="grid gap-3">
+            <label className="flex items-start gap-2.5 text-sm font-medium text-ink">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-4 w-4 accent-teal"
+                checked={v.bestSeller}
+                onChange={(e) => set('bestSeller', e.target.checked)}
+              />
+              <span>
+                Best seller
+                <span className="mt-0.5 block text-[12px] font-normal text-ink-muted">
+                  Shows a “Best seller” badge on this package’s page. Tick only one package.
+                </span>
+              </span>
+            </label>
+            <Field
+              label="Edited photos included"
+              hint="0 hides the tick. Shown as “Up to N edited photos”."
+            >
+              <input
+                type="number"
+                min={0}
+                className={INPUT_CLS}
+                value={v.photoCount}
+                onChange={(e) => set('photoCount', num(e.target.value))}
+              />
+            </Field>
+            <Field
+              label="Location line (optional)"
+              hint="e.g. Beach of your choice. Empty hides the tick."
+            >
+              <input
+                className={INPUT_CLS}
+                value={v.locationLine}
+                onChange={(e) => set('locationLine', e.target.value)}
+                placeholder="Beach of your choice"
+              />
+            </Field>
+            <Field
+              label="Delivery line (optional)"
+              hint="e.g. Delivery in 3 weeks. Empty hides the tick."
+            >
+              <input
+                className={INPUT_CLS}
+                value={v.deliveryLine}
+                onChange={(e) => set('deliveryLine', e.target.value)}
+                placeholder="Delivery in 3 weeks"
+              />
+            </Field>
+            <div className="flex flex-col gap-2 border-t border-[#EAEEF0] pt-3">
+              <p className="text-sm font-bold text-ink">Show on the price card</p>
+              {(
+                [
+                  ['showDuration', 'Duration'],
+                  ['showGuests', 'Guest count'],
+                  ['showAddOns', 'Add-ons line'],
+                  ['showDeposit', 'Deposit line'],
+                ] as const
+              ).map(([key, label]) => (
+                <label key={key} className="flex items-center gap-2.5 text-sm font-medium text-ink">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 accent-teal"
+                    checked={v[key]}
+                    onChange={(e) => set(key, e.target.checked)}
+                  />
+                  {label}
+                </label>
+              ))}
+            </div>
+            <label className="flex items-start gap-2.5 text-sm font-medium text-ink">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-4 w-4 accent-teal"
+                checked={v.showDetails}
+                onChange={(e) => set('showDetails', e.target.checked)}
+              />
+              <span>
+                Package details section
+                <span className="mt-0.5 block text-[12px] font-normal text-ink-muted">
+                  The “Package details” collapsible on the package’s page. Untick to remove it.
+                </span>
+              </span>
+            </label>
           </div>
         </Card>
 
@@ -433,6 +602,65 @@ export function PhotographyPackageForm({
               <IconPlus width={15} height={15} /> Add an item
             </button>
           </div>
+        </Card>
+
+        <Card title="Inspiration photos">
+          <p className="-mt-1 mb-3 text-[12px] leading-snug text-ink-muted">
+            The package’s own photos for “Get inspired by these shots”, in order. Upload here — they
+            live on this package, not the shared gallery. Empty = automatic by shoot type.
+          </p>
+          {v.inspiration.length > 0 && (
+            <div className="mb-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
+              {v.inspiration.map((url, i) => (
+                <span
+                  key={`${url}-${i}`}
+                  className="relative overflow-hidden rounded-lg ring-2 ring-teal"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={url}
+                    alt=""
+                    loading="lazy"
+                    className="aspect-square w-full object-cover"
+                  />
+                  <span className="absolute left-1 top-1 grid h-5 min-w-5 place-items-center rounded-full bg-teal px-1 text-[11px] font-extrabold text-white">
+                    {i + 1}
+                  </span>
+                  <button
+                    type="button"
+                    aria-label={`Remove photo ${i + 1}`}
+                    onClick={() => removeInspiration(url)}
+                    className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-ink/70 text-white hover:bg-coral"
+                  >
+                    <IconX width={12} height={12} />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+          <label className={`${BTN_GHOST} w-fit cursor-pointer`}>
+            <IconPlus width={15} height={15} /> {uploading ? 'Uploading…' : 'Upload photos'}
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              disabled={uploading}
+              className="sr-only"
+              onChange={(e) => {
+                void uploadInspiration(e.target.files);
+                e.target.value = '';
+              }}
+            />
+          </label>
+          {v.inspiration.length > 0 && (
+            <button
+              type="button"
+              onClick={() => set('inspiration', [])}
+              className="mt-2 block text-[12.5px] font-bold text-ink-muted hover:text-coral"
+            >
+              Clear photos ({v.inspiration.length} added — back to automatic)
+            </button>
+          )}
         </Card>
       </div>
 

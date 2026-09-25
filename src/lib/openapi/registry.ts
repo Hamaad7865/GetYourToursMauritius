@@ -455,6 +455,31 @@ export const apiPaths: ZodOpenApiPathsObject = {
       },
     },
   },
+  '/bookings/{ref}/gallery': {
+    get: {
+      operationId: 'getBookingGallery',
+      summary: 'Get the booking’s private online gallery photos (owner-or-staff)',
+      tags: ['Bookings'],
+      security: [{ bearerAuth: [] }],
+      requestParams: { path: refParam },
+      responses: {
+        '200': okJson(
+          z.object({
+            photos: z.array(
+              z.object({
+                id: z.string(),
+                url: z.string(),
+                position: z.number().int(),
+              }),
+            ),
+          }),
+          'The gallery photos, oldest first — empty until the studio uploads some',
+        ),
+        '401': errorResponse('Authentication required'),
+        '404': errorResponse('Booking not found'),
+      },
+    },
+  },
   '/bookings/{ref}/invoice': {
     get: {
       operationId: 'getBookingInvoice',
@@ -1195,6 +1220,39 @@ export const apiPaths: ZodOpenApiPathsObject = {
         '409': errorResponse(
           'Not a photography booking, not confirmed, paid in full, or nothing is owed',
         ),
+        '429': errorResponse('Too many requests'),
+        '500': errorResponse('Site URL is not configured'),
+      },
+    },
+  },
+  '/admin/bookings/{ref}/gallery/send': {
+    post: {
+      operationId: 'sendGalleryLink',
+      summary: 'Email a photography guest their private gallery link (staff-only)',
+      description:
+        'Once the studio has uploaded the finished photos for a photography booking, this ' +
+        'emails the guest a link to their private gallery (/bookings/{ref}#gallery), ' +
+        'authenticated by their account like every other booking link — no token is minted. ' +
+        'STAFF ONLY via profiles.role; "seo" is excluded. A send failure still returns 200 ' +
+        'with emailed:false and the URL to copy.',
+      tags: ['Bookings'],
+      security: [{ bearerAuth: [] }],
+      requestParams: { path: refParam },
+      requestBody: jsonBody(z.object({})),
+      responses: {
+        '200': okJson(
+          z.object({
+            url: z.string().describe('The guest’s private gallery URL'),
+            emailed: z.boolean(),
+            photoCount: z.number().int(),
+          }),
+          'The gallery link was sent (or returned to copy)',
+        ),
+        '400': errorResponse('Invalid request'),
+        '401': errorResponse('Authentication required'),
+        '403': errorResponse('Staff only'),
+        '404': errorResponse('No such booking'),
+        '409': errorResponse('Not a photography booking, or no gallery photos uploaded yet'),
         '429': errorResponse('Too many requests'),
         '500': errorResponse('Site URL is not configured'),
       },

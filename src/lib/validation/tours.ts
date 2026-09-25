@@ -203,6 +203,23 @@ export const activityExtraSchema = z.object({
   /** A photography package's listing group (weddings vs holiday/family shoots), chosen in the
    *  admin. Absent = inferred from the title (older packages). */
   photographyGroup: z.enum(['weddings', 'shoots']).optional().catch(undefined),
+  /** A photography package's price-card specs (/admin/photography → Edit package). Absent = the
+   *  card falls back to duration, guests and add-ons. `.catch` so older rows still parse. */
+  photographyBestSeller: z.boolean().optional().catch(undefined),
+  photographyPhotoCount: z.number().int().positive().optional().catch(undefined),
+  photographyLocation: z.string().optional().catch(undefined),
+  photographyDelivery: z.string().optional().catch(undefined),
+  photographyShowDuration: z.boolean().optional().catch(undefined),
+  photographyShowGuests: z.boolean().optional().catch(undefined),
+  photographyShowAddOns: z.boolean().optional().catch(undefined),
+  photographyShowDeposit: z.boolean().optional().catch(undefined),
+  photographyShowDetails: z.boolean().optional().catch(undefined),
+  /** A photography package's hand-picked inspiration photo ids (/admin/photography → Edit
+   *  package). Absent = the gallery-tag fallback. */
+  photographyInspiration: z.array(z.string()).optional().catch(undefined),
+  /** A photography package's cover photo URL — shown on cards/search/SEO, never in the
+   *  package page's own gallery. */
+  photographyCover: z.string().optional().catch(undefined),
 });
 export type ActivityExtra = z.infer<typeof activityExtraSchema>;
 

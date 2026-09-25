@@ -4,8 +4,22 @@ import { normalizeBadges, type BadgeInput } from '@/lib/catalogue/badges';
 import type { PricingMode } from '@/lib/validation/tours';
 import {
   PHOTOGRAPHY_ADD_ONS_KEY,
+  PHOTOGRAPHY_BEST_SELLER_KEY,
+  PHOTOGRAPHY_COVER_KEY,
+  PHOTOGRAPHY_DELIVERY_KEY,
   PHOTOGRAPHY_GROUP_KEY,
+  PHOTOGRAPHY_INSPIRATION_KEY,
+  PHOTOGRAPHY_LOCATION_KEY,
+  PHOTOGRAPHY_PHOTO_COUNT_KEY,
+  PHOTOGRAPHY_SHOW_ADD_ONS_KEY,
+  PHOTOGRAPHY_SHOW_DEPOSIT_KEY,
+  PHOTOGRAPHY_SHOW_DETAILS_KEY,
+  PHOTOGRAPHY_SHOW_DURATION_KEY,
+  PHOTOGRAPHY_SHOW_GUESTS_KEY,
   photographyAddOnSlugs,
+  photographyCover,
+  photographyInspirationIds,
+  photographySpecs,
   savedPhotographyGroup,
   type PhotographyGroup,
 } from '@/lib/catalogue/photography';
@@ -145,6 +159,25 @@ export interface ActivityFormValues {
   /** A photography package's listing group (`extra.photographyGroup`); '' = not chosen, which
    *  falls back to reading the title. Ignored for other activities. */
   photographyGroup: PhotographyGroup | '';
+  /** A photography package's price-card specs (`extra.photography*`). The badge, count and lines
+   *  on the package page's sticky card. Ignored for other activities. */
+  photographyBestSeller: boolean;
+  photographyPhotoCount: number | null;
+  photographyLocation: string;
+  photographyDelivery: string;
+  /** Price-card tick visibility (`extra.photographyShow*`). True = shown; only an explicit
+   *  false hides a tick, so older packages keep their card. */
+  photographyShowDuration: boolean;
+  photographyShowGuests: boolean;
+  photographyShowAddOns: boolean;
+  photographyShowDeposit: boolean;
+  /** "Package details" collapsible visibility (`extra.photographyShowDetails`). Same opt-out. */
+  photographyShowDetails: boolean;
+  /** Hand-picked inspiration photo ids (`extra.photographyInspiration`), in display order.
+   *  Empty = the gallery-tag fallback. */
+  photographyInspiration: string[];
+  /** Cover photo URL (`extra.photographyCover`) — cards/search/SEO only, never the gallery. */
+  photographyCover: string;
   /** The activity's `extra` as loaded — buildExtra() preserves any key the form doesn't manage
    *  (e.g. availability/returnWindow set via SQL patches), so a save can't silently destroy them. */
   sourceExtra: Record<string, unknown>;
@@ -189,6 +222,17 @@ export const EMPTY_ACTIVITY: ActivityFormValues = {
   supplements: [],
   photographyAddOns: [],
   photographyGroup: '',
+  photographyBestSeller: false,
+  photographyPhotoCount: null,
+  photographyLocation: '',
+  photographyDelivery: '',
+  photographyShowDuration: true,
+  photographyShowGuests: true,
+  photographyShowAddOns: true,
+  photographyShowDeposit: true,
+  photographyShowDetails: true,
+  photographyInspiration: [],
+  photographyCover: '',
   sourceExtra: {},
 };
 
@@ -229,6 +273,17 @@ const MANAGED_EXTRA_KEYS = new Set([
   'inquiryOnly',
   PHOTOGRAPHY_ADD_ONS_KEY,
   PHOTOGRAPHY_GROUP_KEY,
+  PHOTOGRAPHY_BEST_SELLER_KEY,
+  PHOTOGRAPHY_PHOTO_COUNT_KEY,
+  PHOTOGRAPHY_LOCATION_KEY,
+  PHOTOGRAPHY_DELIVERY_KEY,
+  PHOTOGRAPHY_SHOW_DURATION_KEY,
+  PHOTOGRAPHY_SHOW_GUESTS_KEY,
+  PHOTOGRAPHY_SHOW_ADD_ONS_KEY,
+  PHOTOGRAPHY_SHOW_DEPOSIT_KEY,
+  PHOTOGRAPHY_SHOW_DETAILS_KEY,
+  PHOTOGRAPHY_INSPIRATION_KEY,
+  PHOTOGRAPHY_COVER_KEY,
 ]);
 
 function buildExtra(v: ActivityFormValues) {
@@ -270,6 +325,23 @@ function buildExtra(v: ActivityFormValues) {
   });
   if (photographyAddOns.length) out[PHOTOGRAPHY_ADD_ONS_KEY] = photographyAddOns;
   if (v.photographyGroup) out[PHOTOGRAPHY_GROUP_KEY] = v.photographyGroup;
+  if (v.photographyBestSeller) out[PHOTOGRAPHY_BEST_SELLER_KEY] = true;
+  if (v.photographyPhotoCount != null && v.photographyPhotoCount > 0)
+    out[PHOTOGRAPHY_PHOTO_COUNT_KEY] = Math.round(v.photographyPhotoCount);
+  if (v.photographyLocation.trim()) out[PHOTOGRAPHY_LOCATION_KEY] = v.photographyLocation.trim();
+  if (v.photographyDelivery.trim()) out[PHOTOGRAPHY_DELIVERY_KEY] = v.photographyDelivery.trim();
+  // Visibility is opt-OUT: only an explicit false is written, so older packages (no keys) keep
+  // showing every tick they used to.
+  if (!v.photographyShowDuration) out[PHOTOGRAPHY_SHOW_DURATION_KEY] = false;
+  if (!v.photographyShowGuests) out[PHOTOGRAPHY_SHOW_GUESTS_KEY] = false;
+  if (!v.photographyShowAddOns) out[PHOTOGRAPHY_SHOW_ADD_ONS_KEY] = false;
+  if (!v.photographyShowDeposit) out[PHOTOGRAPHY_SHOW_DEPOSIT_KEY] = false;
+  if (!v.photographyShowDetails) out[PHOTOGRAPHY_SHOW_DETAILS_KEY] = false;
+  const inspiration = photographyInspirationIds({
+    [PHOTOGRAPHY_INSPIRATION_KEY]: v.photographyInspiration,
+  });
+  if (inspiration.length) out[PHOTOGRAPHY_INSPIRATION_KEY] = inspiration;
+  if (v.photographyCover.trim()) out[PHOTOGRAPHY_COVER_KEY] = v.photographyCover.trim();
   if (v.priceListUrl.trim()) {
     out.priceList = v.priceListLabel.trim()
       ? { url: v.priceListUrl.trim(), label: v.priceListLabel.trim() }
@@ -1055,6 +1127,22 @@ export async function loadActivityForEdit(id: string): Promise<ActivityFormValue
     })),
     photographyAddOns: photographyAddOnSlugs(act.extra),
     photographyGroup: savedPhotographyGroup(act.extra) ?? '',
+    ...(() => {
+      const specs = photographySpecs(act.extra);
+      return {
+        photographyBestSeller: specs.bestSeller,
+        photographyPhotoCount: specs.photoCount,
+        photographyLocation: specs.location ?? '',
+        photographyDelivery: specs.delivery ?? '',
+        photographyShowDuration: specs.showDuration,
+        photographyShowGuests: specs.showGuests,
+        photographyShowAddOns: specs.showAddOns,
+        photographyShowDeposit: specs.showDeposit,
+        photographyShowDetails: specs.showDetails,
+        photographyInspiration: photographyInspirationIds(act.extra),
+        photographyCover: photographyCover(act.extra) ?? '',
+      };
+    })(),
     sourceExtra: (act.extra ?? {}) as Record<string, unknown>,
   };
 }

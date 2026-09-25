@@ -403,6 +403,9 @@ export const fr: Record<string, string> = {
   'Close gallery': 'Fermer la galerie',
   'Previous photo': 'Photo précédente',
   'Next photo': 'Photo suivante',
+  'Zoom in': 'Zoom avant',
+  'Zoom out': 'Zoom arrière',
+  'View photo {n}': 'Voir la photo {n}',
   Mon: 'lun',
   Tue: 'mar',
   Wed: 'mer',
@@ -3058,6 +3061,24 @@ export const fr: Record<string, string> = {
   // /photography/packages + photography booking
   '+{price} per shoot': '+{price} par séance',
   'Add a photographer to this trip': 'Ajoutez un photographe à cette sortie',
+  'Add a photographer to your private tour': 'Ajoutez un photographe à votre excursion privée',
+  'Exploring as a private group? A professional photographer can join your tour and capture the day — portraits, candid moments and group shots, delivered in a private online gallery. Choose a photography package for the same day as your tour.':
+    'Vous explorez en groupe privé ? Un photographe professionnel peut accompagner votre excursion et immortaliser la journée — portraits, moments spontanés et photos de groupe, livrés dans une galerie privée en ligne. Choisissez une formule photo pour le même jour que votre excursion.',
+  'Browse photography packages': 'Voir les formules photo',
+  'Best seller': 'Meilleure vente',
+  'Up to {n} edited photos': 'Jusqu’à {n} photos retouchées',
+  'Other moments for you': 'D’autres moments pour vous',
+  'Your gallery is ready — booking {ref}': 'Votre galerie est prête — réservation {ref}',
+  'Your {count} photos from {package} are ready in your private online gallery.':
+    'Vos {count} photos de {package} sont prêtes dans votre galerie privée en ligne.',
+  'Open your booking and scroll to your gallery — you can view and share them there.':
+    'Ouvrez votre réservation et accédez à votre galerie — vous pouvez les voir et les partager.',
+  'View my gallery': 'Voir ma galerie',
+  'View gallery': 'Voir la galerie',
+  'Your photos are ready — tap any photo to view it full size.':
+    'Vos photos sont prêtes — touchez une photo pour la voir en grand.',
+  'Up to {n} guests': 'Jusqu’à {n} personnes',
+  'Optional add-ons: {names}': 'Options disponibles : {names}',
   'Make a day of it with a private tour': 'Profitez de la journée avec une excursion privée',
   'We’ll add this tour to your cart and open the shoot for the same day.':
     'Nous ajoutons cette excursion à votre panier et ouvrons la séance photo pour le même jour.',

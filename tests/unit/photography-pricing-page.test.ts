@@ -24,6 +24,7 @@ const pkg: PhotoPackage = {
   href: '/activities/couples-session',
   external: false,
   highlight: false,
+  bestSeller: false,
 };
 
 describe('simple photography package cards', () => {
@@ -34,6 +35,7 @@ describe('simple photography package cards', () => {
         fromLabel: 'From',
         onRequestLabel: 'Price on request',
         ctaLabel: value.external ? 'Enquire' : 'See more',
+        bestSellerLabel: 'Best seller',
       }),
     );
 
