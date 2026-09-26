@@ -8,6 +8,7 @@ import { useAuth } from '@/components/auth/AuthProvider';
 import { getBrowserSupabase } from '@/lib/supabase/browser';
 import { deleteActivity } from '@/lib/admin/activity-write';
 import { reorderActivities } from '@/lib/admin/activity-order';
+import { isPhotographyCategory } from '@/lib/catalogue/photography';
 import {
   IconPlus,
   IconCalendar,
@@ -71,11 +72,15 @@ export function AdminActivities() {
     if (error) setError(error.message);
     else
       setRows(
-        (data ?? []).map(({ activity_images, ...rest }) => ({
-          ...rest,
-          imageUrl:
-            (activity_images ?? []).slice().sort((a, b) => a.position - b.position)[0]?.url ?? null,
-        })),
+        (data ?? [])
+          // Photography packages live in /admin/photography — this screen is Tours only.
+          .filter((a) => !isPhotographyCategory(a.category))
+          .map(({ activity_images, ...rest }) => ({
+            ...rest,
+            imageUrl:
+              (activity_images ?? []).slice().sort((a, b) => a.position - b.position)[0]?.url ??
+              null,
+          })),
       );
   }, []);
 
@@ -214,6 +219,13 @@ export function AdminActivities() {
                 ? `${filtered.length} of ${rows.length} shown`
                 : `${published} published · ${drafts} ${drafts === 1 ? 'draft' : 'drafts'}`
               : 'Loading…'}
+            <span className="ml-2 text-ink-muted/80">
+              Photography packages live in{' '}
+              <Link href="/admin/photography" className="font-semibold text-teal hover:underline">
+                Photography
+              </Link>
+              .
+            </span>
           </p>
         </div>
         <Link

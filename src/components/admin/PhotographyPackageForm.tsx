@@ -15,16 +15,15 @@ import { PHOTOGRAPHY_ADD_ON_PRESETS } from '@/lib/catalogue/photography';
 import type { PhotographyShoot } from '@/lib/catalogue/photography-shoots';
 import { IconChevron, IconPlus, IconX } from '@/components/ui/icons';
 import {
-  AdminError,
-  AdminHeading,
-  BTN_GHOST,
-  BTN_PRIMARY,
-  Card,
-  Field,
-  INPUT_CLS,
-  SELECT_CLS,
-  TEXTAREA_CLS,
-} from '@/components/admin/ui';
+  P_BTN,
+  P_BTN_GHOST,
+  PField,
+  PNotice,
+  PSection,
+  P_INPUT,
+  P_SELECT,
+  P_TEXTAREA,
+} from '@/components/admin/photo-kit';
 
 const START: PhotographyPackageInput = {
   title: '',
@@ -61,13 +60,14 @@ function num(v: string): number {
 /**
  * The package form — "New package" (the template) and "Edit package" (`packageId` set). It asks only what a photography package needs and writes an ordinary
  * activity: a private option (base price for N guests + per extra guest, capped), one supplement per
- * add-on, and the shoots-per-day capacity that makes dates bookable. Everything is editable later in
- * the full tour editor, which is where this sends you once it is saved.
+ * add-on, and the shoots-per-day capacity that makes dates bookable. In the studio (`embedded`),
+ * the dates editor and the full tour editor sit one tab away — same save path throughout.
  */
 export function PhotographyPackageForm({
   packageId,
   template,
-}: { packageId?: string; template?: PhotographyShoot } = {}) {
+  embedded = false,
+}: { packageId?: string; template?: PhotographyShoot; embedded?: boolean } = {}) {
   const router = useRouter();
   const editing = Boolean(packageId);
   const [v, setV] = useState<PhotographyPackageInput>(() =>
@@ -191,12 +191,22 @@ export function PhotographyPackageForm({
     }
   }
 
-  if (loading) return <p className="text-sm text-ink-muted">Loading the package…</p>;
+  if (loading)
+    return (
+      <div className="grid gap-4 lg:grid-cols-2">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div
+            key={i}
+            className="h-56 animate-pulse rounded-card border border-ink/10 bg-teal-tint/40"
+          />
+        ))}
+      </div>
+    );
   if (editing && !loaded) {
     return (
-      <div>
-        <AdminError>{error ?? 'Package not found.'}</AdminError>
-        <Link href="/admin/photography" className={BTN_GHOST}>
+      <div className="space-y-4">
+        <PNotice tone="error">{error ?? 'Package not found.'}</PNotice>
+        <Link href="/admin/photography" className={P_BTN_GHOST}>
           Back to photography
         </Link>
       </div>
@@ -204,104 +214,127 @@ export function PhotographyPackageForm({
   }
 
   return (
-    <form onSubmit={save} className="pb-16">
-      <Link
-        href="/admin/photography"
-        className="mb-2 inline-flex items-center gap-1 text-[13.5px] font-semibold text-ink-muted hover:text-teal"
-      >
-        <IconChevron width={15} height={15} className="rotate-90" /> Back to photography
-      </Link>
-      <AdminHeading
-        title={editing ? 'Edit package' : 'New photography package'}
-        subtitle={
-          editing
-            ? 'Changes save straight to the live package. Photos, the long description, French and search settings are in the full editor.'
-            : 'Creates a bookable package — dates, extra guests and add-ons included. You can fine-tune everything in the tour editor afterwards.'
-        }
-        action={
-          editing && packageId && loaded ? (
-            <div className="flex flex-wrap gap-2">
+    <form onSubmit={save} className={embedded ? '' : 'pb-16'}>
+      {!embedded && (
+        <>
+          <Link
+            href="/admin/photography"
+            className="mb-3 inline-flex items-center gap-1 text-[13px] font-semibold text-ink-muted transition hover:text-teal-dark"
+          >
+            <IconChevron width={15} height={15} className="rotate-90" /> Photography studio
+          </Link>
+          <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <h1 className="text-[28px] font-extrabold tracking-tight text-ink">
+                {editing ? 'Edit package' : 'New photography package'}
+              </h1>
+              <p className="mt-1 max-w-[64ch] text-sm text-ink-muted">
+                {editing
+                  ? 'Changes save straight to the live package. Dates, photos, French and search settings are the other tabs above.'
+                  : 'Creates a bookable package — dates, extra guests and add-ons included. The dates and full editors unlock once it exists.'}
+              </p>
+            </div>
+            {editing && packageId && loaded && (
               <a
                 href={`/activities/${loaded.values.slug}`}
                 target="_blank"
                 rel="noreferrer"
-                className={BTN_GHOST}
+                className={P_BTN_GHOST}
               >
                 View package
               </a>
-              <Link href={`/admin/activities/${packageId}/edit`} className={BTN_GHOST}>
-                Full editor (photos, French, SEO)
-              </Link>
-            </div>
-          ) : undefined
-        }
-      />
-      {editing && v.status === 'draft' && (
-        <p className="mb-4 rounded-xl bg-amber-100/60 px-4 py-3 text-[13px] font-medium text-amber-800">
-          This package is a draft — guests can’t see or book it. Check the price and add-ons, then
-          set Status to “Published” and save.
-        </p>
+            )}
+          </div>
+        </>
       )}
-      {error && <AdminError>{error}</AdminError>}
+      {embedded && editing && loaded && (
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-ink-muted">
+            <b className="text-ink">{loaded.values.title}</b>
+            <span className="ml-2 text-xs">/activities/{loaded.values.slug}</span>
+          </p>
+          <a
+            href={`/activities/${loaded.values.slug}`}
+            target="_blank"
+            rel="noreferrer"
+            className={P_BTN_GHOST}
+          >
+            View package
+          </a>
+        </div>
+      )}
+      {editing && v.status === 'draft' && (
+        <div className="mb-4">
+          <PNotice tone="warn">
+            This package is a draft — guests can’t see or book it. Check the price and add-ons, then
+            set Status to “Published” and save.
+          </PNotice>
+        </div>
+      )}
+      {error && (
+        <div className="mb-4">
+          <PNotice tone="error">{error}</PNotice>
+        </div>
+      )}
 
       <div className="grid gap-5 lg:grid-cols-2">
-        <Card title="The package">
+        <PSection title="The package">
           <div className="grid gap-3">
-            <Field label="Name">
+            <PField label="Name">
               <input
-                className={INPUT_CLS}
+                className={P_INPUT}
                 value={v.title}
                 onChange={(e) => set('title', e.target.value)}
                 placeholder="e.g. Couples session on Belle Mare beach"
               />
-            </Field>
-            <Field
+            </PField>
+            <PField
               label="Type"
               hint="Weddings and wedding films are listed first on the price list; everything else under holiday & family shoots."
             >
               <select
-                className={SELECT_CLS}
+                className={P_SELECT}
                 value={v.kind}
                 onChange={(e) => set('kind', e.target.value as PhotographyPackageInput['kind'])}
               >
                 <option value="weddings">Wedding / wedding film</option>
                 <option value="shoots">Couples, holiday or family shoot</option>
               </select>
-            </Field>
-            <Field
+            </PField>
+            <PField
               label="Short description"
               hint="Shown on the price-list card and the package page."
             >
               <textarea
-                className={TEXTAREA_CLS}
+                className={P_TEXTAREA}
                 rows={3}
                 value={v.summary}
                 onChange={(e) => set('summary', e.target.value)}
                 placeholder="Relaxed, romantic photos at golden hour — perfect for honeymoons."
               />
-            </Field>
+            </PField>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Duration (hours)">
+              <PField label="Duration (hours)">
                 <input
                   type="number"
                   min={0.5}
                   step={0.5}
-                  className={INPUT_CLS}
+                  className={P_INPUT}
                   value={v.durationHours}
                   onChange={(e) => set('durationHours', num(e.target.value))}
                 />
-              </Field>
-              <Field label="Book at least (days ahead)">
+              </PField>
+              <PField label="Book at least (days ahead)">
                 <input
                   type="number"
                   min={0}
-                  className={INPUT_CLS}
+                  className={P_INPUT}
                   value={v.minAdvanceDays}
                   onChange={(e) => set('minAdvanceDays', num(e.target.value))}
                 />
-              </Field>
+              </PField>
             </div>
-            <Field
+            <PField
               label="Cover photo (optional)"
               hint="Upload, or paste a URL. Add more photos later in the editor."
             >
@@ -318,13 +351,13 @@ export function PhotographyPackageForm({
               )}
               <div className="flex gap-2">
                 <input
-                  className={INPUT_CLS}
+                  className={P_INPUT}
                   value={v.imageUrl}
                   onChange={(e) => set('imageUrl', e.target.value)}
                   placeholder="https://…"
                 />
                 <label
-                  className={`${BTN_GHOST} shrink-0 cursor-pointer ${uploadingCover ? 'opacity-50' : ''}`}
+                  className={`${P_BTN_GHOST} shrink-0 cursor-pointer ${uploadingCover ? 'opacity-50' : ''}`}
                 >
                   {uploadingCover ? 'Uploading…' : 'Upload'}
                   <input
@@ -339,76 +372,76 @@ export function PhotographyPackageForm({
                   />
                 </label>
               </div>
-            </Field>
+            </PField>
           </div>
-        </Card>
+        </PSection>
 
-        <Card title="Price, guests & dates">
+        <PSection title="Price, guests & dates">
           <div className="grid gap-3">
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Package price (€)">
+              <PField label="Package price (€)">
                 <input
                   type="number"
                   min={0}
-                  className={INPUT_CLS}
+                  className={P_INPUT}
                   value={v.baseEur}
                   onChange={(e) => set('baseEur', num(e.target.value))}
                 />
-              </Field>
-              <Field label="Price covers (guests)">
+              </PField>
+              <PField label="Price covers (guests)">
                 <input
                   type="number"
                   min={1}
-                  className={INPUT_CLS}
+                  className={P_INPUT}
                   value={v.included}
                   onChange={(e) => set('included', num(e.target.value))}
                 />
-              </Field>
-              <Field label="Each extra guest (€)" hint="0 = extra guests are free.">
+              </PField>
+              <PField label="Each extra guest (€)" hint="0 = extra guests are free.">
                 <input
                   type="number"
                   min={0}
-                  className={INPUT_CLS}
+                  className={P_INPUT}
                   value={v.extraEur}
                   onChange={(e) => set('extraEur', num(e.target.value))}
                 />
-              </Field>
-              <Field label="Max guests">
+              </PField>
+              <PField label="Max guests">
                 <input
                   type="number"
                   min={1}
-                  className={INPUT_CLS}
+                  className={P_INPUT}
                   value={v.maxGuests}
                   onChange={(e) => set('maxGuests', num(e.target.value))}
                 />
-              </Field>
+              </PField>
             </div>
-            <Field
+            <PField
               label="Shoots you can do per day"
               hint="Each booking takes one. Close specific weekdays or stop sales later under Dates."
             >
               <input
                 type="number"
                 min={1}
-                className={INPUT_CLS}
+                className={P_INPUT}
                 value={v.shootsPerDay}
                 onChange={(e) => set('shootsPerDay', num(e.target.value))}
               />
-            </Field>
-            <Field label="Status">
+            </PField>
+            <PField label="Status">
               <select
-                className={SELECT_CLS}
+                className={P_SELECT}
                 value={v.status}
                 onChange={(e) => set('status', e.target.value as PhotographyPackageInput['status'])}
               >
                 <option value="published">Published — bookable now</option>
                 <option value="draft">Draft — hidden until you publish it</option>
               </select>
-            </Field>
+            </PField>
           </div>
-        </Card>
+        </PSection>
 
-        <Card title="Price-card specs">
+        <PSection title="Price-card specs">
           <div className="grid gap-3">
             <label className="flex items-start gap-2.5 text-sm font-medium text-ink">
               <input
@@ -424,41 +457,41 @@ export function PhotographyPackageForm({
                 </span>
               </span>
             </label>
-            <Field
+            <PField
               label="Edited photos included"
               hint="0 hides the tick. Shown as “Up to N edited photos”."
             >
               <input
                 type="number"
                 min={0}
-                className={INPUT_CLS}
+                className={P_INPUT}
                 value={v.photoCount}
                 onChange={(e) => set('photoCount', num(e.target.value))}
               />
-            </Field>
-            <Field
+            </PField>
+            <PField
               label="Location line (optional)"
               hint="e.g. Beach of your choice. Empty hides the tick."
             >
               <input
-                className={INPUT_CLS}
+                className={P_INPUT}
                 value={v.locationLine}
                 onChange={(e) => set('locationLine', e.target.value)}
                 placeholder="Beach of your choice"
               />
-            </Field>
-            <Field
+            </PField>
+            <PField
               label="Delivery line (optional)"
               hint="e.g. Delivery in 3 weeks. Empty hides the tick."
             >
               <input
-                className={INPUT_CLS}
+                className={P_INPUT}
                 value={v.deliveryLine}
                 onChange={(e) => set('deliveryLine', e.target.value)}
                 placeholder="Delivery in 3 weeks"
               />
-            </Field>
-            <div className="flex flex-col gap-2 border-t border-[#EAEEF0] pt-3">
+            </PField>
+            <div className="flex flex-col gap-2 border-t border-ink/10 pt-3">
               <p className="text-sm font-bold text-ink">Show on the price card</p>
               {(
                 [
@@ -494,15 +527,15 @@ export function PhotographyPackageForm({
               </span>
             </label>
           </div>
-        </Card>
+        </PSection>
 
-        <Card title="Add-ons (charged once per shoot)">
+        <PSection title="Add-ons (charged once per shoot)">
           <div className="flex flex-col gap-2">
             {v.addOns.map((a, i) => (
               <div key={i} className="grid grid-cols-[1fr_1fr_90px_auto] items-center gap-2">
                 <input
                   aria-label="Add-on name"
-                  className={INPUT_CLS}
+                  className={P_INPUT}
                   value={a.name}
                   onChange={(e) =>
                     set(
@@ -514,7 +547,7 @@ export function PhotographyPackageForm({
                 />
                 <input
                   aria-label="French name"
-                  className={INPUT_CLS}
+                  className={P_INPUT}
                   value={a.nameFr}
                   onChange={(e) =>
                     set(
@@ -528,7 +561,7 @@ export function PhotographyPackageForm({
                   aria-label="Price (€)"
                   type="number"
                   min={0}
-                  className={INPUT_CLS}
+                  className={P_INPUT}
                   value={a.priceEur}
                   onChange={(e) =>
                     set(
@@ -557,20 +590,20 @@ export function PhotographyPackageForm({
             <button
               type="button"
               onClick={() => set('addOns', [...v.addOns, { name: '', nameFr: '', priceEur: 0 }])}
-              className={`${BTN_GHOST} mt-1 w-fit`}
+              className={`${P_BTN_GHOST} mt-1 w-fit`}
             >
               <IconPlus width={15} height={15} /> Add an add-on
             </button>
           </div>
-        </Card>
+        </PSection>
 
-        <Card title="What’s included">
+        <PSection title="What’s included">
           <div className="flex flex-col gap-2">
             {v.features.map((f, i) => (
               <div key={i} className="flex items-center gap-2">
                 <input
                   aria-label="Included item"
-                  className={INPUT_CLS}
+                  className={P_INPUT}
                   value={f}
                   onChange={(e) =>
                     set(
@@ -597,14 +630,14 @@ export function PhotographyPackageForm({
             <button
               type="button"
               onClick={() => set('features', [...v.features, ''])}
-              className={`${BTN_GHOST} mt-1 w-fit`}
+              className={`${P_BTN_GHOST} mt-1 w-fit`}
             >
               <IconPlus width={15} height={15} /> Add an item
             </button>
           </div>
-        </Card>
+        </PSection>
 
-        <Card title="Inspiration photos">
+        <PSection title="Inspiration photos">
           <p className="-mt-1 mb-3 text-[12px] leading-snug text-ink-muted">
             The package’s own photos for “Get inspired by these shots”, in order. Upload here — they
             live on this package, not the shared gallery. Empty = automatic by shoot type.
@@ -638,7 +671,7 @@ export function PhotographyPackageForm({
               ))}
             </div>
           )}
-          <label className={`${BTN_GHOST} w-fit cursor-pointer`}>
+          <label className={`${P_BTN_GHOST} w-fit cursor-pointer`}>
             <IconPlus width={15} height={15} /> {uploading ? 'Uploading…' : 'Upload photos'}
             <input
               type="file"
@@ -661,18 +694,18 @@ export function PhotographyPackageForm({
               Clear photos ({v.inspiration.length} added — back to automatic)
             </button>
           )}
-        </Card>
+        </PSection>
       </div>
 
-      <div className="sticky bottom-0 mt-5 flex items-center gap-2 border-t border-[#EAEEF0] bg-white/95 py-4 backdrop-blur">
-        <button type="submit" disabled={busy} className={BTN_PRIMARY}>
+      <div className="sticky bottom-3 z-10 mt-6 flex items-center gap-2 rounded-full border border-ink/10 bg-white/95 px-4 py-3 shadow-[0_18px_40px_-20px_rgba(10,46,54,0.45)] backdrop-blur">
+        <button type="submit" disabled={busy} className={P_BTN}>
           {busy ? (editing ? 'Saving…' : 'Creating…') : editing ? 'Save changes' : 'Create package'}
         </button>
-        <Link href="/admin/photography" className={BTN_GHOST}>
+        <Link href="/admin/photography" className={P_BTN_GHOST}>
           {editing ? 'Back to photography' : 'Cancel'}
         </Link>
         {saved && (
-          <span role="status" className="ml-auto text-[12.5px] font-bold text-teal">
+          <span role="status" className="ml-auto pr-2 text-[12.5px] font-bold text-teal-dark">
             Saved ✓
           </span>
         )}

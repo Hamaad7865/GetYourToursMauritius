@@ -1,5 +1,7 @@
 'use client';
 
+/* eslint-disable @next/next/no-img-element -- CF Pages serves images unoptimized. */
+
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/components/auth/AuthProvider';
@@ -10,21 +12,28 @@ import {
   type PhotographyAdminData,
 } from '@/lib/admin/photography';
 import { IconCamera, IconExternalLink, IconPlus } from '@/components/ui/icons';
-import { AdminError, AdminHeading, BTN_GHOST, BTN_PRIMARY, Card } from '@/components/admin/ui';
 import { PhotographyPhotosManager } from '@/components/admin/PhotographyPhotosManager';
 import { PhotoBalancesCard } from '@/components/admin/PhotoBalancesCard';
 import { CustomerGalleriesCard } from '@/components/admin/CustomerGalleriesCard';
 import { PHOTOGRAPHY_SHOOTS, matchesPhotographyShoot } from '@/lib/catalogue/photography-shoots';
+import {
+  P_BTN,
+  P_BTN_GHOST,
+  P_LABEL,
+  PNotice,
+  PPill,
+  PSection,
+} from '@/components/admin/photo-kit';
 
 function eur(n: number | null): string {
   return n == null ? '—' : `€${n.toLocaleString('en-GB', { maximumFractionDigits: 2 })}`;
 }
 
 /**
- * /admin/photography — the photography business in one screen: the packages (each a catalogue
- * activity in the "Photography" category), a template to add one, and which private tours offer a
- * shoot as an add-on. Editing a package's copy, photos, prices, add-ons or dates opens the normal
- * tour editor, so there is still exactly one save path for anything that is sold.
+ * /admin/photography — the photography studio: the packages (each a catalogue activity in the
+ * "Photography" category), the page photos, balances to collect and customer galleries, plus which
+ * private tours offer a shoot as an add-on. Everything about a package is edited from its card —
+ * the editor there hosts the package form, the dates and the full tour editor in one place.
  */
 export function AdminPhotography() {
   const { profile } = useAuth();
@@ -82,264 +91,308 @@ export function AdminPhotography() {
   }
 
   const titleBySlug = new Map((data?.packages ?? []).map((p) => [p.slug, p.title]));
+  const published = (data?.packages ?? []).filter((p) => p.status === 'published').length;
 
   return (
-    <div>
-      <AdminHeading
-        title="Photography"
-        subtitle="Packages, page photos and tour pairings — packages are booked online like any tour."
-        action={
-          <div className="flex flex-wrap gap-2">
-            <a href="#photography-gallery" className={BTN_GHOST}>
-              <IconCamera width={15} height={15} /> Manage gallery
-            </a>
-            <a href="/photography/packages" target="_blank" rel="noreferrer" className={BTN_GHOST}>
-              <IconExternalLink width={15} height={15} /> View price list
-            </a>
-            <Link href="/admin/photography/new" className={BTN_PRIMARY}>
-              <IconPlus width={16} height={16} /> New package
-            </Link>
-          </div>
-        }
-      />
-
-      {error && <AdminError>{error}</AdminError>}
-      {notice && (
-        <p
-          role="status"
-          className="mb-4 rounded-xl bg-teal/10 px-4 py-3 text-[13px] font-medium text-teal-dark"
-        >
-          {notice}
-        </p>
-      )}
-
-      {data && !data.categoryExists && (
-        <Card className="mb-5">
-          <p className="text-sm text-ink">
-            There’s no <b>Photography</b> category yet. Packages are filed under it — that’s what
-            puts them on /photography, in the navbar dropdown and on the price list.
+    <div className="pb-10">
+      {/* Studio header */}
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-[28px] font-extrabold tracking-tight text-ink">Photography studio</h1>
+          <p className="mt-1 text-sm text-ink-muted">
+            {data
+              ? `${data.packages.length} package${data.packages.length === 1 ? '' : 's'} · ${published} published`
+              : 'Packages, page photos, balances and galleries.'}
           </p>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => void createCategory()}
-            className={`${BTN_PRIMARY} mt-3`}
-          >
-            {busy ? 'Creating…' : 'Create the Photography category'}
-          </button>
-        </Card>
-      )}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <a href="#photography-gallery" className={P_BTN_GHOST}>
+            <IconCamera width={15} height={15} /> Manage gallery
+          </a>
+          <a href="/photography" target="_blank" rel="noreferrer" className={P_BTN_GHOST}>
+            <IconExternalLink width={15} height={15} /> View page
+          </a>
+          <Link href="/admin/photography/new" className={P_BTN}>
+            <IconPlus width={16} height={16} /> New package
+          </Link>
+        </div>
+      </div>
 
-      <Card title="Packages" className="mb-5">
-        {data === null ? (
-          <p className="text-sm text-ink-muted">Loading…</p>
-        ) : data.packages.length === 0 ? (
-          <div className="flex flex-col items-start gap-3 py-2">
-            <p className="text-sm text-ink-muted">
-              No published packages yet. Set up the shoot types below, or import the original
-              wedding and couples presets as drafts. Review prices, photos and dates before
-              publishing.
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => void importExamples()}
-                className={BTN_PRIMARY}
-              >
-                <IconCamera width={16} height={16} />
-                {busy ? 'Adding…' : 'Add wedding & couples presets'}
-              </button>
-              <Link href="/admin/photography/new" className={BTN_GHOST}>
-                <IconPlus width={16} height={16} /> Start from scratch
+      <div className="space-y-4">
+        {error && <PNotice tone="error">{error}</PNotice>}
+        {notice && <PNotice tone="ok">{notice}</PNotice>}
+
+        {data && !data.categoryExists && (
+          <PNotice tone="warn">
+            There’s no <b>Photography</b> category yet — packages are filed under it, and that’s
+            what puts them on /photography.{' '}
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void createCategory()}
+              className="ml-1 font-extrabold underline underline-offset-2 hover:text-teal-dark"
+            >
+              {busy ? 'Creating…' : 'Create it now'}
+            </button>
+          </PNotice>
+        )}
+
+        <PSection
+          title="Packages"
+          description="What guests see on /photography. Everything about a package — photos, dates, prices, French, SEO — is edited from its card."
+          action={
+            data && data.packages.length > 0 ? (
+              <Link href="/admin/photography/new" className={P_BTN}>
+                <IconPlus width={15} height={15} /> New package
               </Link>
+            ) : undefined
+          }
+        >
+          {data === null ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="h-[240px] animate-pulse rounded-card border border-ink/10 bg-teal-tint/40"
+                />
+              ))}
             </div>
-          </div>
-        ) : (
-          <div className="-mx-5 overflow-x-auto">
-            <table className="w-full min-w-[760px] text-left text-[13px]">
-              <thead className="text-[11.5px] uppercase tracking-wide text-ink-muted">
-                <tr className="border-b border-[#F2F4F6]">
-                  <th className="px-5 py-2 font-bold">Package</th>
-                  <th className="px-3 py-2 font-bold">Price</th>
-                  <th className="px-3 py-2 font-bold">Guests</th>
-                  <th className="px-3 py-2 font-bold">Add-ons</th>
-                  <th className="px-3 py-2 font-bold">Per day</th>
-                  <th className="px-5 py-2 text-right font-bold">Manage</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.packages.map((p) => (
-                  <tr key={p.id} className="border-b border-[#F2F4F6] last:border-0">
-                    <td className="px-5 py-3">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-ink">{p.title}</span>
-                        <span className="rounded-full bg-teal/10 px-2 py-0.5 text-[10.5px] font-bold text-teal-dark">
-                          {p.group === 'weddings' ? 'Wedding' : 'Shoot'}
-                        </span>
-                        {p.status !== 'published' && (
-                          <span className="rounded-full bg-ink/10 px-2 py-0.5 text-[10.5px] font-bold text-ink-muted">
-                            Draft
-                          </span>
-                        )}
+          ) : data.packages.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-ink/15 bg-teal-tint/40 px-6 py-10 text-center">
+              <IconCamera width={28} height={28} className="mx-auto text-teal-dark" />
+              <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-ink-muted">
+                No packages yet. Import the wedding &amp; couples presets as drafts, or start from
+                scratch — review prices, photos and dates before publishing.
+              </p>
+              <div className="mt-5 flex flex-wrap justify-center gap-2">
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => void importExamples()}
+                  className={P_BTN}
+                >
+                  {busy ? 'Adding…' : 'Add wedding & couples presets'}
+                </button>
+                <Link href="/admin/photography/new" className={P_BTN_GHOST}>
+                  Start from scratch
+                </Link>
+              </div>
+            </div>
+          ) : (
+            /* The same card anatomy as the public /photography grid — what the owner manages is
+               what the guest sees. */
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {data.packages.map((p) => (
+                <article
+                  key={p.id}
+                  className="group flex flex-col overflow-hidden rounded-card border border-ink/10 bg-white transition hover:-translate-y-0.5 hover:shadow-[0_18px_40px_-20px_rgba(10,46,54,0.35)]"
+                >
+                  <div className="relative aspect-[16/10] overflow-hidden bg-teal-tint">
+                    {p.coverUrl ? (
+                      <img
+                        src={p.coverUrl}
+                        alt=""
+                        loading="lazy"
+                        className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-ink-muted">
+                        <IconCamera width={26} height={26} />
                       </div>
-                      <p className="text-[12px] text-ink-muted">
-                        /activities/{p.slug}
-                        {p.durationMinutes ? ` · ${Math.round(p.durationMinutes / 6) / 10} h` : ''}
-                      </p>
-                    </td>
-                    <td className="px-3 py-3 font-semibold text-ink">
+                    )}
+                    <span className="absolute left-3 top-3 rounded-full bg-white/95 px-3 py-1 text-[11px] font-bold text-ink shadow-sm">
+                      {p.group === 'weddings' ? 'Weddings' : 'Photoshoots'}
+                    </span>
+                    {p.bestSeller && (
+                      <span className="absolute bottom-3 left-3">
+                        <PPill tone="coral">Best seller</PPill>
+                      </span>
+                    )}
+                    <span className="absolute right-3 top-3">
+                      <PPill tone={p.status === 'published' ? 'ok' : 'warn'}>
+                        {p.status === 'published' ? 'Published' : 'Draft'}
+                      </PPill>
+                    </span>
+                  </div>
+
+                  <div className="flex flex-1 flex-col p-4">
+                    <h3 className="line-clamp-2 text-sm font-extrabold leading-snug tracking-tight text-ink">
+                      {p.title}
+                    </h3>
+                    <p className="mt-1 text-xs leading-relaxed text-ink-muted">
+                      {[
+                        p.durationMinutes ? `${Math.round(p.durationMinutes / 6) / 10} h` : null,
+                        p.included != null
+                          ? `${p.included} guests incl.${
+                              p.extraEur ? ` · +${eur(p.extraEur)} each` : ''
+                            }${p.maxGuests ? ` · max ${p.maxGuests}` : ''}`
+                          : null,
+                        p.shootsPerDay != null
+                          ? `${p.shootsPerDay} shoot${p.shootsPerDay === 1 ? '' : 's'}/day`
+                          : 'No dates set',
+                      ]
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </p>
+                    {p.addOns.length > 0 && (
+                      <ul className="mt-2.5 flex flex-wrap gap-1.5">
+                        {p.addOns.map((a) => (
+                          <li
+                            key={a.name}
+                            className="rounded-full bg-teal-tint px-2.5 py-0.5 text-[10.5px] font-semibold text-teal-dark"
+                          >
+                            {a.name} · {eur(a.priceEur)}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    <div className="mt-auto flex items-center justify-between gap-2 pt-3">
                       {p.baseEur == null ? (
-                        <span className="text-coral">Not priced</span>
+                        <span className="text-xs font-bold text-coral">Not priced</span>
                       ) : (
-                        eur(p.baseEur)
+                        <p className="text-[11px] text-ink-muted">
+                          From{' '}
+                          <b className="text-base font-extrabold tabular-nums tracking-tight text-ink">
+                            {eur(p.baseEur)}
+                          </b>
+                        </p>
                       )}
-                    </td>
-                    <td className="px-3 py-3 text-ink/80">
-                      {p.included != null
-                        ? `${p.included} incl.${p.extraEur ? ` · +${eur(p.extraEur)} each` : ''}${
-                            p.maxGuests ? ` · max ${p.maxGuests}` : ''
-                          }`
-                        : '—'}
-                    </td>
-                    <td className="px-3 py-3 text-ink/80">
-                      {p.addOns.length
-                        ? p.addOns.map((a) => `${a.name} ${eur(a.priceEur)}`).join(', ')
-                        : '—'}
-                    </td>
-                    <td className="px-3 py-3">
-                      {p.shootsPerDay ? (
-                        <span className="text-ink/80">{p.shootsPerDay}</span>
-                      ) : (
-                        <span className="text-coral">Not set</span>
-                      )}
-                    </td>
-                    <td className="whitespace-nowrap px-5 py-3 text-right">
-                      <Link
-                        href={`/admin/photography/${p.id}/edit`}
-                        className="rounded-lg px-2.5 py-1.5 font-bold text-teal hover:bg-cream"
-                      >
-                        Edit
-                      </Link>
-                      <Link
-                        href={`/admin/activities/${p.id}/edit`}
-                        className="rounded-lg px-2.5 py-1.5 font-bold text-teal hover:bg-cream"
-                      >
-                        Full editor
-                      </Link>
-                      <Link
-                        href={`/admin/activities/${p.id}/availability`}
-                        className="rounded-lg px-2.5 py-1.5 font-bold text-teal hover:bg-cream"
-                      >
-                        Dates
-                      </Link>
                       <a
                         href={`/activities/${p.slug}`}
                         target="_blank"
                         rel="noreferrer"
-                        className="rounded-lg px-2.5 py-1.5 font-bold text-ink-muted hover:bg-cream"
+                        aria-label={`View ${p.title} on the site`}
+                        className="rounded-full p-1.5 text-ink-muted transition hover:bg-teal-tint hover:text-teal-dark"
                       >
-                        View
+                        <IconExternalLink width={15} height={15} />
                       </a>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+                    <div className="mt-3 grid grid-cols-2 gap-2 border-t border-ink/10 pt-3">
+                      <Link
+                        href={`/admin/photography/${p.id}/edit`}
+                        className="flex items-center justify-center rounded-full bg-teal px-3 py-2 text-xs font-bold text-white transition hover:bg-teal-dark"
+                      >
+                        Edit package
+                      </Link>
+                      <Link
+                        href={`/admin/photography/${p.id}/edit?tab=dates`}
+                        className="flex items-center justify-center rounded-full border-[1.5px] border-ink/10 px-3 py-2 text-xs font-bold text-ink transition hover:border-teal hover:text-teal-dark"
+                      >
+                        Dates
+                      </Link>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </PSection>
+
+        {isStaff && data && PHOTOGRAPHY_SHOOTS.length > 0 && (
+          <PSection
+            title="Shoot types"
+            description="Unconfigured shoots show “Price on request” on the website. Set your own price, duration, photos and dates, then publish."
+          >
+            <div className="grid gap-3 sm:grid-cols-2">
+              {PHOTOGRAPHY_SHOOTS.map((shoot) => {
+                const existing = data.packages.find((p) => matchesPhotographyShoot(shoot, p));
+                return (
+                  <Link
+                    key={shoot.key}
+                    href={
+                      existing
+                        ? `/admin/photography/${existing.id}/edit`
+                        : `/admin/photography/new?template=${shoot.key}`
+                    }
+                    className="flex items-center justify-between gap-3 rounded-xl border border-ink/10 bg-white p-4 text-sm transition hover:border-teal hover:shadow-[0_10px_24px_-16px_rgba(10,46,54,0.3)]"
+                  >
+                    <span className="font-semibold">{shoot.title}</span>
+                    <span className="font-bold text-teal-dark">
+                      {existing ? 'Edit package' : 'Set up package'} →
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
+          </PSection>
+        )}
+
+        {isStaff && (
+          <div className="grid items-start gap-4 xl:grid-cols-2">
+            <PhotoBalancesCard />
+            <CustomerGalleriesCard />
           </div>
         )}
-      </Card>
 
-      {isStaff && data && (
-        <Card title="Shoot types" className="mb-5">
-          <p className="mb-4 text-sm text-ink-muted">
-            Unconfigured shoots show “Price on request” on the website. Set your own price,
-            duration, photos and dates, then publish. Existing packages keep their current settings.
-          </p>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {PHOTOGRAPHY_SHOOTS.map((shoot) => {
-              const existing = data.packages.find((p) => matchesPhotographyShoot(shoot, p));
-              return (
-                <Link
-                  key={shoot.key}
-                  href={
-                    existing
-                      ? `/admin/photography/${existing.id}/edit`
-                      : `/admin/photography/new?template=${shoot.key}`
-                  }
-                  className="flex items-center justify-between gap-3 rounded-lg border border-ink/10 p-3 text-sm hover:border-teal"
-                >
-                  <span>{shoot.title}</span>
-                  <span className="font-semibold text-teal-dark">
-                    {existing ? 'Edit package' : 'Set up package'}
-                  </span>
-                </Link>
-              );
-            })}
-          </div>
-        </Card>
-      )}
+        {isStaff && <PhotographyPhotosManager />}
 
-      {isStaff && <PhotoBalancesCard />}
+        <PSection
+          title="Offered on private tours"
+          description={
+            <>
+              To offer a shoot on a tour, open the tour → <b>Logistics</b> →{' '}
+              <b>Photography add-ons</b> and tick the packages. The tour’s booking card then offers
+              them for the same day.
+            </>
+          }
+        >
+          {data === null ? null : data.pairedTours.length === 0 ? (
+            <p className="text-sm text-ink-muted">No tours offer a photography add-on yet.</p>
+          ) : (
+            <ul className="divide-y divide-ink/5">
+              {data.pairedTours.map((tour) => (
+                <li key={tour.id} className="flex flex-wrap items-center gap-3 py-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-bold text-ink">{tour.title}</p>
+                    <p className="mt-0.5 text-[12.5px] text-ink-muted">
+                      {tour.addOns
+                        .map((s) => titleBySlug.get(s) ?? `${s} (not a package)`)
+                        .join(', ')}
+                    </p>
+                  </div>
+                  <Link
+                    href={`/admin/activities/${tour.id}/edit?s=logistics`}
+                    className={P_BTN_GHOST}
+                  >
+                    Edit pairing
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </PSection>
 
-      {isStaff && <CustomerGalleriesCard />}
-
-      {isStaff && <PhotographyPhotosManager />}
-
-      <Card title="Offered on private tours" className="mb-5">
-        <p className="mb-3 text-[13px] text-ink-muted">
-          To offer a shoot on a tour, open the tour → <b>Logistics</b> → <b>Photography add-ons</b>{' '}
-          and tick the packages. The tour’s booking card then offers them for the same day; each
-          package page also suggests your private tours.
-        </p>
-        {data === null ? null : data.pairedTours.length === 0 ? (
-          <p className="text-sm text-ink-muted">No tours offer a photography add-on yet.</p>
-        ) : (
-          <ul className="divide-y divide-[#F2F4F6]">
-            {data.pairedTours.map((tour) => (
-              <li key={tour.id} className="flex flex-wrap items-center gap-3 py-2.5">
-                <div className="min-w-0 flex-1">
-                  <p className="font-bold text-ink">{tour.title}</p>
-                  <p className="text-[12.5px] text-ink-muted">
-                    {tour.addOns
-                      .map((s) => titleBySlug.get(s) ?? `${s} (not a package)`)
-                      .join(', ')}
-                  </p>
+        {/* How the money flows — a real sequence, so numbered steps earn their place. */}
+        <section className="rounded-card border border-teal/15 bg-teal-tint/60 p-6">
+          <p className={P_LABEL}>How a booking works</p>
+          <div className="mt-4 grid gap-5 md:grid-cols-3">
+            {[
+              [
+                'The guest books',
+                'They pick a date, their party and add-ons, and pay a 50% deposit by card (non-refundable). The booking lands in Bookings and Calendar like any tour.',
+              ],
+              [
+                'You shoot & deliver',
+                'Upload the finished photos under Customer galleries and send the gallery link. A sneak peek within 48 hours keeps guests happy.',
+              ],
+              [
+                'You collect the rest',
+                'Press Request balance under Balances to collect — the guest gets an email with a card link. The full invoice follows the balance payment.',
+              ],
+            ].map(([title, body], i) => (
+              <div key={title} className="flex gap-3">
+                <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-teal text-xs font-extrabold text-white">
+                  {i + 1}
+                </span>
+                <div>
+                  <h3 className="text-[13.5px] font-extrabold tracking-tight text-ink">{title}</h3>
+                  <p className="mt-1 text-[12.5px] leading-relaxed text-ink-muted">{body}</p>
                 </div>
-                <Link
-                  href={`/admin/activities/${tour.id}/edit?s=logistics`}
-                  className="rounded-lg px-3 py-1.5 text-sm font-bold text-teal hover:bg-cream"
-                >
-                  Edit
-                </Link>
-              </li>
+              </div>
             ))}
-          </ul>
-        )}
-      </Card>
-
-      <Card title="How a booking works">
-        <ul className="list-disc space-y-1.5 pl-5 text-[13px] text-ink/80">
-          <li>
-            The guest picks a <b>date</b> (from the package’s Dates — how many shoots you can do per
-            day), their <b>party</b> (the price covers the first guests; extra guests are charged
-            per head, up to the maximum) and any <b>add-ons</b> (each charged once per shoot).
-          </li>
-          <li>
-            Payment is in two halves: the guest pays a <b>50% deposit</b> by card to book (it is
-            non-refundable), and the rest when the photos are delivered — use <b>Request balance</b>{' '}
-            above. They get a deposit receipt first and the full invoice once the balance is paid.
-          </li>
-          <li>
-            Confirmation emails, the calendar and invoices work exactly like a tour — the booking
-            appears in Bookings and Calendar.
-          </li>
-          <li>
-            Package titles or summaries mentioning “wedding” or “film” are listed under Weddings;
-            everything else under Holiday &amp; family shoots.
-          </li>
-        </ul>
-      </Card>
+          </div>
+        </section>
+      </div>
     </div>
   );
 }

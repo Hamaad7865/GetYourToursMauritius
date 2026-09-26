@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import { PricingGuideCard } from '@/components/photography/PricingGuideCard';
 import { GalleryGrid, type GalleryItem } from '@/components/photography/GalleryGrid';
-import type { PhotoPackage } from '@/components/photography/PackagesSection';
+import type { PhotoPackage } from '@/components/photography/packages-data';
 
 vi.mock('@/components/site/PreferencesProvider', () => ({
   useT: () => (key: string, vars?: Record<string, string>) =>
@@ -25,6 +25,8 @@ const pkg: PhotoPackage = {
   external: false,
   highlight: false,
   bestSeller: false,
+  ratingAvg: 4.9,
+  ratingCount: 12,
 };
 
 describe('simple photography package cards', () => {
@@ -32,18 +34,29 @@ describe('simple photography package cards', () => {
     renderToStaticMarkup(
       createElement(PricingGuideCard, {
         pkg: value,
+        groupLabel: 'Photoshoots',
         fromLabel: 'From',
         onRequestLabel: 'Price on request',
-        ctaLabel: value.external ? 'Enquire' : 'See more',
+        ctaLabel: value.external ? 'Enquire' : 'See this package',
         bestSellerLabel: 'Best seller',
       }),
     );
 
   it('preserves catalogue content, cover, real price and booking destination', () => {
     const html = render(pkg);
-    for (const value of [pkg.title, pkg.summary!, pkg.image, pkg.href, 'EUR 150', 'See more']) {
+    for (const value of [
+      pkg.title,
+      pkg.summary!,
+      pkg.image,
+      pkg.href,
+      'EUR 150',
+      'See this package',
+      'Photoshoots',
+    ]) {
       expect(html).toContain(value);
     }
+    expect(html).toContain('★');
+    expect(html).toContain('4.9');
     expect(html).not.toContain('target="_blank"');
   });
 

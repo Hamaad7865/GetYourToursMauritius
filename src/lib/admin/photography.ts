@@ -51,6 +51,9 @@ export interface PhotographyPackageRow {
   maxGuests: number | null;
   shootsPerDay: number | null;
   addOns: { name: string; priceEur: number }[];
+  /** The card's cover: the owner-picked `extra.photographyCover`, else the gallery's lead image. */
+  coverUrl: string | null;
+  bestSeller: boolean;
 }
 
 export interface PairedTourRow {
@@ -73,8 +76,24 @@ export async function loadPhotographyAdmin(): Promise<PhotographyAdminData> {
     sb.from('categories').select('name'),
     sb
       .from('activities')
-      .select('id, slug, title, status, category, summary, duration_minutes, daily_capacity, extra')
-      .order('sort'),
+      .select(
+        'id, slug, title, status, category, summary, duration_minutes, daily_capacity, extra, activity_images(url, position)',
+      )
+      .order('sort')
+      .returns<
+        Array<{
+          id: string;
+          slug: string;
+          title: string;
+          status: string;
+          category: string | null;
+          summary: string | null;
+          duration_minutes: number | null;
+          daily_capacity: number | null;
+          extra: unknown;
+          activity_images: { url: string; position: number }[] | null;
+        }>
+      >(),
   ]);
   if (cats.error) throw cats.error;
   if (acts.error) throw acts.error;
@@ -106,6 +125,9 @@ export async function loadPhotographyAdmin(): Promise<PhotographyAdminData> {
 
   const packages: PhotographyPackageRow[] = pkgRows.map((a) => {
     const opt = (opts.data ?? []).find((o) => o.activity_id === a.id && o.status !== 'archived');
+    const images = ((a.activity_images ?? []) as { url: string; position: number }[])
+      .slice()
+      .sort((x, y) => x.position - y.position);
     return {
       id: a.id as string,
       slug: a.slug as string,
@@ -124,6 +146,8 @@ export async function loadPhotographyAdmin(): Promise<PhotographyAdminData> {
       addOns: (sups.data ?? [])
         .filter((s) => s.activity_id === a.id)
         .map((s) => ({ name: s.name as string, priceEur: (s.price_minor as number) / 100 })),
+      coverUrl: photographyCover(a.extra) ?? images[0]?.url ?? null,
+      bestSeller: photographySpecs(a.extra).bestSeller,
     };
   });
 

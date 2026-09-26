@@ -21,8 +21,33 @@ import {
 } from '@/lib/catalogue/photography';
 import type { GalleryItem } from './GalleryGrid';
 import type { TourSummary } from '@/lib/validation/tours';
-import type { PhotoPackage } from './PackagesSection';
 import { PHOTOGRAPHY_SHOOTS, matchesPhotographyShoot } from '@/lib/catalogue/photography-shoots';
+
+export type PackageGroup = 'weddings' | 'shoots';
+
+/** One card in the packages grid, already translated on the server. */
+export interface PhotoPackage {
+  key: string;
+  group: PackageGroup;
+  title: string;
+  meta: string | null;
+  /** Bullet list for the built-in cards; live catalogue packages show `summary` instead. */
+  features: string[];
+  summary: string | null;
+  image: string;
+  imageAlt: string;
+  /** EUR "from" price, or null when the package is quote-only. */
+  priceEur: number | null;
+  href: string;
+  /** True for the WhatsApp enquiry fallback (opens in a new tab). */
+  external: boolean;
+  highlight: boolean;
+  /** The owner's "Best seller" pick (`extra.photographyBestSeller`) — badged on the card. */
+  bestSeller: boolean;
+  /** Catalogue rating, when the package has reviews. */
+  ratingAvg?: number | null;
+  ratingCount?: number;
+}
 
 /** Built-in stand-in photos (see PHOTO_STOCK). */
 export const PHOTO_IMG = PHOTO_STOCK;
@@ -152,6 +177,8 @@ export function buildPackageCards(
       // The middle card of a full row of three gets the dark "our pick" treatment, as designed.
       highlight: n === 3 && i === 1,
       bestSeller: bestSellers.has(a.slug),
+      ratingAvg: a.ratingAvg ?? null,
+      ratingCount: a.ratingCount ?? 0,
     });
     return [
       ...weddings.map((a, i) => toCard(a, 'weddings', i, weddings.length)),

@@ -10,7 +10,7 @@ import {
   type CustomerGalleryRow,
 } from '@/lib/admin/photography';
 import { prepareZipPhotos } from '@/lib/admin/gallery-zip';
-import { AdminError, Card } from '@/components/admin/ui';
+import { PNotice, P_BTN_SMALL, P_BTN_SMALL_GHOST, PSection } from '@/components/admin/photo-kit';
 import { IconChevron, IconPlus, IconX } from '@/components/ui/icons';
 
 /**
@@ -140,23 +140,40 @@ export function CustomerGalleriesCard() {
   }
 
   return (
-    <Card title="Customer galleries" className="mb-5">
-      <p className="mb-3 text-[13px] text-ink-muted">
-        Upload each shoot’s finished photos here, then press <b>Send gallery link</b> — the guest
-        gets an email with a link to their private gallery on their booking page.
-      </p>
-      {error && <AdminError>{error}</AdminError>}
+    <PSection
+      title="Customer galleries"
+      description={
+        <>
+          Upload each shoot’s finished photos here, then press <b>Send gallery link</b> — the guest
+          gets an email with a link to their private gallery on their booking page.
+        </>
+      }
+    >
+      {error && (
+        <div className="mb-3">
+          <PNotice tone="error">{error}</PNotice>
+        </div>
+      )}
       {rows === null ? (
-        <p className="text-sm text-ink-muted">Loading…</p>
+        <div className="space-y-2.5">
+          {[0, 1].map((i) => (
+            <div
+              key={i}
+              className="h-14 animate-pulse rounded-xl border border-ink/10 bg-teal-tint/30"
+            />
+          ))}
+        </div>
       ) : rows.length === 0 ? (
-        <p className="text-sm text-ink-muted">No confirmed photography bookings right now.</p>
+        <p className="rounded-xl border border-dashed border-ink/15 bg-teal-tint/40 px-5 py-6 text-center text-[13px] font-medium text-ink-muted">
+          No confirmed photography bookings right now.
+        </p>
       ) : (
-        <ul className="divide-y divide-[#F2F4F6]">
+        <ul className="divide-y divide-ink/5">
           {rows.map((r) => {
             const done = sent[r.ref];
             const isOpen = openRef === r.ref;
             return (
-              <li key={r.ref} className="py-2.5">
+              <li key={r.ref} className="py-3">
                 <div className="flex flex-wrap items-center gap-3">
                   <button
                     type="button"
@@ -165,10 +182,10 @@ export function CustomerGalleriesCard() {
                     className="flex min-w-0 flex-1 items-center gap-2 text-left"
                   >
                     <span className="min-w-0 flex-1">
-                      <p className="font-bold text-ink">
+                      <p className="text-sm font-bold text-ink">
                         {r.customerName} · {r.packageTitle}
                       </p>
-                      <p className="text-[12.5px] text-ink-muted">
+                      <p className="mt-0.5 text-xs text-ink-muted">
                         {r.ref}
                         {r.shootDate
                           ? ` · shoot ${new Date(r.shootDate).toLocaleDateString('en-GB', {
@@ -195,23 +212,26 @@ export function CustomerGalleriesCard() {
                     title={
                       r.photoCount === 0 ? 'Upload photos first' : 'Email the guest their gallery'
                     }
-                    className="rounded-lg bg-teal px-3 py-1.5 text-sm font-bold text-white hover:bg-teal-dark disabled:opacity-50"
+                    className={P_BTN_SMALL}
                   >
                     {busy === r.ref ? 'Sending…' : done ? 'Send again' : 'Send gallery link'}
                   </button>
                 </div>
                 {done && (
-                  <p className="mt-0.5 text-[12px] font-semibold text-teal-dark">
+                  <p className="mt-1 text-xs font-semibold text-teal-dark">
                     {done.emailed
                       ? `Emailed to ${r.customerEmail}.`
                       : `Email not sent — share this link with the guest: ${done.url}`}
                   </p>
                 )}
                 {isOpen && (
-                  <div className="mt-2 rounded-xl bg-ink/[0.03] p-3">
+                  <div className="mt-3 rounded-xl border border-ink/10 bg-teal-tint/40 p-3.5">
                     <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
                       {(photos[r.ref] ?? []).map((p) => (
-                        <span key={p.id} className="relative overflow-hidden rounded-lg">
+                        <span
+                          key={p.id}
+                          className="relative overflow-hidden rounded-xl ring-1 ring-ink/10"
+                        >
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={p.url}
@@ -223,16 +243,16 @@ export function CustomerGalleriesCard() {
                             type="button"
                             aria-label="Remove photo"
                             onClick={() => void remove(r, p.id)}
-                            className="absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-full bg-ink/70 text-white hover:bg-coral"
+                            className="absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-full bg-ink/70 text-white transition hover:bg-coral"
                           >
                             <IconX width={12} height={12} />
                           </button>
                         </span>
                       ))}
                     </div>
-                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
                       <label
-                        className={`inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-teal px-3 py-1.5 text-[13px] font-bold text-teal-dark hover:bg-teal/5 ${uploading ? 'opacity-50' : ''}`}
+                        className={`${P_BTN_SMALL} cursor-pointer ${uploading ? 'opacity-50' : ''}`}
                       >
                         <IconPlus width={14} height={14} />{' '}
                         {uploading ? 'Uploading…' : 'Upload photos'}
@@ -249,7 +269,7 @@ export function CustomerGalleriesCard() {
                         />
                       </label>
                       <label
-                        className={`inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-ink/20 px-3 py-1.5 text-[13px] font-bold text-ink hover:bg-ink/5 ${uploading ? 'opacity-50' : ''}`}
+                        className={`${P_BTN_SMALL_GHOST} cursor-pointer ${uploading ? 'opacity-50' : ''}`}
                         title="One ZIP with the whole shoot — photos and videos, uploaded at full quality"
                       >
                         <IconPlus width={14} height={14} /> Upload ZIP
@@ -265,7 +285,7 @@ export function CustomerGalleriesCard() {
                         />
                       </label>
                       {uploading && (
-                        <span className="text-[12.5px] font-semibold text-teal-dark" role="status">
+                        <span className="text-xs font-semibold text-teal-dark" role="status">
                           {progress && progress.total > 0
                             ? `Uploading ${progress.done}/${progress.total}…`
                             : 'Preparing photos…'}
@@ -279,6 +299,6 @@ export function CustomerGalleriesCard() {
           })}
         </ul>
       )}
-    </Card>
+    </PSection>
   );
 }

@@ -120,14 +120,21 @@ function ProfileMenu({ overHero }: { overHero: boolean }) {
             <div className="px-3 py-3 text-sm text-ink-muted">{t('Loading…')}</div>
           ) : view === 'updates' ? (
             <>
-              <button
-                type="button"
-                onClick={() => setView('menu')}
-                className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm font-bold text-ink hover:bg-cream"
-              >
-                <IconChevronLeft width={18} height={18} /> {t('Updates')}
-              </button>
-              <div className="my-1 h-px bg-ink/10" />
+              <div className="flex items-center gap-1 px-1 pb-1 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setView('menu')}
+                  className="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[13px] font-bold text-ink transition hover:bg-teal-tint hover:text-teal-dark"
+                >
+                  <IconChevronLeft width={16} height={16} /> {t('Updates')}
+                </button>
+                {notes.length > 0 && (
+                  <span className="ml-auto pr-1 text-[11px] font-semibold text-ink-muted">
+                    {t('{n} latest', { n: notes.length })}
+                  </span>
+                )}
+              </div>
+              <div className="mb-1 h-px bg-ink/5" />
               <NotificationsList notes={notes} />
             </>
           ) : user ? (

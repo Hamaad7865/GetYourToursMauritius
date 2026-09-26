@@ -1,4 +1,4 @@
-import { PhotographyPackageForm } from '@/components/admin/PhotographyPackageForm';
+import { PhotographyStudio } from '@/components/admin/PhotographyStudio';
 
 export const runtime = 'edge';
 
@@ -8,5 +8,5 @@ export default async function EditPhotographyPackagePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  return <PhotographyPackageForm packageId={id} />;
+  return <PhotographyStudio id={id} />;
 }

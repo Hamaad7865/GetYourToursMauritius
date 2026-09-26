@@ -3217,4 +3217,41 @@ export const fr: Record<string, string> = {
   'Thank you for shooting with {operator}!': 'Merci d’avoir choisi {operator} pour vos photos !',
   '50% now, 50% when your photos are delivered':
     '50 % maintenant, 50 % à la livraison de vos photos',
+  'See the packages': 'Voir les formules',
+  'Photography packages': 'Formules photo',
+  '{n} experiences · 50% deposit holds your date':
+    '{n} expériences · un acompte de 50 % réserve votre date',
+  'See the gallery': 'Voir la galerie',
+  'A few frames — the full gallery lives on its own page':
+    'Quelques images — la galerie complète a sa propre page',
+  'Your photographer lives here.': 'Votre photographe vit ici.',
+  'We know where the light lands, every month of the year.':
+    'Nous savons où tombe la lumière, chaque mois de l’année.',
+  'Booked in three moves': 'Réservé en trois étapes',
+  'Just like booking a tour — no email ping-pong':
+    'Comme une excursion — sans échanges d’e-mails interminables',
+  'Choose your package': 'Choisissez votre formule',
+  'Pick one above — or message us and we’ll shape one around your plans.':
+    'Choisissez-en une ci-dessus — ou écrivez-nous et nous l’adapterons à vos envies.',
+  'Pick a date, pay 50%': 'Choisissez une date, payez 50 %',
+  'Your deposit reserves the day. Sunrise and sunset slots go first, so don’t sit on it.':
+    'Votre acompte réserve la journée. Les créneaux du lever et du coucher du soleil partent en premier.',
+  'Balance on delivery': 'Solde à la livraison',
+  'You pay the rest only when your gallery lands. Sneak peek within 48 hours, full set in 5 days.':
+    'Vous ne payez le reste qu’à la réception de votre galerie. Aperçu sous 48 h, série complète sous 5 jours.',
+  '50% today, 50% when the photos arrive.': '50 % aujourd’hui, 50 % à l’arrivée des photos.',
+  'No full prepayments, no fine print — the deposit simply holds your date.':
+    'Pas de paiement intégral, pas de petites lignes — l’acompte réserve simplement votre date.',
+  '50% today · rest on delivery': '50 % aujourd’hui · le reste à la livraison',
+  Photoshoots: 'Séances photo',
+  'See this package': 'Voir cette formule',
+  'Tell us your dates and what you’re celebrating — we’ll point you at the right package the same day.':
+    'Dites-nous vos dates et ce que vous fêtez — nous vous indiquerons la bonne formule le jour même.',
+  'just now': 'à l’instant',
+  '{n} min ago': 'il y a {n} min',
+  '{n} h ago': 'il y a {n} h',
+  '{n} d ago': 'il y a {n} j',
+  '{n} latest': '{n} dernières',
+  'Holds and booking updates will show here.':
+    'Les options et nouvelles de réservation s’afficheront ici.',
 };

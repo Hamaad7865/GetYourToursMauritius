@@ -23,7 +23,7 @@ import {
   type PhotographyPhoto,
 } from '@/lib/catalogue/photography';
 import { IconChevron, IconPlus, IconX } from '@/components/ui/icons';
-import { AdminError, BTN_GHOST, Card, INPUT_CLS } from '@/components/admin/ui';
+import { PNotice, P_BTN_GHOST, PSection, P_INPUT } from '@/components/admin/photo-kit';
 
 const TAG_LABEL: Record<GalleryTag, string> = {
   weddings: 'Weddings',
@@ -76,25 +76,37 @@ export function PhotographyPhotosManager() {
   }
 
   return (
-    <Card title="Gallery & page images" className="mb-5">
-      <p className="mb-4 text-[13px] text-ink-muted">
-        Manage the gallery on <b>/photography</b>, the price list and <b>/photography/gallery</b>.
-        Replace any image, edit its description, choose categories or change the order. Changes are
-        live on the next page load. Each package’s photos are edited with the package (Edit → Photos
-        &amp; files).
-      </p>
-      {error && (
+    <PSection
+      title="Gallery & page images"
+      description={
         <>
-          <AdminError>{error}</AdminError>
-          <button type="button" onClick={() => void load()} className={BTN_GHOST}>
+          Every picture on <b>/photography</b> and <b>/photography/gallery</b> — replace any image,
+          edit its description, choose categories or change the order. Changes are live on the next
+          page load. A package’s own photos are edited with the package (Edit package → All
+          settings).
+        </>
+      }
+      className="scroll-mt-6"
+    >
+      {error && (
+        <div className="mb-4 space-y-3">
+          <PNotice tone="error">{error}</PNotice>
+          <button type="button" onClick={() => void load()} className={P_BTN_GHOST}>
             Reload images
           </button>
-        </>
+        </div>
       )}
       {photos === null ? (
-        <p className="text-sm text-ink-muted">Loading…</p>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div
+              key={i}
+              className="aspect-[4/3] animate-pulse rounded-xl border border-ink/10 bg-teal-tint/40"
+            />
+          ))}
+        </div>
       ) : (
-        <div className="flex flex-col divide-y divide-[#F2F4F6]">
+        <div className="flex flex-col divide-y divide-ink/5">
           {ACTIVE_SLOTS.map((id) => PHOTO_SLOTS.find((slot) => slot.id === id)!).map((slot) => (
             <SlotRow
               key={slot.id}
@@ -106,7 +118,7 @@ export function PhotographyPhotosManager() {
           ))}
         </div>
       )}
-    </Card>
+    </PSection>
   );
 }
 
@@ -201,7 +213,7 @@ function SlotRow({
             className="hidden"
             onChange={(e) => void addFiles(e.target.files)}
           />
-          <button type="button" onClick={() => fileRef.current?.click()} className={BTN_GHOST}>
+          <button type="button" onClick={() => fileRef.current?.click()} className={P_BTN_GHOST}>
             <IconPlus width={15} height={15} />
             {busy
               ? 'Saving…'
@@ -221,7 +233,7 @@ function SlotRow({
             <img
               src={slot.standIn}
               alt=""
-              className="aspect-[4/3] w-full rounded-lg object-cover opacity-70 grayscale-[30%]"
+              className="aspect-[4/3] w-full rounded-xl object-cover opacity-70 ring-1 ring-ink/10 grayscale-[30%]"
             />
             <figcaption className="mt-1 text-[11.5px] font-semibold text-ink-muted">
               Built-in stand-in
@@ -241,7 +253,7 @@ function SlotRow({
                   key={photo.key}
                   src={PHOTO_STOCK[photo.key]}
                   alt={photo.alt}
-                  className="h-20 w-24 rounded-lg object-cover"
+                  className="h-20 w-24 rounded-xl object-cover ring-1 ring-ink/10"
                 />
               ))}
             </div>
@@ -249,15 +261,15 @@ function SlotRow({
               type="button"
               disabled={busy}
               onClick={() => void run(importPhotographyGallery)}
-              className={BTN_GHOST}
+              className={P_BTN_GHOST}
             >
               Make sample gallery editable
             </button>
           </div>
         )}
         {shown.map((p, i) => (
-          <figure key={p.id} className="w-40">
-            <div className="relative">
+          <figure key={p.id} className="w-44">
+            <div className="relative overflow-hidden rounded-xl ring-1 ring-ink/10 transition hover:ring-teal/40">
               <MediaThumb photo={p} />
               {p.mediaType === 'video' && (
                 <span className="absolute left-1.5 top-1.5 rounded-full bg-ink/70 px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-wide text-white">
@@ -333,7 +345,7 @@ function SlotRow({
 
       <div className="mt-3 flex max-w-lg gap-2">
         <input
-          className={INPUT_CLS}
+          className={P_INPUT}
           value={link}
           onChange={(e) => setLink(e.target.value)}
           placeholder={
@@ -347,7 +359,7 @@ function SlotRow({
           type="button"
           disabled={!link.trim()}
           onClick={() => void addLink()}
-          className={BTN_GHOST}
+          className={P_BTN_GHOST}
         >
           {multi ? 'Add' : 'Use'}
         </button>
@@ -391,7 +403,7 @@ function ReplaceMedia({
       <button
         type="button"
         onClick={() => fileRef.current?.click()}
-        className={`${BTN_GHOST} w-full`}
+        className={`${P_BTN_GHOST} w-full`}
       >
         {photo.mediaType === 'video' ? 'Replace video' : 'Replace image'}
       </button>
@@ -402,12 +414,12 @@ function ReplaceMedia({
           onChange={(e) => setLink(e.target.value)}
           aria-label="Replacement URL"
           placeholder="https://…"
-          className={`${INPUT_CLS} mt-1`}
+          className={`${P_INPUT} mt-1`}
         />
         <button
           type="button"
           disabled={!link.trim()}
-          className={`${BTN_GHOST} mt-1`}
+          className={`${P_BTN_GHOST} mt-1`}
           onClick={() =>
             void run(async () => {
               const mediaType = videoSource(link) ? 'video' : 'image';
@@ -444,7 +456,7 @@ function AltInput({
       }}
       placeholder="Describe the photo"
       aria-label="Photo description"
-      className="mt-1.5 w-full rounded-md border border-[#E2E7EA] bg-[#F7F8FA] px-2 py-1 text-[12px] text-ink outline-none focus:border-teal focus:bg-white"
+      className="mt-1.5 w-full rounded-lg border border-ink/15 bg-white px-2.5 py-1.5 text-[12px] text-ink outline-none transition focus:border-teal focus:ring-2 focus:ring-teal/15"
     />
   );
 }
@@ -458,7 +470,7 @@ function MediaThumb({ photo }: { photo: PhotographyPhoto }) {
       <img
         src={thumb}
         alt={photo.alt ?? ''}
-        className="aspect-[4/3] w-full rounded-lg object-cover"
+        className="aspect-[4/3] w-full rounded-xl object-cover"
       />
     );
   }
@@ -469,10 +481,10 @@ function MediaThumb({ photo }: { photo: PhotographyPhoto }) {
       muted
       playsInline
       preload="metadata"
-      className="aspect-[4/3] w-full rounded-lg bg-ink object-cover"
+      className="aspect-[4/3] w-full rounded-xl bg-ink object-cover"
     />
   ) : (
-    <span className="grid aspect-[4/3] w-full place-items-center rounded-lg bg-ink text-[11px] font-bold text-white/70">
+    <span className="grid aspect-[4/3] w-full place-items-center rounded-xl bg-ink text-[11px] font-bold text-white/70">
       Video link
     </span>
   );
