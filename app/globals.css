@@ -115,6 +115,16 @@
     animation: fadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
+  /* /photography hero collage: the per-slide progress bar filling over the 6s rotation. */
+  @keyframes heroBar {
+    from {
+      width: 0%;
+    }
+    to {
+      width: 100%;
+    }
+  }
+
   /* Animated lagoon hero backdrop. Heavily-blurred, screen-blended radial "light" blobs that
      drift via transform only (GPU-composited) — sunlight wandering under turquoise water. The
      one-time blur is what keeps it 60fps; never animate blur/opacity. */

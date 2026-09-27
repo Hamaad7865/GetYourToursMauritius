@@ -193,6 +193,309 @@ export function crossSellHref(slug: string, date: string, guests: number): strin
   return `/activities/${encodeURIComponent(slug)}${qs ? `?${qs}` : ''}`;
 }
 
+/* ---------------------------------------------------------------------------------------------
+ * Light slots, locations & occasions (the v3 photography flow) — stored in `activities.extra`,
+ * so both the customer flow and /admin/photography read the same source.
+ * ------------------------------------------------------------------------------------------- */
+
+export const PHOTOGRAPHY_SLOTS_KEY = 'photographySlots';
+export const PHOTOGRAPHY_LOCATIONS_KEY = 'photographyLocations';
+export const PHOTOGRAPHY_OCCASIONS_KEY = 'photographyOccasions';
+
+/** What time of day a slot means — drives the coast light-tip and the sun-time label. */
+export type PhotographyLight = 'sunrise' | 'day' | 'sunset';
+
+export interface PhotographySlotDef {
+  id: string;
+  label: string;
+  note: string;
+  light: PhotographyLight;
+  enabled: boolean;
+}
+
+/** Shoots (non-wedding) slots. Times are computed from the date — see slotMinutesOfDay. */
+export const PHOTOGRAPHY_SHOOT_SLOTS: readonly PhotographySlotDef[] = [
+  {
+    id: 'sunrise',
+    label: 'Sunrise',
+    note: 'Empty beaches, soft light',
+    light: 'sunrise',
+    enabled: true,
+  },
+  { id: 'morning', label: 'Morning', note: 'Bright, turquoise water', light: 'day', enabled: true },
+  {
+    id: 'golden',
+    label: 'Golden hour',
+    note: 'Warm light into sunset',
+    light: 'sunset',
+    enabled: true,
+  },
+];
+
+/** Wedding slots replace the shoot slots for packages in the weddings group. */
+export const PHOTOGRAPHY_WEDDING_SLOTS: readonly PhotographySlotDef[] = [
+  {
+    id: 'wmorning',
+    label: 'Morning ceremony',
+    note: 'Cooler air, calm lagoon',
+    light: 'day',
+    enabled: true,
+  },
+  {
+    id: 'wafternoon',
+    label: 'Afternoon ceremony',
+    note: 'Portraits at golden hour after',
+    light: 'day',
+    enabled: true,
+  },
+  {
+    id: 'wsunset',
+    label: 'Sunset ceremony',
+    note: 'Vows as the sun goes down',
+    light: 'sunset',
+    enabled: true,
+  },
+];
+
+/** The slots a package offers: the owner's saved list when present, else the group defaults.
+ *  Saved entries override the defaults by id (so a slot can be disabled or re-worded). */
+export function photographySlots(extra: unknown, group: PhotographyGroup): PhotographySlotDef[] {
+  const base = (group === 'weddings' ? PHOTOGRAPHY_WEDDING_SLOTS : PHOTOGRAPHY_SHOOT_SLOTS).map(
+    (s) => ({ ...s }),
+  );
+  const raw =
+    extra && typeof extra === 'object'
+      ? (extra as Record<string, unknown>)[PHOTOGRAPHY_SLOTS_KEY]
+      : undefined;
+  if (!Array.isArray(raw)) return base;
+  for (const v of raw) {
+    if (!v || typeof v !== 'object') continue;
+    const o = v as Record<string, unknown>;
+    const hit = base.find((s) => s.id === o.id);
+    if (!hit) continue;
+    if (typeof o.enabled === 'boolean') hit.enabled = o.enabled;
+    if (typeof o.label === 'string' && o.label.trim()) hit.label = o.label.trim();
+    if (typeof o.note === 'string' && o.note.trim()) hit.note = o.note.trim();
+  }
+  return base;
+}
+
+/** The sparse form a package saves in `extra.photographySlots`: only the slots that differ from the
+ *  group's defaults (a disabled slot, or a re-worded label/note). Empty = everything default, and
+ *  the key is omitted entirely. */
+export function photographySlotOverrides(
+  slots: readonly PhotographySlotDef[],
+  group: PhotographyGroup,
+): Pick<PhotographySlotDef, 'id' | 'label' | 'note' | 'enabled'>[] {
+  const defaults = group === 'weddings' ? PHOTOGRAPHY_WEDDING_SLOTS : PHOTOGRAPHY_SHOOT_SLOTS;
+  const out: Pick<PhotographySlotDef, 'id' | 'label' | 'note' | 'enabled'>[] = [];
+  for (const s of slots) {
+    const d = defaults.find((x) => x.id === s.id);
+    if (!d) continue;
+    if (s.enabled !== d.enabled || s.label !== d.label || s.note !== d.note) {
+      out.push({ id: s.id, label: s.label, note: s.note, enabled: s.enabled });
+    }
+  }
+  return out;
+}
+
+export type PhotographyCoast = 'east' | 'west' | 'any';
+
+export interface PhotographyLocation {
+  name: string;
+  region: string;
+  /** Surcharge over the package price (EUR). 0 = included. Priced for real as a supplement. */
+  extraEur: number;
+  coast: PhotographyCoast;
+  /** Short chip, e.g. "Best at sunrise". */
+  best: string;
+  /** Google Maps geocode query for the map pin; '' = no map (e.g. "Your hotel"). */
+  mapQuery: string;
+  /** Admin bookkeeping only: the activity_supplements row that prices this location's surcharge
+   *  (named "Location: {name}"). Never set by the readers — the admin form attaches it so a save
+   *  updates the row in place instead of recreating it. */
+  supplementId?: string;
+}
+
+/** Supplement rows named "Location: …" price a location's surcharge (api_book only prices
+ *  activity_supplements, so a priced location must exist as a row). The admin form manages them
+ *  through the Locations editor and every generic add-on list filters them out by this prefix. */
+export const PHOTOGRAPHY_LOCATION_SUPPLEMENT_PREFIX = 'Location:';
+
+/** The exact supplement name for a location surcharge. */
+export function locationSupplementName(name: string): string {
+  return `${PHOTOGRAPHY_LOCATION_SUPPLEMENT_PREFIX} ${name.trim()}`;
+}
+
+/** The exact supplement French name for a location surcharge. */
+export function locationSupplementNameFr(name: string): string {
+  return `Lieu : ${name.trim()}`;
+}
+
+/** True when a supplement row is a location surcharge rather than a generic add-on. */
+export function isLocationSupplementName(name: string): boolean {
+  return name.startsWith(PHOTOGRAPHY_LOCATION_SUPPLEMENT_PREFIX);
+}
+
+/** The island defaults every package starts from — the owner edits them per package. */
+export const PHOTOGRAPHY_LOCATION_DEFAULTS: readonly PhotographyLocation[] = [
+  {
+    name: 'Belle Mare beach',
+    region: 'East coast · long white sand',
+    extraEur: 0,
+    coast: 'east',
+    best: 'Best at sunrise',
+    mapQuery: 'Belle Mare Beach, Mauritius',
+  },
+  {
+    name: 'Le Morne',
+    region: 'South-west · mountain and lagoon',
+    extraEur: 40,
+    coast: 'west',
+    best: 'Best at sunset',
+    mapQuery: 'Le Morne Brabant, Mauritius',
+  },
+  {
+    name: 'Île aux Cerfs',
+    region: 'East · boat crossing included',
+    extraEur: 60,
+    coast: 'east',
+    best: 'Best in the morning',
+    mapQuery: 'Île aux Cerfs, Mauritius',
+  },
+  {
+    name: 'Your hotel',
+    region: 'Anywhere on the island',
+    extraEur: 0,
+    coast: 'any',
+    best: 'We advise the time',
+    mapQuery: '',
+  },
+];
+
+/** The package's location list: saved extra wins; absent/invalid → the island defaults. */
+export function photographyLocations(extra: unknown): PhotographyLocation[] {
+  const raw =
+    extra && typeof extra === 'object'
+      ? (extra as Record<string, unknown>)[PHOTOGRAPHY_LOCATIONS_KEY]
+      : undefined;
+  if (!Array.isArray(raw)) return PHOTOGRAPHY_LOCATION_DEFAULTS.map((l) => ({ ...l }));
+  const out: PhotographyLocation[] = [];
+  for (const v of raw) {
+    if (!v || typeof v !== 'object') continue;
+    const o = v as Record<string, unknown>;
+    if (typeof o.name !== 'string' || !o.name.trim()) continue;
+    const coast = o.coast === 'east' || o.coast === 'west' || o.coast === 'any' ? o.coast : 'any';
+    out.push({
+      name: o.name.trim(),
+      region: typeof o.region === 'string' ? o.region.trim() : '',
+      extraEur:
+        typeof o.extraEur === 'number' && o.extraEur > 0 ? Math.round(o.extraEur * 100) / 100 : 0,
+      coast,
+      best: typeof o.best === 'string' ? o.best.trim() : '',
+      mapQuery: typeof o.mapQuery === 'string' ? o.mapQuery.trim() : '',
+    });
+  }
+  return out.length ? out : PHOTOGRAPHY_LOCATION_DEFAULTS.map((l) => ({ ...l }));
+}
+
+/** Occasion tags for the shoots tab's filter chips (couple / proposal / family / solo). */
+export type PhotographyOccasion = 'couple' | 'proposal' | 'family' | 'solo';
+
+export const PHOTOGRAPHY_OCCASIONS: readonly [PhotographyOccasion, string][] = [
+  ['couple', 'Couples & honeymoon'],
+  ['proposal', 'Proposal'],
+  ['family', 'Family'],
+  ['solo', 'Solo & portrait'],
+];
+
+/** Saved occasions win; otherwise guess from the title so filters work before the owner tags. */
+export function photographyOccasions(
+  p: { title: string; summary?: string | null },
+  extra: unknown,
+): PhotographyOccasion[] {
+  const raw =
+    extra && typeof extra === 'object'
+      ? (extra as Record<string, unknown>)[PHOTOGRAPHY_OCCASIONS_KEY]
+      : undefined;
+  if (Array.isArray(raw)) {
+    const out = raw.filter(
+      (v): v is PhotographyOccasion =>
+        typeof v === 'string' && PHOTOGRAPHY_OCCASIONS.some(([id]) => id === v),
+    );
+    if (out.length) return [...new Set(out)];
+  }
+  const text = `${p.title} ${p.summary ?? ''}`;
+  const out: PhotographyOccasion[] = [];
+  if (/couple|honeymoon|romance/i.test(text)) out.push('couple');
+  if (/proposal|engag/i.test(text)) out.push('proposal');
+  if (/family|kids|child/i.test(text)) out.push('family');
+  if (/solo|portrait|fashion/i.test(text)) out.push('solo');
+  return out.length ? out : ['couple'];
+}
+
+/* Sun times (approximate for Mauritius, ±10 min across the year) — display/guidance only, the
+ * booking itself stays day-granular. */
+
+/** Sunrise/sunset in minutes after midnight, local time. */
+export function photographySunTimes(day: Date): { rise: number; set: number } {
+  const doy = Math.floor((day.getTime() - new Date(day.getFullYear(), 0, 0).getTime()) / 864e5);
+  const c = Math.cos((2 * Math.PI * (doy + 10)) / 365);
+  return { rise: 372 - 40 * c, set: 1100 + 40 * c };
+}
+
+/** A slot's start time in minutes after midnight on that day. */
+export function photographySlotMinutes(slotId: string, day: Date | null): number {
+  const fixed: Record<string, number> = { morning: 540, wmorning: 600, wafternoon: 900 };
+  if (fixed[slotId] != null) return fixed[slotId]!;
+  const s = day ? photographySunTimes(day) : { rise: 372, set: 1100 };
+  return slotId === 'sunrise' ? s.rise - 15 : slotId === 'wsunset' ? s.set - 60 : s.set - 75;
+}
+
+/** "HH:MM" for a minutes-after-midnight value. */
+export function photographyHm(minutes: number): string {
+  const r = Math.round(minutes / 5) * 5;
+  return `${String(Math.floor(r / 60)).padStart(2, '0')}:${String(r % 60).padStart(2, '0')}`;
+}
+
+/** The coast/light mismatch tip, or a reassurance. fixTo = a better coast-matched location name
+ *  from the same list (only when one exists). */
+export function photographyLightTip(
+  loc: PhotographyLocation,
+  light: PhotographyLight | null,
+  locations: readonly PhotographyLocation[],
+): { warn: boolean; text: string; fixTo: string | null } {
+  const alt = (coast: PhotographyCoast) => locations.find((l) => l.coast === coast)?.name ?? null;
+  if (loc.coast === 'east' && light === 'sunset') {
+    const fix = alt('west');
+    return {
+      warn: true,
+      text: 'The east coast faces the sunrise, so at golden hour the sun sets behind the island. For the sun going down over the sea, choose the west coast.',
+      fixTo: fix,
+    };
+  }
+  if (loc.coast === 'west' && light === 'sunrise') {
+    const fix = alt('east');
+    return {
+      warn: true,
+      text: "The west coast sits in the mountain's shadow at sunrise. The east coast gets the first light.",
+      fixTo: fix,
+    };
+  }
+  if (loc.coast === 'any') {
+    return {
+      warn: false,
+      text: "We'll check your venue or hotel beach and send you the best spot and time.",
+      fixTo: null,
+    };
+  }
+  return {
+    warn: false,
+    text: `${loc.name} at that time is one of our favourite combinations.`,
+    fixTo: null,
+  };
+}
+
 /** The add-on menu the admin "New package" template pre-fills. Prices are suggestions the owner
  *  edits before saving — they are written into activity_supplements, which is what api_book reads. */
 export const PHOTOGRAPHY_ADD_ON_PRESETS: { name: string; nameFr: string; priceEur: number }[] = [

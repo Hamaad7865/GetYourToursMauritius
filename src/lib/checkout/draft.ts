@@ -56,6 +56,10 @@ export interface CheckoutDraft {
   gender?: string;
   company?: string;
   specialNotes?: string;
+  // v3 photography step ①: the chosen location card + ticked extras (picked in checkout, so a
+  // sign-in redirect must restore them like any other answer).
+  photoLocName?: string;
+  photoExtrasSel?: Record<string, boolean>;
   /** ms epoch, stamped on write. */
   savedAt?: number;
 }
@@ -144,12 +148,27 @@ export function parseDraft(raw: string | null, now: number): CheckoutDraft | nul
       'gender',
       'company',
       'specialNotes',
+      'photoLocName',
     ] as const
   ).forEach(str);
 
   (['wantsPickup', 'tbd', 'dropoffSame', 'hotelNotListed', 'childSeatWanted'] as const).forEach(
     bool,
   );
+
+  // The extras map: only boolean values survive, so a hand-edited draft can't push a string into a
+  // checkbox state.
+  if (
+    d.photoExtrasSel &&
+    typeof d.photoExtrasSel === 'object' &&
+    !Array.isArray(d.photoExtrasSel)
+  ) {
+    const sel: Record<string, boolean> = {};
+    for (const [k, v] of Object.entries(d.photoExtrasSel)) {
+      if (typeof v === 'boolean') sel[k] = v;
+    }
+    out.photoExtrasSel = sel;
+  }
 
   if (
     d.tripDirection === 'arrival' ||

@@ -10,18 +10,30 @@ import {
   PHOTOGRAPHY_GROUP_KEY,
   PHOTOGRAPHY_INSPIRATION_KEY,
   PHOTOGRAPHY_LOCATION_KEY,
+  PHOTOGRAPHY_LOCATIONS_KEY,
+  PHOTOGRAPHY_OCCASIONS_KEY,
   PHOTOGRAPHY_PHOTO_COUNT_KEY,
   PHOTOGRAPHY_SHOW_ADD_ONS_KEY,
   PHOTOGRAPHY_SHOW_DEPOSIT_KEY,
   PHOTOGRAPHY_SHOW_DETAILS_KEY,
   PHOTOGRAPHY_SHOW_DURATION_KEY,
   PHOTOGRAPHY_SHOW_GUESTS_KEY,
+  PHOTOGRAPHY_SLOTS_KEY,
   photographyAddOnSlugs,
   photographyCover,
   photographyInspirationIds,
+  photographyLocations,
+  photographyOccasions,
+  photographyGroup,
+  isPhotographyCategory,
+  photographySlots,
+  photographySlotOverrides,
   photographySpecs,
   savedPhotographyGroup,
   type PhotographyGroup,
+  type PhotographyLocation,
+  type PhotographyOccasion,
+  type PhotographySlotDef,
 } from '@/lib/catalogue/photography';
 
 /* Client-side admin writes. RLS already grants staff/admin full read+write on activities and
@@ -178,6 +190,16 @@ export interface ActivityFormValues {
   photographyInspiration: string[];
   /** Cover photo URL (`extra.photographyCover`) — cards/search/SEO only, never the gallery. */
   photographyCover: string;
+  /** v3 photography flow — the package's location list (`extra.photographyLocations`, full list,
+   *  island defaults when unset). Entries may carry `supplementId` (the row pricing the surcharge),
+   *  preserved verbatim on save. Ignored for other activities. */
+  photographyLocations: PhotographyLocation[];
+  /** v3 photography flow — the resolved light-slot list the form shows (`extra.photographySlots`
+   *  holds only sparse overrides of the group defaults; serialization re-derives the diff). */
+  photographySlots: PhotographySlotDef[];
+  /** v3 photography flow — the occasion filter chips (`extra.photographyOccasions`), saved for
+   *  shoots only; the reader guesses from the title when the key is absent. */
+  photographyOccasions: PhotographyOccasion[];
   /** The activity's `extra` as loaded — buildExtra() preserves any key the form doesn't manage
    *  (e.g. availability/returnWindow set via SQL patches), so a save can't silently destroy them. */
   sourceExtra: Record<string, unknown>;
@@ -233,6 +255,9 @@ export const EMPTY_ACTIVITY: ActivityFormValues = {
   photographyShowDetails: true,
   photographyInspiration: [],
   photographyCover: '',
+  photographyLocations: [],
+  photographySlots: [],
+  photographyOccasions: [],
   sourceExtra: {},
 };
 
@@ -284,6 +309,9 @@ const MANAGED_EXTRA_KEYS = new Set([
   PHOTOGRAPHY_SHOW_DETAILS_KEY,
   PHOTOGRAPHY_INSPIRATION_KEY,
   PHOTOGRAPHY_COVER_KEY,
+  PHOTOGRAPHY_LOCATIONS_KEY,
+  PHOTOGRAPHY_SLOTS_KEY,
+  PHOTOGRAPHY_OCCASIONS_KEY,
 ]);
 
 function buildExtra(v: ActivityFormValues) {
@@ -342,6 +370,21 @@ function buildExtra(v: ActivityFormValues) {
   });
   if (inspiration.length) out[PHOTOGRAPHY_INSPIRATION_KEY] = inspiration;
   if (v.photographyCover.trim()) out[PHOTOGRAPHY_COVER_KEY] = v.photographyCover.trim();
+  // v3 flow: locations always as the full list (defaults included), slots only where they differ
+  // from the group's defaults, occasions for shoots only. Only for photography packages — other
+  // activities keep the defaults out of their extra entirely.
+  if (v.photographyGroup && isPhotographyCategory(v.category)) {
+    const locations = photographyLocations({ [PHOTOGRAPHY_LOCATIONS_KEY]: v.photographyLocations });
+    out[PHOTOGRAPHY_LOCATIONS_KEY] = locations.map((l) => {
+      const raw = v.photographyLocations.find((r) => r.name === l.name);
+      return raw?.supplementId ? { ...l, supplementId: raw.supplementId } : l;
+    });
+    const slotOverrides = photographySlotOverrides(v.photographySlots, v.photographyGroup);
+    if (slotOverrides.length) out[PHOTOGRAPHY_SLOTS_KEY] = slotOverrides;
+    if (v.photographyGroup === 'shoots' && v.photographyOccasions.length) {
+      out[PHOTOGRAPHY_OCCASIONS_KEY] = [...v.photographyOccasions];
+    }
+  }
   if (v.priceListUrl.trim()) {
     out.priceList = v.priceListLabel.trim()
       ? { url: v.priceListUrl.trim(), label: v.priceListLabel.trim() }
@@ -1141,6 +1184,33 @@ export async function loadActivityForEdit(id: string): Promise<ActivityFormValue
         photographyShowDetails: specs.showDetails,
         photographyInspiration: photographyInspirationIds(act.extra),
         photographyCover: photographyCover(act.extra) ?? '',
+      };
+    })(),
+    // v3 flow: resolved lists for the package form. `supplementId` is read from the raw extra
+    // entries (the normalizer drops it) so a save keeps pricing the same supplement row in place.
+    ...(() => {
+      const group = photographyGroup(
+        { title: act.title, summary: act.summary },
+        savedPhotographyGroup(act.extra),
+      );
+      const rawLocations = Array.isArray(
+        (act.extra as Record<string, unknown> | null)?.[PHOTOGRAPHY_LOCATIONS_KEY],
+      )
+        ? ((act.extra as Record<string, unknown>)[PHOTOGRAPHY_LOCATIONS_KEY] as Record<
+            string,
+            unknown
+          >[])
+        : [];
+      return {
+        photographyLocations: photographyLocations(act.extra).map((l) => {
+          const sid = rawLocations.find((r) => r?.name === l.name)?.supplementId;
+          return typeof sid === 'string' && sid ? { ...l, supplementId: sid } : l;
+        }),
+        photographySlots: photographySlots(act.extra, group),
+        photographyOccasions:
+          group === 'shoots'
+            ? photographyOccasions({ title: act.title, summary: act.summary }, act.extra)
+            : [],
       };
     })(),
     sourceExtra: (act.extra ?? {}) as Record<string, unknown>,

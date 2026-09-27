@@ -8,7 +8,13 @@ import {
   photographyCover,
   photographyGroup,
   photographyInspirationIds,
+  photographyLocations,
+  photographyOccasions,
+  photographySlots,
   photographySpecs,
+  PHOTOGRAPHY_LOCATION_DEFAULTS,
+  PHOTOGRAPHY_SHOOT_SLOTS,
+  PHOTOGRAPHY_WEDDING_SLOTS,
   PHOTO_SLOTS,
   photosIn,
   slotUrl,
@@ -58,6 +64,9 @@ const INPUT: PhotographyPackageInput = {
   showDeposit: true,
   showDetails: true,
   inspiration: [],
+  locations: PHOTOGRAPHY_LOCATION_DEFAULTS.map((l) => ({ ...l })),
+  slots: PHOTOGRAPHY_SHOOT_SLOTS.map((s) => ({ ...s })),
+  occasions: ['couple'],
 };
 
 describe('photography catalogue rules', () => {
@@ -240,10 +249,25 @@ describe('the admin "New package" template', () => {
     expect(() => assertPricingValid(v)).not.toThrow();
   });
 
-  it('turns each add-on into a supplement and drops blank included items', () => {
-    expect(v.supplements.map((s) => s.name)).toEqual(PHOTOGRAPHY_ADD_ON_PRESETS.map((a) => a.name));
+  it('turns each add-on into a supplement, prices surcharged locations as Location: rows, and drops blank included items', () => {
+    expect(v.supplements.slice(0, PHOTOGRAPHY_ADD_ON_PRESETS.length).map((s) => s.name)).toEqual(
+      PHOTOGRAPHY_ADD_ON_PRESETS.map((a) => a.name),
+    );
     expect(v.supplements.every((s) => s.priceEur != null && s.priceEur > 0)).toBe(true);
     expect(v.inclusions).toEqual(['Edited photos', 'Online gallery']);
+    // The two priced default locations become supplements (api_book prices only that table);
+    // the included ones (€0) stay out.
+    expect(v.supplements).toContainEqual({
+      name: 'Location: Le Morne',
+      nameFr: 'Lieu : Le Morne',
+      priceEur: 40,
+    });
+    expect(v.supplements).toContainEqual({
+      name: 'Location: Île aux Cerfs',
+      nameFr: 'Lieu : Île aux Cerfs',
+      priceEur: 60,
+    });
+    expect(v.supplements.filter((s) => s.name.startsWith('Location:'))).toHaveLength(2);
   });
 
   it('saves the chosen Type, and states the deposit terms the platform enforces', () => {
@@ -282,6 +306,10 @@ describe('the admin "New package" template', () => {
       extra: Record<string, unknown>;
     };
     expect(none.extra).not.toHaveProperty('photographyAddOns');
+    // The v3 package keys are photography-only — a tour keeps them out of its extra entirely.
+    for (const key of ['photographyLocations', 'photographySlots', 'photographyOccasions']) {
+      expect(none.extra).not.toHaveProperty(key);
+    }
   });
 
   it('writes the price-card specs to extra, and omits them when unset', () => {
@@ -376,6 +404,89 @@ describe('the admin "New package" template', () => {
       2,
     );
     expect(input.imageUrl).toBe('https://x/cover.jpg');
+  });
+});
+
+describe('v3 locations, light slots & occasions', () => {
+  const extraOf = (values: ReturnType<typeof photographyPackageValues>) =>
+    (activityRow(values, 'op') as { extra: Record<string, unknown> }).extra;
+
+  it('round-trips locations through input → values → input', () => {
+    const v = photographyPackageValues(INPUT);
+    const input = packageInputFromValues(v, 2);
+    expect(input.locations).toEqual(INPUT.locations);
+    expect(input.slots).toEqual(INPUT.slots);
+    expect(input.occasions).toEqual(['couple']);
+    // The full location list lands in extra (defaults included), and the schema keeps it.
+    const extra = extraOf(v);
+    expect(extra.photographyLocations).toEqual(INPUT.locations);
+    expect(activityExtraSchema.parse(extra).photographyLocations).toEqual(INPUT.locations);
+    // …and reads back through the shared reader for the customer side.
+    expect(photographyLocations(extra)).toEqual(INPUT.locations);
+  });
+
+  it('serializes slot overrides sparsely — the key stays out while everything is default', () => {
+    expect(extraOf(photographyPackageValues(INPUT))).not.toHaveProperty('photographySlots');
+    const reworded = photographyPackageValues({
+      ...INPUT,
+      slots: INPUT.slots.map((s) =>
+        s.id === 'golden' ? { ...s, enabled: false, note: 'Only in summer' } : s,
+      ),
+    });
+    const extra = extraOf(reworded);
+    expect(extra.photographySlots).toEqual([
+      { id: 'golden', label: 'Golden hour', note: 'Only in summer', enabled: false },
+    ]);
+    // The reader resolves the override back onto the defaults.
+    expect(photographySlots(extra, 'shoots').find((s) => s.id === 'golden')).toMatchObject({
+      enabled: false,
+      note: 'Only in summer',
+    });
+    expect(photographySlots(extra, 'shoots').find((s) => s.id === 'sunrise')).toMatchObject({
+      enabled: true,
+    });
+  });
+
+  it('diffs wedding slots against the WEDDING defaults', () => {
+    const wedding = photographyPackageValues({
+      ...INPUT,
+      kind: 'weddings',
+      slots: PHOTOGRAPHY_WEDDING_SLOTS.map((s) => ({ ...s, enabled: false })),
+      occasions: [],
+    });
+    expect(extraOf(wedding).photographySlots).toEqual(
+      PHOTOGRAPHY_WEDDING_SLOTS.map((s) => ({
+        id: s.id,
+        label: s.label,
+        note: s.note,
+        enabled: false,
+      })),
+    );
+    // Loading a wedding package gives the wedding slots and no occasions section.
+    const input = packageInputFromValues(wedding, 2);
+    expect(input.slots.map((s) => s.id)).toEqual(PHOTOGRAPHY_WEDDING_SLOTS.map((s) => s.id));
+    expect(input.occasions).toEqual([]);
+  });
+
+  it('saves occasions for shoots only', () => {
+    const shoot = photographyPackageValues({ ...INPUT, occasions: ['couple', 'proposal'] });
+    expect(extraOf(shoot).photographyOccasions).toEqual(['couple', 'proposal']);
+    expect(photographyOccasions(shoot, extraOf(shoot))).toEqual(['couple', 'proposal']);
+    // Weddings ignore occasions entirely — the key stays out of extra.
+    const wedding = photographyPackageValues({
+      ...INPUT,
+      kind: 'weddings',
+      slots: PHOTOGRAPHY_WEDDING_SLOTS.map((s) => ({ ...s })),
+      occasions: ['couple'],
+    });
+    expect(extraOf(wedding)).not.toHaveProperty('photographyOccasions');
+    // A wedding guessed as a shoot by title still guesses its occasions on load.
+    expect(
+      packageInputFromValues(
+        photographyPackageValues({ ...INPUT, title: 'Family & kids', occasions: ['family'] }),
+        2,
+      ).occasions,
+    ).toEqual(['family']);
   });
 });
 
@@ -556,7 +667,7 @@ describe('the six example packages', () => {
 
 describe('editing an existing package', () => {
   // A package as saved, then touched in the full tour editor (longer description, more photos,
-  // an itinerary stop, a separately curated highlight, a saved add-on id).
+  // an itinerary stop, a separately curated highlight, saved add-on/location-supplement ids).
   const saved = {
     ...photographyPackageValues(INPUT),
     description: 'A much longer description written in the tour editor.',
@@ -567,7 +678,24 @@ describe('editing an existing package', () => {
     // As saved through the package form: the cover is explicit in extra, not just images[0].
     photographyCover: '/a.jpg',
     highlights: ['Hand-picked highlight'],
-    supplements: [{ id: 'sup-1', name: 'Drone aerials', nameFr: 'Drone', priceEur: 120 }],
+    supplements: [
+      { id: 'sup-1', name: 'Drone aerials', nameFr: 'Drone', priceEur: 120 },
+      { id: 'sup-lm', name: 'Location: Le Morne', nameFr: 'Lieu : Le Morne', priceEur: 40 },
+      {
+        id: 'sup-ile',
+        name: 'Location: Île aux Cerfs',
+        nameFr: 'Lieu : Île aux Cerfs',
+        priceEur: 60,
+      },
+    ],
+    // The save recorded each priced location's supplement row id back onto its extra entry.
+    photographyLocations: photographyPackageValues(INPUT).photographyLocations.map((l) =>
+      l.name === 'Le Morne'
+        ? { ...l, supplementId: 'sup-lm' }
+        : l.name === 'Île aux Cerfs'
+          ? { ...l, supplementId: 'sup-ile' }
+          : l,
+    ),
     options: photographyPackageValues(INPUT).options.map((o) => ({ ...o, id: 'opt-1' })),
   };
 
@@ -580,7 +708,20 @@ describe('editing an existing package', () => {
       maxGuests: 8,
       shootsPerDay: 2,
     });
-    expect(input.addOns[0]).toMatchObject({ id: 'sup-1', priceEur: 120 });
+    expect(input.addOns).toEqual([
+      { id: 'sup-1', name: 'Drone aerials', nameFr: 'Drone', priceEur: 120 },
+    ]);
+    // The Location: rows are not generic add-ons; their ids attach to the locations.
+    expect(input.addOns.every((a) => !a.name.startsWith('Location:'))).toBe(true);
+    expect(input.locations.find((l) => l.name === 'Le Morne')).toMatchObject({
+      extraEur: 40,
+      supplementId: 'sup-lm',
+    });
+    expect(input.locations.find((l) => l.name === 'Belle Mare beach')).not.toHaveProperty(
+      'supplementId',
+    );
+    expect(input.slots.map((s) => s.id)).toEqual(PHOTOGRAPHY_SHOOT_SLOTS.map((s) => s.id));
+    expect(input.occasions).toEqual(['couple']);
     expect(applyPackageInput(saved, input)).toEqual(saved);
   });
 
@@ -594,12 +735,21 @@ describe('editing an existing package', () => {
         { ...input.addOns[0]!, priceEur: 140 },
         { name: 'Album', nameFr: '', priceEur: 180 },
       ],
+      locations: input.locations.map((l) => (l.name === 'Le Morne' ? { ...l, extraEur: 50 } : l)),
       status: 'published',
     });
     expect(next.options[0]).toMatchObject({ id: 'opt-1', privateBaseEur: 175 });
     expect(next.supplements).toEqual([
       { id: 'sup-1', name: 'Drone aerials', nameFr: 'Drone', priceEur: 140 },
       { name: 'Album', nameFr: '', priceEur: 180 },
+      // The priced locations stay as rows, updated in place by id, in list order.
+      { id: 'sup-lm', name: 'Location: Le Morne', nameFr: 'Lieu : Le Morne', priceEur: 50 },
+      {
+        id: 'sup-ile',
+        name: 'Location: Île aux Cerfs',
+        nameFr: 'Lieu : Île aux Cerfs',
+        priceEur: 60,
+      },
     ]);
     expect(next.images.map((i) => i.url)).toEqual(['/new-cover.jpg', '/b.jpg']);
     expect(next.description).toBe(saved.description);
@@ -607,5 +757,34 @@ describe('editing an existing package', () => {
     expect(next.slug).toBe(saved.slug);
     expect(next.status).toBe('published');
     expect(() => assertPricingValid(next)).not.toThrow();
+  });
+
+  it('drops a location’s supplement row when the location goes away or the surcharge hits 0', () => {
+    const input = packageInputFromValues(saved, 2);
+    const renamed = applyPackageInput(saved, {
+      ...input,
+      locations: input.locations.map((l) =>
+        l.name === 'Le Morne' ? { ...l, name: 'Black River' } : l,
+      ),
+    });
+    // A rename keeps the row's id (it is updated in place, like a renamed add-on)…
+    expect(renamed.supplements.some((s) => s.name === 'Location: Le Morne')).toBe(false);
+    expect(renamed.supplements).toContainEqual({
+      id: 'sup-lm',
+      name: 'Location: Black River',
+      nameFr: 'Lieu : Black River',
+      priceEur: 40,
+    });
+    const free = applyPackageInput(saved, {
+      ...input,
+      locations: input.locations.map((l) => (l.name === 'Le Morne' ? { ...l, extraEur: 0 } : l)),
+    });
+    expect(free.supplements.some((s) => s.name === 'Location: Le Morne')).toBe(false);
+    expect(free.supplements).toContainEqual({
+      id: 'sup-ile',
+      name: 'Location: Île aux Cerfs',
+      nameFr: 'Lieu : Île aux Cerfs',
+      priceEur: 60,
+    });
   });
 });

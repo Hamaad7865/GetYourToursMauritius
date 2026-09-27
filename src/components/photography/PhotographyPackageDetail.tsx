@@ -1,20 +1,23 @@
 import Link from 'next/link';
-import { Gallery } from '@/components/gyg/detail/Gallery';
+/* eslint-disable @next/next/no-img-element -- CF Pages serves images unoptimized. */
 import { Price } from '@/components/site/Price';
 import { PhotographyBenefits, PhotographyInformation } from './PhotographyInformation';
 import { OtherMoments } from './OtherMoments';
 import { InspirationGrid } from './InspirationGrid';
+import { PhotoBookingCard } from './PhotoBookingCard';
 import { buildInspirationItems } from './packages-data';
-import { IconCheck } from '@/components/ui/icons';
 import { getT } from '@/lib/i18n/server';
 import { durationLabel } from '@/lib/catalogue/detail';
-import { videosFirst } from '@/lib/media';
+import { isVideoUrl } from '@/lib/media';
 import { activityFromPriceEur } from '@/lib/catalogue/options';
 import { getPhotographyPhotos } from '@/lib/settings/photography-photos';
 import {
+  isLocationSupplementName,
+  PHOTO_STOCK,
   photographyCover,
   photographyGroup,
   photographyInspirationIds,
+  photographySlots,
   photographySpecs,
   savedPhotographyGroup,
   type GalleryTag,
@@ -22,45 +25,34 @@ import {
 import type { TourDetail } from '@/lib/validation/tours';
 
 /**
- * One spec line in the sticky price card: a circled check + divider, reference-style. `strong`
- * marks the package-derived lines (guests, add-ons) that carry the booking facts.
+ * The v3 package page (design: .design-tmp/photo-handoff "Photography Services v3", Package
+ * screen): breadcrumb, 3-photo grid, spec chips, long copy, "What's included", the "Photographed
+ * by locals" card, meeting-point + cancellation info cards, and the sticky PhotoBookingCard — all
+ * on live catalogue data. The v3 "How the session runs" timeline has no data source in the
+ * catalogue, so it is omitted rather than faked.
  */
-function SpecTick({ children, strong = false }: { children: React.ReactNode; strong?: boolean }) {
-  return (
-    <li
-      className={`flex items-center gap-3 py-2.5 text-[13.5px] leading-snug ${
-        strong ? 'font-bold text-ink' : 'font-semibold text-ink/85'
-      }`}
-    >
-      <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full border-[1.5px] border-teal-dark text-teal-dark">
-        <IconCheck width={11} height={11} aria-hidden />
-      </span>
-      <span className="min-w-0 flex-1">{children}</span>
-    </li>
-  );
-}
-
 export async function PhotographyPackageDetail({ activity }: { activity: TourDetail }) {
   const t = await getT();
-  const duration = durationLabel(activity.durationMinutes);
+  const specs = photographySpecs(activity.extra);
+  const group = photographyGroup(activity, savedPhotographyGroup(activity.extra));
+  // Only enabled slots reach the card's picker.
+  const slots = photographySlots(activity.extra, group).filter((s) => s.enabled);
   const price = activityFromPriceEur(activity);
-  // Card ticks that describe THIS package, not generic copy: the shoot's guest capacity (its
-  // private option covers N, capped at max) and the add-ons the owner priced for it.
+  const duration = durationLabel(activity.durationMinutes);
   const privateOpt = activity.options.find((o) => o.privateBaseEur != null);
   const maxGuests = privateOpt?.privateMaxGuests ?? privateOpt?.privateIncluded ?? null;
-  const addOnNames = (activity.supplements ?? []).map((s) => s.name).filter((n) => n.trim());
-  const specs = photographySpecs(activity.extra);
+  const addOnNames = (activity.supplements ?? [])
+    .map((s) => s.name)
+    // "Location: …" rows are location surcharges (chosen with the location), not generic add-ons.
+    .filter((n) => n.trim() && !isLocationSupplementName(n));
   const photos = await getPhotographyPhotos();
-  const group = photographyGroup(activity, savedPhotographyGroup(activity.extra));
-  // The lead tile plays: videos first, then photos (stable). The COVER never appears here —
-  // it lives on cards, search and SEO. The form always writes it as images[0], and the explicit
-  // key covers a reorder in the full editor; with neither, images[0] is still the cover by form
-  // convention, so it is skipped too.
-  const cover = photographyCover(activity.extra);
-  const galleryPool = cover
-    ? activity.images.filter((i) => i.url !== cover)
-    : activity.images.slice(1);
-  const galleryImages = videosFirst(galleryPool);
+  // The lead tile is the package's COVER (cards/search/SEO read the same URL); the two side tiles
+  // come from the gallery pool minus the cover, images only (the grid renders <img> tiles).
+  const cover = photographyCover(activity.extra) ?? activity.images[0]?.url ?? null;
+  const sidePool = (
+    cover ? activity.images.filter((i) => i.url !== cover) : activity.images.slice(1)
+  ).filter((i) => !isVideoUrl(i.url));
+  const sidePhotos = sidePool.slice(0, 2);
   const { tag, items: inspiration } = buildInspirationItems(
     t,
     photos,
@@ -76,130 +68,248 @@ export async function PhotographyPackageDetail({ activity }: { activity: TourDet
     couples: t('couple'),
     family: t('family'),
   };
-  // The sticky price card and the scrolling content must share ONE grid row spanning the whole
-  // page — everything (gallery, description, benefits, useful information) lives in the LEFT
-  // column so that column's height is the sticky card's containing block. Splitting content into a
-  // second grid row (col-span-2) shrinks that containing block to just the first row, so the card
-  // stops sticking partway down and then floats, overlapping whatever comes after it.
+  const descriptionParas = (activity.description ?? '')
+    .split(/\n{2,}/)
+    .map((p) => p.trim())
+    .filter(Boolean);
   return (
-    <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_420px] lg:gap-12">
-      <div className="min-w-0">
-        <Gallery images={galleryImages} title={activity.title} />
-        {activity.summary && (
-          <p className="text-base leading-relaxed text-ink/80">{activity.summary}</p>
-        )}
-        {activity.inclusions.length > 0 && (
-          <section className="mt-6 border-t border-ink/10 pt-6">
-            <h2 className="text-lg font-bold text-ink">{t('Includes')}</h2>
-            <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-relaxed text-ink/80">
-              {activity.inclusions.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-          </section>
-        )}
-        <Link
-          href="/photography/gallery"
-          className="mt-6 inline-block text-sm font-bold text-teal-dark underline underline-offset-4"
-        >
-          {t('View full gallery')}
+    <div className="flex flex-col gap-7">
+      <nav
+        aria-label={t('Breadcrumb')}
+        className="flex flex-wrap items-center gap-2 text-sm text-ink-muted"
+      >
+        <Link href="/photography" className="font-semibold text-teal hover:text-teal-dark">
+          {t('Photography')}
         </Link>
-        {inspiration.length > 0 && (
-          <section className="mt-8 border-t border-ink/10 pt-7">
-            <h2 className="text-lg font-bold text-ink">
-              {t('Get inspired by these {category} shots', { category: TAG_LABEL[tag] })}
-            </h2>
-            <InspirationGrid
-              items={inspiration.map((item) => ({
-                key: item.key,
-                src: item.src,
-                thumb: item.thumb,
-                alt: item.alt,
-                aspect: item.aspect,
-              }))}
+        <span aria-hidden>/</span>
+        <Link href="/photography/packages" className="font-semibold text-teal hover:text-teal-dark">
+          {group === 'weddings' ? t('Weddings') : t('Photoshoots')}
+        </Link>
+        <span aria-hidden>/</span>
+        <span className="font-semibold text-ink">{activity.title}</span>
+      </nav>
+
+      {/* 3-photo grid: cover lead + two from the gallery pool (full-width lead when < 2 side photos) */}
+      {cover && sidePhotos.length >= 2 ? (
+        <div className="grid grid-cols-2 grid-rows-[150px_150px] gap-3 sm:grid-cols-[2fr_1fr] sm:grid-rows-[220px_220px]">
+          <div className="col-span-2 overflow-hidden rounded-[18px] bg-teal-tint sm:col-span-1 sm:row-span-2">
+            {/* The lead tile is the page's LCP — eager + high priority, like the old gallery lead. */}
+            <img
+              src={cover}
+              alt={activity.title}
+              loading="eager"
+              fetchPriority="high"
+              decoding="async"
+              className="h-full w-full object-cover"
             />
-            <Link
-              href={`/photography/gallery?c=${tag}`}
-              className="mt-4 inline-block text-sm font-bold text-teal-dark underline underline-offset-4"
+          </div>
+          {sidePhotos.map((img, i) => (
+            <div key={img.id} className="overflow-hidden rounded-[18px] bg-teal-tint">
+              <img
+                src={img.url}
+                alt={img.alt ?? `${activity.title} — photo ${i + 2}`}
+                loading="lazy"
+                decoding="async"
+                className="h-full w-full object-cover"
+              />
+            </div>
+          ))}
+        </div>
+      ) : (
+        cover && (
+          <div className="overflow-hidden rounded-[18px] bg-teal-tint">
+            <img
+              src={cover}
+              alt={activity.title}
+              loading="eager"
+              fetchPriority="high"
+              decoding="async"
+              className="aspect-[16/9] h-full w-full object-cover sm:aspect-[21/9]"
+            />
+          </div>
+        )
+      )}
+
+      <div className="flex flex-wrap items-start gap-10">
+        <div className="flex min-w-0 flex-[1_1_380px] flex-col gap-10">
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-wrap gap-2">
+              {duration && specs.showDuration && (
+                <span className="rounded-full border border-ink/10 bg-white px-3 py-1.5 text-[13px] font-bold">
+                  {duration}
+                </span>
+              )}
+              {maxGuests != null && specs.showGuests && (
+                <span className="rounded-full border border-ink/10 bg-white px-3 py-1.5 text-[13px] font-bold">
+                  {t('Up to {n} guests', { n: maxGuests })}
+                </span>
+              )}
+              <span className="rounded-full bg-teal-tint px-3 py-1.5 text-[13px] font-bold text-teal-dark">
+                {group === 'weddings' ? t('Sneak peek in 48 hours') : t('Free weather reschedule')}
+              </span>
+              {specs.photoCount != null && (
+                <span className="rounded-full border border-ink/10 bg-white px-3 py-1.5 text-[13px] font-bold">
+                  {t('Up to {n} edited photos', { n: specs.photoCount })}
+                </span>
+              )}
+              {specs.location && (
+                <span className="rounded-full border border-ink/10 bg-white px-3 py-1.5 text-[13px] font-bold">
+                  {specs.location}
+                </span>
+              )}
+              {specs.delivery && (
+                <span className="rounded-full border border-ink/10 bg-white px-3 py-1.5 text-[13px] font-bold">
+                  {specs.delivery}
+                </span>
+              )}
+              {addOnNames.length > 0 && specs.showAddOns && (
+                <span className="rounded-full border border-ink/10 bg-white px-3 py-1.5 text-[13px] font-bold">
+                  {t('Optional add-ons: {names}', { names: addOnNames.join(', ') })}
+                </span>
+              )}
+            </div>
+            <h1 className="m-0 text-balance text-[clamp(34px,4.4vw,54px)] font-bold leading-[1.05] tracking-[-0.03em] text-ink">
+              {activity.title}
+            </h1>
+            {activity.summary && (
+              <p className="m-0 max-w-[620px] text-lg leading-relaxed text-ink-muted">
+                {activity.summary}
+              </p>
+            )}
+            {descriptionParas.map((para, i) => (
+              <p key={i} className="m-0 max-w-[620px] text-[15px] leading-relaxed text-ink/75">
+                {para}
+              </p>
+            ))}
+            <a
+              href="#book"
+              className="w-fit rounded-full border-[1.5px] border-ink px-5 py-3 text-[15px] font-bold text-ink transition hover:bg-ink hover:text-white"
             >
-              {t('See more photos')}
-            </Link>
-          </section>
-        )}
-        {specs.showDetails &&
-          (activity.description || activity.exclusions.length > 0 || activity.meetingPoint) && (
-            <details className="mt-6 border-y border-ink/10 py-4">
-              <summary className="cursor-pointer font-semibold text-ink">
-                {t('Package details')}
-              </summary>
-              <div className="mt-4 space-y-3 text-sm leading-relaxed text-ink/80">
-                {(activity.description ?? '')
-                  .split(/\n{2,}/)
-                  .filter(Boolean)
-                  .map((p, i) => (
-                    <p key={i}>{p}</p>
-                  ))}
-                {activity.meetingPoint && (
-                  <p>
-                    <b>{t('Meeting point / pickup:')}</b> {activity.meetingPoint}
-                  </p>
-                )}
-                {activity.exclusions.length > 0 && (
-                  <>
-                    <h3 className="font-bold">{t('Not included')}</h3>
-                    <ul className="list-disc space-y-1 pl-5">
-                      {activity.exclusions.map((item) => (
-                        <li key={item}>{item}</li>
-                      ))}
-                    </ul>
-                  </>
-                )}
+              {t('Check dates')} · {t('from')}{' '}
+              {price != null ? <Price eur={price} /> : t('On request')}
+            </a>
+          </div>
+
+          {activity.inclusions.length > 0 && (
+            <div className="flex flex-col gap-4">
+              <h2 className="m-0 text-[22px] font-bold tracking-[-0.015em] text-ink">
+                {t("What's included")}
+              </h2>
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-2.5">
+                {activity.inclusions.map((inc) => (
+                  <div
+                    key={inc}
+                    className="flex items-start gap-3 rounded-[14px] border border-ink/10 bg-white p-4 text-[15px] leading-snug text-ink"
+                  >
+                    <span className="mt-px grid h-5 w-5 flex-none place-items-center rounded-full bg-teal text-[11px] font-bold text-white">
+                      ✓
+                    </span>
+                    <span>{inc}</span>
+                  </div>
+                ))}
               </div>
-            </details>
+              {activity.exclusions.length > 0 && (
+                <div className="mt-1">
+                  <h3 className="m-0 text-[15px] font-bold text-ink">{t('Not included')}</h3>
+                  <ul className="m-0 mt-2 list-disc space-y-1 pl-5 text-sm leading-relaxed text-ink/70">
+                    {activity.exclusions.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
           )}
-        <div className="mt-10 space-y-10 border-t border-ink/10 pt-8">
-          <PhotographyInformation />
-          <PhotographyBenefits />
+
+          <div className="flex flex-wrap items-center gap-5 rounded-[18px] border border-ink/10 bg-white p-6">
+            <div className="flex flex-none">
+              {[PHOTO_STOCK.couple, PHOTO_STOCK.family2, PHOTO_STOCK.weddingCouple].map(
+                (src, i) => (
+                  <div
+                    key={src}
+                    className={`h-[60px] w-[60px] overflow-hidden rounded-full border-[3px] border-white bg-teal-tint ${i > 0 ? '-ml-4' : ''}`}
+                  >
+                    <img
+                      src={src}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                ),
+              )}
+            </div>
+            <div className="flex flex-[1_1_260px] flex-col gap-1">
+              <span className="text-[17px] font-bold text-ink">{t('Photographed by locals')}</span>
+              <span className="text-sm leading-relaxed text-ink-muted">
+                {t(
+                  'Island-born photographers who shoot these beaches every week. We match you by language and style: English, French, German or Kreol.',
+                )}
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-6 rounded-[18px] bg-teal-tint p-6">
+            <div className="flex flex-col gap-1.5">
+              <span className="text-xs font-bold uppercase tracking-[0.16em] text-teal">
+                {group === 'weddings' ? t('Planning call') : t('Meeting point')}
+              </span>
+              <span className="text-[15px] leading-relaxed text-ink">
+                {group === 'weddings'
+                  ? t(
+                      'Four weeks before, we plan the timeline, shot list and family groups with you.',
+                    )
+                  : (activity.meetingPoint ??
+                    t('Chosen with you after booking. Hotel shoots start in your lobby.'))}
+              </span>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <span className="text-xs font-bold uppercase tracking-[0.16em] text-teal">
+                {t('Cancellation')}
+              </span>
+              <span className="text-[15px] leading-relaxed text-ink">
+                {activity.cancellationPolicy ??
+                  (group === 'weddings'
+                    ? t('Full refund up to 60 days before. One free date change.')
+                    : t('Full refund up to 7 days before. Weather changes are always free.'))}
+              </span>
+            </div>
+          </div>
         </div>
-        <OtherMoments />
+
+        <PhotoBookingCard slots={slots} group={group} bestSeller={specs.bestSeller} />
       </div>
-      <aside className="rounded-xl border border-ink/15 p-6 text-center lg:sticky lg:top-6">
-        <h2 className="text-xl font-bold text-ink">{activity.title}</h2>
-        {specs.bestSeller && (
-          <p className="mt-1.5 text-[11px] font-extrabold uppercase tracking-[0.2em] text-coral">
-            {t('Best seller')}
-          </p>
-        )}
-        <p className="mt-5 text-sm text-ink-muted">{t('From')}</p>
-        <div className="text-5xl font-extrabold tracking-tight text-ink">
-          {price != null ? <Price eur={price} /> : t('On request')}
-        </div>
-        <ul className="mt-5 divide-y divide-ink/10 border-y border-ink/10 text-left">
-          {duration && specs.showDuration && <SpecTick>{duration}</SpecTick>}
-          {specs.photoCount != null && (
-            <SpecTick>{t('Up to {n} edited photos', { n: specs.photoCount })}</SpecTick>
-          )}
-          {specs.location && <SpecTick>{specs.location}</SpecTick>}
-          {specs.delivery && <SpecTick>{specs.delivery}</SpecTick>}
-          {maxGuests != null && specs.showGuests && (
-            <SpecTick strong>{t('Up to {n} guests', { n: maxGuests })}</SpecTick>
-          )}
-          {addOnNames.length > 0 && specs.showAddOns && (
-            <SpecTick strong>
-              {t('Optional add-ons: {names}', { names: addOnNames.join(', ') })}
-            </SpecTick>
-          )}
-          {specs.showDeposit && (
-            <SpecTick>{t('50% now, 50% when your photos are delivered')}</SpecTick>
-          )}
-        </ul>
-        <Link
-          href={`/activities/${activity.slug}?booking=1`}
-          className="mt-6 flex w-full items-center justify-center rounded-full bg-teal-dark px-7 py-4 text-base font-extrabold uppercase tracking-wide text-white hover:bg-teal-dark/90"
-        >
-          {t('Book now')}
-        </Link>
-      </aside>
+
+      {inspiration.length > 0 && (
+        <section className="border-t border-ink/10 pt-7">
+          <h2 className="m-0 text-lg font-bold text-ink">
+            {t('Get inspired by these {category} shots', { category: TAG_LABEL[tag] })}
+          </h2>
+          <InspirationGrid
+            items={inspiration.map((item) => ({
+              key: item.key,
+              src: item.src,
+              thumb: item.thumb,
+              alt: item.alt,
+              aspect: item.aspect,
+            }))}
+          />
+          <Link
+            href={`/photography/gallery?c=${tag}`}
+            className="mt-4 inline-block text-sm font-bold text-teal-dark underline underline-offset-4"
+          >
+            {t('See more photos')}
+          </Link>
+        </section>
+      )}
+
+      <div className="space-y-10 border-t border-ink/10 pt-8">
+        <PhotographyBenefits />
+        <PhotographyInformation />
+      </div>
+
+      <OtherMoments />
     </div>
   );
 }

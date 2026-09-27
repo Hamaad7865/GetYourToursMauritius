@@ -11,7 +11,13 @@ import {
   type LoadedPackage,
   type PhotographyPackageInput,
 } from '@/lib/admin/photography';
-import { PHOTOGRAPHY_ADD_ON_PRESETS } from '@/lib/catalogue/photography';
+import {
+  PHOTOGRAPHY_ADD_ON_PRESETS,
+  PHOTOGRAPHY_OCCASIONS,
+  photographyLocations,
+  photographyOccasions,
+  photographySlots,
+} from '@/lib/catalogue/photography';
 import type { PhotographyShoot } from '@/lib/catalogue/photography-shoots';
 import { IconChevron, IconPlus, IconX } from '@/components/ui/icons';
 import {
@@ -19,6 +25,7 @@ import {
   P_BTN_GHOST,
   PField,
   PNotice,
+  PPill,
   PSection,
   P_INPUT,
   P_SELECT,
@@ -50,6 +57,9 @@ const START: PhotographyPackageInput = {
   showDeposit: true,
   showDetails: true,
   inspiration: [],
+  locations: photographyLocations(null),
+  slots: photographySlots(null, 'shoots').map((s) => ({ ...s })),
+  occasions: photographyOccasions({ title: '', summary: '' }, null),
 };
 
 function num(v: string): number {
@@ -295,7 +305,17 @@ export function PhotographyPackageForm({
               <select
                 className={P_SELECT}
                 value={v.kind}
-                onChange={(e) => set('kind', e.target.value as PhotographyPackageInput['kind'])}
+                onChange={(e) => {
+                  const kind = e.target.value as PhotographyPackageInput['kind'];
+                  // The slots are per group — switching re-derives them from the new group's
+                  // defaults (any unsaved slot edits are lost).
+                  setSaved(false);
+                  setV((cur) => ({
+                    ...cur,
+                    kind,
+                    slots: photographySlots(null, kind).map((s) => ({ ...s })),
+                  }));
+                }}
               >
                 <option value="weddings">Wedding / wedding film</option>
                 <option value="shoots">Couples, holiday or family shoot</option>
@@ -529,7 +549,225 @@ export function PhotographyPackageForm({
           </div>
         </PSection>
 
-        <PSection title="Add-ons (charged once per shoot)">
+        <PSection
+          title="Locations"
+          description="Locations with a surcharge are charged automatically at checkout (they become a Location: … add-on). Coast drives the sunrise/sunset light tip."
+        >
+          <div className="flex flex-col gap-3">
+            {v.locations.map((loc, i) => (
+              <div key={i} className="rounded-xl border border-ink/10 p-3">
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <PField label="Name">
+                    <input
+                      aria-label="Location name"
+                      className={P_INPUT}
+                      value={loc.name}
+                      onChange={(e) =>
+                        set(
+                          'locations',
+                          v.locations.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)),
+                        )
+                      }
+                      placeholder="Le Morne"
+                    />
+                  </PField>
+                  <PField label="Region">
+                    <input
+                      aria-label="Location region"
+                      className={P_INPUT}
+                      value={loc.region}
+                      onChange={(e) =>
+                        set(
+                          'locations',
+                          v.locations.map((x, j) =>
+                            j === i ? { ...x, region: e.target.value } : x,
+                          ),
+                        )
+                      }
+                      placeholder="South-west · mountain and lagoon"
+                    />
+                  </PField>
+                  <PField label="Coast">
+                    <select
+                      aria-label="Location coast"
+                      className={P_SELECT}
+                      value={loc.coast}
+                      onChange={(e) =>
+                        set(
+                          'locations',
+                          v.locations.map((x, j) =>
+                            j === i ? { ...x, coast: e.target.value as typeof loc.coast } : x,
+                          ),
+                        )
+                      }
+                    >
+                      <option value="east">East coast</option>
+                      <option value="west">West coast</option>
+                      <option value="any">Anywhere</option>
+                    </select>
+                  </PField>
+                  <PField label="Surcharge (€)" hint="0 = included in the package price.">
+                    <input
+                      aria-label="Location surcharge"
+                      type="number"
+                      min={0}
+                      className={P_INPUT}
+                      value={loc.extraEur}
+                      onChange={(e) =>
+                        set(
+                          'locations',
+                          v.locations.map((x, j) =>
+                            j === i ? { ...x, extraEur: num(e.target.value) } : x,
+                          ),
+                        )
+                      }
+                    />
+                  </PField>
+                  <PField label="Best at (chip)">
+                    <input
+                      aria-label="Location best-at chip"
+                      className={P_INPUT}
+                      value={loc.best}
+                      onChange={(e) =>
+                        set(
+                          'locations',
+                          v.locations.map((x, j) => (j === i ? { ...x, best: e.target.value } : x)),
+                        )
+                      }
+                      placeholder="Best at sunset"
+                    />
+                  </PField>
+                  <PField label="Map query">
+                    <input
+                      aria-label="Location map query"
+                      className={P_INPUT}
+                      value={loc.mapQuery}
+                      onChange={(e) =>
+                        set(
+                          'locations',
+                          v.locations.map((x, j) =>
+                            j === i ? { ...x, mapQuery: e.target.value } : x,
+                          ),
+                        )
+                      }
+                      placeholder="Google Maps place, e.g. Le Morne Brabant, Mauritius"
+                    />
+                  </PField>
+                </div>
+                <div className="mt-2.5 flex items-center justify-between gap-2">
+                  {loc.extraEur > 0 ? (
+                    <PPill tone="teal">Location: add-on · €{loc.extraEur}</PPill>
+                  ) : (
+                    <span />
+                  )}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      set(
+                        'locations',
+                        v.locations.filter((_, j) => j !== i),
+                      )
+                    }
+                    className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-[12.5px] font-bold text-ink-muted hover:bg-coral/10 hover:text-coral"
+                  >
+                    <IconX width={13} height={13} /> Remove location
+                  </button>
+                </div>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() =>
+                set('locations', [
+                  ...v.locations,
+                  { name: '', region: '', extraEur: 0, coast: 'any', best: '', mapQuery: '' },
+                ])
+              }
+              className={`${P_BTN_GHOST} mt-1 w-fit`}
+            >
+              <IconPlus width={15} height={15} /> Add a location
+            </button>
+          </div>
+        </PSection>
+
+        <PSection
+          title="Light slots"
+          description="Times are computed per date from the season’s sunrise/sunset. Switching the package type resets these to that type’s defaults — unsaved slot edits are lost."
+        >
+          <div className="flex flex-col gap-2">
+            {v.slots.map((s, i) => (
+              <div key={s.id} className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  aria-label={`Offer the ${s.label} slot`}
+                  className="h-4 w-4 shrink-0 accent-teal"
+                  checked={s.enabled}
+                  onChange={(e) =>
+                    set(
+                      'slots',
+                      v.slots.map((x, j) => (j === i ? { ...x, enabled: e.target.checked } : x)),
+                    )
+                  }
+                />
+                <input
+                  aria-label="Slot label"
+                  className={P_INPUT}
+                  value={s.label}
+                  onChange={(e) =>
+                    set(
+                      'slots',
+                      v.slots.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)),
+                    )
+                  }
+                />
+                <input
+                  aria-label="Slot note"
+                  className={P_INPUT}
+                  value={s.note}
+                  onChange={(e) =>
+                    set(
+                      'slots',
+                      v.slots.map((x, j) => (j === i ? { ...x, note: e.target.value } : x)),
+                    )
+                  }
+                />
+              </div>
+            ))}
+          </div>
+        </PSection>
+
+        {v.kind === 'shoots' && (
+          <PSection
+            title="Occasions"
+            description="Which filter chips this shoot appears under on the photography page."
+          >
+            <div className="flex flex-col gap-2">
+              {PHOTOGRAPHY_OCCASIONS.map(([id, label]) => (
+                <label key={id} className="flex items-center gap-2.5 text-sm font-medium text-ink">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 accent-teal"
+                    checked={v.occasions.includes(id)}
+                    onChange={(e) =>
+                      set(
+                        'occasions',
+                        e.target.checked
+                          ? [...v.occasions, id]
+                          : v.occasions.filter((o) => o !== id),
+                      )
+                    }
+                  />
+                  {label}
+                </label>
+              ))}
+            </div>
+          </PSection>
+        )}
+
+        <PSection
+          title="Add-ons (charged once per shoot)"
+          description="Priced locations are not listed here — they are managed by the Locations editor above and charged automatically at checkout."
+        >
           <div className="flex flex-col gap-2">
             {v.addOns.map((a, i) => (
               <div key={i} className="grid grid-cols-[1fr_1fr_90px_auto] items-center gap-2">

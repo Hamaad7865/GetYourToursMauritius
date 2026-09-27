@@ -990,6 +990,78 @@
                             },
                             "photographyCover": {
                               "type": "string"
+                            },
+                            "photographyLocations": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "region": {
+                                    "type": "string"
+                                  },
+                                  "extraEur": {
+                                    "type": "number"
+                                  },
+                                  "coast": {
+                                    "type": "string",
+                                    "enum": [
+                                      "east",
+                                      "west",
+                                      "any"
+                                    ]
+                                  },
+                                  "best": {
+                                    "type": "string"
+                                  },
+                                  "mapQuery": {
+                                    "type": "string"
+                                  },
+                                  "supplementId": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "name"
+                                ]
+                              }
+                            },
+                            "photographySlots": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "label": {
+                                    "type": "string"
+                                  },
+                                  "note": {
+                                    "type": "string"
+                                  },
+                                  "enabled": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "required": [
+                                  "id"
+                                ]
+                              }
+                            },
+                            "photographyOccasions": {
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "enum": [
+                                  "couple",
+                                  "proposal",
+                                  "family",
+                                  "solo"
+                                ]
+                              }
                             }
                           },
                           "default": {}

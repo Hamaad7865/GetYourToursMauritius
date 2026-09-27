@@ -187,6 +187,11 @@ interface BookingState {
   touch: () => void;
   /** Continue: reserve the spot, then route to checkout. */
   continueToCheckout: () => Promise<void>;
+  /** Photography only: the customer's chosen light slot, as "id|Label · HH:MM" (the id lets
+   *  checkout resolve the slot's light; the "Label · HH:MM" tail is the display string). Appended
+   *  to the checkout params as `slot`. Always null for tours; set by PhotoBookingCard. */
+  photoSlot: string | null;
+  setPhotoSlot: (s: string | null) => void;
 }
 
 const Ctx = createContext<BookingState | null>(null);
@@ -220,6 +225,7 @@ export function BookingProvider({
   const [suv, setSuv] = useState(false);
   const [childSeats, setChildSeats] = useState(0);
   const [supplementSel, setSupplementSel] = useState<Record<string, number>>({});
+  const [photoSlot, setPhotoSlot] = useState<string | null>(null);
   const [checked, setChecked] = useState(false);
   const [scrollTick, setScrollTick] = useState(0);
   // Reveal the card and (re)request a scroll-into-view. Bumping the tick on every press means a
@@ -687,6 +693,10 @@ export function BookingProvider({
         : '',
     from: 'widget',
   });
+  // Photography only: carry the chosen light slot to checkout (the card registers it via
+  // setPhotoSlot, as "id|Label · HH:MM"). Tours never send the param — nothing downstream reads
+  // it for them.
+  if (isPhoto && photoSlot) checkoutParams.set('slot', photoSlot);
 
   async function continueToCheckout() {
     const occ = date ? days?.get(date)?.occurrenceId : undefined;
@@ -755,6 +765,9 @@ export function BookingProvider({
           seatsLeft,
           unit: unitLabel,
           idemKey: idem,
+          // Photography only: the chosen light slot, kept alongside the line for the cart/checkout
+          // resume path. Undefined for tours (the card never registers one).
+          slot: photoSlot ?? undefined,
         }),
       );
     } catch {
@@ -813,6 +826,8 @@ export function BookingProvider({
     updating,
     touch,
     continueToCheckout,
+    photoSlot,
+    setPhotoSlot,
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

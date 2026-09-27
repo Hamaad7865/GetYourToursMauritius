@@ -220,6 +220,41 @@ export const activityExtraSchema = z.object({
   /** A photography package's cover photo URL — shown on cards/search/SEO, never in the
    *  package page's own gallery. */
   photographyCover: z.string().optional().catch(undefined),
+  /** v3 photography flow — the package's location list (full list, island defaults when unset).
+   *  `supplementId` is admin bookkeeping for the row pricing the surcharge. */
+  photographyLocations: z
+    .array(
+      z.object({
+        name: z.string(),
+        region: z.string().optional(),
+        extraEur: z.number().optional(),
+        coast: z.enum(['east', 'west', 'any']).optional(),
+        best: z.string().optional(),
+        mapQuery: z.string().optional(),
+        supplementId: z.string().optional(),
+      }),
+    )
+    .optional()
+    .catch(undefined),
+  /** v3 photography flow — sparse slot overrides of the group defaults (a disabled or re-worded
+   *  slot). Absent = the defaults. */
+  photographySlots: z
+    .array(
+      z.object({
+        id: z.string(),
+        label: z.string().optional(),
+        note: z.string().optional(),
+        enabled: z.boolean().optional(),
+      }),
+    )
+    .optional()
+    .catch(undefined),
+  /** v3 photography flow — occasion filter chips, saved for shoots only. Absent = guessed from
+   *  the title. */
+  photographyOccasions: z
+    .array(z.enum(['couple', 'proposal', 'family', 'solo']))
+    .optional()
+    .catch(undefined),
 });
 export type ActivityExtra = z.infer<typeof activityExtraSchema>;
 

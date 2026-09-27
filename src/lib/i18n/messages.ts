@@ -3254,4 +3254,125 @@ export const fr: Record<string, string> = {
   '{n} latest': '{n} dernières',
   'Holds and booking updates will show here.':
     'Les options et nouvelles de réservation s’afficheront ici.',
+  'Up to {n} people': 'Jusqu’à {n} personnes',
+  'From €{n}': 'Dès {n} €',
+  'from €{n}': 'dès {n} €',
+  Recent: 'Dernières',
+  shoots: 'séances',
+  '45 minutes to 3 hours': 'De 45 minutes à 3 heures',
+  '{pct}% deposit': 'Acompte de {pct} %',
+  'Holds your date': 'Réserve votre date',
+  'Rain? We reschedule': 'Pluie ? On reporte',
+  'Free, any day of your stay': 'Gratuit, un autre jour de votre séjour',
+  'Photos in 72 hours': 'Photos sous 72 h',
+  'Reserve your date': 'Réservez votre date',
+  'Pay the {pct}% deposit online. Your photographer is confirmed on WhatsApp within the hour.':
+    'Payez l’acompte de {pct} % en ligne. Votre photographe est confirmé sur WhatsApp dans l’heure.',
+  'Get your style guide': 'Recevez votre guide de style',
+  'What to wear, where to meet, and the exact time the light is best that day.':
+    'Quoi porter, où se retrouver et l’heure exacte où la lumière est la plus belle ce jour-là.',
+  'Enjoy the shoot': 'Profitez de la séance',
+  'No posing experience needed. We guide every moment and keep it relaxed.':
+    'Aucune expérience de pose nécessaire. Nous guidons chaque instant dans la détente.',
+  'Receive your photos': 'Recevez vos photos',
+  'Edited photos and reels in a private gallery, ready to download and share.':
+    'Photos retouchées et reels dans une galerie privée, prêts à télécharger et à partager.',
+  'What if it rains?': 'Et s’il pleut ?',
+  'Tropical showers usually pass within the hour. If the weather isn’t right, we move your shoot to another day of your stay at no cost.':
+    'Les averses tropicales passent en général en une heure. Si le temps n’est pas au rendez-vous, nous déplaçons votre séance à un autre jour de votre séjour, sans frais.',
+  'What should we wear?': 'Que devons-nous porter ?',
+  'Light, flowing fabrics in soft or neutral colours work best on the beach. After booking we send a short style guide.':
+    'Les tissus légers et fluides aux couleurs douces ou neutres sont les plus beaux sur la plage. Après la réservation, nous envoyons un court guide de style.',
+  'When do we get our photos?': 'Quand recevons-nous nos photos ?',
+  'Your private gallery arrives in 72 hours to 5 days depending on the shoot. Reels are delivered with the photos.':
+    'Votre galerie privée arrive sous 72 h à 5 jours selon la séance. Les reels sont livrés avec les photos.',
+  'Can you come to our hotel?': 'Pouvez-vous venir à notre hôtel ?',
+  'Yes, hotel shoots cost nothing extra. For Le Morne and Île aux Cerfs we arrange transport, included in Island Signature.':
+    'Oui, les séances à l’hôtel ne coûtent rien de plus. Pour Le Morne et l’île aux Cerfs, nous organisons le transport, inclus dans Island Signature.',
+  'We’re not used to being photographed.': 'Nous n’avons pas l’habitude d’être photographiés.',
+  'Most of our clients aren’t. Your photographer guides every pose and keeps it relaxed.':
+    'C’est le cas de la plupart de nos clients. Votre photographe guide chaque pose dans la détente.',
+  'Photography · Mauritius': 'Photographie · Maurice',
+  'Your holiday, in the': 'Vos vacances, dans leur',
+  'best light': 'plus beau jour',
+  'on the island.': 'sur l’île.',
+  'Photoshoots and weddings with local photographers who know where the light lands, every month of the year.':
+    'Séances photo et mariages avec des photographes locaux qui savent où tombe la lumière, chaque mois de l’année.',
+  'See the shoots': 'Voir les séances',
+  'Ask on WhatsApp': 'Demander sur WhatsApp',
+  'View ›': 'Voir ›',
+  'Choose your shoot': 'Choisissez votre séance',
+  'What are we': 'Qu’',
+  'celebrating?': 'est-ce qu’on célèbre ?',
+  'All shoots': 'Toutes les séances',
+  'Elopements to full wedding days, at your hotel or on the beach. Every wedding includes a planning call and a sneak peek within 48 hours.':
+    'Des élopements aux journées de mariage complètes, à votre hôtel ou sur la plage. Chaque mariage inclut un appel de préparation et un aperçu sous 48 h.',
+  'Most booked': 'Le plus réservé',
+  'Check dates': 'Voir les dates',
+  'From booking to gallery': 'De la réservation à la galerie',
+  'What couples and families say': 'Ce que disent les couples et les familles',
+  'Questions before you book': 'Des questions avant de réserver ?',
+  'Not sure which shoot?': 'Vous hésitez sur la séance ?',
+  'Send us your dates and hotel. We’ll reply with the best spot and time for your stay.':
+    'Envoyez-nous vos dates et votre hôtel. Nous répondrons avec le meilleur endroit et le meilleur moment pour votre séjour.',
+  'Sneak peek in 48 hours': 'Aperçu sous 48 h',
+  'Free weather reschedule': 'Report gratuit en cas de mauvais temps',
+  'Photographed by locals': 'Photographié par des locaux',
+  'Island-born photographers who shoot these beaches every week. We match you by language and style: English, French, German or Kreol.':
+    'Des photographes nés sur l’île, qui shootent ces plages chaque semaine. Nous vous appairons selon la langue et le style : anglais, français, allemand ou créole.',
+  'Planning call': 'Appel de préparation',
+  'Four weeks before, we plan the timeline, shot list and family groups with you.':
+    'Quatre semaines avant, nous planifions avec vous le déroulement, la liste des photos et les groupes familiaux.',
+  'Chosen with you after booking. Hotel shoots start in your lobby.':
+    'Choisi avec vous après la réservation. Les séances à l’hôtel commencent dans votre hall.',
+  Cancellation: 'Annulation',
+  'Full refund up to 60 days before. One free date change.':
+    'Remboursement intégral jusqu’à 60 jours avant. Un changement de date gratuit.',
+  'Full refund up to 7 days before. Weather changes are always free.':
+    'Remboursement intégral jusqu’à 7 jours avant. Les reports pour météo sont toujours gratuits.',
+  Available: 'Disponible',
+  'Last spots': 'Dernières places',
+  Full: 'Complet',
+  '1. Choose a date': '1. Choisissez une date',
+  '2. Pick the light': '2. Choisissez la lumière',
+  '2. Ceremony time': '2. Heure de la cérémonie',
+  '3. People': '3. Personnes',
+  'Fewer people': 'Moins de personnes',
+  'More people': 'Plus de personnes',
+  '{n} included · {price} per extra person': '{n} incluses · {price} par personne supplémentaire',
+  'Sunrise {rise} · Sunset {set}': 'Lever {rise} · coucher {set}',
+  'Choose a date to see times for that day.':
+    'Choisissez une date pour voir les horaires de ce jour-là.',
+  'sunset at {time}': 'coucher de soleil à {time}',
+  'Choose a time': 'Choisissez un horaire',
+  'Choose a ceremony time': 'Choisissez l’heure de la cérémonie',
+  'Pay {pct}% to book your date. The balance is due when your photos are delivered.':
+    'Payez {pct} % aujourd’hui pour réserver votre date. Le solde est dû à la livraison de vos photos.',
+
+  /* v3 photography checkout — step ① (location cards, light tip, extras) + summary. */
+  'Date & time': 'Date et heure',
+  'Location & extras': 'Lieu et options',
+  'Where’s the wedding?': 'Où se déroule le mariage ?',
+  'Where, and any extras?': 'Où, et des options ?',
+  'Pick the area. We’ll plan the portraits around the best light.':
+    'Choisissez le lieu. Nous planifierons les portraits selon la meilleure lumière.',
+  'Pick your spot. We’ll tell you if the light works at your time.':
+    'Choisissez votre lieu. Nous vous dirons si la lumière convient à votre horaire.',
+  Location: 'Lieu',
+  Extras: 'Options',
+  'Light tip': 'Conseil lumière',
+  'Great pick': 'Excellent choix',
+  'Choose a location to continue.': 'Choisissez un lieu pour continuer.',
+  'Switch to {location}': 'Choisir {location}',
+  '{location} at that time is one of our favourite combinations.':
+    '{location} à cette heure est l’un de nos coups de cœur.',
+  'The east coast faces the sunrise, so at golden hour the sun sets behind the island. For the sun going down over the sea, choose the west coast.':
+    'La côte est fait face au lever du soleil : à l’heure dorée, le soleil se couche donc derrière l’île. Pour le voir se coucher sur la mer, choisissez la côte ouest.',
+  "The west coast sits in the mountain's shadow at sunrise. The east coast gets the first light.":
+    'À l’aube, la côte ouest est dans l’ombre de la montagne. La côte est reçoit les premières lueurs.',
+  "We'll check your venue or hotel beach and send you the best spot and time.":
+    'Nous vérifions votre lieu de réception ou la plage de votre hôtel, puis nous vous envoyons le meilleur endroit et le meilleur moment.',
+  'Preferred light: {slot}': 'Lumière souhaitée : {slot}',
+  '{location} surcharge': 'Supplément {location}',
+  'Date held for {time}': 'Date réservée pendant {time}',
 };

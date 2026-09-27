@@ -8,6 +8,7 @@ import {
   uploadActivityImage,
   type ActivityFormValues,
   type OptionInput,
+  type SupplementInput,
 } from '@/lib/admin/activity-write';
 import { loadAvailabilityState, setDailyCapacity } from '@/lib/admin/availability-write';
 import { createCategory } from '@/lib/admin/categories';
@@ -16,12 +17,20 @@ import {
   PHOTOGRAPHY_CATEGORY,
   PHOTOGRAPHY_STARTER_PACKAGES,
   PHOTOGRAPHY_GALLERY_DEFAULTS,
+  PHOTOGRAPHY_LOCATIONS_KEY,
+  PHOTOGRAPHY_LOCATION_DEFAULTS,
   PHOTO_STOCK,
+  isLocationSupplementName,
   isPhotographyCategory,
+  locationSupplementName,
+  locationSupplementNameFr,
   photographyAddOnSlugs,
   photographyGroup,
   photographyCover,
   photographyInspirationIds,
+  photographyLocations,
+  photographyOccasions,
+  photographySlots,
   photographySpecs,
   savedPhotographyGroup,
   toPhotographyPhoto,
@@ -29,7 +38,10 @@ import {
   type PhotoMediaType,
   type PhotoSlot,
   type PhotographyGroup,
+  type PhotographyLocation,
+  type PhotographyOccasion,
   type PhotographyPhoto,
+  type PhotographySlotDef,
 } from '@/lib/catalogue/photography';
 
 /* The /admin/photography module. A photography package IS a catalogue activity (category
@@ -144,7 +156,7 @@ export async function loadPhotographyAdmin(): Promise<PhotographyAdminData> {
       maxGuests: opt?.private_max_guests ?? null,
       shootsPerDay: (a.daily_capacity as number | null) ?? null,
       addOns: (sups.data ?? [])
-        .filter((s) => s.activity_id === a.id)
+        .filter((s) => s.activity_id === a.id && !isLocationSupplementName(s.name as string))
         .map((s) => ({ name: s.name as string, priceEur: (s.price_minor as number) / 100 })),
       coverUrl: photographyCover(a.extra) ?? images[0]?.url ?? null,
       bestSeller: photographySpecs(a.extra).bestSeller,
@@ -210,6 +222,14 @@ export interface PhotographyPackageInput {
   showDetails: boolean;
   /** Hand-picked inspiration photo ids, in display order. Empty = the tag fallback. */
   inspiration: string[];
+  /** v3 flow — the shoot's locations, island defaults until edited. A priced one (extraEur > 0)
+   *  is charged at checkout as a "Location: …" supplement row; `supplementId` links the row so a
+   *  save updates it in place instead of recreating it. */
+  locations: PhotographyLocation[];
+  /** v3 flow — the light slots offered, one row per slot of the current group's defaults. */
+  slots: PhotographySlotDef[];
+  /** v3 flow — occasion filter chips (shoots only; weddings ignore this). */
+  occasions: PhotographyOccasion[];
 }
 
 /**
@@ -217,6 +237,41 @@ export interface PhotographyPackageInput {
  * (base covers N guests + a price per extra guest, capped) is what gives the widget its party
  * stepper, and each add-on becomes a supplement row — the one table api_book prices add-ons from.
  */
+/** Normalize the form's location list for storage: clean fields via the shared reader, keeping
+ *  each entry's supplementId (the reader drops it). */
+function normalizeLocations(locations: PhotographyLocation[]): PhotographyLocation[] {
+  const normalized = photographyLocations({ [PHOTOGRAPHY_LOCATIONS_KEY]: locations });
+  return normalized.map((l) => {
+    const raw = locations.find((r) => r.name === l.name);
+    return raw?.supplementId ? { ...l, supplementId: raw.supplementId } : l;
+  });
+}
+
+/** The supplement rows a save writes: the generic add-ons plus one row per priced location
+ *  ("Location: {name}", French "Lieu : {name}") — api_book prices only activity_supplements, so a
+ *  priced location must exist as a row. Rows keep `id` when the row already exists (an add-on's
+ *  id, or a location's supplementId) so reconcileSupplements updates them in place; a row missing
+ *  from the form (location removed, renamed or its surcharge back to 0) is deleted by the same
+ *  reconciliation that removes a dropped add-on. */
+function packageSupplements(input: PhotographyPackageInput): SupplementInput[] {
+  const addOns = input.addOns
+    .filter((a) => a.name.trim() && a.priceEur >= 0)
+    .map((a) => ({
+      ...(a.id ? { id: a.id } : {}),
+      name: a.name.trim(),
+      nameFr: a.nameFr.trim(),
+      priceEur: a.priceEur,
+    }));
+  const locationRows = input.locations
+    .filter((l) => l.name.trim() && l.extraEur > 0)
+    .map((l) => ({
+      ...(l.supplementId ? { id: l.supplementId } : {}),
+      name: locationSupplementName(l.name),
+      nameFr: locationSupplementNameFr(l.name),
+      priceEur: l.extraEur,
+    }));
+  return [...addOns, ...locationRows];
+}
 export function photographyPackageValues(input: PhotographyPackageInput): ActivityFormValues {
   const title = input.title.trim();
   const features = input.features.map((f) => f.trim()).filter(Boolean);
@@ -270,9 +325,10 @@ export function photographyPackageValues(input: PhotographyPackageInput): Activi
     photographyShowDetails: input.showDetails,
     photographyInspiration: [...input.inspiration],
     photographyCover: input.imageUrl.trim(),
-    supplements: input.addOns
-      .filter((a) => a.name.trim() && a.priceEur >= 0)
-      .map((a) => ({ name: a.name.trim(), nameFr: a.nameFr.trim(), priceEur: a.priceEur })),
+    photographyLocations: normalizeLocations(input.locations),
+    photographySlots: input.slots.map((s) => ({ ...s })),
+    photographyOccasions: input.kind === 'shoots' ? [...input.occasions] : [],
+    supplements: packageSupplements(input),
   };
 }
 
@@ -530,9 +586,17 @@ export function packageInputFromValues(
 ): PhotographyPackageInput {
   const opt = v.options[privateOptionIndex(v)];
   const specs = photographySpecs(v.sourceExtra);
+  const kind = v.photographyGroup || photographyGroup({ title: v.title, summary: v.summary });
+  // Location surcharges live as "Location: …" supplement rows; the generic add-on editor must not
+  // show them, and each location picks its row's id back up (id match preferred, name fallback) so
+  // the next save updates the row in place.
+  const locationRows = v.supplements.filter((s) => isLocationSupplementName(s.name));
+  const baseLocations = v.photographyLocations.length
+    ? v.photographyLocations
+    : photographyLocations(v.sourceExtra);
   return {
     title: v.title,
-    kind: v.photographyGroup || photographyGroup({ title: v.title, summary: v.summary }),
+    kind,
     summary: v.summary,
     durationHours: v.durationMinutes ? Math.round((v.durationMinutes / 60) * 100) / 100 : 1,
     baseEur: opt?.privateBaseEur ?? 0,
@@ -542,12 +606,29 @@ export function packageInputFromValues(
     shootsPerDay: shootsPerDay ?? 1,
     minAdvanceDays: v.minAdvanceDays,
     features: v.inclusions.length ? [...v.inclusions] : [...v.highlights],
-    addOns: v.supplements.map((s) => ({
-      id: s.id,
-      name: s.name,
-      nameFr: s.nameFr,
-      priceEur: s.priceEur ?? 0,
-    })),
+    addOns: v.supplements
+      .filter((s) => !isLocationSupplementName(s.name))
+      .map((s) => ({
+        id: s.id,
+        name: s.name,
+        nameFr: s.nameFr,
+        priceEur: s.priceEur ?? 0,
+      })),
+    locations: baseLocations.map((l) => {
+      const row =
+        (l.supplementId && locationRows.find((s) => s.id === l.supplementId)) ||
+        locationRows.find((s) => s.name === locationSupplementName(l.name));
+      return row?.id ? { ...l, supplementId: row.id } : l;
+    }),
+    slots: v.photographySlots.length
+      ? v.photographySlots.map((s) => ({ ...s }))
+      : photographySlots(v.sourceExtra, kind),
+    occasions:
+      kind === 'shoots'
+        ? v.photographyOccasions.length
+          ? [...v.photographyOccasions]
+          : photographyOccasions({ title: v.title, summary: v.summary }, v.sourceExtra)
+        : [],
     imageUrl: photographyCover(v.sourceExtra) ?? v.images[0]?.url ?? '',
     status: v.status,
     bestSeller: specs.bestSeller,
@@ -628,18 +709,14 @@ export function applyPackageInput(
     photographyShowDetails: input.showDetails,
     photographyInspiration: [...input.inspiration],
     photographyCover: input.imageUrl.trim(),
+    photographyLocations: normalizeLocations(input.locations),
+    photographySlots: input.slots.map((s) => ({ ...s })),
+    photographyOccasions: input.kind === 'shoots' ? [...input.occasions] : [],
     inclusions: features,
     highlights: sameLists ? features : v.highlights,
     images,
     options,
-    supplements: input.addOns
-      .filter((a) => a.name.trim() && a.priceEur >= 0)
-      .map((a) => ({
-        ...(a.id ? { id: a.id } : {}),
-        name: a.name.trim(),
-        nameFr: a.nameFr.trim(),
-        priceEur: a.priceEur,
-      })),
+    supplements: packageSupplements(input),
   };
 }
 
@@ -709,6 +786,10 @@ export function starterPackageInput(
     showDeposit: true,
     showDetails: true,
     inspiration: [],
+    locations: PHOTOGRAPHY_LOCATION_DEFAULTS.map((l) => ({ ...l })),
+    slots: photographySlots(null, p.kind).map((s) => ({ ...s })),
+    occasions:
+      p.kind === 'shoots' ? photographyOccasions({ title: p.title, summary: p.summary }, null) : [],
   };
 }
 

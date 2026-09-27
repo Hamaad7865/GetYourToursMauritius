@@ -12,11 +12,13 @@ import {
   isPhotographyCategory,
   mediaThumb,
   photographyGroup,
+  photographyOccasions,
   photographySpecs,
   photosIn,
   savedPhotographyGroup,
   type GalleryTag,
   type PhotographyGroup,
+  type PhotographyOccasion,
   type PhotographyPhoto,
 } from '@/lib/catalogue/photography';
 import type { GalleryItem } from './GalleryGrid';
@@ -131,6 +133,29 @@ export async function loadPhotographyBestSellers(): Promise<Set<string>> {
 }
 
 type T = (key: string, vars?: Record<string, string | number>) => string;
+
+/**
+ * slug → the raw `extra` of each published package. Live `TourSummary` rows don't carry `extra`,
+ * and the v3 home screen reads occasions and price-card specs from it. One direct read, the same
+ * pattern as `loadPhotographyGroups` — any failure → {} and every package falls back to
+ * title-based guessing.
+ */
+export async function loadPhotographyExtras(): Promise<Record<string, unknown>> {
+  try {
+    const { data, error } = await createUserClient()
+      .from('activities')
+      .select('slug, extra')
+      .eq('category', PHOTOGRAPHY_CATEGORY as never);
+    if (error || !data) return {};
+    const out: Record<string, unknown> = {};
+    for (const row of data as { slug: unknown; extra: unknown }[]) {
+      if (typeof row.slug === 'string') out[row.slug] = row.extra;
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
 
 /**
  * The package cards both /photography and /photography/packages render. Live packages link to their
@@ -303,4 +328,207 @@ export function buildInspirationItems(
     .filter((item) => item.kind === 'image' && item.categories.includes(tag))
     .slice(0, limit);
   return { tag, items };
+}
+
+/* ---------------------------------------------------------------------------------------------
+ * The v3 home screen (Photography Services v3 handoff) — serializable, translated view models the
+ * client components render. All data shaping stays here on the server; the client pieces receive
+ * plain props.
+ * ------------------------------------------------------------------------------------------- */
+
+/** One card in the v3 "What are we celebrating?" grid — already translated on the server. */
+export interface V3Package {
+  key: string;
+  group: PackageGroup;
+  title: string;
+  summary: string | null;
+  image: string;
+  imageAlt: string;
+  /** "1.5 hours", or null when the package doesn't state a duration. */
+  durationLabel: string | null;
+  /** "Up to 6 people", or null when capacity isn't known. */
+  peopleLabel: string | null;
+  /** Up to 3 ticks — edited-photos count, location line, delivery line from the owner's specs. */
+  bullets: string[];
+  /** EUR "from" price, or null when the package is quote-only. */
+  priceEur: number | null;
+  href: string;
+  /** True for the WhatsApp enquiry fallback (opens in a new tab). */
+  external: boolean;
+  bestSeller: boolean;
+  /** Shoots-tab filter chips; weddings carry none. */
+  occasions: PhotographyOccasion[];
+}
+
+/** The v3 package grid: live packages shaped for the design's cards, plus the WhatsApp enquiry
+ *  fallback for shoot types without a live package (same contract as `buildPackageCards`). */
+export function buildV3Packages(
+  t: T,
+  live: TourSummary[],
+  waNumber: string,
+  groups: Record<string, PhotographyGroup> = {},
+  bestSellers: Set<string> = new Set(),
+  extras: Record<string, unknown> = {},
+): V3Package[] {
+  const hours = (minutes: number | null) => {
+    if (!minutes) return null;
+    const n = Math.round((minutes / 60) * 10) / 10;
+    return n === 1 ? t('{n} hour', { n }) : t('{n} hours', { n });
+  };
+  const people = (a: TourSummary) => {
+    const guests = a.fromPriceIncluded ?? a.fromPriceMaxGuests;
+    return guests ? t('Up to {n} people', { n: guests }) : null;
+  };
+  const bulletsOf = (a: TourSummary): string[] => {
+    const specs = photographySpecs(extras[a.slug]);
+    return [
+      specs.photoCount != null ? t('Up to {n} edited photos', { n: specs.photoCount }) : null,
+      specs.location,
+      specs.delivery,
+    ]
+      .filter((v): v is string => typeof v === 'string' && v.trim().length > 0)
+      .slice(0, 3);
+  };
+  const liveCard = (a: TourSummary): V3Package => {
+    const group: PackageGroup = photographyGroup(a, groups[a.slug]);
+    return {
+      key: a.id,
+      group,
+      title: a.title,
+      summary: a.summary,
+      image:
+        a.heroImage?.url ??
+        a.images[0]?.url ??
+        (group === 'weddings' ? PHOTO_IMG.weddingSunset : PHOTO_IMG.couple),
+      imageAlt: a.heroImage?.alt ?? a.title,
+      durationLabel: hours(a.durationMinutes),
+      peopleLabel: people(a),
+      bullets: bulletsOf(a),
+      priceEur: a.fromPriceEur,
+      href: `/activities/${a.slug}`,
+      external: false,
+      bestSeller: bestSellers.has(a.slug),
+      occasions: group === 'shoots' ? photographyOccasions(a, extras[a.slug]) : [],
+    };
+  };
+  const liveCards = live.map(liveCard);
+
+  // Enquiry fallback: an un-published shoot type enquires on WhatsApp rather than inventing a
+  // price. PHOTOGRAPHY_SHOOTS is empty since 2026-09-25 (only real bookable packages show), but
+  // the loop stays so re-adding a shoot type needs no rewiring.
+  const enquire = (title: string) =>
+    whatsappUrl(
+      `Hi ${SITE.operator}! I’m interested in the “${title}” photography package in Mauritius. Could you send availability and prices?`,
+      waNumber,
+    );
+  const used = new Set<string>();
+  const fallback = PHOTOGRAPHY_SHOOTS.map((p): V3Package | null => {
+    const title = t(p.title);
+    const existing = live.find(
+      (a) => !used.has(a.id) && (matchesPhotographyShoot(p, a) || a.title === title),
+    );
+    if (existing) {
+      used.add(existing.id);
+      return null;
+    }
+    return {
+      key: p.key,
+      group: 'shoots',
+      title,
+      summary: t(p.summary),
+      image: p.image,
+      imageAlt: title,
+      durationLabel: null,
+      peopleLabel: null,
+      bullets: [],
+      priceEur: null,
+      href: enquire(title),
+      external: true,
+      bestSeller: false,
+      occasions: photographyOccasions({ title, summary: t(p.summary) }, null),
+    };
+  }).filter((p): p is V3Package => p !== null);
+
+  return [...fallback, ...liveCards.filter((card) => !used.has(card.key))];
+}
+
+/** One slide of the hero collage — a gallery photo pinned to the best-matching live package. */
+export interface V3HeroSlide {
+  id: string;
+  src: string;
+  alt: string;
+  /** Small chip on the stacked tiles: the package's title. */
+  short: string;
+  /** Caption eyebrow: the matching occasion or group label. */
+  tag: string;
+  href: string | null;
+  external: boolean;
+  priceLabel: string | null;
+}
+
+/**
+ * The hero collage slides: the admin-managed gallery photos (or the built-in stand-ins), each
+ * linked to the best-matching live package. Matching scores the package's group and occasions
+ * against the photo's gallery tags; no match (or no packages at all) still renders the photo,
+ * just without a price or link. Image items only — videos can't fill a tile.
+ */
+export function buildHeroSlides(
+  t: T,
+  photos: PhotographyPhoto[],
+  packages: V3Package[],
+  occasionLabels: Record<PhotographyOccasion, string>,
+): V3HeroSlide[] {
+  const images = buildGalleryItems(t, photos)
+    .filter((item) => item.kind === 'image')
+    .slice(0, 5);
+  const tagLabel: Record<GalleryTag, string> = {
+    weddings: t('wedding'),
+    films: t('film'),
+    couples: t('couple'),
+    family: t('family'),
+  };
+  const score = (p: V3Package, item: (typeof images)[number]): number => {
+    const tags = item.categories;
+    let s = 0;
+    if (p.group === 'weddings') {
+      if (tags.includes('weddings')) s += 3;
+      if (tags.includes('films')) s += 2;
+    } else {
+      if (p.occasions.includes('family') && tags.includes('family')) s += 3;
+      if (
+        (p.occasions.includes('couple') || p.occasions.includes('proposal')) &&
+        tags.includes('couples')
+      )
+        s += 3;
+      if (p.occasions.includes('solo') && tags.includes('couples')) s += 1;
+    }
+    return s;
+  };
+  return images.map((item) => {
+    const [best] = [...packages].sort((a, b) => score(b, item) - score(a, item));
+    const matched = best && score(best, item) > 0 ? best : (packages[0] ?? null);
+    const firstTag = item.categories[0];
+    return {
+      id: String(item.key),
+      src: item.thumb ?? item.src,
+      alt: item.alt,
+      short: matched?.title ?? item.alt,
+      tag:
+        matched && score(matched, item) > 0
+          ? matched.group === 'weddings'
+            ? t('Weddings')
+            : (matched.occasions.map((o) => occasionLabels[o])[0] ?? t('Photoshoots'))
+          : firstTag
+            ? tagLabel[firstTag]
+            : t('Photography'),
+      href: matched?.href ?? null,
+      external: matched?.external ?? false,
+      priceLabel:
+        matched != null
+          ? matched.priceEur != null
+            ? t('From €{n}', { n: Math.round(matched.priceEur) })
+            : t('Price on request')
+          : null,
+    };
+  });
 }

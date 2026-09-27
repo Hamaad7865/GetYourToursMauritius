@@ -11,7 +11,6 @@ import { SetEnquiryContext } from '@/components/site/EnquiryContext';
 import { Gallery } from '@/components/gyg/detail/Gallery';
 import { BookingWidget } from '@/components/gyg/detail/BookingWidget';
 import { PhotographyPackageDetail } from '@/components/photography/PhotographyPackageDetail';
-import { PhotographyBooking } from '@/components/photography/PhotographyBooking';
 import { InquiryWidget } from '@/components/gyg/detail/InquiryWidget';
 import { BookingProvider } from '@/components/gyg/detail/BookingProvider';
 import { MobileBookBar } from '@/components/gyg/detail/MobileBookBar';
@@ -171,10 +170,8 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 
 export default async function ActivityDetailPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams?: Promise<{ booking?: string }>;
 }) {
   const { slug } = await params;
   const activity = await loadActivity(slug);
@@ -185,7 +182,10 @@ export default async function ActivityDetailPage({
 
   const t = await getT();
   const isPhoto = isPhotographyCategory(activity.category);
-  const photoBooking = isPhoto && (await searchParams)?.booking === '1';
+  // A published photography package renders the v3 package page — one page, no separate booking
+  // view (?booking=1 now just scrolls to the page's #book card; see PhotoBookingCard). Inquiry-only
+  // photography keeps the generic layout.
+  const v3Photo = isPhoto && !activity.extra.inquiryOnly;
   const [related, crossSell] = await Promise.all([
     isPhoto ? [] : loadRelated(activity),
     loadCrossSell(activity),
@@ -254,67 +254,72 @@ export default async function ActivityDetailPage({
 
       <main className="bg-white">
         <div className="mx-auto max-w-shell px-6 pb-24 pt-3 lg:pb-16">
-          {/* Breadcrumb */}
-          <nav
-            aria-label={t('Breadcrumb')}
-            className="mb-4 flex flex-wrap items-center gap-2 text-[13px] text-ink-muted"
-          >
-            {trail.map((c) => (
-              <span key={c.href} className="flex items-center gap-2">
-                <Link href={c.href} className="hover:text-teal">
-                  {c.label}
-                </Link>
-                <span className="text-ink/25">/</span>
-              </span>
-            ))}
-            <span className="font-semibold text-ink">{activity.title}</span>
-          </nav>
+          {/* Breadcrumb — the v3 photography package page renders its own (Photography / group /
+              title) plus its big title, so the generic chrome is skipped there. */}
+          {!v3Photo && (
+            <nav
+              aria-label={t('Breadcrumb')}
+              className="mb-4 flex flex-wrap items-center gap-2 text-[13px] text-ink-muted"
+            >
+              {trail.map((c) => (
+                <span key={c.href} className="flex items-center gap-2">
+                  <Link href={c.href} className="hover:text-teal">
+                    {c.label}
+                  </Link>
+                  <span className="text-ink/25">/</span>
+                </span>
+              ))}
+              <span className="font-semibold text-ink">{activity.title}</span>
+            </nav>
+          )}
 
-          {/* Title row */}
-          <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
-            <div className="min-w-0">
-              <h1 className="m-0 text-[clamp(20px,2.3vw,30px)] font-extrabold leading-[1.15] tracking-tight text-ink">
-                {activity.title}
-              </h1>
+          {/* Title row — skipped on the v3 photography page, whose own layout carries the h1. */}
+          {!v3Photo && (
+            <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
+              <div className="min-w-0">
+                <h1 className="m-0 text-[clamp(20px,2.3vw,30px)] font-extrabold leading-[1.15] tracking-tight text-ink">
+                  {activity.title}
+                </h1>
+                {!isPhoto && (
+                  <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+                    {ratingCount > 0 ? (
+                      <span className="flex items-center gap-1.5 text-ink">
+                        <IconStar width={16} height={16} className="text-gold-light" />
+                        <b>{ratingAvg?.toFixed(1)}</b>
+                        <a
+                          href="#reviews"
+                          className="font-semibold text-teal underline underline-offset-2"
+                        >
+                          {t('{n} reviews', { n: ratingCount })}
+                        </a>
+                      </span>
+                    ) : (
+                      <span className="rounded bg-teal/10 px-2 py-0.5 text-[12px] font-bold text-teal">
+                        {t('New activity')}
+                      </span>
+                    )}
+                    <span aria-hidden className="h-1 w-1 rounded-full bg-ink/20" />
+                    <span className="text-ink/70">
+                      {t('Activity provider:')} <b className="text-ink">{SITE.operator}</b>
+                    </span>
+                  </div>
+                )}
+              </div>
               {!isPhoto && (
-                <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-                  {ratingCount > 0 ? (
-                    <span className="flex items-center gap-1.5 text-ink">
-                      <IconStar width={16} height={16} className="text-gold-light" />
-                      <b>{ratingAvg?.toFixed(1)}</b>
-                      <a
-                        href="#reviews"
-                        className="font-semibold text-teal underline underline-offset-2"
-                      >
-                        {t('{n} reviews', { n: ratingCount })}
-                      </a>
-                    </span>
-                  ) : (
-                    <span className="rounded bg-teal/10 px-2 py-0.5 text-[12px] font-bold text-teal">
-                      {t('New activity')}
-                    </span>
-                  )}
-                  <span aria-hidden className="h-1 w-1 rounded-full bg-ink/20" />
-                  <span className="text-ink/70">
-                    {t('Activity provider:')} <b className="text-ink">{SITE.operator}</b>
+                <div className="flex shrink-0 items-center gap-2">
+                  <span className="flex items-center gap-2 rounded-xl border border-ink/15 px-3.5 py-2 text-[13.5px] font-semibold text-ink">
+                    <WishHeart
+                      slug={activity.slug}
+                      size={16}
+                      className="relative h-5 w-5 bg-transparent"
+                    />{' '}
+                    {t('Wishlist')}
                   </span>
+                  <ShareButton title={activity.title} />
                 </div>
               )}
             </div>
-            {!isPhoto && (
-              <div className="flex shrink-0 items-center gap-2">
-                <span className="flex items-center gap-2 rounded-xl border border-ink/15 px-3.5 py-2 text-[13.5px] font-semibold text-ink">
-                  <WishHeart
-                    slug={activity.slug}
-                    size={16}
-                    className="relative h-5 w-5 bg-transparent"
-                  />{' '}
-                  {t('Wishlist')}
-                </span>
-                <ShareButton title={activity.title} />
-              </div>
-            )}
-          </div>
+          )}
 
           {/* GYG layout: gallery (left, top) + sticky booking (right), content below gallery */}
           <BookingProvider
@@ -344,14 +349,8 @@ export default async function ActivityDetailPage({
               crossSell,
             }}
           >
-            {isPhoto && !isInquiryOnly ? (
-              photoBooking ? (
-                <div className="mx-auto max-w-2xl">
-                  <PhotographyBooking />
-                </div>
-              ) : (
-                <PhotographyPackageDetail activity={activity} />
-              )
+            {v3Photo ? (
+              <PhotographyPackageDetail activity={activity} />
             ) : (
               <>
                 <div className="flex flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_374px] lg:items-start lg:gap-x-8">

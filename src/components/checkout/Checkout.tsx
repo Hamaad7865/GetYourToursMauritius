@@ -6,7 +6,21 @@ import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { Logo } from '@/components/site/Logo';
 import { Price } from '@/components/site/Price';
-import { isPhotographyCategory, photographyDepositMinor } from '@/lib/catalogue/photography';
+import { LocationMap } from '@/components/maps/LocationMap';
+import {
+  isLocationSupplementName,
+  isPhotographyCategory,
+  locationSupplementName,
+  locationSupplementNameFr,
+  photographyDepositMinor,
+  photographyGroup,
+  photographyLightTip,
+  photographyLocations,
+  photographySlots,
+  savedPhotographyGroup,
+  type PhotographyLight,
+  type PhotographyLocation,
+} from '@/lib/catalogue/photography';
 import { useT, useMoney } from '@/components/site/PreferencesProvider';
 import { PickupDropoffMap } from '@/components/maps/PickupDropoffMap';
 import { childSeatsCost, regionFromCoords, transportFare } from '@/lib/services/pricing';
@@ -383,6 +397,20 @@ export function Checkout() {
   // photographer where to meet the guests, so it is worded that way. No fee rides on it (a package
   // has no pickup fares); only the copy changes, never what is sent to the server.
   const [isPhotoShoot, setIsPhotoShoot] = useState(unit === 'per shoot');
+  // v3 photography step ① ("Location & extras"): the location cards + the extras list. The
+  // location list and slot defs come from the activity's `extra` (fetched below with the fares);
+  // the generic extras are the activity's supplements minus the "Location:" surcharge rows. Both
+  // choices are plain client state — picked HERE, not on the package page — and ride the draft so
+  // a sign-in redirect restores them.
+  const [photoExtra, setPhotoExtra] = useState<unknown>(null);
+  const [photoSupplements, setPhotoSupplements] = useState<
+    Array<{ id: string; name: string; priceEur: number }>
+  >([]);
+  // The chosen location's NAME (photographyLocations entries are keyed by name), or null = nothing
+  // picked yet. The 'Your hotel' card (empty mapQuery) keeps the free-address map flow, so a draft
+  // restores as null when no card was picked.
+  const [photoLocName, setPhotoLocName] = useState<string | null>(null);
+  const [photoExtrasSel, setPhotoExtrasSel] = useState<Record<string, boolean>>({});
   const [pickupLoc, setPickupLoc] = useState(pickupParam);
   // Resolved pickup coordinates — drive the region-based transport fee the server charges. Prefilled
   // from the widget's stash (below) or captured when the customer picks a place / drags the pin here.
@@ -522,9 +550,62 @@ export function Checkout() {
     fares && wantsPickup && !tbd && pickupCoords && pickupRegion
       ? transportFare(pickupRegion, fares.region, qty, suv, fares.bands, fares.distances)
       : 0;
-  // The pre-booking total we SHOW + reconcile against: base (URL) + the live transport fee. Once the
-  // booking is created, the authoritative serverTotal takes over.
-  const expectedTotal = total ? Number(total) + liveTransport : null;
+  // ── v3 photography step ①: locations, light tip, extras ────────────────────
+  // Pure derivations from the fetched extra/supplements + the customer's picks — recomputed every
+  // render, so a restored draft or a fetch landing late settles without an effect.
+  const photoGroup = photographyGroup({ title }, savedPhotographyGroup(photoExtra));
+  const photoLocs: PhotographyLocation[] = isPhotoShoot ? photographyLocations(photoExtra) : [];
+  const photoSlotDefs = isPhotoShoot ? photographySlots(photoExtra, photoGroup) : [];
+  // The `slot` param the booking card emitted: "id|Label · HH:MM". Parsed tolerantly — a legacy
+  // "Label · HH:MM" (no id) still shows, it just can't drive the light tip.
+  const slotParam = (params.get('slot') ?? '').slice(0, 160);
+  const slotParts = slotParam.includes('|') ? slotParam.split('|', 2) : ['', slotParam];
+  const slotId = (slotParts[0] ?? '').trim().slice(0, 40);
+  const slotLabel = (slotParts[1] ?? '').trim();
+  const slotLight: PhotographyLight | null = slotId
+    ? (photoSlotDefs.find((s) => s.id === slotId)?.light ?? null)
+    : null;
+  const chosenPhotoLoc = photoLocs.find((l) => l.name === photoLocName) ?? null;
+  // Generic add-ons = this activity's supplements EXCLUDING the "Location:" surcharge rows (those
+  // are priced by picking a location, not ticked).
+  const photoAddons = isPhotoShoot
+    ? photoSupplements.filter((s) => !isLocationSupplementName(s.name))
+    : [];
+  // A priced location only costs money when its "Location: {name}" supplement row exists — that row
+  // is what api_book charges. Matched in either locale (names arrive locale-resolved).
+  const locSuppRow = (loc: PhotographyLocation) =>
+    photoSupplements.find(
+      (s) =>
+        s.name === locationSupplementName(loc.name) ||
+        s.name === locationSupplementNameFr(loc.name),
+    ) ?? null;
+  const photoLocRow =
+    chosenPhotoLoc && chosenPhotoLoc.extraEur > 0 ? locSuppRow(chosenPhotoLoc) : null;
+  // The display mirror of what api_book will add: the chosen location's surcharge (exactly once,
+  // and only when its pricing row exists — otherwise the server charges nothing and neither do we)
+  // plus each ticked extra's unit price. The server re-prices every row; a drifted admin price is
+  // caught by the reconciliation gate before charging.
+  const photoExtrasTotal =
+    (photoLocRow ? chosenPhotoLoc!.extraEur : 0) +
+    photoAddons.filter((a) => photoExtrasSel[a.id]).reduce((s, a) => s + a.priceEur, 0);
+  // The supplements the booking POST carries for photography: the location's row (qty 1) + each
+  // ticked extra (qty 1). Ids + counts only — api_book re-prices each from the DB row.
+  const photoChosenSupps = isPhotoShoot
+    ? [
+        ...(photoLocRow ? [{ id: photoLocRow.id, qty: 1 }] : []),
+        ...photoAddons.filter((a) => photoExtrasSel[a.id]).map((a) => ({ id: a.id, qty: 1 })),
+      ]
+    : [];
+  // The slot choice appended to the booking notes (api_book's customer.specialNotes — written for
+  // every booking, not only transfers). Format pinned: "Preferred light: {label} · {time}".
+  const photoSpecialNotes =
+    isPhotoShoot && slotLabel ? t('Preferred light: {slot}', { slot: slotLabel }) : null;
+  // The pre-booking total we SHOW + reconcile against: base (URL) + the live transport fee + the
+  // photography picks made here. Once the booking is created, the authoritative serverTotal takes
+  // over.
+  const expectedTotal = total
+    ? Number(total) + liveTransport + (isPhotoShoot ? photoExtrasTotal : 0)
+    : null;
   // Numeric EUR amount for <Price>/money() — null when we have nothing to show yet.
   const displayTotalNum = serverTotal != null ? serverTotal : expectedTotal;
   // Photography: what the card is charged now — half the total, the SQL trigger's figure mirrored for
@@ -634,6 +715,8 @@ export function Checkout() {
     if (d.gender != null) setGender(d.gender);
     if (d.company != null) setCompany(d.company);
     if (d.specialNotes != null) setSpecialNotes(d.specialNotes);
+    if (d.photoLocName != null) setPhotoLocName(d.photoLocName || null);
+    if (d.photoExtrasSel != null) setPhotoExtrasSel(d.photoExtrasSel);
   }, [occ, applyStoredPhone]);
 
   // Mirror the answers so the restore above has something to find. Gated on `hydrated` so the first
@@ -671,6 +754,8 @@ export function Checkout() {
       gender,
       company,
       specialNotes,
+      photoLocName: photoLocName ?? '',
+      photoExtrasSel,
     });
   }, [
     occ,
@@ -705,6 +790,8 @@ export function Checkout() {
     gender,
     company,
     specialNotes,
+    photoLocName,
+    photoExtrasSel,
   ]);
 
   // Fetch this activity's transport fare tables once. api_get_activity returns them ONLY for eligible
@@ -720,6 +807,10 @@ export function Checkout() {
           region?: string;
           transportBands?: TransportBands;
           regionDistances?: RegionDistances;
+          /** Photography step ①: the location list, slot defs + group live in `extra`; the
+           *  priced extras + the "Location:" surcharge rows are real supplements. */
+          extra?: unknown;
+          supplements?: Array<{ id: string; name: string; priceEur: number }>;
         }>(r),
       )
       .then((body) => {
@@ -733,6 +824,8 @@ export function Checkout() {
         if (a?.pricingMode) setIsVehicleTour(isVehiclePriced(a.pricingMode));
         setIsCustomTrip(a?.pricingMode === 'vehicle_custom');
         setIsPhotoShoot(isPhotographyCategory(a?.category));
+        if (a?.extra) setPhotoExtra(a.extra);
+        if (Array.isArray(a?.supplements)) setPhotoSupplements(a.supplements);
         if (a?.region && a?.transportBands && a?.regionDistances) {
           setFares({ region: a.region, bands: a.transportBands, distances: a.regionDistances });
         }
@@ -813,16 +906,25 @@ export function Checkout() {
   // airport transfer, until the hotel + the required leg fields are entered.
   // Hotel-to-hotel: the route is already chosen in the console; step ① just confirms the pickup date
   // (and the return date when it's a return trip), both prefilled.
+  // Photography step ① is the location cards: picking a named spot (mapQuery set) IS choosing the
+  // meeting place, so it advances on the pick alone; the 'Your hotel' card keeps the free-address
+  // map flow, so it follows the same address / "I don't know yet" rule as before.
   const hotelTransferLegsOk =
     arrivalDate.trim().length > 0 &&
     (tripTypeParam !== 'return' ||
       (departureDate.trim().length > 0 &&
         !returnTimeBeforeArrival(arrivalDate, departureDate, arrivalTime, returnTime)));
+  const photoHotelFlow = isPhotoShoot && chosenPhotoLoc != null && !chosenPhotoLoc.mapQuery;
+  const photoCardPicked =
+    isPhotoShoot && chosenPhotoLoc != null && Boolean(chosenPhotoLoc.mapQuery);
   const canAdvance = isAirport
     ? hotelChosen && airportLegsOk
     : isHotelTransfer
       ? hotelTransferLegsOk
-      : canAdvanceStep1({ wantsPickup, address: pickupLoc, tbd });
+      : isPhotoShoot
+        ? photoCardPicked ||
+          (photoHotelFlow && canAdvanceStep1({ wantsPickup: true, address: pickupLoc, tbd }))
+        : canAdvanceStep1({ wantsPickup, address: pickupLoc, tbd });
   // Step ② (personal details): a phone is REQUIRED when the booking has a pickup — TBD still counts
   // as a pickup, since the driver needs to reach the customer to arrange it. A transfer always needs one
   // (the driver meets/collects the traveller). No pickup → optional.
@@ -980,6 +1082,10 @@ export function Checkout() {
               specialNotes: specialNotes.trim() || null,
             }
           : {}),
+        // Photography: the chosen light slot rides the booking as special notes (api_book writes
+        // customer.specialNotes for every booking). Also part of the details-drift hash below, so
+        // changing the slot/location after a booking exists abandons the ref for a fresh one.
+        ...(isPhotoShoot ? { specialNotes: photoSpecialNotes } : {}),
       };
       const det = detailsHash({
         ...opDetails,
@@ -1134,9 +1240,15 @@ export function Checkout() {
             childSeats,
             // Ids + counts only — api_book resolves each id against the activity behind the
             // occurrence and multiplies by the row's own price. Unknown/foreign ids charge nothing.
-            supplements: supplements.length
-              ? supplements.map((s) => ({ id: s.id, qty: s.qty }))
-              : undefined,
+            // Photography merges its step-① picks (the location's "Location:" row + ticked extras)
+            // with any supplements that rode the URL from the widget.
+            supplements: (() => {
+              const rows = [
+                ...supplements.map((s) => ({ id: s.id, qty: s.qty })),
+                ...photoChosenSupps,
+              ];
+              return rows.length ? rows : undefined;
+            })(),
             holdId: holdId || undefined,
             itinerary: itin,
             // Pickup + drop-off + every other run-sheet field (flight, room, luggage, trip legs) come
@@ -1452,6 +1564,29 @@ export function Checkout() {
     </div>
   );
 
+  // Picking a photography location card: a named spot BECOMES the meeting place (the booking's
+  // pickupLocation rides the location name — the server needs nothing more for a shoot). The
+  // 'Your hotel' card (empty mapQuery) switches to the free-address map flow instead, clearing any
+  // stale card-set address so it can't satisfy the address gate by accident.
+  function pickPhotoLoc(loc: PhotographyLocation) {
+    setPhotoLocName(loc.name);
+    if (loc.mapQuery) {
+      setWantsPickup(true);
+      setTbd(false);
+      setPickupLoc(loc.name);
+      setPickupCoords(null);
+    } else {
+      setPickupLoc('');
+      setPickupCoords(null);
+    }
+  }
+
+  // The coast/light tip for the chosen location + slot. photographyLightTip decides WHICH message
+  // (and the fix target); the copy renders through t() so it translates.
+  const photoTip = chosenPhotoLoc
+    ? photographyLightTip(chosenPhotoLoc, slotLight, photoLocs)
+    : null;
+
   return (
     <div className="min-h-screen bg-white">
       <header className="border-b border-ink/10">
@@ -1462,17 +1597,17 @@ export function Checkout() {
               <li>
                 <Link
                   href={`/activities/${slug}?booking=1`}
-                  aria-label={t('Date & extras')}
+                  aria-label={t('Date & time')}
                   className="flex items-center gap-2 text-teal-dark"
                 >
                   <span className="grid h-6 w-6 place-items-center rounded-full bg-teal text-white">
                     ✓
                   </span>
-                  <span className="hidden sm:inline">{t('Date & extras')}</span>
+                  <span className="hidden sm:inline">{t('Date & time')}</span>
                 </Link>
               </li>
             )}
-            {(isPhotoShoot ? ['Meeting location', 'Your details', 'Payment'] : STEPS).map(
+            {(isPhotoShoot ? ['Location & extras', 'Your details', 'Payment'] : STEPS).map(
               (s, i) => {
                 const n = i + 1;
                 const done = step > n;
@@ -1921,41 +2056,188 @@ export function Checkout() {
                   </p>
                   <div className="mt-5">{pickupFields}</div>
                 </>
+              ) : isPhotoShoot ? (
+                <div>
+                  <h1 className="font-display text-2xl font-semibold text-ink">
+                    {photoGroup === 'weddings'
+                      ? t('Where’s the wedding?')
+                      : t('Where, and any extras?')}
+                  </h1>
+                  <p className="mt-2 text-sm text-ink-muted">
+                    {photoGroup === 'weddings'
+                      ? t('Pick the area. We’ll plan the portraits around the best light.')
+                      : t('Pick your spot. We’ll tell you if the light works at your time.')}
+                  </p>
+
+                  {/* Location cards — name / region / surcharge-or-Included / best-light chip. */}
+                  <h2 className="mt-6 text-[12px] font-bold uppercase tracking-wide text-ink-muted">
+                    {t('Location')}
+                  </h2>
+                  <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
+                    {photoLocs.map((l) => {
+                      const on = chosenPhotoLoc?.name === l.name;
+                      return (
+                        <button
+                          key={l.name}
+                          type="button"
+                          onClick={() => pickPhotoLoc(l)}
+                          className={`flex flex-col gap-1.5 rounded-[14px] border-[1.5px] p-4 text-left transition ${
+                            on
+                              ? 'border-ink bg-ink text-white'
+                              : 'border-ink/10 bg-white text-ink hover:border-ink/30'
+                          }`}
+                        >
+                          <span className="flex items-center justify-between gap-2 text-[15px] font-bold">
+                            <span>{l.name}</span>
+                            <span
+                              className={`text-[13px] font-semibold ${on ? 'text-white/70' : 'text-ink-muted'}`}
+                            >
+                              {l.extraEur > 0 ? `+${money(l.extraEur)}` : t('Included')}
+                            </span>
+                          </span>
+                          {l.region && (
+                            <span
+                              className={`text-[13px] ${on ? 'text-white/75' : 'text-ink-muted'}`}
+                            >
+                              {l.region}
+                            </span>
+                          )}
+                          {l.best && (
+                            <span
+                              className={`w-fit rounded-full px-2 py-1 text-[11px] font-bold uppercase tracking-[0.06em] ${
+                                on ? 'bg-white/15 text-[#D5F0F0]' : 'bg-[#F5F7F7] text-teal'
+                              }`}
+                            >
+                              {l.best}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* The chosen named spot pins on our map; the 'Your hotel' card keeps the
+                      free-address flow so the photographer knows where to come. */}
+                  {chosenPhotoLoc?.mapQuery ? (
+                    <div className="mt-3">
+                      <LocationMap query={chosenPhotoLoc.mapQuery} label={chosenPhotoLoc.name} />
+                    </div>
+                  ) : chosenPhotoLoc ? (
+                    <div className="mt-3">{pickupFields}</div>
+                  ) : null}
+
+                  {/* The coast/light tip — warns on a coast-vs-slot mismatch with a one-click fix. */}
+                  {photoTip && chosenPhotoLoc && (
+                    <div
+                      className={`mt-3 flex flex-wrap items-center gap-3 rounded-[14px] px-4 py-3.5 text-sm leading-relaxed ${
+                        photoTip.warn
+                          ? 'bg-coral/10 text-coral-dark'
+                          : 'bg-teal-tint text-teal-dark'
+                      }`}
+                    >
+                      <span className="flex-none text-xs font-bold uppercase tracking-[0.12em]">
+                        {photoTip.warn
+                          ? t('Light tip')
+                          : chosenPhotoLoc.coast === 'any'
+                            ? t('Good to know')
+                            : t('Great pick')}
+                      </span>
+                      <span className="flex-[1_1_260px]">
+                        {photoTip.warn || chosenPhotoLoc.coast === 'any'
+                          ? t(photoTip.text)
+                          : t('{location} at that time is one of our favourite combinations.', {
+                              location: chosenPhotoLoc.name,
+                            })}
+                      </span>
+                      {photoTip.fixTo && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const fix = photoLocs.find((l) => l.name === photoTip.fixTo);
+                            if (fix) pickPhotoLoc(fix);
+                          }}
+                          className="flex-none rounded-full bg-coral-dark px-3.5 py-2 text-[13px] font-bold text-white"
+                        >
+                          {t('Switch to {location}', { location: photoTip.fixTo })}
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Extras — the activity's generic supplements (the "Location:" rows are priced by
+                      the cards above, so they're not listed here). Ticking one adds it to the
+                      booking + the displayed total; the server re-prices by id. */}
+                  {photoAddons.length > 0 && (
+                    <div className="mt-6">
+                      <h2 className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">
+                        {t('Extras')}{' '}
+                        <span className="font-medium normal-case tracking-normal text-ink-muted/80">
+                          ({t('optional')})
+                        </span>
+                      </h2>
+                      <div className="mt-3 flex flex-col overflow-hidden rounded-2xl border-[1.5px] border-ink/10 bg-white">
+                        {photoAddons.map((a, i) => {
+                          const on = !!photoExtrasSel[a.id];
+                          return (
+                            <button
+                              key={a.id}
+                              type="button"
+                              onClick={() =>
+                                setPhotoExtrasSel((cur) => ({ ...cur, [a.id]: !cur[a.id] }))
+                              }
+                              className={`flex items-center gap-3.5 px-[18px] py-4 text-left transition ${
+                                i > 0 ? 'border-t border-ink/10' : ''
+                              } ${on ? 'bg-teal-tint' : 'bg-white hover:bg-ink/[0.02]'}`}
+                            >
+                              <span
+                                className={`grid h-[22px] w-[22px] flex-none place-items-center rounded-md border-[1.5px] text-[13px] font-bold ${
+                                  on
+                                    ? 'border-teal bg-teal text-white'
+                                    : 'border-ink/20 bg-white text-transparent'
+                                }`}
+                              >
+                                ✓
+                              </span>
+                              <span className="flex-1 text-[15px] font-bold text-ink">
+                                {a.name}
+                              </span>
+                              <span className="text-sm font-bold text-ink">
+                                +{money(a.priceEur)}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
               ) : (
                 <>
+                  {/* The generic "Do you want pickup?" step — photography now has its own
+                      location-cards branch above, so this only serves tours. */}
                   <h1 className="font-display text-2xl font-semibold text-ink">
-                    {isPhotoShoot ? t('Where should we meet you?') : t('Do you want pickup?')}
+                    {t('Do you want pickup?')}
                   </h1>
                   <div
                     role="radiogroup"
-                    aria-label={
-                      isPhotoShoot ? t('Where should we meet you?') : t('Do you want pickup?')
-                    }
+                    aria-label={t('Do you want pickup?')}
                     className="mt-5 flex flex-col gap-2"
                   >
                     <PickRadio
                       checked={wantsPickup}
                       onClick={() => setWantsPickup(true)}
-                      title={
-                        isPhotoShoot ? t('At my hotel, villa or an address') : t('Yes, pick me up')
-                      }
+                      title={t('Yes, pick me up')}
                     >
                       {wantsPickup && pickupFields}
                     </PickRadio>
                     <PickRadio
                       checked={!wantsPickup}
                       onClick={() => setWantsPickup(false)}
-                      title={
-                        isPhotoShoot
-                          ? t('We’ll agree the spot together')
-                          : t('No, I’ll make my own way')
-                      }
+                      title={t('No, I’ll make my own way')}
                     >
                       {!wantsPickup && (
                         <span className="mt-2 block rounded-lg bg-teal/5 px-3 py-2 text-[12.5px] text-ink-muted">
-                          {isPhotoShoot
-                            ? t('Your photographer will message you to choose the location.')
-                            : t('Meet at {location}', { location: title })}
+                          {t('Meet at {location}', { location: title })}
                         </span>
                       )}
                     </PickRadio>
@@ -1969,7 +2251,13 @@ export function Checkout() {
                 aria-busy={busy}
                 className="mt-6 hidden items-center justify-center rounded-full bg-teal-dark px-7 py-3 text-sm font-bold text-white hover:bg-teal-dark/90 disabled:cursor-not-allowed disabled:bg-teal-dark/85 lg:flex"
               >
-                {busy ? <Spinner label={t('Loading')} /> : t('Next: Personal details')}
+                {busy ? (
+                  <Spinner label={t('Loading')} />
+                ) : isPhotoShoot ? (
+                  t('Continue to details')
+                ) : (
+                  t('Next: Personal details')
+                )}
               </button>
               {/* Stable, always-rendered live region: the pickup input's aria-describedby points here,
                   and the hint is announced when it appears (it explains why Next is disabled). */}
@@ -1984,7 +2272,9 @@ export function Checkout() {
                       ? t('Choose your hotel (or pick “My hotel isn’t listed”).')
                       : t('Add the flight number, date and time for your trip.')
                     : isPhotoShoot
-                      ? t('Add the address, or choose “I don’t know yet”.')
+                      ? photoHotelFlow
+                        ? t('Add the address, or choose “I don’t know yet”.')
+                        : t('Choose a location to continue.')
                       : t('Add your pickup address, or choose “I don’t know yet”.')
                   : ''}
               </p>
@@ -2234,6 +2524,32 @@ export function Checkout() {
             <div className="flex items-center gap-2">
               <IconCalendar width={15} height={15} className="text-teal" /> {when || '—'}
             </div>
+            {isPhotoShoot && slotLabel && (
+              <div className="flex items-center gap-2">
+                <IconClock width={15} height={15} className="text-teal" /> {slotLabel}
+              </div>
+            )}
+            {isPhotoShoot && chosenPhotoLoc && (
+              <div className="flex items-center gap-2">
+                <IconPin width={15} height={15} className="text-teal" /> {chosenPhotoLoc.name}
+              </div>
+            )}
+            {isPhotoShoot && photoLocRow && chosenPhotoLoc && chosenPhotoLoc.extraEur > 0 && (
+              <div className="flex items-center gap-2">
+                <IconCheck width={15} height={15} className="text-teal" />
+                {t('{location} surcharge', { location: chosenPhotoLoc.name })} ·{' '}
+                {money(chosenPhotoLoc.extraEur)}
+              </div>
+            )}
+            {isPhotoShoot &&
+              photoAddons
+                .filter((a) => photoExtrasSel[a.id])
+                .map((a) => (
+                  <div key={a.id} className="flex items-center gap-2">
+                    <IconCheck width={15} height={15} className="text-teal" />
+                    {a.name} · {money(a.priceEur)}
+                  </div>
+                ))}
             {!isPhotoShoot && (
               <div className="flex items-center gap-2">
                 <IconUsers width={15} height={15} className="text-teal" /> {guests}{' '}
@@ -2329,6 +2645,11 @@ export function Checkout() {
                   <Price eur={Math.round((displayTotalNum - photoDeposit) * 100) / 100} />
                 </span>
               </div>
+              {/* The hold this checkout reuses (stashed on Continue) — same countdown as the badge. */}
+              <div className="flex items-center gap-1.5 border-t border-ink/10 pt-1.5 text-[12px] text-ink-muted">
+                <span className="h-1.5 w-1.5 rounded-full bg-teal" />
+                {t('Date held for {time}', { time: `${mm}:${ss}` })}
+              </div>
             </div>
           )}
           <div className="mt-3 flex items-center gap-2 text-[12.5px] text-ink/80">
@@ -2353,7 +2674,13 @@ export function Checkout() {
             aria-busy={busy}
             className="flex w-full items-center justify-center rounded-full bg-teal-dark px-7 py-3.5 text-sm font-bold text-white hover:bg-teal-dark/90 disabled:cursor-not-allowed disabled:bg-teal-dark/85"
           >
-            {busy ? <Spinner label={t('Loading')} /> : t('Next: Personal details')}
+            {busy ? (
+              <Spinner label={t('Loading')} />
+            ) : isPhotoShoot ? (
+              t('Continue to details')
+            ) : (
+              t('Next: Personal details')
+            )}
           </button>
         )}
         {step === 2 && !session && (

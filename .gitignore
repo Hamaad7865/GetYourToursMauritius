@@ -83,3 +83,6 @@ skills-lock.json
 
 .vercel
 .env*
+
+# Local dev tooling (downloaded binaries, not source)
+.dev-tools/
