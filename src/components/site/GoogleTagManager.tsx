@@ -9,13 +9,14 @@ import {
 /**
  * Google Tag Manager, gated by Google Consent Mode v2.
  *
- * GA4 is configured INSIDE the container (Sharon's setup), so the site installs the GTM snippet
- * only — there is deliberately no separate gtag/GA4 tag here.
+ * GA4 is configured INSIDE the container (the business-owned GTM-5F8BVWJL, which fires GA4
+ * G-3XYCC71MGT), so the site installs the GTM snippet only — there is deliberately no separate
+ * gtag/GA4 tag here.
  *
  * Consent Mode rather than conditional injection: the container always loads, but every storage
  * signal starts DENIED, so Google's own tags fall back to cookieless pings until the visitor opts
  * in via the cookie banner (which calls `gtag('consent','update',…)`). This keeps the tag plumbing
- * in one place — Sharon can add tags in GTM without touching the codebase — while the legal gate
+ * in one place — tags can be added in GTM without touching the codebase — while the legal gate
  * stays in ours.
  *
  * ORDERING IS LOAD-BEARING: the consent default must be in the dataLayer *before* gtm.js is
@@ -26,7 +27,7 @@ import {
  */
 
 /** Public container id. Overridable so a preview/staging deploy can point elsewhere or set it empty. */
-const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID ?? 'GTM-PXZRKZ2J';
+const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID ?? 'GTM-5F8BVWJL';
 
 const bootstrap = `
 window.dataLayer = window.dataLayer || [];
