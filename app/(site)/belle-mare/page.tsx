@@ -472,9 +472,10 @@ export default async function BelleMarePage() {
 export async function generateMetadata(): Promise<Metadata> {
   const raw = getArea(SLUG);
   if (!raw) return { title: 'Destination not found' };
-  const a = localisedArea(raw, await getLocale());
-  const title = areaMetaTitle(a);
-  const description = areaMetaDescription(a);
+  const locale = await getLocale();
+  const a = localisedArea(raw, locale);
+  const title = areaMetaTitle(a, locale);
+  const description = areaMetaDescription(a, locale);
   return overrideMetadata(a.path, {
     title,
     description,

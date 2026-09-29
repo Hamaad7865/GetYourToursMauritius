@@ -1,6 +1,7 @@
 import { AREAS_RAW } from './_areas.gen';
 import { AREAS_FR } from './_areas.fr.gen';
 import { localiseContent } from './localise';
+import { fitSnippet } from '@/lib/seo/snippet';
 import type { Locale } from '@/lib/i18n/config';
 
 /** Mauritius area / destination guides. Raw content is generated into `_areas.gen.ts`. */
@@ -73,22 +74,43 @@ export function getArea(slug: string): Area | null {
   return areas.find((a) => a.slug === slug) ?? null;
 }
 
-export function areaMetaTitle(a: Area): string {
-  // The root template appends " | Belle Mare Tours" (19 chars), so the page-specific part has to
-  // stay around 40 to keep the whole title inside Google's ~60-char display window. The longer
-  // "(Things to Do, Beaches & Transfers)" suffix this replaced pushed every destination page to 95
-  // and was simply truncated in results — the keywords it added were never actually shown.
-  return `${a.name}, Mauritius — Area Guide`;
+/**
+ * Hand-tuned search titles/descriptions for areas where Search Console shows the generic pattern
+ * missing the dominant query. Belle Mare: "belle mare", "belle mare mauritius" and "belle mare beach"
+ * are 56% of the page's impressions, at ~0.6% CTR under the old "Area Guide" title — and it is the
+ * one area with a curated hotel list, so it can honestly promise hotels.
+ */
+const AREA_META: Partial<Record<string, Record<Locale, { title: string; description: string }>>> = {
+  'belle-mare': {
+    en: {
+      title: 'Belle Mare Beach, Mauritius: Hotels & Things to Do',
+      description:
+        'Belle Mare’s long white-sand beach and turquoise lagoon on Mauritius’ east coast: the resorts along it, Île aux Cerfs trips and what to do nearby.',
+    },
+    fr: {
+      title: 'Belle Mare, île Maurice : plage, hôtels et activités',
+      description:
+        'La longue plage de sable blanc et le lagon turquoise de Belle Mare, sur la côte est de l’île Maurice : hôtels, sorties à l’île aux Cerfs et activités.',
+    },
+  },
+};
+
+export function areaMetaTitle(a: Area, locale: Locale = 'en'): string {
+  // The root template appends " | Belle Mare Tours" (19 chars), so the page-specific part stays near
+  // 40 to fit Google's ~60-char window — and if a long name pushes it over, the cut falls on the
+  // brand, not on the words that make someone click. "Area Guide" promised nothing; "Things to Do" is
+  // what these searchers want. (The "(Things to Do, Beaches & Transfers)" suffix this family once had
+  // ran to 95 and lost its keywords to the cut.) French pages were serving the English title.
+  const tuned = AREA_META[a.slug]?.[locale];
+  if (tuned) return tuned.title;
+  return locale === 'fr'
+    ? `${a.name}, île Maurice : que voir, que faire`
+    : `${a.name}, Mauritius: Things to Do`;
 }
 
-export function areaMetaDescription(a: Area): string {
-  // Keep within Google's ~160-char snippet window and cut on a word boundary (not mid-word) so the
-  // snippet reads cleanly instead of being rewritten.
-  const text = a.intro.trim();
-  if (text.length <= 155) return text;
-  const cut = text.slice(0, 155);
-  const lastSpace = cut.lastIndexOf(' ');
-  return `${(lastSpace > 120 ? cut.slice(0, lastSpace) : cut).replace(/[\s.,;:–—-]+$/, '')}…`;
+export function areaMetaDescription(a: Area, locale: Locale = 'en'): string {
+  // Pass the LOCALISED area: `intro` is the translated copy on French pages.
+  return AREA_META[a.slug]?.[locale]?.description ?? fitSnippet(a.intro);
 }
 
 /** An area guide in the visitor's language, falling back to English per field. */

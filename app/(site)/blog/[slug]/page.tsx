@@ -8,6 +8,7 @@ import { formatPostDate } from '@/lib/content/blog';
 import { loadPost, loadRelatedPosts } from '@/lib/content/blog-live';
 import { articleJsonLd, breadcrumbListJsonLd, faqPageJsonLd } from '@/lib/seo/jsonld';
 import { SITE, OG_IMAGE } from '@/lib/seo/site';
+import { fitSnippet } from '@/lib/seo/snippet';
 import { getT, getLocale } from '@/lib/i18n/server';
 import { localeAlternates, localePath } from '@/lib/i18n/routing';
 
@@ -28,8 +29,10 @@ export async function generateMetadata({
   // own translated title/excerpt (already resolved above, since loadPost got the locale) rather than
   // serving an English SEO variant on an otherwise-French page. Not a structured-data violation
   // either way — this is <title>/<meta description>, not visible page content.
+  // The excerpt is card copy, not snippet copy — 40 of 44 French posts ran past 200 characters and
+  // were cut mid-sentence by Google — so fit it to the snippet window.
   const title = locale === 'fr' ? p.title : p.metaTitle || p.title;
-  const description = locale === 'fr' ? p.excerpt : p.metaDescription;
+  const description = locale === 'fr' ? fitSnippet(p.excerpt) : p.metaDescription;
   return {
     title,
     description,

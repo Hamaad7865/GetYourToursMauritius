@@ -1,5 +1,6 @@
 import type { PlannerPlace } from '@/lib/validation/planner';
 import { SITE } from '@/lib/seo/site';
+import { snippetWithTail } from '@/lib/seo/snippet';
 import { ATTRACTION_IMAGES } from './_attraction-images.gen';
 import { ATTRACTIONS_FR, REGION_INTRO_FR } from './_additional-attractions.fr.gen';
 import { localiseContent } from './localise';
@@ -109,19 +110,35 @@ export function formatVisitDuration(min: number, locale: Locale = 'en'): string 
   return `${Math.floor(hours)}–${Math.ceil(hours)} hours`;
 }
 
-export function attractionMetaTitle(p: PlannerPlace): string {
-  // The root metadata template appends the site name, so don't repeat the brand here.
-  return `${p.name}, ${p.region} Mauritius — Visitor Guide`;
+export function attractionMetaTitle(p: PlannerPlace, locale: Locale = 'en'): string {
+  // Place name first, and short. Searchers type the place itself ("anse la raie", "crystal rock
+  // mauritius"), and the root template appends " | Belle Mare Tours" — so when Google cuts at ~60
+  // characters it should cut the brand, never the place. The region that used to sit in the middle
+  // ("…, North Mauritius — Visitor Guide") pushed every one of these past 60. French pages get a
+  // French title: they were serving this English one to French searchers.
+  return locale === 'fr'
+    ? `${p.name}, île Maurice : guide de visite`
+    : `${p.name}, Mauritius: Visitor Guide`;
 }
 
-export function attractionMetaDescription(p: PlannerPlace): string {
-  const lead = p.blurb
-    ? `${p.blurb} `
-    : `${p.name} is one of the highlights of ${p.region.toLowerCase()} Mauritius. `;
-  return `${lead}Visit with ${SITE.operator}: private pickup anywhere in Mauritius, licensed driver-guides and instant online booking.`.slice(
-    0,
-    320,
-  );
+const ATTRACTION_META_TAIL: Record<Locale, string> = {
+  en: 'Private tours with hotel pickup.',
+  fr: 'Visites privées avec prise en charge à l’hôtel.',
+};
+
+/**
+ * The attraction's own blurb, fitted to the snippet window, with a short booking line when there is
+ * room. French uses the French blurb (or, for a marquee spot, its French editorial) when one exists;
+ * most attractions have neither yet, and an English blurb under a French title reads worse than a
+ * plain French sentence, so those get a generic one.
+ */
+export function attractionMetaDescription(p: PlannerPlace, locale: Locale = 'en'): string {
+  const fr = ATTRACTIONS_FR[p.id];
+  const lead =
+    locale === 'fr'
+      ? (fr?.blurb ?? fr?.body?.[0] ?? `${p.name} fait partie des sites à voir à l’île Maurice.`)
+      : p.blurb || `${p.name} is one of the highlights of ${p.region.toLowerCase()} Mauritius.`;
+  return snippetWithTail(lead, ATTRACTION_META_TAIL[locale]);
 }
 
 /** Optional hand-written editorial for marquee attractions — layered on top of the blurb. */

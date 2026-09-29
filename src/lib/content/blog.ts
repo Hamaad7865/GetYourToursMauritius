@@ -57,8 +57,49 @@ function dateForIndex(i: number): string {
   return new Date(base - i * 5 * 86400000).toISOString().slice(0, 10);
 }
 
+/**
+ * Search-result title/description fixes for seed posts, laid over the generated copy (which is
+ * regenerated wholesale, so it can't be hand-edited). Each is driven by Search Console data from
+ * 30 Aug – 26 Sep 2026: the post already ranks on page one, but its title doesn't answer the query
+ * people actually type, so almost nobody clicks. The root template still appends the brand, so the
+ * visible part is written to fit ~45 characters where it can.
+ */
+export const POST_META_OVERRIDES: Record<
+  string,
+  Partial<Pick<PostContent, 'metaTitle' | 'metaDescription'>>
+> = {
+  // "best places to watch sunset" — 788 impressions at #6.6, zero clicks. The generated title also
+  // carried the brand itself, so the template printed it twice.
+  'sunset-spots-mauritius': {
+    metaTitle: 'Best Places to Watch the Sunset in Mauritius',
+    metaDescription:
+      'The best places to watch the sunset in Mauritius: Le Morne, Tamarin, Flic en Flac and a west-coast sunset catamaran, with timing and season tips.',
+  },
+  // "can you use euros / dollars in mauritius" — 0.19% CTR, the worst on the site.
+  'money-in-mauritius': {
+    metaTitle: 'Can You Use Euros or Dollars in Mauritius? Money Guide',
+    metaDescription:
+      'Euros, dollars or rupees? What to pay with in Mauritius, where cards work, ATMs, tipping and what things really cost, from a local tour operator.',
+  },
+  // "mauritius arrival card", "mauritius entry form" — the form the article covers in full.
+  'mauritius-entry-requirements': {
+    metaTitle: 'Mauritius Entry Requirements & Arrival Card Guide',
+    metaDescription:
+      'Visa-free entry, the All-in-One Travel Form (arrival card), passport and onward-ticket rules: what to do before you fly to Mauritius and at immigration.',
+  },
+  // "ganga talao" (508) out-searches "grand bassin" (270), so it leads.
+  'grand-bassin-guide': {
+    metaTitle: 'Ganga Talao (Grand Bassin), Mauritius: Visitor Guide',
+  },
+  // "markets in mauritius", "flacq market", "port louis market", "best places to shop".
+  'mauritius-markets-guide': {
+    metaTitle: 'Mauritius Markets: Port Louis, Flacq & Where to Shop',
+  },
+};
+
 export const posts: Post[] = POSTS_RAW.map((p, i) => ({
   ...p,
+  ...POST_META_OVERRIDES[p.slug],
   // Seed posts carry no photo of their own, which left the index a wall of text-only cards and every
   // social share falling back to the site-wide OG image. BLOG_HERO (generated alongside the files in
   // public/blog) fills that in. A post that ever ships its own hero keeps it, and an admin-written DB

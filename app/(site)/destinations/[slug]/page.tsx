@@ -44,12 +44,12 @@ export async function generateMetadata({
   const { slug } = await params;
   const a = getArea(slug);
   if (!a) return { title: 'Destination not found' };
-  // `areaMetaTitle` is built only from `a.name` — a real place name, never translated (see
-  // AreaTranslation in areas.ts) — so it reads the same in both languages. `areaMetaDescription`
-  // reads `a.intro`, which IS translatable, so localise first to pick up the French copy.
-  const localised = localisedArea(a, await getLocale());
-  const title = areaMetaTitle(localised);
-  const description = areaMetaDescription(localised);
+  // Both builders take the locale: the area name is real data and never translated, but the words
+  // around it are, and `areaMetaDescription` reads the localised `intro`.
+  const locale = await getLocale();
+  const localised = localisedArea(a, locale);
+  const title = areaMetaTitle(localised, locale);
+  const description = areaMetaDescription(localised, locale);
   return overrideMetadata(a.path, {
     title,
     description,

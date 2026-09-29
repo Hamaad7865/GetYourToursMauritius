@@ -34,12 +34,12 @@ export async function generateMetadata({
   const { slug } = await params;
   const place = await getPlace(slug);
   if (!place) return { title: 'Attraction not found' };
-  // `attractionMetaTitle` uses only `p.name`/`p.region` — real place data, never translated — so it
-  // reads the same in both languages. `attractionMetaDescription` falls through to `p.blurb`, which
-  // IS translatable (see AttractionTranslation in attractions.ts), so localise first.
-  const localised = localisedPlace(place, await getLocale());
-  const title = attractionMetaTitle(localised);
-  const description = attractionMetaDescription(localised);
+  // Both builders take the locale: the place name stays as-is (real data, never translated), but the
+  // words around it and the description are written per language.
+  const locale = await getLocale();
+  const localised = localisedPlace(place, locale);
+  const title = attractionMetaTitle(localised, locale);
+  const description = attractionMetaDescription(localised, locale);
   const canonical = attractionPath(place.id);
   const img = attractionImage(place.id);
   // Local photos are stored as a root-relative path; crawlers need an absolute OG image URL.
