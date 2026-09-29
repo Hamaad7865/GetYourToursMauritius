@@ -4,6 +4,18 @@ import { getSeoMeta } from '@/lib/services/seo';
 import { getLocale } from '@/lib/i18n/server';
 import { localeAlternates } from '@/lib/i18n/routing';
 
+/** A page's French search snippet. Titles are absolute (no brand suffix), like the English ones. */
+export type FrenchMeta = { title: string; description: string };
+
+function withFrenchMeta(defaults: Metadata, fr: FrenchMeta): Metadata {
+  return {
+    ...defaults,
+    title: { absolute: fr.title },
+    description: fr.description,
+    openGraph: { ...(defaults.openGraph ?? {}), title: fr.title, description: fr.description },
+  };
+}
+
 /**
  * Merge the admin-editable `seo_meta` override for `path` over a page's built-in metadata.
  * Lets the SEO editor tune a public page's <title>, meta description and OG image from
@@ -22,12 +34,21 @@ import { localeAlternates } from '@/lib/i18n/routing';
  * the English URL on a French page, which tells Google the French page is a duplicate and drops it
  * from the index. Callers should pass their English path and let this build the set.
  */
-export async function overrideMetadata(path: string, defaults: Metadata): Promise<Metadata> {
+export async function overrideMetadata(
+  path: string,
+  defaults: Metadata,
+  fr?: FrenchMeta,
+): Promise<Metadata> {
   const locale = await getLocale();
   const ogLocale = locale === 'fr' ? 'fr_FR' : 'en_GB';
   const alternates = localeAlternates(path, locale);
+  if (locale === 'fr' && fr) defaults = withFrenchMeta(defaults, fr);
   try {
-    const o = await getSeoMeta(publicServiceContext(locale), path);
+    const found = await getSeoMeta(publicServiceContext(locale), path);
+    // `seo_meta` has no locale column, so every override is English. Where the page supplies its
+    // own French title and description, those win on /fr — an English override there is what put
+    // English snippets in front of French searchers. The override's OG image still applies.
+    const o = found && locale === 'fr' && fr ? { ...found, title: null, description: null } : found;
     if (!o || (!o.title && !o.description && !o.ogImageUrl)) {
       return {
         ...defaults,

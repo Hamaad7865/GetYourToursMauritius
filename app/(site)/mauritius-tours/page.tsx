@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { overrideMetadata } from '@/lib/seo/override';
+import { LANDING_META_FR } from '@/lib/seo/landing-fr';
 import { InfoPage, EnquireRow } from '@/components/site/InfoPage';
 import { Breadcrumb } from '@/components/catalogue/Breadcrumb';
 import { JsonLd } from '@/components/seo/JsonLd';
@@ -403,5 +404,9 @@ export default async function MauritiusToursPage() {
 
 /** Built-in metadata merged with the /admin/seo override for this path (see src/lib/seo/override.ts). */
 export async function generateMetadata(): Promise<Metadata> {
-  return overrideMetadata('/mauritius-tours', DEFAULT_METADATA);
+  return overrideMetadata(
+    '/mauritius-tours',
+    DEFAULT_METADATA,
+    LANDING_META_FR['/mauritius-tours'],
+  );
 }

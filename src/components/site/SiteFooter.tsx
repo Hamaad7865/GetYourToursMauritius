@@ -2,7 +2,8 @@ import Link from 'next/link';
 import { Logo } from './Logo';
 import { SITE, whatsappUrl } from '@/lib/seo/site';
 import { IconChat, IconMail } from '@/components/ui/icons';
-import { getT } from '@/lib/i18n/server';
+import { getT, getLocale } from '@/lib/i18n/server';
+import { isEnglishOnly, localePath } from '@/lib/i18n/routing';
 import { getWhatsAppNumber } from '@/lib/settings/whatsapp-number';
 
 /**
@@ -81,7 +82,7 @@ const COLUMNS = [
 ];
 
 export async function SiteFooter() {
-  const [t, waNumber] = await Promise.all([getT(), getWhatsAppNumber()]);
+  const [t, locale, waNumber] = await Promise.all([getT(), getLocale(), getWhatsAppNumber()]);
   // Both WhatsApp entry points used to be href="#whatsapp" — which was this footer's OWN id, so
   // clicking "Chat on WhatsApp" scrolled to the footer and did nothing else. The id is gone with
   // them: nothing else referenced it, and a self-referencing anchor is what disguised the bug.
@@ -134,7 +135,12 @@ export async function SiteFooter() {
                     ? whatsapp
                     : link.href === EMAIL_LINK
                       ? `mailto:${SITE.email}`
-                      : link.href;
+                      : // Same-language links: on /fr the footer is on every page, so linking the
+                        // English URLs left the French hubs with almost no internal links. The
+                        // English-only legal pages canonicalise to English, so they keep that URL.
+                        link.href.startsWith('/') && !isEnglishOnly(link.href)
+                        ? localePath(locale, link.href)
+                        : link.href;
                 const className =
                   'block py-1.5 text-sm text-cream/70 no-underline hover:text-coral';
                 // Anything that leaves the site needs a plain anchor — next/link would try to
