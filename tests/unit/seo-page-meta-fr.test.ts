@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Metadata } from 'next';
 import { renderToStaticMarkup } from 'react-dom/server';
 
-/* French search snippets for the landing pages (Search Console, Sep 2026: /fr/mauritius-catamaran-
+/* French search snippets for public pages (Search Console, Sep 2026: /fr/mauritius-catamaran-
  * cruise sat at #46 for "catamaran ile maurice" with an English title) and same-language footer
  * links, which are what give the French hubs internal links from the 237 French pages. */
 
@@ -18,7 +18,8 @@ vi.mock('@/lib/settings/whatsapp-number', () => ({ getWhatsAppNumber: async () =
 import { getSeoMeta } from '@/lib/services/seo';
 import { getLocale } from '@/lib/i18n/server';
 import { overrideMetadata } from '@/lib/seo/override';
-import { LANDING_META_FR } from '@/lib/seo/landing-fr';
+import { PAGE_META_FR } from '@/lib/seo/page-meta-fr';
+import { getTransfer, transferMetaFr } from '@/lib/content/transfers';
 import { SNIPPET_MAX } from '@/lib/seo/snippet';
 import { SiteFooter } from '@/components/site/SiteFooter';
 
@@ -71,19 +72,37 @@ describe('overrideMetadata with French meta', () => {
   });
 });
 
-describe('LANDING_META_FR', () => {
-  it('covers real landing pages only', () => {
-    for (const path of Object.keys(LANDING_META_FR)) {
-      expect(existsSync(`app/(site)${path}/page.tsx`), path).toBe(true);
+describe('PAGE_META_FR', () => {
+  it('covers real pages only', () => {
+    for (const path of Object.keys(PAGE_META_FR)) {
+      const file = path === '/' ? 'app/(site)/page.tsx' : `app/(site)${path}/page.tsx`;
+      expect(existsSync(file), path).toBe(true);
     }
   });
 
-  it('says "île Maurice" and fits the search result', () => {
-    for (const [path, { title, description }] of Object.entries(LANDING_META_FR)) {
-      expect(title, path).toMatch(/[îÎ]le Maurice/);
+  it('is picked up by path, with no per-page wiring', async () => {
+    vi.mocked(getLocale).mockResolvedValueOnce('fr');
+    vi.mocked(getSeoMeta).mockResolvedValue(null);
+    const m = await overrideMetadata('/mauritius-catamaran-cruise', DEFAULTS);
+    expect(m.title).toEqual({ absolute: PAGE_META_FR['/mauritius-catamaran-cruise']!.title });
+  });
+
+  it('says "île Maurice" where it targets a search, and fits the search result', () => {
+    for (const [path, { title, description }] of Object.entries(PAGE_META_FR)) {
+      if (path !== '/cookies') expect(title, path).toMatch(/[îÎ]le Maurice/);
       expect(title.length, path).toBeLessThanOrEqual(60);
       expect(description.length, path).toBeLessThanOrEqual(SNIPPET_MAX);
     }
+  });
+});
+
+describe('transferMetaFr', () => {
+  it('writes the hotel transfer snippet in French with the live price', () => {
+    const t = getTransfer('lux-belle-mare')!;
+    const { title, description } = transferMetaFr(t, 55);
+    expect(title).toBe('Transfert aéroport vers LUX* Belle Mare : dès 55 €');
+    expect(description).toMatch(/^Transfert privé de l’aéroport SSR à LUX\* Belle Mare/);
+    expect(description.length).toBeLessThanOrEqual(SNIPPET_MAX);
   });
 });
 

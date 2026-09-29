@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { DEFAULT_LOCALE } from '@/lib/i18n/config';
 import { LOCALE_HEADER, splitLocalePath } from '@/lib/i18n/routing';
+import { NO_STORE_PATHS, PAGE_SECURITY_HEADERS } from '@/lib/security-headers';
 
 /**
  * Makes French URL-addressable.
@@ -31,12 +32,28 @@ export function middleware(request: NextRequest): NextResponse {
 
   // English keeps the bare path. Pass through untouched — in particular do NOT rewrite away a
   // trailing slash here, so Next's own 308 normalisation still happens exactly as before.
-  if (locale === DEFAULT_LOCALE) return NextResponse.next({ request: { headers } });
+  if (locale === DEFAULT_LOCALE) {
+    return withPageHeaders(NextResponse.next({ request: { headers } }), locale, path);
+  }
 
   headers.set(LOCALE_HEADER, locale);
   const url = request.nextUrl.clone();
   url.pathname = path;
-  return NextResponse.rewrite(url, { request: { headers } });
+  return withPageHeaders(NextResponse.rewrite(url, { request: { headers } }), locale, path);
+}
+
+/**
+ * Response headers for a page. next.config.mjs `headers()` never reaches a response that went
+ * through this middleware on Cloudflare Pages, so the page-level ones are set here instead (see
+ * src/lib/security-headers.ts). `Content-Language` tells crawlers that don't run JavaScript which
+ * language the page is in — the root layout is static and always says `lang="en"`, correcting it
+ * only client-side.
+ */
+function withPageHeaders(res: NextResponse, locale: string, path: string): NextResponse {
+  for (const [name, value] of PAGE_SECURITY_HEADERS) res.headers.set(name, value);
+  res.headers.set('Content-Language', locale);
+  if (NO_STORE_PATHS.includes(path)) res.headers.set('Cache-Control', 'no-store, must-revalidate');
+  return res;
 }
 
 export const config = {

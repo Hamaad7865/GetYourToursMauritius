@@ -10,6 +10,7 @@ import {
   getTransfer,
   transferMetaTitle,
   transferMetaDescription,
+  transferMetaFr,
   localisedTransfer,
   genericTransferFaq,
 } from '@/lib/content/transfers';
@@ -30,29 +31,31 @@ export async function generateMetadata({
   const { slug } = await params;
   const t = getTransfer(slug);
   if (!t) return { title: 'Transfer not found' };
-  // Unlike the area/attraction meta helpers, `transferMetaTitle`/`transferMetaDescription` don't
-  // read any of `TransferContent`'s translatable fields (`intro`/`included`/`faq`) at all — they're
-  // hardcoded English sentences built from the hotel name and fare facts. Localising `t` first
-  // would change nothing, so it's skipped; these stay English until someone writes French sentence
-  // templates for them (a content task, not a wiring one).
+  // The meta helpers don't read `TransferContent`'s translatable fields at all — they're sentence
+  // templates built from the hotel name and fare facts, so localising `t` first would change
+  // nothing. French has its own template (transferMetaFr), which overrideMetadata uses on /fr.
   // The from-price comes off the LIVE fare table (cached per request, so the page body below reuses
   // this same fetch) — a snippet advertising less than the widget charges is the worst place for it.
   const fromPriceEur = transferFromPriceEur(t.slug, await loadAirportFares());
   const title = transferMetaTitle(t, fromPriceEur);
   const description = transferMetaDescription(t, fromPriceEur);
   const canonical = t.path;
-  return overrideMetadata(canonical, {
-    title,
-    description,
-    alternates: { canonical },
-    openGraph: {
-      type: 'website',
+  return overrideMetadata(
+    canonical,
+    {
       title,
       description,
-      url: `${SITE.url}${canonical}`,
-      images: [OG_IMAGE],
+      alternates: { canonical },
+      openGraph: {
+        type: 'website',
+        title,
+        description,
+        url: `${SITE.url}${canonical}`,
+        images: [OG_IMAGE],
+      },
     },
-  });
+    transferMetaFr(t, fromPriceEur),
+  );
 }
 
 function Fact({ label, value }: { label: string; value: string }) {

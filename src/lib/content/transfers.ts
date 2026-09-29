@@ -2,6 +2,7 @@ import { TRANSFERS_RAW } from './_transfers.gen';
 import { TRANSFERS_FR } from './_transfers.fr.gen';
 import { localiseContent } from './localise';
 import type { Locale } from '@/lib/i18n/config';
+import { fitSnippet } from '@/lib/seo/snippet';
 
 /**
  * Per-hotel airport-transfer landing pages. Raw content (intro/FAQ/etc.) is generated
@@ -124,6 +125,23 @@ export const TRANSFER_REGION_ORDER: TransferRegion[] = [
 export function transferMetaTitle(t: Transfer, fromPriceEur: number): string {
   // Root template appends the site name — don't repeat the brand here.
   return `Airport Transfer to ${t.hotelName} — from €${fromPriceEur}`;
+}
+
+/**
+ * The French search snippet for a hotel transfer. /fr/airport-transfers/<hotel> used to show the
+ * English sentence above, identical to the English page — 45 duplicate titles in the site audit.
+ * Absolute title, like every French snippet, so it names the brand itself where it fits.
+ */
+export function transferMetaFr(
+  t: Transfer,
+  fromPriceEur: number,
+): { title: string; description: string } {
+  return {
+    title: `Transfert aéroport vers ${t.hotelName} : dès ${fromPriceEur} €`,
+    description: fitSnippet(
+      `Transfert privé de l’aéroport SSR à ${t.hotelName}, ${t.area} (environ ${t.durationMinFromAirport} min). Prix fixe dès ${fromPriceEur} € par voiture, accueil à l’arrivée et suivi du vol.`,
+    ),
+  };
 }
 
 export function transferMetaDescription(t: Transfer, fromPriceEur: number): string {

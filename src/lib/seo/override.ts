@@ -3,6 +3,7 @@ import { publicServiceContext } from '@/lib/http/context';
 import { getSeoMeta } from '@/lib/services/seo';
 import { getLocale } from '@/lib/i18n/server';
 import { localeAlternates } from '@/lib/i18n/routing';
+import { PAGE_META_FR } from './page-meta-fr';
 
 /** A page's French search snippet. Titles are absolute (no brand suffix), like the English ones. */
 export type FrenchMeta = { title: string; description: string };
@@ -42,6 +43,9 @@ export async function overrideMetadata(
   const locale = await getLocale();
   const ogLocale = locale === 'fr' ? 'fr_FR' : 'en_GB';
   const alternates = localeAlternates(path, locale);
+  // A page may pass its own French snippet (built from data, e.g. a transfer's hotel and price);
+  // otherwise the hand-written one for this path, if there is one.
+  fr ??= PAGE_META_FR[path];
   if (locale === 'fr' && fr) defaults = withFrenchMeta(defaults, fr);
   try {
     const found = await getSeoMeta(publicServiceContext(locale), path);

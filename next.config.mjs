@@ -86,6 +86,14 @@ const nextConfig = {
   },
   // Security + edge-caching headers.
   //
+  // LANDMINE (found 30 Sep 2026): on Cloudflare Pages (next-on-pages) these rules never reach a
+  // response that goes through middleware.ts — i.e. EVERY HTML page. Only the routes middleware
+  // skips (API, robots.txt, sitemap, files) get them. So the Cache-Control rules below have never
+  // applied to a page, and the page-level security headers are set in middleware instead, from
+  // src/lib/security-headers.ts (a test keeps the two in step). Don't "fix" caching by copying the
+  // Cache-Control rules into middleware: Cloudflare ignores `Vary: Cookie`, so a cached page would
+  // hand one visitor's display currency to the next.
+  //
   // Caching (anonymous, non-personalised) shields Postgres under load: a cached page is served from the
   // Cloudflare edge to N concurrent readers while the DB sees ~one revalidation, not N queries. The
   // activity DETAIL path (/activities/:slug*) is deliberately NOT cached — headers() matches by path

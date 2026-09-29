@@ -4,8 +4,8 @@ import { InfoPage } from '@/components/site/InfoPage';
 import { LegalArticle, LegalSection, P, LegalList, Callout } from '@/components/site/Legal';
 import { CookieSettingsButton } from '@/components/site/CookieSettingsButton';
 import { SITE } from '@/lib/seo/site';
-import { getLocale, getT } from '@/lib/i18n/server';
-import { localeAlternates } from '@/lib/i18n/routing';
+import { getT } from '@/lib/i18n/server';
+import { overrideMetadata } from '@/lib/seo/override';
 
 export const runtime = 'edge';
 
@@ -19,8 +19,9 @@ const DEFAULT_METADATA: Metadata = {
 
 // generateMetadata rather than a static export: the canonical has to follow the rendered locale
 // (/cookies vs /fr/cookies), and a static one would name the English URL on the French page.
+// overrideMetadata builds that canonical and swaps in the French title on /fr.
 export async function generateMetadata(): Promise<Metadata> {
-  return { ...DEFAULT_METADATA, alternates: localeAlternates('/cookies', await getLocale()) };
+  return overrideMetadata('/cookies', DEFAULT_METADATA);
 }
 
 export default async function CookiesPage() {
