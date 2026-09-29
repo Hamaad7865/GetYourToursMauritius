@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { InfoPage, EnquireRow } from '@/components/site/InfoPage';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { renderBlocks } from '@/components/content/RichText';
-import { formatPostDate } from '@/lib/content/blog';
+import { formatPostDate, POST_META_FR } from '@/lib/content/blog';
 import { loadPost, loadRelatedPosts } from '@/lib/content/blog-live';
 import { articleJsonLd, breadcrumbListJsonLd, faqPageJsonLd } from '@/lib/seo/jsonld';
 import { SITE, OG_IMAGE } from '@/lib/seo/site';
@@ -30,9 +30,12 @@ export async function generateMetadata({
   // serving an English SEO variant on an otherwise-French page. Not a structured-data violation
   // either way — this is <title>/<meta description>, not visible page content.
   // The excerpt is card copy, not snippet copy — 40 of 44 French posts ran past 200 characters and
-  // were cut mid-sentence by Google — so fit it to the snippet window.
-  const title = locale === 'fr' ? p.title : p.metaTitle || p.title;
-  const description = locale === 'fr' ? fitSnippet(p.excerpt) : p.metaDescription;
+  // were cut mid-sentence by Google — so fit it to the snippet window. POST_META_FR carries French SEO
+  // copy for the few posts where Search Console showed the translated title missing the query.
+  const fr = locale === 'fr' ? POST_META_FR[p.slug] : undefined;
+  const title = locale === 'fr' ? (fr?.metaTitle ?? p.title) : p.metaTitle || p.title;
+  const description =
+    locale === 'fr' ? (fr?.metaDescription ?? fitSnippet(p.excerpt)) : p.metaDescription;
   return {
     title,
     description,
@@ -154,7 +157,9 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
               {related.map((r) => (
                 <Link
                   key={r.slug}
-                  href={r.path}
+                  // Same-language link: a French article pointing at the English URL passes nothing
+                  // to the French page the reader (and Google) actually wants next.
+                  href={localePath(locale, r.path)}
                   className="group rounded-2xl border border-ink/10 bg-white p-5 transition hover:-translate-y-0.5 hover:shadow-lg"
                 >
                   <div className="text-[12px] font-semibold text-ink-muted">

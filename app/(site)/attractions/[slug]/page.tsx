@@ -18,11 +18,15 @@ import {
   nearbyPlaces,
   localisedPlace,
   localisedAttractionExtra,
+  ATTRACTION_LINKS,
 } from '@/lib/content/attractions';
+import { getPost, localisedPost } from '@/lib/content/blog';
+import { getArea } from '@/lib/content/areas';
 import { attractionJsonLd, breadcrumbListJsonLd, faqPageJsonLd } from '@/lib/seo/jsonld';
 import { overrideMetadata } from '@/lib/seo/override';
 import { SITE } from '@/lib/seo/site';
 import { getT, getLocale } from '@/lib/i18n/server';
+import { localePath } from '@/lib/i18n/routing';
 
 export const runtime = 'edge';
 
@@ -86,6 +90,10 @@ export default async function AttractionDetailPage({
   const meta = categoryMeta(place.category);
   const path = attractionPath(place.id);
   const img = attractionImage(place.id);
+  const deeper = ATTRACTION_LINKS[place.id];
+  const guidePost = deeper?.guide ? getPost(deeper.guide) : null;
+  const guide = guidePost ? localisedPost(guidePost, locale) : null;
+  const area = deeper?.area ? getArea(deeper.area) : null;
 
   const aboutParas = extra?.body ?? [
     locale === 'fr'
@@ -219,6 +227,46 @@ export default async function AttractionDetailPage({
             </ul>
           )}
         </section>
+
+        {/* Go deeper — the long-form guide and the area guide (see ATTRACTION_LINKS). Inline French
+            rather than t() keys: two labels, and same-language hrefs so a French page links French. */}
+        {(guide || area) && (
+          <section className="mt-9 border-t border-ink/10 pt-8">
+            <h2 className="text-[22px] font-extrabold tracking-tight text-ink">
+              {locale === 'fr' ? 'Pour aller plus loin' : 'Go deeper'}
+            </h2>
+            <ul className="m-0 mt-4 flex list-none flex-col gap-2.5 p-0 text-[15px] leading-snug">
+              {guide && (
+                <li>
+                  <span className="text-ink/60">
+                    {locale === 'fr' ? 'Guide complet :' : 'Full guide:'}
+                  </span>{' '}
+                  <Link
+                    href={localePath(locale, guide.path)}
+                    className="font-semibold text-teal-dark hover:underline"
+                  >
+                    {guide.title}
+                  </Link>
+                </li>
+              )}
+              {area && (
+                <li>
+                  <span className="text-ink/60">
+                    {locale === 'fr' ? 'Guide de la région :' : 'Area guide:'}
+                  </span>{' '}
+                  <Link
+                    href={localePath(locale, area.path)}
+                    className="font-semibold text-teal-dark hover:underline"
+                  >
+                    {locale === 'fr'
+                      ? `${area.name}, île Maurice : que voir, que faire`
+                      : `Things to do in ${area.name}`}
+                  </Link>
+                </li>
+              )}
+            </ul>
+          </section>
+        )}
 
         {/* Map */}
         <section className="mt-9 border-t border-ink/10 pt-8">

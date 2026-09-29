@@ -1,12 +1,21 @@
 import Link from 'next/link';
-import { getT } from '@/lib/i18n/server';
+import { getT, getLocale } from '@/lib/i18n/server';
+import { localePath } from '@/lib/i18n/routing';
 
 /**
  * A crawlable cluster of internal links to the main SEO landing pages and content hubs. It lives at
  * the foot of the homepage so every key page is one click — and one crawl hop — from the site root.
- * Plain English labels: the site defaults to English and these are mostly place/brand names.
+ * Plain English labels: the site defaults to English and these are mostly place/brand names. Hrefs are
+ * same-language, so the French homepage passes its weight to the French pages, not the English ones.
  */
-const LINKS: { label: string; href: string }[] = [
+const LINKS: { label: string; labelFr?: string; href: string }[] = [
+  // SEASONAL until 2026-12-31 — December trip-planning demand peaks Oct–Nov ("ile maurice en
+  // decembre" sat at #26 with rising impressions). Remove in January.
+  {
+    label: 'Mauritius in December',
+    labelFr: 'L’île Maurice en décembre',
+    href: '/blog/mauritius-in-december',
+  },
   { label: 'Mauritius tours', href: '/mauritius-tours' },
   { label: 'Catamaran cruise', href: '/mauritius-catamaran-cruise' },
   { label: 'Île aux Cerfs tours', href: '/ile-aux-cerfs-tours' },
@@ -22,6 +31,7 @@ const LINKS: { label: string; href: string }[] = [
 
 export async function PopularSearches() {
   const t = await getT();
+  const locale = await getLocale();
   return (
     <section aria-labelledby="popular-heading" className="mx-auto mt-12 max-w-shell px-6">
       <div className="rounded-2xl border border-teal/20 bg-teal-tint/40 p-6 sm:p-8">
@@ -37,10 +47,10 @@ export async function PopularSearches() {
           {LINKS.map((l) => (
             <Link
               key={l.href}
-              href={l.href}
+              href={localePath(locale, l.href)}
               className="rounded-full border border-ink/15 bg-white px-4 py-2 text-[14px] font-semibold text-ink hover:border-teal hover:text-teal"
             >
-              {l.label}
+              {locale === 'fr' && l.labelFr ? l.labelFr : l.label}
             </Link>
           ))}
         </div>

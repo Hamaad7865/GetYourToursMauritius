@@ -3,6 +3,7 @@ import {
   blogPath,
   getPost as getGenPost,
   localisedPost,
+  RELATED_POSTS,
   type Post,
 } from './blog';
 import { publicServiceContext } from '@/lib/http/context';
@@ -75,12 +76,16 @@ export async function loadPost(slug: string, locale: Locale = 'en'): Promise<Pos
   return seed ? localisedPost(seed, locale) : null;
 }
 
-/** Other posts to link under an article (merged source, newest first). */
+/** Other posts to link under an article: the hand-picked ones first (RELATED_POSTS), then the newest. */
 export async function loadRelatedPosts(
   slug: string,
   n = 3,
   locale: Locale = 'en',
 ): Promise<Post[]> {
-  const all = await loadPosts(locale);
-  return all.filter((p) => p.slug !== slug).slice(0, n);
+  const others = (await loadPosts(locale)).filter((p) => p.slug !== slug);
+  const picked = (RELATED_POSTS[slug] ?? [])
+    .map((s) => others.find((p) => p.slug === s))
+    .filter((p): p is Post => p !== undefined);
+  const rest = others.filter((p) => !picked.includes(p));
+  return [...picked, ...rest].slice(0, n);
 }

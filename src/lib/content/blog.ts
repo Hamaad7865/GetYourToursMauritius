@@ -95,6 +95,70 @@ export const POST_META_OVERRIDES: Record<
   'mauritius-markets-guide': {
     metaTitle: 'Mauritius Markets: Port Louis, Flacq & Where to Shop',
   },
+  // "mauritius in december", "mauritius december weather" — demand peaks Oct–Nov as trips are booked.
+  'mauritius-in-december': {
+    metaTitle: 'Mauritius in December: Weather, Prices & What to Do',
+  },
+};
+
+/**
+ * French search-result titles/descriptions for seed posts. French pages otherwise title themselves
+ * with the post's translated `title`, which says "Maurice" — but French searchers type "île Maurice"
+ * ("ile maurice en decembre", "snorkeling ile maurice", "coucher de soleil ile maurice", "plongée ile
+ * maurice"), and each of these posts sat on page two or three for exactly that phrase. Kept out of
+ * `localisedPost` on purpose: meta is page-layer SEO copy, not article content.
+ */
+export const POST_META_FR: Record<
+  string,
+  Partial<Pick<PostContent, 'metaTitle' | 'metaDescription'>>
+> = {
+  // "ile maurice en decembre" — 383 impressions in September at #26, and rising into the season.
+  'mauritius-in-december': {
+    metaTitle: 'Île Maurice en décembre : météo, prix et que faire',
+    metaDescription:
+      'Partir à l’île Maurice en décembre : été austral, mer à 27–28 °C, ambiance des fêtes, affluence et prix. Conseils pratiques d’un opérateur local.',
+  },
+  'snorkeling-in-mauritius': { metaTitle: 'Snorkeling à l’île Maurice : les meilleurs spots' },
+  'sunset-spots-mauritius': {
+    metaTitle: 'Coucher de soleil à l’île Maurice : les plus beaux spots',
+  },
+  'scuba-diving-mauritius': { metaTitle: 'Plongée à l’île Maurice : meilleurs sites et saisons' },
+};
+
+/**
+ * Hand-picked "related articles" for posts where topic matters more than recency, so the links carry
+ * readers — and link weight — to the post they are most likely to want next. Anything not listed
+ * falls back to the most recent posts.
+ *
+ * SEASONAL until 2026-12-31: the trip-planning posts lead with `mauritius-in-december` while December
+ * demand peaks. Put them back to a year-round pick in January.
+ */
+export const RELATED_POSTS: Record<string, string[]> = {
+  'best-time-to-visit-mauritius': [
+    'mauritius-in-december',
+    'mauritius-entry-requirements',
+    'money-in-mauritius',
+  ],
+  'mauritius-entry-requirements': [
+    'mauritius-in-december',
+    'money-in-mauritius',
+    'getting-around-mauritius',
+  ],
+  'money-in-mauritius': [
+    'mauritius-in-december',
+    'mauritius-entry-requirements',
+    'getting-around-mauritius',
+  ],
+  'mauritius-in-december': [
+    'best-time-to-visit-mauritius',
+    'ile-aux-cerfs-guide',
+    'getting-around-mauritius',
+  ],
+  // The south-west circuit: one day trip, four guides that should point at each other.
+  'grand-bassin-guide': ['black-river-gorges-guide', 'tamarind-falls-guide', 'chamarel-guide'],
+  'black-river-gorges-guide': ['grand-bassin-guide', 'chamarel-guide', 'tamarind-falls-guide'],
+  'tamarind-falls-guide': ['grand-bassin-guide', 'black-river-gorges-guide', 'chamarel-guide'],
+  'chamarel-guide': ['black-river-gorges-guide', 'grand-bassin-guide', 'tamarind-falls-guide'],
 };
 
 export const posts: Post[] = POSTS_RAW.map((p, i) => ({
