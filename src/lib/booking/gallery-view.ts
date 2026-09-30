@@ -120,6 +120,22 @@ export function galleryTabCounts(
   };
 }
 
+/**
+ * The figures for the gallery header ("24 photos · 2 videos"). The API's `meta.photoCount` is the
+ * number of ITEMS — photos and videos together, and the page also reads it as "does this gallery have
+ * anything?" — so the header subtracts the videos to get photos alone, the same figure the account
+ * Galleries card shows. Without `meta` it counts what was actually sent.
+ */
+export function galleryHeaderCounts(
+  meta: Partial<GalleryMeta> | null | undefined,
+  sent: { all: number; videos: number },
+): { photos: number; videos: number } {
+  const videos = meta?.videoCount ?? sent.videos;
+  const photos =
+    meta?.photoCount != null ? Math.max(0, meta.photoCount - videos) : sent.all - sent.videos;
+  return { photos, videos };
+}
+
 /** `BMT-4821` → `bmt-4821` — lowercase, url-safe base for zip names. */
 export function gallerySlug(bookingRef: string): string {
   return (

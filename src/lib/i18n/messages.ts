@@ -3444,4 +3444,18 @@ export const fr: Record<string, string> = {
   'Your ZIP is downloading': 'Votre ZIP se télécharge',
   'Preparing your ZIP': 'Préparation de votre ZIP',
   '{done} of {total} files': '{done} fichiers sur {total}',
+  Galleries: 'Galeries',
+  'My galleries': 'Mes galeries',
+  'No galleries yet': 'Pas encore de galerie',
+  'We couldn’t load your galleries.': 'Impossible de charger vos galeries.',
+  Locked: 'Verrouillée',
+  'Your photos are ready. Pay the remaining balance to unlock them.':
+    'Vos photos sont prêtes. Réglez le solde restant pour les débloquer.',
+  'See the photography packages': 'Voir les formules photo',
+  'When your photographer delivers a shoot, it appears here.':
+    'Quand votre photographe livre une séance, elle apparaît ici.',
+  'Your delivered shoots live here — download the photos or share them with family.':
+    'Vos séances livrées sont ici — téléchargez les photos ou partagez-les avec vos proches.',
+  'Sign in to see your photo galleries from your shoots.':
+    'Connectez-vous pour voir les galeries de vos séances photo.',
 };

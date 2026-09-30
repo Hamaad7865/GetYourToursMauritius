@@ -30,6 +30,7 @@ import {
   THUMB_ROW_HEIGHTS,
   buildZipEntries,
   filterGalleryByTab,
+  galleryHeaderCounts,
   gallerySlug,
   galleryTabCounts,
   parseGalleryResponse,
@@ -296,10 +297,7 @@ export function BookingGallery({ bookingRef }: { bookingRef: string }) {
             {[
               shootDateLabel,
               meta?.location ?? null,
-              t('{photos} photos · {videos} videos', {
-                photos: meta?.photoCount ?? counts.all - counts.videos,
-                videos: meta?.videoCount ?? counts.videos,
-              }),
+              t('{photos} photos · {videos} videos', galleryHeaderCounts(meta, counts)),
             ]
               .filter(Boolean)
               .join(' · ')}

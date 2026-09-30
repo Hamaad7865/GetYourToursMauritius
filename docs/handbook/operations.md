@@ -74,6 +74,11 @@ themselves are not sent to their browser until the balance has cleared. Each gal
 next. **Request balance** under _Balances to collect_ still works and counts as the same confirmation
 when the booking already has photos.
 
+Guests can also find their shoots in their account: **Account → Galleries** lists every delivered
+gallery — an open one has a **View gallery** button, an unpaid one is marked **Locked** and offers
+**Pay the balance**. The tab only appears once a gallery has been delivered to that customer, so a guest
+whose photos are still in draft (or who has no photography booking) never sees it.
+
 **The optional supplements** are the extras a guest can add to a tour while booking, and you own both
 halves of each: type the name ("Lobster for lunch", "Snorkel gear") and the price per person — add as
 many rows as the tour sells. Remove a row and it disappears from the tour page. Guests pick how many

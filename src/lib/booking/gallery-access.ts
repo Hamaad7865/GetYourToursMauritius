@@ -19,7 +19,8 @@ import { isVideoUrl } from '@/lib/media';
 export type GalleryAccess = 'hidden' | 'locked' | 'open';
 
 /** Booking statuses whose gallery may be served — the same set the RLS policy admits. */
-const LIVE_STATUSES: ReadonlySet<string> = new Set(['confirmed', 'completed']);
+export const GALLERY_LIVE_STATUSES: readonly string[] = ['confirmed', 'completed'];
+const LIVE_STATUSES: ReadonlySet<string> = new Set(GALLERY_LIVE_STATUSES);
 
 export function galleryAccess(input: {
   /** bookings.gallery_ready_at — set when the studio confirms delivery. */

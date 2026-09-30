@@ -5,7 +5,8 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useRef } from 'react';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { useT } from '@/components/site/PreferencesProvider';
-import { IconBell, IconBookings, IconShield, IconUser, IconWallet } from '@/components/ui/icons';
+import { accountTabs, isActiveAccountTab } from './account-tabs';
+import { useAccountGalleries } from './useAccountGalleries';
 
 export function AccountSpinner() {
   const t = useT();
@@ -45,39 +46,37 @@ export function SignedOutPrompt({ message }: { message: string }) {
   );
 }
 
-const TABS = [
-  { href: '/account', label: 'Personal details', icon: IconUser },
-  { href: '/account/bookings', label: 'Bookings', icon: IconBookings },
-  { href: '/account/notifications', label: 'Notifications', icon: IconBell },
-  { href: '/account/cards', label: 'Saved cards', icon: IconWallet },
-  { href: '/account/privacy', label: 'Data & privacy', icon: IconShield },
-];
-
 /** Account-area tabs: a vertical left rail on sm+; a horizontally-scrollable, edge-to-edge tab strip on
  *  mobile (the five tabs don't fit a phone row, so they'd otherwise clip). The active tab is centred in
  *  the strip on mount/route change so it's always visible. */
 export function AccountNav() {
   const t = useT();
+  const { session } = useAuth();
   const pathname = usePathname();
   const navRef = useRef<HTMLElement>(null);
   const activeRef = useRef<HTMLAnchorElement>(null);
+  // Until the list has loaded (and whenever it could not, or the customer is signed out) there is no
+  // Galleries tab — no flash of a tab that then vanishes.
+  const galleries = useAccountGalleries(session);
+  const tabs = accountTabs(galleries.status === 'ready' && galleries.cards.length > 0);
 
   // Centre the active tab within the mobile scroll strip (sets the nav's OWN scrollLeft only — never the
-  // window). A no-op on sm+ where the rail is vertical and has no horizontal overflow.
+  // window). A no-op on sm+ where the rail is vertical and has no horizontal overflow. Re-runs when
+  // Galleries appears, because that can be the active tab and it arrives after the first paint.
   useEffect(() => {
     const nav = navRef.current;
     const el = activeRef.current;
     if (!nav || !el) return;
     nav.scrollLeft = el.offsetLeft - (nav.clientWidth - el.clientWidth) / 2;
-  }, [pathname]);
+  }, [pathname, tabs.length]);
 
   return (
     <nav
       ref={navRef}
       className="flex gap-1 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-col sm:overflow-visible [&::-webkit-scrollbar]:hidden"
     >
-      {TABS.map((tab) => {
-        const active = pathname === tab.href;
+      {tabs.map((tab) => {
+        const active = isActiveAccountTab(pathname, tab.href);
         const Icon = tab.icon;
         return (
           <Link

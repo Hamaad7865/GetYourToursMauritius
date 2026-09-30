@@ -318,6 +318,43 @@ export const apiPaths: ZodOpenApiPathsObject = {
       },
     },
   },
+  '/account/galleries': {
+    get: {
+      operationId: 'listAccountGalleries',
+      summary: 'The caller’s delivered photography galleries (open or locked)',
+      description:
+        'One card per photography shoot the studio has confirmed complete ' +
+        '(bookings.gallery_ready_at) on a live booking the caller owns. `access` is `open` once ' +
+        'the balance is paid in full and `locked` while it is owed. The photo files sit in a ' +
+        'public bucket, so a URL is a bearer credential: only an open gallery’s first photo is ' +
+        'ever returned (as `coverUrl`); a locked card carries the package’s public catalogue ' +
+        'cover, or null, and never a gallery file URL. Undelivered galleries, bookings with no ' +
+        'photos and non-photography bookings are not listed, so the list is empty for a ' +
+        'customer with nothing delivered (the account nav hides its Galleries tab then).',
+      tags: ['Account'],
+      security: [{ bearerAuth: [] }],
+      responses: {
+        '200': okJson(
+          z.object({
+            galleries: z.array(
+              z.object({
+                ref: z.string(),
+                packageTitle: z.string(),
+                shootDate: z.string().nullable(),
+                photoCount: z.number().int(),
+                videoCount: z.number().int(),
+                access: z.enum(['locked', 'open']),
+                coverUrl: z.string().nullable(),
+                balanceDueMinor: z.number().int(),
+              }),
+            ),
+          }),
+          'The caller’s delivered galleries, newest booking first — empty when none is delivered',
+        ),
+        '401': errorResponse('Authentication required'),
+      },
+    },
+  },
   '/account/delete': {
     post: {
       operationId: 'deleteAccount',

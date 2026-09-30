@@ -319,6 +319,12 @@ The rule now lives in **two mirrored places** and both must change together:
   `confirmed`/`completed`. It reads the stored `balance_due_minor` because `booking_balance_due()` is
   service-role only and cannot be called from a policy.
 
+A third reader follows the same rule: `GET /account/galleries` (the account **Galleries** tab). It reads
+through the service role scoped by `user_id = caller`, lists only delivered, live bookings, and gives a
+**locked** card the package's _public_ catalogue cover (`extra.photographyCover`, else its first
+`activity_images` row) — never a gallery file URL. `tests/integration/account-galleries.test.ts` fails if
+that `user_id` filter goes missing or a locked card carries a gallery URL.
+
 `bookings.gallery_ready_at` is the studio's "Confirm gallery complete" stamp and is **load-bearing**:
 without it the guest sees no gallery and no email is sent. So **every staff action that tells a guest
 their photos are ready must stamp it** through `markGalleryReady` (`complete`, `gallery/send`, and
