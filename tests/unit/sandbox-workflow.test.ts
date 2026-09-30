@@ -104,10 +104,25 @@ describe('sandbox.yml — never reads a production value', () => {
     }
   });
 
-  it('sends no email, WhatsApp or owner-alert settings anywhere', () => {
+  it('sends no WhatsApp, Telegram, owner-alert, quote-sender or auth-email settings anywhere', () => {
     expect(withoutComments).not.toMatch(
-      /RESEND|WHATSAPP|TELEGRAM|OWNER_NOTIFY|QUOTE_FROM|SEND_EMAIL/,
+      /WHATSAPP|TELEGRAM|OWNER_NOTIFY|QUOTE_FROM|SEND_EMAIL|AUTH_EMAIL/,
     );
+  });
+
+  it('carries mail only as the three SANDBOX_ settings, held by the guard-rails step alone', () => {
+    const mail = ['SANDBOX_RESEND_API_KEY', 'SANDBOX_RESEND_FROM', 'SANDBOX_EMAIL_REDIRECT_TO'];
+    // Never the production-named Resend settings.
+    expect(expressions.filter((e) => /RESEND|EMAIL_REDIRECT/.test(e)).sort()).toEqual([
+      'secrets.SANDBOX_EMAIL_REDIRECT_TO',
+      'secrets.SANDBOX_RESEND_API_KEY',
+      'vars.SANDBOX_RESEND_FROM',
+    ]);
+    for (const s of steps) {
+      const holds = mail.filter((n) => s.env && n in s.env);
+      if (String(s.name).includes('Guard rails')) expect(holds.sort()).toEqual([...mail].sort());
+      else expect(holds, `${s.name} must not hold a mail setting`).toEqual([]);
+    }
   });
 });
 
@@ -208,6 +223,19 @@ describe('sandbox.yml — the health check knows whether Peach was configured', 
     expect(readFileSync('scripts/sandbox/ci.mjs', 'utf8')).toContain(
       "setOutput('peach_configured'",
     );
+  });
+});
+
+describe('sandbox.yml — the health check knows whether mail was configured', () => {
+  it('passes the resolve step’s email_configured output to the health step (a flag, never a setting)', () => {
+    const env = stepNamed('Health check').env as Record<string, string>;
+    expect(env.SANDBOX_EMAIL_CONFIGURED).toBe('${{ steps.sandbox.outputs.email_configured }}');
+  });
+
+  it('the script really emits that output and reads it back', () => {
+    const src = readFileSync('scripts/sandbox/ci.mjs', 'utf8');
+    expect(src).toContain("setOutput('email_configured'");
+    expect(src).toContain('SANDBOX_EMAIL_CONFIGURED');
   });
 });
 

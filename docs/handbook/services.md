@@ -99,6 +99,12 @@ Where: **P** = Cloudflare Pages · **W** = the `gytm-cron` Worker's own secrets 
 | `AUTH_EMAIL_FROM`        | Auth-email sender             | Falls back to `RESEND_FROM`                                    |
 | `SEND_EMAIL_HOOK_SECRET` | Supabase Send-Email hook HMAC | Endpoint **503** → every password reset and confirmation fails |
 | `OWNER_NOTIFY_EMAIL`     | Where owner alerts land       | Defaults to `info@bellemaretours.com`                          |
+| `EMAIL_REDIRECT_TO`      | **Sandbox only:** one inbox   | Mail goes to its real recipients. **Never set this in prod**   |
+
+`EMAIL_REDIRECT_TO` exists so the hosted sandbox (fake customers, a real mail key) can never email anyone
+but its tester: every message is delivered to that one inbox, subject-tagged `[sandbox → original]`, with
+no BCC or Reply-To. The app **refuses to send** if it is set while `PEACH_ENVIRONMENT=live`. See
+[sandbox.md](sandbox.md).
 
 Two mailboxes, two jobs: `bookings@` is send-only (nobody reads it); `info@` is the human inbox and the
 Reply-To on every message, so a guest replying to a confirmation reaches a person.

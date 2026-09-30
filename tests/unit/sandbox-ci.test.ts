@@ -311,11 +311,23 @@ describe('settings table', () => {
     for (const s of SANDBOX_SETTINGS) expect(s.gh.startsWith('SANDBOX_')).toBe(true);
   });
 
-  it('does not manage email, WhatsApp, Telegram or owner-alert settings — the sandbox sends none', () => {
+  it('manages no WhatsApp, Telegram, owner-alert or auth-email settings, and only the three redirected-mail ones', () => {
     const forbidden =
-      /RESEND|QUOTE_FROM|OWNER_|WHATSAPP|TELEGRAM|SEND_EMAIL|AUTH_EMAIL|PEACH_EXPECT_LIVE|GOOGLE|GSC/;
+      /QUOTE_FROM|OWNER_|WHATSAPP|TELEGRAM|SEND_EMAIL|AUTH_EMAIL|PEACH_EXPECT_LIVE|GOOGLE|GSC/;
     for (const name of MANAGED_RUNTIME_NAMES) expect(name).not.toMatch(forbidden);
     for (const s of SANDBOX_SETTINGS) expect(s.local).not.toMatch(forbidden);
+    // Mail is managed, but only as a unit that cannot be used without its redirect inbox
+    // (see tests/unit/sandbox-ci-mail.test.ts).
+    expect(MANAGED_RUNTIME_NAMES.filter((n) => /RESEND|EMAIL/.test(n)).sort()).toEqual([
+      'EMAIL_REDIRECT_TO',
+      'RESEND_API_KEY',
+      'RESEND_FROM',
+    ]);
+    // …and read from SANDBOX_-prefixed local names, so a production RESEND_API_KEY in .env.local
+    // can never be picked up.
+    for (const s of SANDBOX_SETTINGS.filter((x) => /RESEND|EMAIL/.test(x.local))) {
+      expect(s.local.startsWith('SANDBOX_'), s.local).toBe(true);
+    }
   });
 });
 
@@ -463,10 +475,14 @@ describe('Pages project settings', () => {
       values: r.config.values,
       siteUrl: site,
       peachConfigured: r.config.peachConfigured,
-      existingNames: ['RESEND_API_KEY', 'SOMETHING_THE_OWNER_ADDED', ...MANAGED_RUNTIME_NAMES],
+      existingNames: [
+        'WHATSAPP_ACCESS_TOKEN',
+        'SOMETHING_THE_OWNER_ADDED',
+        ...MANAGED_RUNTIME_NAMES,
+      ],
     });
     const names = Object.keys(withForeign.deployment_configs.production.env_vars);
-    expect(names).not.toContain('RESEND_API_KEY');
+    expect(names).not.toContain('WHATSAPP_ACCESS_TOKEN');
     expect(names).not.toContain('SOMETHING_THE_OWNER_ADDED');
     expect(names.sort()).toEqual([...MANAGED_RUNTIME_NAMES].sort());
   });

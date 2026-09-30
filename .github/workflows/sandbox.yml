@@ -20,11 +20,13 @@
 #   * this workflow reads ONLY SANDBOX_* names, so nothing can fall back to a production value;
 #   * scripts/sandbox/ci.mjs (unit-tested) refuses, before anything is built or deployed: the
 #     production Supabase project, keys from two different projects, the production Pages project,
-#     any project not named "*sandbox*", and any Peach endpoint that is not a TEST one;
+#     any project not named "*sandbox*", any Peach endpoint that is not a TEST one, and a mail key
+#     that does not come with the one inbox all sandbox mail is delivered to;
 #   * secrets are handed only to the steps that need them, never to the build or `npm ci`;
 #   * the sandbox is built with indexing off and the analytics container blanked.
-# Email and the cron Worker are deliberately NOT part of this workflow: the sandbox database holds
-# fake customers and a backlog of queued emails, so nothing here can send mail.
+# The cron Worker (gytm-cron-sandbox) is deployed by hand, not by this workflow. Mail is OPTIONAL and
+# can only ever reach ONE inbox: the sandbox database holds fake customers, so a key is refused unless
+# SANDBOX_EMAIL_REDIRECT_TO comes with it, and the app then diverts every email there.
 name: Sandbox deploy
 
 on:
@@ -83,6 +85,10 @@ jobs:
           SANDBOX_PEACH_WEBHOOK_SECRET: ${{ secrets.SANDBOX_PEACH_WEBHOOK_SECRET }}
           SANDBOX_PEACH_AUTH_BASE_URL: ${{ vars.SANDBOX_PEACH_AUTH_BASE_URL }}
           SANDBOX_PEACH_CHECKOUT_BASE_URL: ${{ vars.SANDBOX_PEACH_CHECKOUT_BASE_URL }}
+          # Mail: all three or none, and a key only ever with its redirect inbox (see the header).
+          SANDBOX_RESEND_API_KEY: ${{ secrets.SANDBOX_RESEND_API_KEY }}
+          SANDBOX_RESEND_FROM: ${{ vars.SANDBOX_RESEND_FROM }}
+          SANDBOX_EMAIL_REDIRECT_TO: ${{ secrets.SANDBOX_EMAIL_REDIRECT_TO }}
         run: node scripts/sandbox/ci.mjs resolve
 
       - name: Install
@@ -164,6 +170,7 @@ jobs:
         env:
           SANDBOX_RESOLVED_SITE_URL: ${{ steps.sandbox.outputs.site_url }}
           SANDBOX_PEACH_CONFIGURED: ${{ steps.sandbox.outputs.peach_configured }}
+          SANDBOX_EMAIL_CONFIGURED: ${{ steps.sandbox.outputs.email_configured }}
         run: node scripts/sandbox/ci.mjs health --sha "${{ github.sha }}"
 
       # The production cron does this every 5 minutes; the sandbox has no cron, so one call per
@@ -177,11 +184,17 @@ jobs:
       - name: Summary
         env:
           SITE_URL: ${{ steps.sandbox.outputs.site_url }}
+          MAIL_ON: ${{ steps.sandbox.outputs.email_configured }}
         run: |
           {
             echo "### Sandbox deployed"
             echo "- Site: ${SITE_URL}"
             echo "- Commit: \`${GITHUB_SHA}\`"
             echo "- Database: the sandbox Supabase project (schema synced from \`supabase/catch-up.sql\`)"
-            echo "- Not indexed, no analytics, no email. Test logins and cards: \`docs/handbook/sandbox.md\`"
+            echo "- Not indexed, no analytics. Test logins and cards: \`docs/handbook/sandbox.md\`"
+            if [ "${MAIL_ON}" = "true" ]; then
+              echo "- Mail: ON — every email is delivered to the ONE inbox set in SANDBOX_EMAIL_REDIRECT_TO, tagged with who it was really for"
+            else
+              echo "- Mail: off — nothing is sent"
+            fi
           } >> "$GITHUB_STEP_SUMMARY"

@@ -165,6 +165,9 @@ async function main() {
   }
   if (check.config.supabaseRef) console.log(`\n  Supabase project: ${check.config.supabaseRef}`);
   console.log(`  Peach test keys: ${check.config.peachConfigured ? 'yes' : 'no'}`);
+  console.log(
+    `  Mail (all of it diverted to one inbox): ${check.config.emailConfigured ? 'yes' : 'no'}`,
+  );
   for (const w of check.warnings) console.log(`  ⚠ ${w}`);
   for (const k of skipped) {
     console.log(

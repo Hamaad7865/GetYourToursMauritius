@@ -3,11 +3,11 @@
 # .github/workflows/sandbox.yml) and live, calling https://belle-mare-sandbox.pages.dev.
 #
 # What it does there: every 5 minutes it runs maintenance (expires holds, reconciles payments against
-# the Peach TEST api, rolls the bookable dates forward). Every 2 minutes it runs the email drain, which
-# FAILS CLOSED: the sandbox has no mail provider (emailConfigured:false in /api/v1/health), so queued
-# emails are marked `failed` and nothing is ever sent. If a Resend key is ever added to the sandbox,
-# clear `notification_outbox` first, or retried rows would be sent to the fake @sandbox.test customers.
-# See docs/handbook/sandbox.md.
+# the Peach TEST api, rolls the bookable dates forward). Every 2 minutes it runs the email drain. With no
+# mail key on the sandbox (emailConfigured:false in /api/v1/health) that FAILS CLOSED: queued emails are
+# marked `failed` and nothing is sent. With mail on, the app delivers every email to ONE inbox
+# (EMAIL_REDIRECT_TO), never to the customers; a row that has already failed five times is final, so old
+# mail is not replayed. See docs/handbook/sandbox.md.
 #
 # Deploy from the repo root — always with THIS config (the root wrangler.toml is the Pages project):
 #

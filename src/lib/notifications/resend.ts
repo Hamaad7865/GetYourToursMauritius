@@ -1,4 +1,5 @@
 import { SITE } from '@/lib/seo/site';
+import { redirectTextNote, tagSubject, withSandboxBanner } from './redirect';
 import type { NotificationMessage, NotificationProvider } from './types';
 
 /** Why we called a departure off, as a phrase that completes "because of …". */
@@ -412,16 +413,27 @@ function fromWithBrandName(from: string): string {
 }
 
 export class ResendNotificationProvider implements NotificationProvider {
-  readonly name = 'resend';
+  readonly name: string;
 
   /** `from` is the send-only transactional identity (bookings@…); `replyTo` is the monitored human
    *  inbox (info@…), so a customer hitting Reply on a booking email reaches someone. `bcc` (also the
    *  human inbox) silently copies the owner on the CUSTOMER'S confirmation — the exact email + invoice
    *  the guest received — WITHOUT the customer seeing it. Only booking_confirmation is BCC'd; owner
-   *  alerts already reach the owner and refund/expiry mails aren't worth copying. */
+   *  alerts already reach the owner and refund/expiry mails aren't worth copying.
+   *
+   *  `redirectTo` is SANDBOX ONLY: every message goes to that one inbox instead of its recipient, tagged
+   *  with who it was really for, with no BCC / Reply-To (so the real info@ inbox is never copied). */
   constructor(
-    private readonly config: { apiKey: string; from: string; replyTo?: string; bcc?: string },
-  ) {}
+    private readonly config: {
+      apiKey: string;
+      from: string;
+      replyTo?: string;
+      bcc?: string;
+      redirectTo?: string;
+    },
+  ) {
+    this.name = config.redirectTo ? 'resend-redirected' : 'resend';
+  }
 
   async send(message: NotificationMessage): Promise<void> {
     if (message.channel !== 'email') {
@@ -432,6 +444,8 @@ export class ResendNotificationProvider implements NotificationProvider {
     // A fully pre-rendered message (e.g. the invoice/receipt email) carries its own subject/text/html;
     // use those as-is. Otherwise fall back to render() from the template + payload.
     const rendered = render(message);
+    const redirectTo = this.config.redirectTo;
+    const original = message.recipient;
     const subject = message.subject ?? rendered.subject;
     const text = message.text ?? rendered.text;
 
@@ -448,22 +462,26 @@ export class ResendNotificationProvider implements NotificationProvider {
       // goes out as the monitored info@ inbox so a guest can hit Reply); absent, config.from is used.
     } = {
       from: fromWithBrandName(message.from ?? this.config.from),
-      to: message.recipient,
-      subject,
-      text,
+      // SANDBOX: one inbox, whoever the row was for — and say so in the subject and the body.
+      to: redirectTo ?? original,
+      subject: redirectTo ? tagSubject(original, subject) : subject,
+      text: redirectTo ? `${redirectTextNote(original)}${text}` : text,
     };
-    // Mail goes out as bookings@ (send-only, unmonitored). Point Reply at the human inbox so a guest
-    // replying to their confirmation reaches us instead of a black hole.
-    if (this.config.replyTo) body.reply_to = this.config.replyTo;
-    // Silently copy the owner on the customer's CONFIRMATION only (the email + invoice the guest got).
-    // BCC, so the customer never sees the internal address and a reply-all can't reach it. A BCC that
-    // fails to deliver (e.g. info@ routing not set up) never blocks the customer's own copy.
-    if (
-      this.config.bcc &&
-      (message.template === 'booking_confirmation' || message.template === 'deposit_receipt')
-    )
-      body.bcc = this.config.bcc;
-    if (message.html) body.html = message.html;
+    if (!redirectTo) {
+      // Mail goes out as bookings@ (send-only, unmonitored). Point Reply at the human inbox so a guest
+      // replying to their confirmation reaches us instead of a black hole.
+      if (this.config.replyTo) body.reply_to = this.config.replyTo;
+      // Silently copy the owner on the customer's CONFIRMATION only (the email + invoice the guest got).
+      // BCC, so the customer never sees the internal address and a reply-all can't reach it. A BCC that
+      // fails to deliver (e.g. info@ routing not set up) never blocks the customer's own copy.
+      if (
+        this.config.bcc &&
+        (message.template === 'booking_confirmation' || message.template === 'deposit_receipt')
+      )
+        body.bcc = this.config.bcc;
+    }
+    if (message.html)
+      body.html = redirectTo ? withSandboxBanner(message.html, original) : message.html;
     if (message.attachments?.length) {
       // Resend's attachment shape is { filename, content } where content is base64; it infers the
       // MIME type from the filename, so we deliberately omit contentType to stay on the safe shape.

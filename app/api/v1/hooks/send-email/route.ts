@@ -10,6 +10,7 @@ import {
   type SendEmailHookPayload,
 } from '@/lib/auth-emails/hook';
 import { renderAuthEmail, type AuthEmailKind } from '@/lib/auth-emails/templates';
+import { assertRedirectAllowed, tagSubject, withSandboxBanner } from '@/lib/notifications/redirect';
 
 export const runtime = 'edge';
 
@@ -44,6 +45,10 @@ export const POST = apiHandler(async (req) => {
       'RESEND_API_KEY / sender identity / NEXT_PUBLIC_SUPABASE_URL is not set',
     );
   }
+  // SANDBOX ONLY: this route calls Resend itself, not through the notification provider, so it has to
+  // honour EMAIL_REDIRECT_TO (every email to one inbox) on its own — and refuse it on live payments.
+  assertRedirectAllowed(env);
+  const sandboxInbox = env.EMAIL_REDIRECT_TO;
 
   const rawBody = await req.text();
   const ok = await verifyHookSignature({
@@ -116,7 +121,16 @@ export const POST = apiHandler(async (req) => {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from, to: mail.to, subject, html, reply_to: SITE.email }),
+      body: JSON.stringify(
+        sandboxInbox
+          ? {
+              from,
+              to: sandboxInbox,
+              subject: tagSubject(mail.to, subject),
+              html: withSandboxBanner(html, mail.to),
+            }
+          : { from, to: mail.to, subject, html, reply_to: SITE.email },
+      ),
     });
     if (!res.ok) {
       // Loud + retryable: Supabase surfaces the failure on the auth call itself. 500, NOT 502 —

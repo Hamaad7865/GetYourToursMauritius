@@ -156,6 +156,32 @@ export const SANDBOX_SETTINGS = [
     runtime: 'PEACH_CHECKOUT_BASE_URL',
     group: 'peach',
   },
+  // Mail — all-or-nothing, and a key NEVER travels without the redirect inbox. The sandbox database
+  // holds fake customers (and the owner's own test addresses) and its cron drains the outbox every two
+  // minutes, so the app diverts every email to ONE inbox (EMAIL_REDIRECT_TO). The local names are
+  // SANDBOX_-prefixed too: a developer's .env.local may well hold the PRODUCTION Resend key under
+  // RESEND_API_KEY, and this tool must never be able to read it by mistake.
+  {
+    gh: 'SANDBOX_RESEND_API_KEY',
+    kind: 'secret',
+    local: 'SANDBOX_RESEND_API_KEY',
+    runtime: 'RESEND_API_KEY',
+    group: 'email',
+  },
+  {
+    gh: 'SANDBOX_RESEND_FROM',
+    kind: 'variable',
+    local: 'SANDBOX_RESEND_FROM',
+    runtime: 'RESEND_FROM',
+    group: 'email',
+  },
+  {
+    gh: 'SANDBOX_EMAIL_REDIRECT_TO',
+    kind: 'secret',
+    local: 'SANDBOX_EMAIL_REDIRECT_TO',
+    runtime: 'EMAIL_REDIRECT_TO',
+    group: 'email',
+  },
 ];
 
 /** Peach members the app cannot create a checkout without (see peachConfigFromEnv). */
@@ -166,6 +192,17 @@ const PEACH_REQUIRED = [
   'SANDBOX_PEACH_ENTITY_ID',
   'SANDBOX_PEACH_CHECKOUT_BASE_URL',
 ];
+
+/** Mail is useless, and dangerous, in part: a key without its redirect inbox is refused. */
+const EMAIL_REQUIRED = [
+  'SANDBOX_RESEND_API_KEY',
+  'SANDBOX_RESEND_FROM',
+  'SANDBOX_EMAIL_REDIRECT_TO',
+];
+
+/** Mail domains that can never receive anything — a redirect inbox there would swallow every email. */
+const UNDELIVERABLE_DOMAIN =
+  /(^|\.)(test|invalid|example|localhost|local)$|^example\.(com|org|net)$/i;
 
 /** Runtime names this tool owns on the Pages project. Anything else on the project is left alone. */
 export const DERIVED_RUNTIME_NAMES = [
@@ -463,6 +500,49 @@ export function checkSandboxConfig(env, { requireCloudflare = true } = {}) {
     }
   }
 
+  // ── Mail: all-or-nothing, and only ever to ONE inbox ───────────────────────────────────────────
+  // The sandbox database is full of fake customers and its cron drains the outbox every two minutes, so
+  // a live mail key must never be able to reach any of them. The app enforces that with
+  // EMAIL_REDIRECT_TO (every email to one inbox); here a key that arrives without it is refused, before
+  // anything is built. The address is a secret, so no message below ever repeats it.
+  let emailConfigured = false;
+  if (SANDBOX_SETTINGS.some((s) => s.group === 'email' && values[s.gh])) {
+    const missing = EMAIL_REQUIRED.filter((n) => !values[n]);
+    if (missing.length) {
+      errors.push(
+        `Mail is partly configured; missing: ${missing.join(', ')}. A mail key is only accepted together ` +
+          'with SANDBOX_EMAIL_REDIRECT_TO, the one inbox every sandbox email is delivered to.',
+      );
+    } else {
+      emailConfigured = true;
+    }
+    const to = values.SANDBOX_EMAIL_REDIRECT_TO;
+    if (to) {
+      const domain = (to.split('@')[1] ?? '').toLowerCase();
+      if (!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(to)) {
+        errors.push('SANDBOX_EMAIL_REDIRECT_TO is not a valid email address.');
+        emailConfigured = false;
+      } else if (UNDELIVERABLE_DOMAIN.test(domain)) {
+        errors.push(
+          'SANDBOX_EMAIL_REDIRECT_TO is on a domain that can never receive mail, so every sandbox email would vanish.',
+        );
+        emailConfigured = false;
+      } else if (
+        [...PRODUCTION_HOSTS, get('CANONICAL_HOST').toLowerCase()].filter(Boolean).includes(domain)
+      ) {
+        warnings.push(
+          'SANDBOX_EMAIL_REDIRECT_TO is an address at the live domain: sandbox mail will land in a real inbox.',
+        );
+      }
+    }
+    if (values.SANDBOX_RESEND_FROM && !values.SANDBOX_RESEND_FROM.includes('@')) {
+      errors.push(
+        'SANDBOX_RESEND_FROM must be an address, such as "Belle Mare Tours <bookings@your-domain>".',
+      );
+      emailConfigured = false;
+    }
+  }
+
   // ── optional custom site URL ───────────────────────────────────────────────────────────────────
   const siteUrlOverride = get('SANDBOX_SITE_URL');
   if (siteUrlOverride) {
@@ -500,6 +580,7 @@ export function checkSandboxConfig(env, { requireCloudflare = true } = {}) {
       project,
       supabaseRef: ref,
       peachConfigured,
+      emailConfigured,
       siteUrlOverride: siteUrlOverride || null,
       values,
     },
@@ -575,7 +656,11 @@ export function pinWranglerProjectName(toml, project) {
 }
 
 /** Reads a health response (200 body, or the details of a 503) into what must stop the run and what is only news. */
-export function evaluateHealth(body, expectedSha, { peachConfigured = false } = {}) {
+export function evaluateHealth(
+  body,
+  expectedSha,
+  { peachConfigured = false, emailConfigured = false } = {},
+) {
   const fatal = [];
   const warnings = [];
   const data = body?.data ?? body?.error?.details ?? null;
@@ -607,6 +692,13 @@ export function evaluateHealth(body, expectedSha, { peachConfigured = false } = 
   }
   if (checks.internalTasksConfigured === false) {
     fatal.push('INTERNAL_TASK_SECRET is not configured on the deployed site');
+  }
+  // Same reasoning as payments: mail WAS configured, so a site that reports it cannot send has lost
+  // its settings — and a green run would leave a tester waiting for emails that can never arrive.
+  if (emailConfigured && checks.emailConfigured === false) {
+    fatal.push(
+      'mail is unavailable although a Resend key was configured — the Pages project did not keep its settings',
+    );
   }
   if (expectedSha && data.releaseSha && data.releaseSha !== expectedSha) {
     warnings.push(
@@ -824,7 +916,8 @@ async function cmdResolve() {
     `✓ Guard rails passed. Sandbox project "${project}" ${found.created ? 'created' : 'found'}.`,
   );
   console.log(
-    `  Site: ${siteUrl}   Supabase project: ${check.config.supabaseRef}   Peach test keys: ${check.config.peachConfigured ? 'yes' : 'no'}`,
+    `  Site: ${siteUrl}   Supabase project: ${check.config.supabaseRef}   Peach test keys: ${check.config.peachConfigured ? 'yes' : 'no'}` +
+      `   Mail: ${check.config.emailConfigured ? 'yes (every email diverted to one inbox)' : 'no'}`,
   );
   // Apply the runtime settings NOW, before the (slow) build. They only take effect for the NEXT
   // deployment, so the site that is live in the meantime is untouched — and this way the one step
@@ -850,6 +943,7 @@ async function cmdResolve() {
   setOutput('branch', found.branch);
   setOutput('site_url', siteUrl);
   setOutput('peach_configured', String(check.config.peachConfigured));
+  setOutput('email_configured', String(check.config.emailConfigured));
 }
 
 function failWith(errors) {
@@ -916,7 +1010,9 @@ async function cmdHealth(args) {
   );
   const peachConfigured =
     String(args['peach-configured'] ?? process.env.SANDBOX_PEACH_CONFIGURED ?? '') === 'true';
-  const { fatal, warnings } = evaluateHealth(body, sha, { peachConfigured });
+  const emailConfigured =
+    String(args['email-configured'] ?? process.env.SANDBOX_EMAIL_CONFIGURED ?? '') === 'true';
+  const { fatal, warnings } = evaluateHealth(body, sha, { peachConfigured, emailConfigured });
   for (const w of warnings) console.log(`::warning::${w}`);
   if (fatal.length) {
     for (const f of fatal) console.log(`::error::${f}`);

@@ -185,7 +185,25 @@ the same platform as production, which is why it replaced the old Vercel test si
 4. **Have something to book.** For the photography gallery flow the sandbox needs a **published
    Photography package with open dates** (Admin → Photography).
 
-5. If the sandbox Supabase project is **paused** (free projects pause after about a week idle), click
+5. **Optional: receive the sandbox's emails.** The sandbox database is full of fake customers, so mail is
+   only ever delivered to **one inbox of yours**: the app diverts every email there, subject-tagged
+   `[sandbox → who it was really for]`, with no copy to the real `info@` inbox. A mail key that does not
+   come with that inbox is refused before anything is built.
+   - In Resend → **API Keys** → **Create API Key**: name it `gytm-sandbox`, permission **Sending access**,
+     domain `bellemaretours.com`. It is a separate key so the live one is never involved and this one can
+     be revoked on its own.
+   - Add three lines to `.env.local`. The names are deliberately different from the production
+     `RESEND_API_KEY`, which this tool never reads:
+     `SANDBOX_RESEND_API_KEY=re_…`, `SANDBOX_RESEND_FROM=Belle Mare Tours <bookings@bellemaretours.com>`
+     and `SANDBOX_EMAIL_REDIRECT_TO=` the inbox you will read.
+   - Run `npm run sandbox:secrets`, then deploy. The run summary says **Mail: ON**, and the health check
+     fails the run if the deployed site cannot actually send.
+
+   Emails queued by the database go out within about two minutes (the cron Worker drains the outbox); the
+   admin buttons ("Confirm gallery complete", …) send at once. To switch mail off again, delete the three
+   settings from GitHub and deploy: the deploy clears them from the project.
+
+6. If the sandbox Supabase project is **paused** (free projects pause after about a week idle), click
    **Restore** in the Supabase dashboard.
 
 If Cloudflare gives the project a different address (a name already taken by another account gets a
@@ -219,6 +237,9 @@ stops before anything is built or deployed if:
 - the Pages project is the **production** one, or its name does not contain `sandbox` (the Cloudflare
   token can deploy to every project in the account, so a typo must not overwrite another site);
 - a Peach endpoint is not a test one, or the Peach group is only half configured;
+- a mail key arrives without the redirect inbox (or the inbox cannot receive mail, or mail is only half
+  configured), and, at run time, the app itself refuses to send if the redirect is ever set on a
+  live-payments deployment;
 - the JWT secret does not sign the sandbox project's own keys (it is another project's — for example
   production's);
 - the build would be handed a secret — only the public Supabase values reach it.
@@ -229,15 +250,18 @@ stops before anything is built or deployed if:
   and pages carry `noindex`.
 - **Analytics.** The Google Tag Manager id is blanked, so test traffic never reaches the live Google
   Analytics.
-- **Email.** The sandbox database holds fake customers and queued emails, so nothing here can send
-  mail (`emailConfigured:false` in `/api/v1/health`). "Confirm gallery complete" and the other delivery
-  buttons show the link to copy instead of emailing it. To add mail later: clear `notification_outbox`
-  first and use real inboxes, because rows that failed earlier are retried once a provider exists.
+- **Email is off until you switch it on** (step 5 above). With no mail key nothing is sent
+  (`emailConfigured:false` in `/api/v1/health`), and "Confirm gallery complete" and the other delivery
+  buttons show the link to copy instead. With one, every email still goes to a single inbox of yours and
+  to nobody else, because the database holds fake customers and the cron Worker drains the outbox every
+  two minutes. Old mail is not replayed when you switch it on: only `pending` rows are ever retried, and
+  a row that has failed five times is final.
 - **The cron Worker is on, and sends nothing.** `gytm-cron-sandbox` (deployed by hand from
   `workers/cron/wrangler.sandbox.toml`, separate from production's `gytm-cron`) calls the sandbox site.
   Every 5 minutes it expires holds, reconciles payments against Peach's test API and rolls the bookable
-  dates forward. Every 2 minutes it runs the email drain, which fails closed without a mail provider:
-  queued emails are marked `failed` and nothing leaves. It was re-pointed from the retired Vercel address
+  dates forward. Every 2 minutes it runs the email drain: with no mail key it fails closed (queued
+  emails are marked `failed` and nothing leaves); with mail on (step 5) it sends them, to your one
+  inbox. It was re-pointed from the retired Vercel address
   on 2026-10-01. After any address change, redeploy it with
   `npx wrangler deploy --config workers/cron/wrangler.sandbox.toml`; then
   `npx wrangler tail --config workers/cron/wrangler.sandbox.toml` should show `-> 200` on both paths
@@ -261,6 +285,45 @@ project (dashboard → Workers & Pages → the project → Settings) is an optio
 > same sandbox Supabase project, and its last step creates a real Peach **test** checkout, so it passes
 > only once the allow-list entry in step 3 exists. Only a brand-new release run uses the new value:
 > re-running an old run has replayed its old settings before.
+
+### Test the whole photography flow, with emails
+
+Do this once the sandbox runs the latest code, Peach is allow-listed (step 3) and mail is on (step 5).
+Everything below arrives in **your one inbox**, subject-tagged `[sandbox → …]`, so the guest's address
+does not matter.
+
+**1 · Book it, as the guest**
+
+1. Open the sandbox site and sign in as `customer@sandbox.test` (password in the table near the top).
+2. **Photography** → _Holiday — Beach Shoot, Honeymoon and Couple Shoot_ → pick a date → checkout.
+3. Pay the 50% deposit with a Peach test card: Visa `4200 0000 0000 0000`, any future expiry, any three
+   digits for the CVV (3-D Secure is off for that number; Peach lists the others in its
+   [test-card reference](https://developer.peachpayments.com/docs/reference-test-and-go-live)).
+
+   Within about two minutes you get the **deposit receipt** (with its PDF) and the **owner's new-booking
+   alert**.
+
+**2 · Deliver it, as the studio**
+
+4. Sign in as `admin@sandbox.test` → **Admin → Photography → Customer galleries** → expand the booking.
+5. Upload a few photos (a video too, if you like) and press **Confirm gallery complete**. The
+   **"Your photos are ready — balance for booking …"** email is sent at once, with a link to the pay box,
+   and the gallery shows **Awaiting balance**.
+
+   Signed in as the guest, **Account → Galleries** now lists the shoot as **Locked** with a **Pay the
+   balance** button, and the gallery API sends no photo URLs yet.
+
+**3 · Pay the balance, as the guest**
+
+6. Open the link in that email (or Account → Galleries → **Pay the balance**) and pay the remaining 50%.
+   Within about two minutes you get the **full VAT invoice** (PDF), the **owner's balance-paid alert**
+   and **"Your gallery is ready — booking …"** with the gallery link.
+7. Open the gallery: Account → Galleries → **View gallery**. The photos are there.
+
+If an email is missing: the admin button shows the same link to copy; `npx wrangler tail --config
+workers/cron/wrangler.sandbox.toml` shows every drain; and in the sandbox Supabase SQL editor
+`select template, status, last_error from notification_outbox order by created_at desc limit 20;` says
+what happened to each row.
 
 ## Resetting
 

@@ -1,6 +1,7 @@
 import { getServerEnv } from '@/lib/config/env';
 import { isProductionLikeRuntime } from '@/lib/config/runtime';
 import { SITE } from '@/lib/seo/site';
+import { assertRedirectAllowed } from './redirect';
 import type { NotificationMessage, NotificationProvider } from './types';
 import { StubNotificationProvider } from './stub';
 import { FailClosedNotificationProvider } from './fail-closed';
@@ -57,6 +58,10 @@ class ChannelRouterProvider implements NotificationProvider {
  */
 export function getNotificationProvider(): NotificationProvider {
   const env = getServerEnv();
+  // SANDBOX ONLY: EMAIL_REDIRECT_TO diverts every email to one inbox. A live-payments deployment must
+  // never carry it — every customer's confirmation would land in that inbox — so refuse outright
+  // rather than build a provider that quietly does it.
+  assertRedirectAllowed(env);
   const fallback = isProductionLikeRuntime(env)
     ? new FailClosedNotificationProvider()
     : new StubNotificationProvider();
@@ -72,6 +77,9 @@ export function getNotificationProvider(): NotificationProvider {
           // Silently copy that same inbox on each customer confirmation, so the owner keeps a record
           // of the exact email + invoice the guest received (BCC — invisible to the customer).
           bcc: SITE.email,
+          // SANDBOX only (see above): deliver everything to one inbox; the provider then drops the
+          // BCC / Reply-To so the real inbox above is never touched.
+          redirectTo: env.EMAIL_REDIRECT_TO,
         })
       : fallback;
   const whatsapp =

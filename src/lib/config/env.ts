@@ -110,6 +110,11 @@ const ServerEnvSchema = z.object({
   // Transactional email (Resend). Without both, notifications fall back to the no-op stub.
   RESEND_API_KEY: z.string().min(1).optional(),
   RESEND_FROM: z.string().min(1).optional(),
+  // SANDBOX ONLY. When set, EVERY email is delivered to this one inbox instead of its real recipient
+  // (subject tagged "[sandbox → original]", no BCC / Reply-To), so a test site that has a real mail key
+  // but a database of fake customers can never reach a customer. getNotificationProvider refuses it on
+  // a live-payments deployment. `.trim()` before `.email()`, like the other pasted values.
+  EMAIL_REDIRECT_TO: z.string().trim().email().optional(),
   // Sender identity for QUOTE emails only, e.g. "Belle Mare Tours <info@bellemaretours.com>". A quote
   // is a priced offer a guest should be able to just Reply to, so it goes out AS the monitored info@
   // inbox rather than the send-only RESEND_FROM (bookings@) identity — WITHOUT moving the sender of

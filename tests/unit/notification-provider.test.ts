@@ -23,6 +23,7 @@ describe('getNotificationProvider — fail-closed', () => {
   afterEach(() => {
     delete process.env.RESEND_API_KEY;
     delete process.env.RESEND_FROM;
+    delete process.env.EMAIL_REDIRECT_TO;
     delete process.env.SUPABASE_SERVICE_ROLE_KEY;
     delete process.env.TELEGRAM_BOT_TOKEN;
     process.env.PEACH_ENVIRONMENT = 'test';
@@ -77,6 +78,41 @@ describe('getNotificationProvider — fail-closed', () => {
     expect(getNotificationProvider().name).toBe(
       'email:resend whatsapp:fail-closed telegram:fail-closed',
     );
+  });
+
+  it('SANDBOX: EMAIL_REDIRECT_TO diverts the Resend channel to one inbox (and says so in its name)', () => {
+    process.env.RESEND_API_KEY = 're_test_key';
+    process.env.RESEND_FROM = 'bookings@example.com';
+    process.env.EMAIL_REDIRECT_TO = 'tester@example.org';
+    process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-role-key-present';
+    resetServerEnvCache();
+    expect(getNotificationProvider().name).toBe(
+      'email:resend-redirected whatsapp:fail-closed telegram:fail-closed',
+    );
+  });
+
+  it('REFUSES EMAIL_REDIRECT_TO on a live-payments deployment — it would divert every customer email', () => {
+    process.env.RESEND_API_KEY = 're_test_key';
+    process.env.RESEND_FROM = 'bookings@example.com';
+    process.env.EMAIL_REDIRECT_TO = 'tester@example.org';
+    process.env.PEACH_ENVIRONMENT = 'live';
+    resetServerEnvCache();
+    expect(() => getNotificationProvider()).toThrow(/EMAIL_REDIRECT_TO/);
+  });
+
+  it('a redirect with no Resend key still fails closed — it never invents a provider', async () => {
+    process.env.EMAIL_REDIRECT_TO = 'tester@example.org';
+    process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-role-key-present';
+    resetServerEnvCache();
+    const provider = getNotificationProvider();
+    expect(provider.name).toBe('email:fail-closed whatsapp:fail-closed telegram:fail-closed');
+    await expect(provider.send(sampleMessage)).rejects.toThrow(/notifications_not_configured/);
+  });
+
+  it('EMAIL_REDIRECT_TO must be a real email address (a typo fails loudly, not silently)', () => {
+    process.env.EMAIL_REDIRECT_TO = 'not-an-email';
+    resetServerEnvCache();
+    expect(() => getNotificationProvider()).toThrow(/EMAIL_REDIRECT_TO/);
   });
 
   it('uses the real Telegram provider for owner alerts when TELEGRAM_BOT_TOKEN is set', () => {
