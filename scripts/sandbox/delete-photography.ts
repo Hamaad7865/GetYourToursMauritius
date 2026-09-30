@@ -26,7 +26,10 @@ function loadEnvLocal(): Record<string, string> {
     if (!line || line.startsWith('#')) continue;
     const eq = line.indexOf('=');
     if (eq === -1) continue;
-    out[line.slice(0, eq).trim()] = line.slice(eq + 1).trim().replace(/^['"]|['"]$/g, '');
+    out[line.slice(0, eq).trim()] = line
+      .slice(eq + 1)
+      .trim()
+      .replace(/^['"]|['"]$/g, '');
   }
   return out;
 }
@@ -182,9 +185,7 @@ async function main() {
 
   // The parents themselves, last.
   if (bookingIds.length) {
-    const res = await client.query(`delete from bookings where id = any($1::uuid[])`, [
-      bookingIds,
-    ]);
+    const res = await client.query(`delete from bookings where id = any($1::uuid[])`, [bookingIds]);
     deleted.bookings = res.rowCount ?? 0;
   }
   if (activityIds.length) {

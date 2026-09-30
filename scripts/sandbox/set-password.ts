@@ -19,7 +19,10 @@ function loadEnvLocal(): Record<string, string> {
     if (!line || line.startsWith('#')) continue;
     const eq = line.indexOf('=');
     if (eq === -1) continue;
-    out[line.slice(0, eq).trim()] = line.slice(eq + 1).trim().replace(/^['"]|['"]$/g, '');
+    out[line.slice(0, eq).trim()] = line
+      .slice(eq + 1)
+      .trim()
+      .replace(/^['"]|['"]$/g, '');
   }
   return out;
 }
@@ -39,7 +42,9 @@ const url = env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY;
 const anonKey = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 if (!url || !serviceKey || !anonKey) {
-  console.error('Need NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY in .env.local');
+  console.error(
+    'Need NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY in .env.local',
+  );
   process.exit(1);
 }
 
@@ -72,7 +77,9 @@ if (error) {
 console.log(`✓ password updated for ${email} (id ${userId})`);
 
 // Verify the new password works end-to-end.
-const anon = createClient(url, anonKey, { auth: { autoRefreshToken: false, persistSession: false } });
+const anon = createClient(url, anonKey, {
+  auth: { autoRefreshToken: false, persistSession: false },
+});
 const check = await anon.auth.signInWithPassword({ email, password });
 if (check.error) {
   console.error('✗ verification sign-in failed:', check.error.message);

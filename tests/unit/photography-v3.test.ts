@@ -51,7 +51,13 @@ describe('photographyLocations', () => {
   it('reads a saved list, dropping invalid rows and clamping extras', () => {
     const list = photographyLocations({
       photographyLocations: [
-        { name: ' Flic en Flac ', coast: 'west', extraEur: 25.5, best: 'Sunsets', mapQuery: 'Flic en Flac, Mauritius' },
+        {
+          name: ' Flic en Flac ',
+          coast: 'west',
+          extraEur: 25.5,
+          best: 'Sunsets',
+          mapQuery: 'Flic en Flac, Mauritius',
+        },
         { name: '', coast: 'east' },
         { name: 'Hotel', coast: 'middle', extraEur: -5 },
         'junk',
@@ -63,7 +69,9 @@ describe('photographyLocations', () => {
   });
 
   it('falls back to defaults when the saved list is empty after cleaning', () => {
-    expect(photographyLocations({ photographyLocations: [] })).toEqual(PHOTOGRAPHY_LOCATION_DEFAULTS);
+    expect(photographyLocations({ photographyLocations: [] })).toEqual(
+      PHOTOGRAPHY_LOCATION_DEFAULTS,
+    );
   });
 });
 
@@ -75,9 +83,13 @@ describe('photographyOccasions', () => {
   });
 
   it('guesses from the title and summary when nothing is saved', () => {
-    expect(photographyOccasions({ title: 'Secret Proposal at the beach' }, null)).toEqual(['proposal']);
+    expect(photographyOccasions({ title: 'Secret Proposal at the beach' }, null)).toEqual([
+      'proposal',
+    ]);
     expect(photographyOccasions({ title: 'Family holiday shoot' }, null)).toEqual(['family']);
-    expect(photographyOccasions({ title: 'Golden hour couples session' }, null)).toEqual(['couple']);
+    expect(photographyOccasions({ title: 'Golden hour couples session' }, null)).toEqual([
+      'couple',
+    ]);
     expect(photographyOccasions({ title: 'Just photos' }, null)).toEqual(['couple']);
   });
 
