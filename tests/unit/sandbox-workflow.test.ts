@@ -197,6 +197,20 @@ describe('sandbox.yml — stays in step with the settings table', () => {
   });
 });
 
+describe('sandbox.yml — the health check knows whether Peach was configured', () => {
+  it('passes the resolve step’s peach_configured output to the health step', () => {
+    const env = stepNamed('Health check').env as Record<string, string>;
+    expect(env.SANDBOX_PEACH_CONFIGURED).toBe('${{ steps.sandbox.outputs.peach_configured }}');
+    expect(env.SANDBOX_RESOLVED_SITE_URL).toBe('${{ steps.sandbox.outputs.site_url }}');
+  });
+
+  it('the script really emits that output', () => {
+    expect(readFileSync('scripts/sandbox/ci.mjs', 'utf8')).toContain(
+      "setOutput('peach_configured'",
+    );
+  });
+});
+
 describe('sandbox.yml — the scripts it runs exist', () => {
   it('every scripts/*.mjs path in a run step is a real file', () => {
     const paths = [...withoutComments.matchAll(/scripts\/[\w./-]+\.mjs/g)].map((m) => m[0]);

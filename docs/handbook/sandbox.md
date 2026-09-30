@@ -147,12 +147,20 @@ the same platform as production, which is why it replaced the old Vercel test si
    has, or `-- --no-peach` to skip card payments. Everything is stored as `SANDBOX_*`, and the workflow
    reads only those names, so it can never fall back to a production value.
 
+   `SUPABASE_JWT_SECRET` is **optional** here, and the tool proves any one it finds really is the
+   sandbox project's (it must sign that project's own keys). A `.env.local` copied from the production
+   one carries **production's** secret; if yours does, the tool withholds it, says so, and uploads
+   everything else. The sandbox signs tokens with asymmetric keys, so it never needs it. Consider
+   deleting that line from `.env.local` so production's signing secret is not sitting in a sandbox file.
+
 2. **Supabase (sandbox project) → Authentication → URL Configuration:** add
    `https://belle-mare-sandbox.pages.dev/**` to the Redirect URLs. Only new sign-ups and password
    resets need it; the test logins work without it.
 
 3. **Peach sandbox dashboard:** allow-list the `belle-mare-sandbox.pages.dev` domain and point the
-   webhook at `https://belle-mare-sandbox.pages.dev/api/v1/webhooks/payments` (same webhook secret).
+   webhook at `https://belle-mare-sandbox.pages.dev/api/v1/webhooks/payments` (same webhook secret). **Add**
+   the sandbox webhook alongside the existing ones, do not replace them — the release pipeline's payment
+   probe and any other test site still use theirs.
    Without the allow-list the widget will not load and settlement never arrives. Switching Peach
    accounts does **not** carry the allow-list with it, and the symptom is easy to misread: checkout
    fails for the guest with **"An upstream service is unavailable"** while your keys are perfectly fine
@@ -195,6 +203,8 @@ stops before anything is built or deployed if:
 - the Pages project is the **production** one, or its name does not contain `sandbox` (the Cloudflare
   token can deploy to every project in the account, so a typo must not overwrite another site);
 - a Peach endpoint is not a test one, or the Peach group is only half configured;
+- the JWT secret does not sign the sandbox project's own keys (it is another project's — for example
+  production's);
 - the build would be handed a secret — only the public Supabase values reach it.
 
 ### What is deliberately switched off
@@ -212,6 +222,11 @@ stops before anything is built or deployed if:
   still calling the retired Vercel address every few minutes. It does no harm; re-deploy it with the new
   address to get automatic housekeeping back, or delete it.)
 - **Google Maps.** The live key only works on the live domain, so map and planner features are reduced.
+
+Every runtime setting is stored on the Pages project as a **secret**, deliberately: with a Wrangler
+config file in the repo (`wrangler.toml`), a deploy may overwrite plain-text variables set outside it,
+but Cloudflare states Wrangler never deletes secrets. The health check also fails the run if Peach keys
+were configured but the deployed site still cannot take a payment.
 
 The site is public but unlisted. If you would like it private, a Cloudflare Access policy on the Pages
 project (dashboard → Workers & Pages → the project → Settings) is an optional extra.

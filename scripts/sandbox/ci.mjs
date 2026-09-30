@@ -19,6 +19,7 @@
 //   node scripts/sandbox/ci.mjs pin-wrangler       point the CI workspace's wrangler.toml at the sandbox
 //   node scripts/sandbox/ci.mjs health             post-deploy health check
 //   node scripts/sandbox/ci.mjs maintenance        best-effort housekeeping (tops up availability)
+import { createHmac } from 'node:crypto';
 import { appendFileSync, readFileSync, writeFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { parseArgs, retry } from '../release/lib.mjs';
@@ -41,6 +42,15 @@ export const DEFAULT_PROJECT = 'belle-mare-sandbox';
 export const COMPATIBILITY_DATE = '2025-02-01';
 export const COMPATIBILITY_FLAGS = ['nodejs_compat'];
 
+/**
+ * Every runtime setting is stored on the Pages project as a SECRET — not because each one is secret,
+ * but because of how Cloudflare treats a deploy. With a Wrangler config file present (this repo's root
+ * wrangler.toml has `pages_build_output_dir`), Wrangler may overwrite plain-text variables that were
+ * set outside the file on the next deploy, whereas it "will not delete your secrets". A plain
+ * variable that silently vanished would leave a site that looks healthy and cannot take a payment.
+ */
+export const RUNTIME_ENV_TYPE = 'secret_text';
+
 /* ── the sandbox's settings, in ONE table (used by the workflow, this file and the uploader) ───── */
 
 /**
@@ -48,8 +58,7 @@ export const COMPATIBILITY_FLAGS = ['nodejs_compat'];
  *          production value stored under the un-prefixed name;
  * kind     how the uploader stores it on GitHub ('secret' is masked in logs, 'variable' is not);
  * local    the matching name in a developer's .env.local (what the uploader reads);
- * runtime  the name it takes on the Cloudflare Pages project (null = CI-only, never sent there);
- * type     Cloudflare env-var type on the Pages project.
+ * runtime  the name it takes on the Cloudflare Pages project (null = CI-only, never sent there).
  */
 export const SANDBOX_SETTINGS = [
   {
@@ -57,7 +66,6 @@ export const SANDBOX_SETTINGS = [
     kind: 'variable',
     local: 'NEXT_PUBLIC_SUPABASE_URL',
     runtime: 'NEXT_PUBLIC_SUPABASE_URL',
-    type: 'plain_text',
     required: true,
   },
   {
@@ -65,7 +73,6 @@ export const SANDBOX_SETTINGS = [
     kind: 'secret',
     local: 'NEXT_PUBLIC_SUPABASE_ANON_KEY',
     runtime: 'NEXT_PUBLIC_SUPABASE_ANON_KEY',
-    type: 'plain_text',
     required: true,
   },
   {
@@ -73,23 +80,22 @@ export const SANDBOX_SETTINGS = [
     kind: 'secret',
     local: 'SUPABASE_SERVICE_ROLE_KEY',
     runtime: 'SUPABASE_SERVICE_ROLE_KEY',
-    type: 'secret_text',
     required: true,
   },
   {
+    // OPTIONAL. Only needed to verify tokens signed with the project's legacy HS256 secret; a project
+    // on asymmetric signing keys (the sandbox uses ES256) is verified through its public JWKS and
+    // never reads it. If set it must be THIS project's — see jwtSecretMatchesToken.
     gh: 'SANDBOX_SUPABASE_JWT_SECRET',
     kind: 'secret',
     local: 'SUPABASE_JWT_SECRET',
     runtime: 'SUPABASE_JWT_SECRET',
-    type: 'secret_text',
-    required: true,
   },
   {
     gh: 'SANDBOX_INTERNAL_TASK_SECRET',
     kind: 'secret',
     local: 'INTERNAL_TASK_SECRET',
     runtime: 'INTERNAL_TASK_SECRET',
-    type: 'secret_text',
     required: true,
   },
   {
@@ -97,7 +103,6 @@ export const SANDBOX_SETTINGS = [
     kind: 'secret',
     local: 'SUPABASE_DB_URL',
     runtime: null,
-    type: null,
     required: true,
   },
   // Peach TEST credentials — all-or-nothing. Without them the hosted site cannot take a payment
@@ -107,7 +112,6 @@ export const SANDBOX_SETTINGS = [
     kind: 'secret',
     local: 'PEACH_CLIENT_ID',
     runtime: 'PEACH_CLIENT_ID',
-    type: 'secret_text',
     group: 'peach',
   },
   {
@@ -115,7 +119,6 @@ export const SANDBOX_SETTINGS = [
     kind: 'secret',
     local: 'PEACH_CLIENT_SECRET',
     runtime: 'PEACH_CLIENT_SECRET',
-    type: 'secret_text',
     group: 'peach',
   },
   {
@@ -123,7 +126,6 @@ export const SANDBOX_SETTINGS = [
     kind: 'secret',
     local: 'PEACH_MERCHANT_ID',
     runtime: 'PEACH_MERCHANT_ID',
-    type: 'secret_text',
     group: 'peach',
   },
   {
@@ -131,7 +133,6 @@ export const SANDBOX_SETTINGS = [
     kind: 'secret',
     local: 'PEACH_ENTITY_ID',
     runtime: 'PEACH_ENTITY_ID',
-    type: 'plain_text',
     group: 'peach',
   },
   {
@@ -139,7 +140,6 @@ export const SANDBOX_SETTINGS = [
     kind: 'secret',
     local: 'PEACH_WEBHOOK_SECRET',
     runtime: 'PEACH_WEBHOOK_SECRET',
-    type: 'secret_text',
     group: 'peach',
   },
   {
@@ -147,7 +147,6 @@ export const SANDBOX_SETTINGS = [
     kind: 'variable',
     local: 'PEACH_AUTH_BASE_URL',
     runtime: 'PEACH_AUTH_BASE_URL',
-    type: 'plain_text',
     group: 'peach',
   },
   {
@@ -155,7 +154,6 @@ export const SANDBOX_SETTINGS = [
     kind: 'variable',
     local: 'PEACH_CHECKOUT_BASE_URL',
     runtime: 'PEACH_CHECKOUT_BASE_URL',
-    type: 'plain_text',
     group: 'peach',
   },
 ];
@@ -196,6 +194,27 @@ export function decodeJwtClaims(token) {
   } catch {
     return null;
   }
+}
+
+/**
+ * Does `secret` really sign this HS256 token? A legacy Supabase key (anon or service_role) is an HS256
+ * JWT signed with the PROJECT'S JWT secret, so a match ties the secret to that project — the one value
+ * that carries no project name of its own. 'unverifiable' for anything that is not an HS256 JWT.
+ */
+export function jwtSecretMatchesToken(token, secret) {
+  const parts = String(token ?? '').split('.');
+  if (parts.length !== 3 || !secret) return 'unverifiable';
+  let header;
+  try {
+    header = JSON.parse(Buffer.from(parts[0], 'base64url').toString('utf8'));
+  } catch {
+    return 'unverifiable';
+  }
+  if (!header || header.alg !== 'HS256') return 'unverifiable';
+  const expected = createHmac('sha256', secret)
+    .update(parts[0] + '.' + parts[1])
+    .digest('base64url');
+  return expected === parts[2] ? 'match' : 'mismatch';
 }
 
 /** `https://<ref>.supabase.co` → `<ref>` (a Supabase ref is 20 lowercase alphanumerics), else null. */
@@ -387,6 +406,28 @@ export function checkSandboxConfig(env, { requireCloudflare = true } = {}) {
       }
     }
   }
+  // The JWT secret carries no project name, so prove it belongs to THIS project: it must sign the
+  // project's own (already ref-checked) keys. A production secret left in the wrong file stops here.
+  if (ref && values.SANDBOX_SUPABASE_JWT_SECRET) {
+    const verdicts = [
+      ['SANDBOX_SUPABASE_ANON_KEY', values.SANDBOX_SUPABASE_ANON_KEY],
+      ['SANDBOX_SUPABASE_SERVICE_ROLE_KEY', values.SANDBOX_SUPABASE_SERVICE_ROLE_KEY],
+    ]
+      .filter(([, key]) => key)
+      .map(([name, key]) => [name, jwtSecretMatchesToken(key, values.SANDBOX_SUPABASE_JWT_SECRET)]);
+    const mismatched = verdicts.filter(([, v]) => v === 'mismatch').map(([name]) => name);
+    if (mismatched.length) {
+      errors.push(
+        'SANDBOX_SUPABASE_JWT_SECRET does not sign ' +
+          mismatched.join(' / ') +
+          " — it is not this project's JWT secret (it may belong to another project, such as production). Refusing.",
+      );
+    } else if (verdicts.length && verdicts.every(([, v]) => v === 'unverifiable')) {
+      warnings.push(
+        "SANDBOX_SUPABASE_JWT_SECRET could not be checked against the project's keys (new-style keys); make sure it is the SANDBOX project's.",
+      );
+    }
+  }
   if (values.SANDBOX_INTERNAL_TASK_SECRET && values.SANDBOX_INTERNAL_TASK_SECRET.length < 16) {
     errors.push('SANDBOX_INTERNAL_TASK_SECRET is too short (use at least 16 characters).');
   }
@@ -504,14 +545,14 @@ export function buildPagesConfigPatch({
     MANAGED_RUNTIME_NAMES.filter((n) => existing.has(n)).map((n) => [n, null]),
   );
   for (const s of SANDBOX_SETTINGS) {
-    if (s.runtime && values[s.gh]) env[s.runtime] = { type: s.type, value: values[s.gh] };
+    if (s.runtime && values[s.gh]) env[s.runtime] = { type: RUNTIME_ENV_TYPE, value: values[s.gh] };
   }
-  env.NEXT_PUBLIC_SITE_URL = { type: 'plain_text', value: siteUrl };
-  env.NEXT_PUBLIC_SITE_NOINDEX = { type: 'plain_text', value: 'true' };
+  env.NEXT_PUBLIC_SITE_URL = { type: RUNTIME_ENV_TYPE, value: siteUrl };
+  env.NEXT_PUBLIC_SITE_NOINDEX = { type: RUNTIME_ENV_TYPE, value: 'true' };
   if (peachConfigured) {
-    env.PEACH_ENVIRONMENT = { type: 'plain_text', value: 'test' };
+    env.PEACH_ENVIRONMENT = { type: RUNTIME_ENV_TYPE, value: 'test' };
     env.PEACH_WEBHOOK_URL = {
-      type: 'plain_text',
+      type: RUNTIME_ENV_TYPE,
       value: `${siteUrl.replace(/\/+$/, '')}/api/v1/webhooks/payments`,
     };
   }
@@ -534,7 +575,7 @@ export function pinWranglerProjectName(toml, project) {
 }
 
 /** Reads a health response (200 body, or the details of a 503) into what must stop the run and what is only news. */
-export function evaluateHealth(body, expectedSha) {
+export function evaluateHealth(body, expectedSha, { peachConfigured = false } = {}) {
   const fatal = [];
   const warnings = [];
   const data = body?.data ?? body?.error?.details ?? null;
@@ -552,12 +593,21 @@ export function evaluateHealth(body, expectedSha) {
     if (checks[key] === false) fatal.push(`health check "${key}" failed`);
   }
   if (checks.paymentsSafe === false) {
-    warnings.push(
-      'payments are unavailable (Peach TEST keys missing or incomplete) — checkout will fail closed',
-    );
+    if (peachConfigured) {
+      // Peach keys WERE supplied, so a site that still cannot pay has lost its settings (or they are
+      // wrong). Reporting that as a mere warning would leave a green run and a dead checkout.
+      fatal.push(
+        'payments are unavailable although Peach TEST keys were configured — the Pages project did not keep its settings',
+      );
+    } else {
+      warnings.push(
+        'payments are unavailable (Peach TEST keys not configured) — checkout will fail closed',
+      );
+    }
   }
-  if (checks.internalTasksConfigured === false)
-    warnings.push('INTERNAL_TASK_SECRET is not configured');
+  if (checks.internalTasksConfigured === false) {
+    fatal.push('INTERNAL_TASK_SECRET is not configured on the deployed site');
+  }
   if (expectedSha && data.releaseSha && data.releaseSha !== expectedSha) {
     warnings.push(
       `releaseSha is ${data.releaseSha}, expected ${expectedSha} (an older deployment may still be cached)`,
@@ -799,6 +849,7 @@ async function cmdResolve() {
   setOutput('project', project);
   setOutput('branch', found.branch);
   setOutput('site_url', siteUrl);
+  setOutput('peach_configured', String(check.config.peachConfigured));
 }
 
 function failWith(errors) {
@@ -863,7 +914,9 @@ async function cmdHealth(args) {
       onAttempt: (i, err) => console.log(`  waiting for the site (attempt ${i}: ${err.message})`),
     },
   );
-  const { fatal, warnings } = evaluateHealth(body, sha);
+  const peachConfigured =
+    String(args['peach-configured'] ?? process.env.SANDBOX_PEACH_CONFIGURED ?? '') === 'true';
+  const { fatal, warnings } = evaluateHealth(body, sha, { peachConfigured });
   for (const w of warnings) console.log(`::warning::${w}`);
   if (fatal.length) {
     for (const f of fatal) console.log(`::error::${f}`);

@@ -22,7 +22,12 @@ import { spawnSync } from 'node:child_process';
 import { createInterface } from 'node:readline/promises';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from '../release/lib.mjs';
-import { SANDBOX_SETTINGS, checkSandboxConfig, supabaseRefFromUrl } from './ci.mjs';
+import {
+  SANDBOX_SETTINGS,
+  checkSandboxConfig,
+  jwtSecretMatchesToken,
+  supabaseRefFromUrl,
+} from './ci.mjs';
 
 /** Parses a dotenv-style file. Later duplicates win, quotes are stripped, comments are ignored. */
 export function parseEnvFile(text) {
@@ -52,6 +57,8 @@ export function buildUploadPlan(local, { noPeach = false } = {}) {
   const env = {};
   const plan = [];
   const notInLocal = [];
+  /** @type {Array<{ gh: string, local: string, reason: string }>} */
+  const skipped = [];
   for (const s of SANDBOX_SETTINGS) {
     if (noPeach && s.group === 'peach') continue;
     const value = String(local[s.local] ?? '').trim();
@@ -62,11 +69,33 @@ export function buildUploadPlan(local, { noPeach = false } = {}) {
       notInLocal.push(s.local);
     }
   }
+  // The JWT secret has no project name of its own, so prove it is THIS project's before it goes
+  // anywhere: it must sign the project's own keys. One that does not — typically PRODUCTION's, left in
+  // a file that was copied from the production one — is withheld, loudly, and everything else still
+  // uploads. The sandbox does not need it (it verifies tokens through its own public keys).
+  const jwtName = 'SANDBOX_SUPABASE_JWT_SECRET';
+  if (env[jwtName]) {
+    const verdicts = ['SANDBOX_SUPABASE_ANON_KEY', 'SANDBOX_SUPABASE_SERVICE_ROLE_KEY']
+      .filter((name) => env[name])
+      .map((name) => jwtSecretMatchesToken(env[name], env[jwtName]));
+    if (verdicts.includes('mismatch')) {
+      delete env[jwtName];
+      plan.splice(
+        plan.findIndex((p) => p.gh === jwtName),
+        1,
+      );
+      skipped.push({
+        gh: jwtName,
+        local: 'SUPABASE_JWT_SECRET',
+        reason: 'not-this-projects-secret',
+      });
+    }
+  }
   // Checked, never uploaded: the guard rails refuse anything but Peach "test".
   if (!noPeach && local.PEACH_ENVIRONMENT)
     env.SANDBOX_PEACH_ENVIRONMENT = local.PEACH_ENVIRONMENT.trim();
   const check = checkSandboxConfig(env, { requireCloudflare: false });
-  return { env, plan, notInLocal, check };
+  return { env, plan, notInLocal, skipped, check };
 }
 
 function gh(args, input) {
@@ -123,16 +152,29 @@ async function main() {
 
   const file = args.file ?? '.env.local';
   if (!existsSync(file)) throw new Error(`${file} not found — run this from the repository root.`);
-  const { plan, notInLocal, check } = buildUploadPlan(parseEnvFile(readFileSync(file, 'utf8')), {
-    noPeach: Boolean(args['no-peach']),
-  });
+  const { plan, notInLocal, skipped, check } = buildUploadPlan(
+    parseEnvFile(readFileSync(file, 'utf8')),
+    { noPeach: Boolean(args['no-peach']) },
+  );
 
   console.log(`\nSandbox settings found in ${file} (names only — values are never printed):\n`);
   for (const p of plan) console.log(`  ✓ ${p.gh.padEnd(38)} ${p.kind}`);
   for (const n of notInLocal) console.log(`  ✗ ${n} is not in ${file}`);
+  for (const k of skipped) {
+    console.log(`  ⚠ ${k.gh.padEnd(38)} NOT uploaded — see below`);
+  }
   if (check.config.supabaseRef) console.log(`\n  Supabase project: ${check.config.supabaseRef}`);
   console.log(`  Peach test keys: ${check.config.peachConfigured ? 'yes' : 'no'}`);
   for (const w of check.warnings) console.log(`  ⚠ ${w}`);
+  for (const k of skipped) {
+    console.log(
+      `\n  ⚠ ${k.local} in ${file} was NOT uploaded: it is not the sandbox project's JWT secret.\n` +
+        `    It signs a DIFFERENT project's keys — very likely production's, which is what a copied-over\n` +
+        `    file carries. The sandbox verifies tokens with its own public signing keys and does not need\n` +
+        `    it, so nothing is lost. You may want to remove that line from ${file} so production's\n` +
+        `    signing secret is not sitting in a sandbox file.`,
+    );
+  }
   if (!check.ok) {
     console.error('\n✗ Nothing was uploaded. Fix these first:\n');
     for (const e of check.errors) console.error(`  - ${e}`);

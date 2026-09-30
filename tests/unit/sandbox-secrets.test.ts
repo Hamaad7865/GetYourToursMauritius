@@ -1,3 +1,4 @@
+import { createHmac } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { buildUploadPlan, parseEnvFile } from '../../scripts/sandbox/push-github-secrets.mjs';
 
@@ -9,7 +10,14 @@ import { buildUploadPlan, parseEnvFile } from '../../scripts/sandbox/push-github
 const REF = 'akhwocmxvpfqrkxywtcp';
 const PROD_REF = 'dwjkfowhrrvdiqligxcj';
 const b64 = (o: object) => Buffer.from(JSON.stringify(o)).toString('base64url');
-const jwt = (claims: object) => `${b64({ alg: 'HS256' })}.${b64(claims)}.sig`;
+const JWT_SECRET = 'jwt-secret-value-0123456789';
+/** A real HS256 JWT signed with `secret` — the way Supabase signs its anon / service_role keys. */
+const jwt = (claims: object, secret: string = JWT_SECRET) => {
+  const head = b64({ alg: 'HS256', typ: 'JWT' });
+  const body = b64(claims);
+  const sig = createHmac('sha256', secret).update(`${head}.${body}`).digest('base64url');
+  return `${head}.${body}.${sig}`;
+};
 
 function localEnv(over: Record<string, string> = {}): Record<string, string> {
   return {
@@ -17,7 +25,7 @@ function localEnv(over: Record<string, string> = {}): Record<string, string> {
     NEXT_PUBLIC_SUPABASE_URL: `https://${REF}.supabase.co`,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: jwt({ ref: REF, role: 'anon' }),
     SUPABASE_SERVICE_ROLE_KEY: jwt({ ref: REF, role: 'service_role' }),
-    SUPABASE_JWT_SECRET: 'jwt-secret-value-0123456789',
+    SUPABASE_JWT_SECRET: JWT_SECRET,
     INTERNAL_TASK_SECRET: 'internal-task-secret-0123',
     SUPABASE_DB_URL: `postgresql://postgres.${REF}:pw@aws-0-eu-west-1.pooler.supabase.com:5432/postgres`,
     PEACH_CLIENT_ID: 'cid',
@@ -102,6 +110,41 @@ describe('buildUploadPlan', () => {
     );
     expect(check.ok).toBe(false);
     expect(check.errors.join('\n')).toMatch(/PRODUCTION/);
+  });
+
+  it('withholds a JWT secret that is not this project’s (e.g. production’s) — and still uploads the rest', () => {
+    // A .env.local copied from the production one carries production's signing secret. It must not
+    // reach GitHub or a public host; the sandbox does not need it (it verifies tokens by public key).
+    const wrong = 'production-legacy-jwt-secret-000';
+    const { check, plan, skipped, env } = buildUploadPlan(localEnv({ SUPABASE_JWT_SECRET: wrong }));
+    expect(skipped).toEqual([
+      {
+        gh: 'SANDBOX_SUPABASE_JWT_SECRET',
+        local: 'SUPABASE_JWT_SECRET',
+        reason: 'not-this-projects-secret',
+      },
+    ]);
+    expect(plan.map((p) => p.gh)).not.toContain('SANDBOX_SUPABASE_JWT_SECRET');
+    expect(plan.length).toBeGreaterThan(8); // everything else still goes
+    expect(check.ok).toBe(true);
+    // The value is dropped entirely — it is in neither the plan, the environment nor the checked values.
+    expect(JSON.stringify({ plan, env, values: check.config.values })).not.toContain(wrong);
+  });
+
+  it('keeps a JWT secret that does sign the project’s own keys', () => {
+    const { plan, skipped, check } = buildUploadPlan(localEnv());
+    expect(skipped).toEqual([]);
+    expect(plan.map((p) => p.gh)).toContain('SANDBOX_SUPABASE_JWT_SECRET');
+    expect(check.ok).toBe(true);
+  });
+
+  it('does not need a JWT secret at all (a project on asymmetric signing keys never reads one)', () => {
+    const local = localEnv();
+    delete (local as Record<string, string | undefined>).SUPABASE_JWT_SECRET;
+    const { plan, notInLocal, check } = buildUploadPlan(local);
+    expect(check.ok).toBe(true);
+    expect(notInLocal).not.toContain('SUPABASE_JWT_SECRET');
+    expect(plan.map((p) => p.gh)).not.toContain('SANDBOX_SUPABASE_JWT_SECRET');
   });
 
   it('refuses live Peach settings before they leave the machine', () => {

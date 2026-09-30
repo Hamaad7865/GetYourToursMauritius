@@ -1,3 +1,4 @@
+import { createHmac } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
@@ -10,6 +11,7 @@ import {
   decodeJwtClaims,
   ensureProject,
   evaluateHealth,
+  jwtSecretMatchesToken,
   pinWranglerProjectName,
   renderBuildEnv,
   supabaseRefFromUrl,
@@ -25,7 +27,14 @@ const SANDBOX_REF = 'akhwocmxvpfqrkxywtcp';
 const PROD_REF = 'dwjkfowhrrvdiqligxcj';
 
 const b64 = (o: object) => Buffer.from(JSON.stringify(o)).toString('base64url');
-const jwt = (claims: object) => `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64(claims)}.signature`;
+const JWT_SECRET = 'jwt-secret-value-0123456789';
+/** A real HS256 JWT signed with `secret` — the way Supabase signs its anon / service_role keys. */
+const jwt = (claims: object, secret: string = JWT_SECRET) => {
+  const head = b64({ alg: 'HS256', typ: 'JWT' });
+  const body = b64(claims);
+  const sig = createHmac('sha256', secret).update(`${head}.${body}`).digest('base64url');
+  return `${head}.${body}.${sig}`;
+};
 
 function validEnv(over: Record<string, string> = {}): Record<string, string> {
   return {
@@ -38,7 +47,7 @@ function validEnv(over: Record<string, string> = {}): Record<string, string> {
     SANDBOX_SUPABASE_URL: `https://${SANDBOX_REF}.supabase.co`,
     SANDBOX_SUPABASE_ANON_KEY: jwt({ ref: SANDBOX_REF, role: 'anon' }),
     SANDBOX_SUPABASE_SERVICE_ROLE_KEY: jwt({ ref: SANDBOX_REF, role: 'service_role' }),
-    SANDBOX_SUPABASE_JWT_SECRET: 'jwt-secret-value-0123456789',
+    SANDBOX_SUPABASE_JWT_SECRET: JWT_SECRET,
     SANDBOX_INTERNAL_TASK_SECRET: 'internal-task-secret-0123',
     SANDBOX_DB_URL: `postgresql://postgres.${SANDBOX_REF}:pw@aws-0-eu-west-1.pooler.supabase.com:5432/postgres`,
     SANDBOX_PEACH_CLIENT_ID: 'peach-client-id',
@@ -390,19 +399,26 @@ describe('Pages project settings', () => {
     expect(cfg.compatibility_date).toBe(COMPATIBILITY_DATE);
   });
 
-  it('stores secrets as secret_text and public values as plain_text', () => {
+  it('stores EVERY runtime setting as a secret — a deploy may overwrite plain variables but never deletes secrets', () => {
     const env = patchFor(withPeach()).deployment_configs.production.env_vars;
     expect(env.SUPABASE_SERVICE_ROLE_KEY?.type).toBe('secret_text');
     expect(env.SUPABASE_JWT_SECRET?.type).toBe('secret_text');
     expect(env.INTERNAL_TASK_SECRET?.type).toBe('secret_text');
     expect(env.PEACH_CLIENT_SECRET?.type).toBe('secret_text');
-    expect(env.NEXT_PUBLIC_SUPABASE_URL?.type).toBe('plain_text');
-    expect(env.NEXT_PUBLIC_SITE_URL).toEqual({ type: 'plain_text', value: site });
+    expect(env.NEXT_PUBLIC_SUPABASE_URL?.type).toBe('secret_text');
+    expect(env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.type).toBe('secret_text');
+    expect(env.PEACH_ENTITY_ID?.type).toBe('secret_text');
+    expect(env.PEACH_CHECKOUT_BASE_URL?.type).toBe('secret_text');
+    const types = Object.values(env)
+      .filter((v) => v !== null)
+      .map((v) => v?.type);
+    expect(new Set(types)).toEqual(new Set(['secret_text']));
+    expect(env.NEXT_PUBLIC_SITE_URL).toEqual({ type: 'secret_text', value: site });
   });
 
   it('forces Peach TEST mode and points the webhook at the sandbox', () => {
     const env = patchFor(withPeach()).deployment_configs.production.env_vars;
-    expect(env.PEACH_ENVIRONMENT).toEqual({ type: 'plain_text', value: 'test' });
+    expect(env.PEACH_ENVIRONMENT).toEqual({ type: 'secret_text', value: 'test' });
     expect(env.PEACH_WEBHOOK_URL?.value).toBe(`${site}/api/v1/webhooks/payments`);
   });
 
@@ -456,6 +472,79 @@ describe('Pages project settings', () => {
   });
 });
 
+describe('checkSandboxConfig — the JWT secret must be this project’s own', () => {
+  it('passes when the secret signs the project’s keys', () => {
+    expect(checkSandboxConfig(validEnv()).errors).toEqual([]);
+  });
+
+  it('is optional: a project on asymmetric signing keys (the sandbox uses ES256) never reads one', () => {
+    const r = checkSandboxConfig(without(validEnv(), 'SANDBOX_SUPABASE_JWT_SECRET'));
+    expect(r.ok).toBe(true);
+    expect(r.errors).toEqual([]);
+    // …and with none set, nothing is sent to the Pages project for it either.
+    const vars = buildPagesConfigPatch({
+      values: r.config.values,
+      siteUrl: 'https://belle-mare-sandbox.pages.dev',
+      peachConfigured: r.config.peachConfigured,
+    }).deployment_configs.production.env_vars;
+    expect(vars.SUPABASE_JWT_SECRET).toBeUndefined();
+  });
+
+  it('refuses a secret that signs nothing here (e.g. the production project’s), without printing it', () => {
+    const wrong = 'the-production-projects-secret-xyz';
+    const r = checkSandboxConfig(validEnv({ SANDBOX_SUPABASE_JWT_SECRET: wrong }));
+    expect(r.ok).toBe(false);
+    const text = r.errors.join('\n');
+    expect(text).toMatch(
+      /does not sign SANDBOX_SUPABASE_ANON_KEY \/ SANDBOX_SUPABASE_SERVICE_ROLE_KEY/,
+    );
+    expect(text).toMatch(/may belong to another project/);
+    expect(text + r.warnings.join('\n')).not.toContain(wrong);
+  });
+
+  it('names only the key that does not match when one of them is stale', () => {
+    const r = checkSandboxConfig(
+      validEnv({
+        SANDBOX_SUPABASE_SERVICE_ROLE_KEY: jwt(
+          { ref: SANDBOX_REF, role: 'service_role' },
+          'an-older-rotated-secret-0000',
+        ),
+      }),
+    );
+    expect(r.errors.join('\n')).toMatch(/does not sign SANDBOX_SUPABASE_SERVICE_ROLE_KEY —/);
+    expect(r.errors.join('\n')).not.toMatch(/does not sign SANDBOX_SUPABASE_ANON_KEY/);
+  });
+
+  it('can only warn when the keys are new-style (there is no signature to check)', () => {
+    const r = checkSandboxConfig(
+      validEnv({
+        SANDBOX_SUPABASE_ANON_KEY: 'sb_publishable_abc',
+        SANDBOX_SUPABASE_SERVICE_ROLE_KEY: 'sb_secret_abc',
+      }),
+    );
+    expect(r.ok).toBe(true);
+    expect(r.warnings.join(' ')).toMatch(/could not be checked against the project/);
+  });
+});
+
+describe('jwtSecretMatchesToken', () => {
+  const token = jwt({ ref: SANDBOX_REF, role: 'anon' });
+
+  it('says match for the signing secret and mismatch for any other', () => {
+    expect(jwtSecretMatchesToken(token, JWT_SECRET)).toBe('match');
+    expect(jwtSecretMatchesToken(token, JWT_SECRET + 'x')).toBe('mismatch');
+  });
+
+  it('is unverifiable for anything that is not an HS256 JWT, or with no secret', () => {
+    expect(jwtSecretMatchesToken('sb_publishable_abc', JWT_SECRET)).toBe('unverifiable');
+    expect(jwtSecretMatchesToken('a.b.c', JWT_SECRET)).toBe('unverifiable');
+    expect(jwtSecretMatchesToken(undefined, JWT_SECRET)).toBe('unverifiable');
+    expect(jwtSecretMatchesToken(token, '')).toBe('unverifiable');
+    const rs256 = `${b64({ alg: 'RS256' })}.${b64({ ref: SANDBOX_REF })}.sig`;
+    expect(jwtSecretMatchesToken(rs256, JWT_SECRET)).toBe('unverifiable');
+  });
+});
+
 describe('evaluateHealth', () => {
   const ok = (over: Record<string, unknown> = {}, checks: Record<string, boolean> = {}) => ({
     ok: true,
@@ -491,6 +580,25 @@ describe('evaluateHealth', () => {
     const r = evaluateHealth(body, 'abc');
     expect(r.fatal).toEqual([]);
     expect(r.warnings.join(' ')).toMatch(/payments are unavailable/);
+  });
+
+  it('is FATAL when Peach keys were configured but payments are still unavailable (a green run must not hide a dead checkout)', () => {
+    const body = {
+      ok: false,
+      error: {
+        code: 'unhealthy',
+        details: ok({ status: 'degraded' }, { paymentsSafe: false }).data,
+      },
+    };
+    const r = evaluateHealth(body, 'abc', { peachConfigured: true });
+    expect(r.fatal.join(' ')).toMatch(/although Peach TEST keys were configured/);
+    // …and the very same response is only a warning when nobody configured Peach.
+    expect(evaluateHealth(body, 'abc', { peachConfigured: false }).fatal).toEqual([]);
+  });
+
+  it('is fatal when the deployed site has no internal task secret', () => {
+    const r = evaluateHealth(ok({}, { internalTasksConfigured: false }), 'abc');
+    expect(r.fatal.join(' ')).toMatch(/INTERNAL_TASK_SECRET/);
   });
 
   it('is fatal when the database or Supabase configuration is broken', () => {

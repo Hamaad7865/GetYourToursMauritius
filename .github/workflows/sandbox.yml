@@ -155,11 +155,15 @@ jobs:
             --commit-message "sandbox ${{ github.sha }} (run ${{ github.run_id }})"
 
       # Waits for the new deployment to answer, then fails the run if the sandbox is broken in a way
-      # that matters (database or Supabase unreachable, LIVE payment mode). Missing Peach keys are
-      # only a warning: everything before checkout still works.
+      # that matters: database or Supabase unreachable, LIVE payment mode, no task secret, or — when
+      # Peach keys WERE configured — a site that still cannot take a payment (its settings did not
+      # survive the deploy). With no Peach keys at all that is only a warning: everything before
+      # checkout still works. It also fetches the deployed site to prove it is not indexable and
+      # loads no analytics.
       - name: Health check
         env:
           SANDBOX_RESOLVED_SITE_URL: ${{ steps.sandbox.outputs.site_url }}
+          SANDBOX_PEACH_CONFIGURED: ${{ steps.sandbox.outputs.peach_configured }}
         run: node scripts/sandbox/ci.mjs health --sha "${{ github.sha }}"
 
       # The production cron does this every 5 minutes; the sandbox has no cron, so one call per
