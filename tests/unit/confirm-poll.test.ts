@@ -3,6 +3,7 @@ import {
   isConfirmedStatus,
   nextDelayMs,
   shouldKeepPolling,
+  shouldKeepPollingGallery,
   CONFIRM_POLL_MAX_MS,
 } from '@/lib/checkout/confirm-poll';
 
@@ -75,5 +76,27 @@ describe('CONFIRM_POLL_MAX_MS', () => {
   it('is a sane confirmation window (60-90s)', () => {
     expect(CONFIRM_POLL_MAX_MS).toBeGreaterThanOrEqual(60_000);
     expect(CONFIRM_POLL_MAX_MS).toBeLessThanOrEqual(90_000);
+  });
+});
+
+describe('shouldKeepPollingGallery', () => {
+  const base = { locked: true, justPaid: true, elapsedMs: 0, maxMs: 90_000 };
+
+  it('keeps looking while the gallery is locked, right after a payment, inside the window', () => {
+    expect(shouldKeepPollingGallery(base)).toBe(true);
+    expect(shouldKeepPollingGallery({ ...base, elapsedMs: 89_999 })).toBe(true);
+  });
+
+  it('stops once the gallery has opened', () => {
+    expect(shouldKeepPollingGallery({ ...base, locked: false })).toBe(false);
+  });
+
+  it('never polls a guest who did not just pay — a locked gallery is only a balance still owed', () => {
+    expect(shouldKeepPollingGallery({ ...base, justPaid: false })).toBe(false);
+  });
+
+  it('gives up when the confirmation window elapses', () => {
+    expect(shouldKeepPollingGallery({ ...base, elapsedMs: 90_000 })).toBe(false);
+    expect(shouldKeepPollingGallery({ ...base, elapsedMs: 300_000 })).toBe(false);
   });
 });

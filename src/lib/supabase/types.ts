@@ -328,6 +328,9 @@ type BookingsRow = {
   /** The language the guest booked in (20260901000300) — the confirmation email + PDFs render later,
    *  off-request, so this is the only source they can trust for which language to use. */
   locale: Database['public']['Enums']['content_locale'];
+  /** 20261013000000 — when the studio confirmed a photography gallery complete; null until then. The
+   *  guest sees no gallery (RLS + the gallery API) and gets no delivery email before it is set. */
+  gallery_ready_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -364,6 +367,7 @@ type BookingsInsert = {
   traveller_country?: string | null;
   special_notes?: string | null;
   locale?: Database['public']['Enums']['content_locale'];
+  gallery_ready_at?: string | null;
   created_at?: string;
   updated_at?: string;
 };

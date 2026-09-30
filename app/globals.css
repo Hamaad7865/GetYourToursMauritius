@@ -288,6 +288,101 @@
     animation: pulseRing 0.8s ease-out 0.1s both;
   }
 
+  /* Booking photo gallery (src/components/booking/gallery) — hero Ken Burns, loading shimmer,
+     lightbox slide/zoom chrome, zip-progress toast and the slideshow advance bar. All are frozen
+     under prefers-reduced-motion below. */
+  @keyframes galleryFadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes galleryKenBurns {
+    from {
+      transform: scale(1.05);
+    }
+    to {
+      transform: scale(1.15) translate(-1.5%, -1%);
+    }
+  }
+  @keyframes galleryShimmer {
+    from {
+      background-position: 200% 0;
+    }
+    to {
+      background-position: -200% 0;
+    }
+  }
+  @keyframes galleryToastIn {
+    from {
+      opacity: 0;
+      transform: translateY(12px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+  @keyframes galleryLbInR {
+    from {
+      opacity: 0;
+      transform: translateX(40px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0) scale(1);
+    }
+  }
+  @keyframes galleryLbInL {
+    from {
+      opacity: 0;
+      transform: translateX(-40px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0) scale(1);
+    }
+  }
+  @keyframes galleryBar {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
+  }
+  .animate-gallery-fade-in {
+    animation: galleryFadeIn 0.35s ease both;
+  }
+  .animate-gallery-ken-burns {
+    animation: galleryKenBurns 26s ease-in-out infinite alternate;
+  }
+  .animate-gallery-shimmer {
+    background: linear-gradient(
+      90deg,
+      rgb(var(--color-teal-tint)) 0%,
+      #f6fbfa 50%,
+      rgb(var(--color-teal-tint)) 100%
+    );
+    background-size: 200% 100%;
+    animation: galleryShimmer 1.6s linear infinite;
+  }
+  .animate-gallery-toast-in {
+    animation: galleryToastIn 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .animate-gallery-lb-in-r {
+    animation: galleryLbInR 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .animate-gallery-lb-in-l {
+    animation: galleryLbInL 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .animate-gallery-bar {
+    transform-origin: left center;
+    animation: galleryBar 4s linear both;
+  }
+
   /* /rent hero — a real car photo gently floating over the teal band, with a soft ground shadow that
      settles as the car lifts (premium product-hero feel; not decorative-comic). */
   @keyframes gytCarFloat {
@@ -1028,10 +1123,22 @@
   .animate-drawer-up,
   .animate-draw-check,
   .animate-ring-echo,
+  .animate-gallery-fade-in,
+  .animate-gallery-ken-burns,
+  .animate-gallery-shimmer,
+  .animate-gallery-toast-in,
+  .animate-gallery-lb-in-r,
+  .animate-gallery-lb-in-l,
+  .animate-gallery-bar,
   /* The Tailwind `animate-pulse` (the BookingOptionCard "recomputing" dim) is the only
      non-decorative looping animation not authored here; gate it too. */
   .animate-pulse {
     animation: none;
+  }
+  /* The shimmer's resting look is the teal-tint base — without the sweep it still reads as a
+     placeholder tile, so no further reduced-motion fix-up is needed. */
+  .animate-gallery-ken-burns {
+    transform: scale(1.05);
   }
   /* Reduced motion still needs the success tick VISIBLE (its resting state is hidden-by-dash). */
   .animate-draw-check {

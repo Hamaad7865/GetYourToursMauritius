@@ -21,6 +21,7 @@ import {
   renderInstallmentReminderEmail,
   renderOwnerInstallmentOverdueEmail,
 } from '@/lib/email/quote';
+import { renderGalleryReadyEmail } from '@/lib/email/photography';
 import { mintInstallmentToken } from '@/lib/quotes/installment-token';
 import { renderLeadEnquiryEmail } from '@/lib/email/lead-enquiry';
 import { INVOICE_BUSINESS } from '@/lib/invoice/business';
@@ -551,6 +552,30 @@ function enrichOwnerInstallmentOverdue(message: NotificationMessage): void {
   message.text = email.text;
 }
 
+/**
+ * The photography "your gallery is ready" email, enqueued by notify_balance_paid's
+ * settled-in-full branch (20261013000000) when the booking is a photography package whose
+ * gallery already has photos. Sync — the payload carries everything the renderer needs,
+ * including the RELATIVE galleryUrl the trigger persisted ('/bookings/<ref>#gallery'), which
+ * the renderer absolutises against SITE.url.
+ */
+function enrichGalleryReady(message: NotificationMessage): void {
+  const p = message.payload;
+  const str = (v: unknown): string => (typeof v === 'string' ? v : '');
+  const num = (v: unknown): number => (typeof v === 'number' ? v : 0);
+  const email = renderGalleryReadyEmail({
+    ref: str(p.ref),
+    customerName: str(p.customerName),
+    packageTitle: str(p.packageTitle) || null,
+    photoCount: num(p.photoCount),
+    locale: str(p.locale) || null,
+    galleryUrl: str(p.galleryUrl) || null,
+  });
+  message.subject = email.subject;
+  message.html = email.html;
+  message.text = email.text;
+}
+
 export interface DrainResult {
   processed: number;
   sent: number;
@@ -617,6 +642,8 @@ export async function drainNotifications(
         await enrichInstallmentReminder(message);
       } else if (message.template === 'owner_installment_overdue') {
         enrichOwnerInstallmentOverdue(message);
+      } else if (message.template === 'gallery_ready') {
+        enrichGalleryReady(message);
       }
       await provider.send(message);
       await callRpc(ctx, 'mark_notification', { id: message.id, result: 'sent' });

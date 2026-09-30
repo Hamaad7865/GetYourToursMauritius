@@ -12,6 +12,7 @@ import { useT, useMoney } from '@/components/site/PreferencesProvider';
 import { childSeatsCost } from '@/lib/services/pricing';
 import { isStaffViewing } from '@/lib/booking/staff-view';
 import { balanceIsOutstanding } from '@/lib/quotes/deposit';
+import { useScrollToHash } from '@/lib/ui/useScrollToHash';
 import { whatsappUrl } from '@/lib/seo/site';
 import { useWhatsAppNumber } from '@/components/site/WhatsAppNumberProvider';
 import { transferLegs } from '@/lib/transfers/leg-times';
@@ -340,6 +341,17 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
       setRefreshing(false);
     }
   }, [fetchBooking]);
+
+  // The photography balance email links to /bookings/REF#balance-payment. The box only exists once
+  // the booking has loaded — after the browser's own fragment scroll already ran on an empty page.
+  useScrollToHash(
+    'balance-payment',
+    balanceIsOutstanding({
+      deposit: booking?.depositEur,
+      balanceDue: booking?.balanceDueEur,
+      total: booking?.totalEur,
+    }),
+  );
 
   // Retry the INITIAL load after a network failure (the `error && !booking` dead-end below). Re-shows
   // the spinner and re-fetches, so a transient blip on first paint isn't a permanent error screen.
@@ -717,7 +729,10 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
             bare `> 0` told an unpaid guest their deposit was "already paid", and told an ordinary
             customer whose card was declined that they owed the whole booking. */}
         {balanceOutstanding && (
-          <div className="mt-4 rounded-xl border border-gold/30 bg-gold/5 p-4">
+          <div
+            id="balance-payment"
+            className="mt-4 scroll-mt-24 rounded-xl border border-gold/30 bg-gold/5 p-4"
+          >
             <div className="flex justify-between text-[13px]">
               <span className="text-ink-muted">{t('Deposit already paid')}</span>
               <span className="font-medium text-ink">

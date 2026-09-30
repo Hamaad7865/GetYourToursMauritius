@@ -66,6 +66,28 @@ export function shouldKeepPollingPickup(input: {
 }
 
 /**
+ * Whether the booking page's gallery should look again while it still reads locked.
+ *
+ * A photography balance is paid on an already-`confirmed` booking (the deposit confirmed it), so the
+ * status poll above stops on its first call and never waits for the balance. What flips is the
+ * gallery itself: it reads locked until the settlement lands, then opens. The guest only lands here
+ * straight from a payment when the URL carries `?just_paid=1` — without it a locked gallery is just
+ * a booking that still owes its balance, and there is nothing to wait for. Bounded by the same
+ * window as the confirmation poll.
+ */
+export function shouldKeepPollingGallery(input: {
+  /** The gallery still reads locked (delivered, balance owed). */
+  locked: boolean;
+  /** The page was reached from a completed checkout (`?just_paid=1`). */
+  justPaid: boolean;
+  elapsedMs: number;
+  maxMs: number;
+}): boolean {
+  if (!input.locked || !input.justPaid) return false;
+  return input.elapsedMs < input.maxMs;
+}
+
+/**
  * Backoff delay for the Nth sync retry attempt (0-based): 1.5s, 3s, 4.5s, … capped at 6s. Monotonic,
  * always positive, never unbounded — so the embedded checkout can retry the idempotent sync a few
  * times without making the customer wait too long before we navigate.

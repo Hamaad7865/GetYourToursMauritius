@@ -170,7 +170,8 @@ insert into supabase_migrations.schema_migrations (version, name) values
   ('20261009000000', 'photography_photos'),
   ('20261010000000', 'photography_deposit'),
   ('20261011000000', 'photography_media'),
-  ('20261012000000', 'booking_galleries')
+  ('20261012000000', 'booking_galleries'),
+  ('20261013000000', 'gallery_ready_flow')
 on conflict (version) do nothing;
 -- ^ version is the ledger's PK, so `on conflict (version)` is pure idempotency here — every version
 --   above is unique. It USED to silently drop the second member of four duplicate-prefix pairs

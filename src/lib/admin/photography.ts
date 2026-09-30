@@ -508,7 +508,8 @@ export async function loadPhotoBalances(): Promise<PhotoBalanceRow[]> {
       'booking_id, bookings!inner(ref, status, customer_name, customer_email, total_minor, deposit_minor, balance_due_minor), activity_options!inner(activities!inner(title, category)), session_occurrences(starts_at)' as never,
     )
     .eq('activity_options.activities.category' as never, PHOTOGRAPHY_CATEGORY as never)
-    .eq('bookings.status' as never, 'confirmed' as never);
+    // Live bookings only — the same set the delivery routes and the guest gallery serve.
+    .in('bookings.status' as never, ['confirmed', 'completed'] as never);
   if (error) throw error;
   type Item = {
     booking_id: string;
@@ -817,9 +818,11 @@ export async function importStarterPackages(): Promise<number> {
 
 /* ---------------------------------------------------------------------------------------------
  * Customer galleries. One gallery per photography booking: the studio uploads the finished
- * photos here, then "Send gallery link" emails the guest their private gallery
- * (/bookings/:ref#gallery). Reads/writes go through the browser client — staff RLS on
- * booking_photos admits them; only the send goes through a staff-gated API route.
+ * photos here, then presses "Confirm gallery complete". That stamps the delivery
+ * (bookings.gallery_ready_at) and emails the guest the link to pay their remaining balance; once the
+ * balance clears they are emailed the link to their private gallery (/bookings/:ref#gallery) — or
+ * straight away when they had already paid in full. Reads/writes go through the browser client —
+ * staff RLS on booking_photos admits them; only the delivery emails go through staff-gated routes.
  * ------------------------------------------------------------------------------------------- */
 
 export interface CustomerGalleryRow {
@@ -830,23 +833,60 @@ export interface CustomerGalleryRow {
   packageTitle: string;
   shootDate: string | null;
   photoCount: number;
+  /** bookings.gallery_ready_at — when the studio last confirmed delivery; null until they do. */
+  galleryReadyAt: string | null;
+  /** What the guest still owes, in the booking currency's minor units (0 once paid in full). */
+  balanceDueMinor: number;
   /** The gallery thumbnails, oldest first. Loaded per booking on expand. */
   photos?: { id: string; url: string }[];
 }
 
-/** Confirmed photography bookings with their gallery photo counts, shoot date first. */
+/**
+ * Where a gallery is in the delivery flow — what the studio needs to see, and which press is next.
+ *
+ *   empty             nothing uploaded yet
+ *   draft             photos are up but the studio has not confirmed: the guest sees nothing
+ *   paid_unconfirmed  the guest paid in full BEFORE the studio confirmed — they are waiting on the
+ *                     press, which will send them the gallery link directly
+ *   awaiting_balance  confirmed and the balance email is out; the gallery opens when they pay
+ *   delivered         confirmed and paid in full — the guest has (or can resend) the gallery link
+ */
+export type GalleryDeliveryState =
+  | 'empty'
+  | 'draft'
+  | 'paid_unconfirmed'
+  | 'awaiting_balance'
+  | 'delivered';
+
+export function galleryDeliveryState(
+  row: Pick<CustomerGalleryRow, 'photoCount' | 'galleryReadyAt' | 'balanceDueMinor'>,
+): GalleryDeliveryState {
+  if (row.photoCount === 0) return 'empty';
+  const owes = row.balanceDueMinor > 0;
+  if (!row.galleryReadyAt) return owes ? 'draft' : 'paid_unconfirmed';
+  return owes ? 'awaiting_balance' : 'delivered';
+}
+
+/** Live (confirmed / completed) photography bookings with their gallery photo counts and delivery state, shoot date first. */
 export async function loadCustomerGalleries(): Promise<CustomerGalleryRow[]> {
   const { data, error } = await getBrowserSupabase()
     .from('booking_items')
     .select(
-      'booking_id, bookings!inner(id, ref, status, customer_name, customer_email), activity_options!inner(activities!inner(title, category)), session_occurrences(starts_at)' as never,
+      'booking_id, bookings!inner(id, ref, status, customer_name, customer_email, gallery_ready_at, balance_due_minor), activity_options!inner(activities!inner(title, category)), session_occurrences(starts_at)' as never,
     )
     .eq('activity_options.activities.category' as never, PHOTOGRAPHY_CATEGORY as never)
     .eq('bookings.status' as never, 'confirmed' as never);
   if (error) throw error;
   type Item = {
     booking_id: string;
-    bookings: { id: string; ref: string; customer_name: string; customer_email: string };
+    bookings: {
+      id: string;
+      ref: string;
+      customer_name: string;
+      customer_email: string;
+      gallery_ready_at: string | null;
+      balance_due_minor: number | null;
+    };
     activity_options: { activities: { title: string } };
     session_occurrences: { starts_at: string } | null;
   };
@@ -861,6 +901,8 @@ export async function loadCustomerGalleries(): Promise<CustomerGalleryRow[]> {
       packageTitle: it.activity_options?.activities?.title ?? '',
       shootDate: it.session_occurrences?.starts_at ?? null,
       photoCount: 0,
+      galleryReadyAt: it.bookings.gallery_ready_at ?? null,
+      balanceDueMinor: Number(it.bookings.balance_due_minor ?? 0),
     });
   }
   const rows = [...seen.values()];
@@ -941,7 +983,8 @@ export async function removeGalleryPhoto(photoId: string): Promise<void> {
   if (error) throw error;
 }
 
-/** "Send gallery link": emails the guest their private gallery URL. */
+/** "Send gallery link": the manual resend of the gallery link for a booking already paid in full
+ *  (the route refuses while a balance is owed — "Confirm gallery complete" handles that case). */
 export async function sendGalleryLink(
   ref: string,
 ): Promise<{ url: string; emailed: boolean; photoCount: number }> {
@@ -967,5 +1010,35 @@ export async function sendGalleryLink(
     url: body.data.url,
     emailed: Boolean(body.data.emailed),
     photoCount: Number(body.data.photoCount ?? 0),
+  };
+}
+
+/** "Confirm gallery complete": stamps the delivery, then emails the balance link — or, when the
+ *  booking is already paid in full, the gallery link directly. */
+export async function confirmGalleryComplete(
+  ref: string,
+): Promise<{ url: string; emailed: boolean; balanceDueMinor: number }> {
+  const { data: auth } = await getBrowserSupabase().auth.getSession();
+  const token = auth.session?.access_token;
+  const res = await fetch(`/api/v1/admin/bookings/${encodeURIComponent(ref)}/gallery/complete`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      ...(token ? { authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({}),
+  });
+  const body = (await res.json().catch(() => null)) as {
+    ok?: boolean;
+    data?: { url?: string; emailed?: boolean; balanceDueMinor?: number };
+    error?: { message?: string };
+  } | null;
+  if (!res.ok || !body?.ok || !body.data?.url) {
+    throw new Error(body?.error?.message ?? 'Could not confirm the gallery.');
+  }
+  return {
+    url: body.data.url,
+    emailed: Boolean(body.data.emailed),
+    balanceDueMinor: Number(body.data.balanceDueMinor ?? 0),
   };
 }

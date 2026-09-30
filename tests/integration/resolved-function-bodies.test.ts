@@ -241,6 +241,31 @@ const CONTRACTS: ResolvedContract[] = [
       'invoice fires on the FIRST installment (balance still owed) and dedupes the real final one — the ' +
       'customer never gets a correct invoice, and the intermediate installments get no receipt at all',
   },
+  // The gallery-ready delivery (20261013000000). A photography booking whose balance settles in full
+  // AFTER the studio confirmed the gallery complete must hear about it automatically — this branch is
+  // the ONLY automatic "your gallery is ready" path. Three gates are pinned: the studio's confirmation
+  // (gallery_ready_at — without it a guest who pays mid-upload is told, and shown, half a shoot, and
+  // the studio's later confirmation double-sends), the photography category (without it every settled
+  // tour would mail a gallery link) and at least one booking_photos row (without it a shoot whose
+  // uploads were removed would promise a gallery that is not there) — plus the per-booking
+  // idempotency key (without it a retried settlement double-sends).
+  {
+    fn: 'notify_balance_paid',
+    must: 'gates the gallery_ready email on a CONFIRMED photography gallery that still has photos',
+    code: /v_booking\.gallery_ready_at\s+is\s+not\s+null[\s\S]*?btrim\s*\(\s*lower\s*\(\s*a\.category\s*\)\s*\)\s*=\s*'photography'[\s\S]*?exists\s*\(\s*select\s+1\s+from\s+booking_photos/,
+    why:
+      'without the confirmation gate a guest who pays while photos are still uploading gets a gallery ' +
+      'email for half a shoot; without the category gate every settled-in-full booking (tours included) ' +
+      'would email a gallery link; without the photos gate an emptied gallery would be promised',
+  },
+  {
+    fn: 'notify_balance_paid',
+    must: 'enqueues the gallery_ready email keyed per booking',
+    code: /'gallery_ready:'\s*\|\|\s*v_booking\.id/,
+    why:
+      'a re-definition from the pre-gallery body drops the automatic delivery email — a guest who paid ' +
+      'their photography balance in full would never be told their photos are waiting',
+  },
   {
     fn: 'api_booking_receipt',
     must: 'exposes balance_due_minor to the receipt renderer',

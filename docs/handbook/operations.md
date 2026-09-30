@@ -37,7 +37,8 @@ All of this is in `/admin`:
 | Photography packages (weddings, shoots)      | **Photography** → New package, or **Edit** on a package (price, guests, add-ons, per day, publish)     |
 | Offer a photographer on a private tour       | **Tours** → tour → **Logistics** → **Photography add-ons**                                             |
 | Photos on /photography and the price list    | **Photography** → **Page photos** (upload, replace, tag and reorder the gallery)                       |
-| Collect a photography balance (photos done)  | **Photography** → **Balances to collect** → **Request balance** (emails the guest a pay link)          |
+| Deliver a photography gallery (photos done)  | **Photography** → **Customer galleries** → upload → **Confirm gallery complete** (see below)           |
+| Chase a photography balance on its own       | **Photography** → **Balances to collect** → **Request balance** (emails the guest a pay link)          |
 | The order tour cards appear in               | **Tours** → filter to one category → drag them                                                         |
 | A page's Google title & description          | **SEO** (18 pages)                                                                                     |
 | Blog posts                                   | **Blog**                                                                                               |
@@ -55,10 +56,23 @@ disappear once any package is published, so publish the ones you want together).
 
 **Photography is paid in two halves.** A guest booking any Photography package pays a **50% deposit**
 by card to book the date — it is **non-refundable** (the same rule as a quote deposit: "Mark refunded"
-keeps it and refunds only anything paid beyond it). When the gallery is ready, open **Photography →
-Balances to collect** and press **Request balance**: the guest is emailed a link to their booking, where
-they pay the rest by card. They receive a deposit receipt first and the full VAT invoice once the balance
-is paid. The 50% is set by the database, not the page, so it cannot be skipped.
+keeps it and refunds only anything paid beyond it). They receive a deposit receipt first and the full VAT
+invoice once the balance is paid. The 50% is set by the database, not the page, so it cannot be skipped.
+
+**Delivering a gallery** is one button. Open **Photography → Customer galleries**, expand the booking,
+upload the finished photos (or one ZIP), then press **Confirm gallery complete**:
+
+1. The guest is emailed a link that takes them straight to the **Pay the balance** box on their booking.
+2. The moment they pay, they are emailed the link to their **private gallery** — no action from you.
+3. If they had already paid in full, step 1 is skipped and they get the gallery link straight away.
+
+Until you press the button the guest sees **nothing** — uploading alone never reaches them, so you can
+take as long as you like. After it, an unpaid guest sees a locked "pay the balance" panel; the photos
+themselves are not sent to their browser until the balance has cleared. Each gallery shows where it is:
+**Draft** (not confirmed), **Paid — confirm to deliver** (they paid early and are waiting on you),
+**Awaiting balance** (balance email is out) or **Delivered**. The same button resends whichever email is
+next. **Request balance** under _Balances to collect_ still works and counts as the same confirmation
+when the booking already has photos.
 
 **The optional supplements** are the extras a guest can add to a tour while booking, and you own both
 halves of each: type the name ("Lobster for lunch", "Snorkel gear") and the price per person — add as

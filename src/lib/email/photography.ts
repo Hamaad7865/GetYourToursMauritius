@@ -43,7 +43,8 @@ export function renderPhotoBalanceEmail(input: PhotoBalanceEmailInput): Rendered
   const locale: Locale = isLocale(input.locale) ? input.locale : DEFAULT_LOCALE;
   const t = (key: string, vars?: Record<string, string | number>) => translate(locale, key, vars);
   const operator = SITE.operator;
-  const url = `${SITE.url}/bookings/${encodeURIComponent(input.ref)}`;
+  // #balance-payment lands the guest on the pay box (the booking page scrolls to it once loaded).
+  const url = `${SITE.url}/bookings/${encodeURIComponent(input.ref)}#balance-payment`;
   const amount = money(input.currency, input.balanceDueMinor);
   const first = input.customerName.trim().split(/\s+/)[0] || input.customerName;
   const what = input.packageTitle?.trim() || t('your photography booking');
@@ -111,11 +112,20 @@ export interface GalleryReadyEmailInput {
   packageTitle: string | null;
   photoCount: number;
   locale: string | null;
+  /**
+   * The gallery link. The admin send route omits it and lets the renderer build
+   * /bookings/{ref}#gallery off SITE.url; the drain passes the RELATIVE path the
+   * notify_balance_paid trigger persisted on the outbox payload ('/bookings/<ref>#gallery'),
+   * which is absolutised here the same way. An absolute http(s) URL is used as-is.
+   */
+  galleryUrl?: string | null;
 }
 
 /**
- * "Your gallery is ready." Sent by staff from /admin/photography once the customer's photos are
- * uploaded. The link is the guest's own booking page scrolled to their private gallery
+ * "Your gallery is ready." Sent when a photography booking's photos are delivered: by staff from
+ * /admin/photography ("Send gallery link" / "Confirm gallery complete"), or automatically by the
+ * notify_balance_paid trigger when the balance settles in full and the gallery already exists.
+ * The link is the guest's own booking page scrolled to their private gallery
  * (/bookings/{ref}#gallery) — authenticated by the guest's account, exactly like every other
  * booking link, so no token rides in the URL.
  */
@@ -128,7 +138,10 @@ export function renderGalleryReadyEmail(input: GalleryReadyEmailInput): Rendered
   const locale: Locale = isLocale(input.locale) ? input.locale : DEFAULT_LOCALE;
   const t = (key: string, vars?: Record<string, string | number>) => translate(locale, key, vars);
   const operator = SITE.operator;
-  const url = `${SITE.url}/bookings/${encodeURIComponent(input.ref)}#gallery`;
+  const path = input.galleryUrl?.trim() || `/bookings/${encodeURIComponent(input.ref)}#gallery`;
+  const url = /^https?:\/\//i.test(path)
+    ? path
+    : `${SITE.url}${path.startsWith('/') ? path : `/${path}`}`;
   const first = input.customerName.trim().split(/\s+/)[0] || input.customerName;
   const what = input.packageTitle?.trim() || t('your photography booking');
 

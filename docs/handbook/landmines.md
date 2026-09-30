@@ -302,6 +302,30 @@ Check `src/lib/seo/page-registry.ts`, the `posts` table, `seo_redirects`, and th
 Related: a build-time redirect in `next.config.mjs` always wins over an admin-managed one, and the owner
 has no way to see why theirs does nothing. Keep owner-managed redirects in the database only.
 
+### A locked photography gallery must be locked on the server, not in the UI
+
+Guest galleries (`booking_photos`) are files in the **public** `activity-images` bucket, so a photo URL
+is a bearer credential: the moment the API hands it to a browser, "locked" is meaningless — anyone can
+read it out of the network tab. The first version drew a padlock in `BookingGallery` but still returned
+every URL in `GET /bookings/:ref/gallery`, and the `booking_photos_select` RLS policy let the owner read
+the rows directly, so an unpaid guest could download the whole shoot.
+
+The rule now lives in **two mirrored places** and both must change together:
+
+- `src/lib/booking/gallery-access.ts` (`galleryAccess`) — shapes the API response; a locked or
+  undelivered gallery serialises with **no URL anywhere in the body** (unit-tested).
+- the `booking_photos_select` policy (20261013000000) — the owner sees rows only when
+  `gallery_ready_at is not null` **and** `balance_due_minor <= 0` **and** the booking is
+  `confirmed`/`completed`. It reads the stored `balance_due_minor` because `booking_balance_due()` is
+  service-role only and cannot be called from a policy.
+
+`bookings.gallery_ready_at` is the studio's "Confirm gallery complete" stamp and is **load-bearing**:
+without it the guest sees no gallery and no email is sent. So **every staff action that tells a guest
+their photos are ready must stamp it** through `markGalleryReady` (`complete`, `gallery/send`, and
+`photo-balance` when photos exist). A new delivery path that emails the guest but does not stamp leaves
+a guest who pays with no gallery and no email. The stamp is also why `notify_balance_paid` does not
+auto-send on "photos exist" — a guest paying mid-upload would be told, and shown, half a shoot.
+
 ### The admin sidebar is not a security boundary
 
 `AdminShell` filters nav items by role. That's **cosmetic** — an `seo` user can type any `/admin` URL.

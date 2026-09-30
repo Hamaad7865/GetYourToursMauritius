@@ -12,6 +12,11 @@ import { renderPhotoBalanceEmail } from '@/lib/email/photography';
 import { isPhotographyCategory } from '@/lib/catalogue/photography';
 import { SITE } from '@/lib/seo/site';
 import { ConfigError, ConflictError, ForbiddenError, NotFoundError } from '@/lib/services/errors';
+import {
+  countGalleryPhotos,
+  markGalleryReady,
+  type PhotoDeliveryClient,
+} from '@/lib/admin/photography-mail';
 
 export const runtime = 'edge';
 
@@ -33,19 +38,16 @@ type RouteCtx = { params: Promise<{ ref: string }> };
  * Refuses (409) anything it should not email about: a booking that is not a photography package, not
  * confirmed (the deposit has not settled), carries no partial deposit, or owes nothing. A send failure
  * is NOT a failed request — the link is simply the booking URL, returned for the operator to copy.
+ *
+ * "Photos delivered" is what the button says, so when the booking's gallery already has photos this
+ * also stamps bookings.gallery_ready_at (20261013000000) — the same delivery stamp "Confirm gallery
+ * complete" sets. Without it a guest who paid after this email would find no gallery and get no
+ * "gallery ready" email. A booking with no uploaded photos is left unstamped: there is nothing to
+ * deliver yet, and "Confirm gallery complete" does it once they are up.
  */
 
 const bodySchema = z.object({});
 const SENDING_ROLES = new Set(['admin', 'staff']);
-
-type Row = Record<string, unknown>;
-interface Builder extends PromiseLike<{ data: Row[] | null; error: unknown }> {
-  eq(column: string, value: string): Builder;
-  maybeSingle(): PromiseLike<{ data: Row | null; error: unknown }>;
-}
-interface Client {
-  from(table: 'bookings' | 'booking_items' | 'profiles'): { select(columns: string): Builder };
-}
 
 const text = (v: unknown) => (typeof v === 'string' ? v : String(v ?? ''));
 const minor = (v: unknown) => Number(v ?? 0);
@@ -56,7 +58,7 @@ const fail = (error: unknown, what: string): never => {
 export const POST = apiHandler<RouteCtx>(async (req, { params }) => {
   await rateLimit(req, 'admin_photo_balance', 20, 60);
   const user = await requireUser(req);
-  const db = createServiceRoleClient() as unknown as Client;
+  const db = createServiceRoleClient() as unknown as PhotoDeliveryClient;
 
   const { data: profile, error: roleError } = await db
     .from('profiles')
@@ -119,7 +121,12 @@ export const POST = apiHandler<RouteCtx>(async (req, { params }) => {
     throw new ConflictError(`Booking ${ref} is fully paid — nothing is owed.`);
   }
 
-  const url = `${SITE.url}/bookings/${encodeURIComponent(text(booking.ref))}`;
+  if ((await countGalleryPhotos(db, text(booking.id))) > 0) {
+    await markGalleryReady(db, text(booking.id));
+  }
+
+  // #balance-payment lands the guest on the pay box (the booking page scrolls to it once loaded).
+  const url = `${SITE.url}/bookings/${encodeURIComponent(text(booking.ref))}#balance-payment`;
   let emailed = false;
   try {
     const email = renderPhotoBalanceEmail({

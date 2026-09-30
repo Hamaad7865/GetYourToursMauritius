@@ -417,6 +417,60 @@ export const IconApple = (p: SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
+// Gallery set (booking gallery: lightbox video controls, zoom, slideshow, favourites).
+export const IconPlay = (p: SVGProps<SVGSVGElement>) => (
+  <Svg {...p} fill="currentColor" stroke="none">
+    <path d="M7 4.8v14.4c0 .8.9 1.3 1.6.9l11.2-7.2c.6-.4.6-1.4 0-1.8L8.6 3.9c-.7-.4-1.6.1-1.6.9Z" />
+  </Svg>
+);
+
+export const IconPause = (p: SVGProps<SVGSVGElement>) => (
+  <Svg {...p} fill="currentColor" stroke="none">
+    <rect x="6" y="4" width="4" height="16" rx="1" />
+    <rect x="14" y="4" width="4" height="16" rx="1" />
+  </Svg>
+);
+
+export const IconHeartFill = (p: SVGProps<SVGSVGElement>) => (
+  <Svg {...p} fill="currentColor" stroke="none">
+    <path d="M19.5 4.7a4.9 4.9 0 0 0-6.9.1L12 5.3l-.6-.5a4.9 4.9 0 0 0-6.9 6.9l.6.6L12 20l6.9-7.7.6-.6a4.9 4.9 0 0 0 0-7Z" />
+  </Svg>
+);
+
+export const IconZoomIn = (p: SVGProps<SVGSVGElement>) => (
+  <Svg {...p}>
+    <circle cx="11" cy="11" r="7" />
+    <path d="m21 21-4.3-4.3M11 8v6M8 11h6" />
+  </Svg>
+);
+
+export const IconZoomOut = (p: SVGProps<SVGSVGElement>) => (
+  <Svg {...p}>
+    <circle cx="11" cy="11" r="7" />
+    <path d="m21 21-4.3-4.3M8 11h6" />
+  </Svg>
+);
+
+export const IconExpand = (p: SVGProps<SVGSVGElement>) => (
+  <Svg {...p}>
+    <path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3" />
+  </Svg>
+);
+
+export const IconVolume = (p: SVGProps<SVGSVGElement>) => (
+  <Svg {...p}>
+    <path d="M11 5 6.5 9H3v6h3.5L11 19V5Z" />
+    <path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" />
+  </Svg>
+);
+
+export const IconVolumeX = (p: SVGProps<SVGSVGElement>) => (
+  <Svg {...p}>
+    <path d="M11 5 6.5 9H3v6h3.5L11 19V5Z" />
+    <path d="m16 9 5 5M21 9l-5 5" />
+  </Svg>
+);
+
 export const IconFacebook = (p: SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" {...p}>
     <path

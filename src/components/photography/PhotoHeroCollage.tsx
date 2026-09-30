@@ -40,15 +40,15 @@ export function PhotoHeroCollage({
 
   const tileClass = (k: number) =>
     k === 0
-      ? 'left-0 top-0 z-[2] h-full w-[57.4%]'
+      ? 'left-0 top-0 z-[2] h-full w-[calc((100%-14px)*0.574)]'
       : k === 1
-        ? 'right-0 top-0 z-[1] h-[calc(50%-7px)] w-[42.6%]'
+        ? 'right-0 top-0 z-[1] h-[calc(50%-7px)] w-[calc((100%-14px)*0.426)]'
         : k === 2
-          ? 'right-0 top-[calc(50%+7px)] z-[1] h-[calc(50%-7px)] w-[42.6%]'
-          : 'pointer-events-none right-0 top-[calc(50%+7px)] z-0 h-[calc(50%-7px)] w-[42.6%] scale-90 opacity-0';
+          ? 'right-0 top-[calc(50%+7px)] z-[1] h-[calc(50%-7px)] w-[calc((100%-14px)*0.426)]'
+          : 'pointer-events-none right-0 top-[calc(50%+7px)] z-0 h-[calc(50%-7px)] w-[calc((100%-14px)*0.426)] scale-90 opacity-0';
 
   const caption = (
-    <div className="pointer-events-auto absolute bottom-3.5 left-3.5 z-[5] w-[calc(57.4%-28px)] min-w-0 rounded-[14px] bg-white/95 p-3 backdrop-blur">
+    <div className="pointer-events-auto absolute bottom-3.5 left-3.5 z-[5] w-[calc((100%-14px)*0.574-28px)] min-w-0 rounded-[14px] bg-white/95 p-3 backdrop-blur">
       <div className="flex items-center gap-3">
         <div className="min-w-0 flex-1">
           <p className="truncate text-xs font-bold text-teal-dark">{slide.tag}</p>
@@ -102,7 +102,7 @@ export function PhotoHeroCollage({
       })}
 
       {/* progress bars */}
-      <div className="pointer-events-none absolute left-3.5 top-3.5 z-[5] flex w-[calc(57.4%-28px)] gap-1.5">
+      <div className="pointer-events-none absolute left-3.5 top-3.5 z-[5] flex w-[calc((100%-14px)*0.574-28px)] gap-1.5">
         {slides.map((s, i) => (
           <span key={s.id} className="h-[3px] flex-1 overflow-hidden rounded bg-white/50">
             <span

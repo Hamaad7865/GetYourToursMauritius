@@ -3,20 +3,65 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   addGalleryPhotos,
+  confirmGalleryComplete,
+  galleryDeliveryState,
   loadCustomerGalleries,
   loadGalleryPhotos,
   removeGalleryPhoto,
-  sendGalleryLink,
   type CustomerGalleryRow,
+  type GalleryDeliveryState,
 } from '@/lib/admin/photography';
 import { prepareZipPhotos } from '@/lib/admin/gallery-zip';
-import { PNotice, P_BTN_SMALL, P_BTN_SMALL_GHOST, PSection } from '@/components/admin/photo-kit';
+import {
+  PNotice,
+  PPill,
+  P_BTN,
+  P_BTN_SMALL,
+  P_BTN_SMALL_GHOST,
+  PSection,
+} from '@/components/admin/photo-kit';
 import { IconChevron, IconPlus, IconX } from '@/components/ui/icons';
+
+/** What the studio sees, and which press is next, for each stage of the delivery flow. */
+const DELIVERY_UI: Record<
+  GalleryDeliveryState,
+  { pill: string; tone: 'neutral' | 'ok' | 'warn' | 'teal'; hint: string; action: string | null }
+> = {
+  empty: { pill: 'No photos yet', tone: 'neutral', hint: '', action: null },
+  draft: {
+    pill: 'Draft',
+    tone: 'neutral',
+    hint: 'The guest cannot see this gallery yet.',
+    action: 'Confirm gallery complete',
+  },
+  paid_unconfirmed: {
+    pill: 'Paid — confirm to deliver',
+    tone: 'warn',
+    hint: 'The guest has paid in full and is waiting for their gallery link.',
+    action: 'Confirm gallery complete',
+  },
+  awaiting_balance: {
+    pill: 'Awaiting balance',
+    tone: 'teal',
+    hint: 'The balance email is out. The gallery link goes to the guest the moment they pay.',
+    action: 'Resend balance email',
+  },
+  delivered: {
+    pill: 'Delivered',
+    tone: 'ok',
+    hint: 'Paid in full — the guest has their gallery link.',
+    action: 'Resend gallery link',
+  },
+};
 
 /**
  * One gallery per photography booking. The studio uploads the finished photos here (they land in
- * the public activity-images bucket under galleries/<ref>/), then "Send gallery link" emails the
- * guest their private gallery (/bookings/:ref#gallery). Rows without photos can't be sent yet.
+ * the public activity-images bucket under galleries/<ref>/), then presses "Confirm gallery
+ * complete" — the one-press delivery. That stamps the booking (until it is stamped the guest sees no
+ * gallery at all) and emails the guest the link to pay their remaining balance; the moment the
+ * balance clears they are emailed the link to their private gallery automatically. A guest who had
+ * already paid in full gets the gallery link straight away. The same button resends whichever email
+ * is next in line. Rows without photos can't be delivered yet.
  */
 export function CustomerGalleriesCard() {
   const [rows, setRows] = useState<CustomerGalleryRow[] | null>(null);
@@ -27,7 +72,9 @@ export function CustomerGalleriesCard() {
   const [uploading, setUploading] = useState(false);
   /** Live upload progress (done/total); total 0 while the ZIP is being prepared. */
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
-  const [sent, setSent] = useState<Record<string, { url: string; emailed: boolean }>>({});
+  const [completed, setCompleted] = useState<
+    Record<string, { url: string; emailed: boolean; balanceDueMinor: number }>
+  >({});
 
   const load = useCallback(async () => {
     try {
@@ -126,14 +173,16 @@ export function CustomerGalleriesCard() {
     }
   }
 
-  async function send(row: CustomerGalleryRow) {
+  async function complete(row: CustomerGalleryRow) {
     setBusy(row.ref);
     setError(null);
     try {
-      const result = await sendGalleryLink(row.ref);
-      setSent((cur) => ({ ...cur, [row.ref]: result }));
+      const result = await confirmGalleryComplete(row.ref);
+      setCompleted((cur) => ({ ...cur, [row.ref]: result }));
+      // Reload so the row reflects the new delivery state alongside the rest of the list.
+      await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not send the gallery link.');
+      setError(err instanceof Error ? err.message : 'Could not confirm the gallery.');
     } finally {
       setBusy(null);
     }
@@ -144,8 +193,10 @@ export function CustomerGalleriesCard() {
       title="Customer galleries"
       description={
         <>
-          Upload each shoot’s finished photos here, then press <b>Send gallery link</b> — the guest
-          gets an email with a link to their private gallery on their booking page.
+          Upload each shoot’s finished photos here, then press <b>Confirm gallery complete</b>. The
+          guest is emailed a link to pay their remaining balance; the moment it is paid they are
+          emailed the link to their private gallery. If they had already paid in full, they get the
+          gallery link straight away. Until you confirm, the guest sees nothing.
         </>
       }
     >
@@ -170,7 +221,8 @@ export function CustomerGalleriesCard() {
       ) : (
         <ul className="divide-y divide-ink/5">
           {rows.map((r) => {
-            const done = sent[r.ref];
+            const state = galleryDeliveryState(r);
+            const ui = DELIVERY_UI[state];
             const isOpen = openRef === r.ref;
             return (
               <li key={r.ref} className="py-3">
@@ -205,25 +257,39 @@ export function CustomerGalleriesCard() {
                       className={`shrink-0 text-ink-muted transition-transform ${isOpen ? 'rotate-180' : ''}`}
                     />
                   </button>
-                  <button
-                    type="button"
-                    disabled={busy === r.ref || r.photoCount === 0}
-                    onClick={() => void send(r)}
-                    title={
-                      r.photoCount === 0 ? 'Upload photos first' : 'Email the guest their gallery'
-                    }
-                    className={P_BTN_SMALL}
-                  >
-                    {busy === r.ref ? 'Sending…' : done ? 'Send again' : 'Send gallery link'}
-                  </button>
+                  <PPill tone={ui.tone}>{ui.pill}</PPill>
+                  {ui.action && (
+                    <button
+                      type="button"
+                      disabled={busy === r.ref}
+                      onClick={() => void complete(r)}
+                      title={ui.hint}
+                      className={
+                        state === 'delivered' || state === 'awaiting_balance'
+                          ? P_BTN_SMALL_GHOST
+                          : P_BTN
+                      }
+                    >
+                      {busy === r.ref ? 'Sending…' : ui.action}
+                    </button>
+                  )}
                 </div>
-                {done && (
-                  <p className="mt-1 text-xs font-semibold text-teal-dark">
-                    {done.emailed
-                      ? `Emailed to ${r.customerEmail}.`
-                      : `Email not sent — share this link with the guest: ${done.url}`}
-                  </p>
-                )}
+                {ui.hint && <p className="mt-1 text-xs text-ink-muted">{ui.hint}</p>}
+                {(() => {
+                  const doneComplete = completed[r.ref];
+                  if (!doneComplete) return null;
+                  return (
+                    <p className="mt-1 text-xs font-semibold text-teal-dark">
+                      {doneComplete.balanceDueMinor > 0
+                        ? doneComplete.emailed
+                          ? `Balance email sent to ${r.customerEmail}.`
+                          : `Email not sent — share the balance link with the guest: ${doneComplete.url}`
+                        : doneComplete.emailed
+                          ? 'Gallery link sent — already paid in full.'
+                          : `Email not sent — share this link with the guest: ${doneComplete.url}`}
+                    </p>
+                  );
+                })()}
                 {isOpen && (
                   <div className="mt-3 rounded-xl border border-ink/10 bg-teal-tint/40 p-3.5">
                     <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">

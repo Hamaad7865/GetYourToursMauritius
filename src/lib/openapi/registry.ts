@@ -458,7 +458,17 @@ export const apiPaths: ZodOpenApiPathsObject = {
   '/bookings/{ref}/gallery': {
     get: {
       operationId: 'getBookingGallery',
-      summary: 'Get the booking’s private online gallery photos (owner-or-staff)',
+      summary: 'Get the booking’s private online gallery photos + delivery state (owner-or-staff)',
+      description:
+        'The booking’s private online gallery, plus the delivery state the booking-page ' +
+        'gallery renders. Photos are served ONLY when the studio has confirmed the gallery ' +
+        'complete (bookings.gallery_ready_at) AND the booking is paid in full — the files sit in ' +
+        'a public bucket, so a URL handed out is a bearer credential and the gate lives here, not ' +
+        'in the client. Until confirmed: `photos` is empty, `locked` false and the counts are ' +
+        'zero (nothing leaks). Confirmed but the photography balance is unpaid: `photos` is ' +
+        'empty, `locked` is true, `balanceDueMinor` is the live figure and `meta.photoCount` is ' +
+        'truthful so the page can draw the pay-the-balance teaser. `meta` also carries the ' +
+        'package title, shoot date and pickup location.',
       tags: ['Bookings'],
       security: [{ bearerAuth: [] }],
       requestParams: { path: refParam },
@@ -472,8 +482,17 @@ export const apiPaths: ZodOpenApiPathsObject = {
                 position: z.number().int(),
               }),
             ),
+            locked: z.boolean(),
+            balanceDueMinor: z.number().int(),
+            meta: z.object({
+              packageTitle: z.string().nullable(),
+              shootDate: z.string().nullable(),
+              location: z.string().nullable(),
+              photoCount: z.number().int(),
+              videoCount: z.number().int(),
+            }),
           }),
-          'The gallery photos, oldest first — empty until the studio uploads some',
+          'The gallery photos, oldest first — empty until the gallery is delivered and paid in full',
         ),
         '401': errorResponse('Authentication required'),
         '404': errorResponse('Booking not found'),
@@ -1198,7 +1217,10 @@ export const apiPaths: ZodOpenApiPathsObject = {
         'set_photography_deposit trigger) confirms it, and the balance is due on delivery. This ' +
         'emails the guest a link to their OWN booking page, where the signed-in owner pays the ' +
         'balance (create_payment purpose=balance — the amount is the booking’s balance_due_minor, ' +
-        'never anything sent here). No token is minted. STAFF ONLY via profiles.role; "seo" is ' +
+        'never anything sent here). The link deep-links the pay box (#balance-payment). When the ' +
+        'gallery already has photos this also stamps bookings.gallery_ready_at — the same delivery ' +
+        'stamp gallery/complete sets — so the guest’s gallery opens and the gallery-ready email ' +
+        'fires once they pay. No token is minted. STAFF ONLY via profiles.role; "seo" is ' +
         'excluded. A send failure still returns 200 with emailed:false and the URL to copy.',
       tags: ['Bookings'],
       security: [{ bearerAuth: [] }],
@@ -1230,11 +1252,14 @@ export const apiPaths: ZodOpenApiPathsObject = {
       operationId: 'sendGalleryLink',
       summary: 'Email a photography guest their private gallery link (staff-only)',
       description:
-        'Once the studio has uploaded the finished photos for a photography booking, this ' +
-        'emails the guest a link to their private gallery (/bookings/{ref}#gallery), ' +
+        'The manual resend of the gallery link for a photography booking that is already paid in ' +
+        'full: emails the guest a link to their private gallery (/bookings/{ref}#gallery), ' +
         'authenticated by their account like every other booking link — no token is minted. ' +
-        'STAFF ONLY via profiles.role; "seo" is excluded. A send failure still returns 200 ' +
-        'with emailed:false and the URL to copy.',
+        'Sending the link is delivery, so it also stamps bookings.gallery_ready_at (without the ' +
+        'stamp the guest would open the link to nothing). Refused with 409 while a balance is ' +
+        'still owed — use gallery/complete, which emails the balance link. STAFF ONLY via ' +
+        'profiles.role; "seo" is excluded. A send failure still returns 200 with emailed:false ' +
+        'and the URL to copy.',
       tags: ['Bookings'],
       security: [{ bearerAuth: [] }],
       requestParams: { path: refParam },
@@ -1252,7 +1277,54 @@ export const apiPaths: ZodOpenApiPathsObject = {
         '401': errorResponse('Authentication required'),
         '403': errorResponse('Staff only'),
         '404': errorResponse('No such booking'),
-        '409': errorResponse('Not a photography booking, or no gallery photos uploaded yet'),
+        '409': errorResponse(
+          'Not a photography booking, not confirmed, no gallery photos uploaded yet, or a balance still owed',
+        ),
+        '429': errorResponse('Too many requests'),
+        '500': errorResponse('Site URL is not configured'),
+      },
+    },
+  },
+  '/admin/bookings/{ref}/gallery/complete': {
+    post: {
+      operationId: 'confirmGalleryComplete',
+      summary:
+        'Confirm a booking’s gallery is complete — emails the balance link, or the gallery link when already paid in full (staff-only)',
+      description:
+        'The one-press photography delivery flow. Stamps bookings.gallery_ready_at — until it is ' +
+        'set the guest sees no gallery at all — then emails the guest ONE of two things, decided ' +
+        'off the balance_due_minor the stamp itself returns (never a client-sent amount): the ' +
+        'balance-request email (same as the photo-balance route, deep-linking the pay box) when ' +
+        'the booking still owes its photography balance, or the gallery-ready email directly when ' +
+        'it is already settled in full. The automatic counterpart is notify_balance_paid’s ' +
+        'settled-in-full branch, which enqueues gallery_ready when the paying guest’s gallery has ' +
+        'been confirmed. Pressing it again resends the email that is next in line. ' +
+        'STAFF ONLY via profiles.role; "seo" is excluded. A send failure still returns 200 with ' +
+        'emailed:false and the URL to copy.',
+      tags: ['Bookings'],
+      security: [{ bearerAuth: [] }],
+      requestParams: { path: refParam },
+      requestBody: jsonBody(z.object({})),
+      responses: {
+        '200': okJson(
+          z.object({
+            url: z
+              .string()
+              .describe(
+                'The link the guest needs — booking page (balance owed) or gallery URL (paid in full)',
+              ),
+            emailed: z.boolean(),
+            balanceDueMinor: z.number().int(),
+          }),
+          'The delivery was stamped and the email sent (or the link returned to copy)',
+        ),
+        '400': errorResponse('Invalid request'),
+        '401': errorResponse('Authentication required'),
+        '403': errorResponse('Staff only'),
+        '404': errorResponse('No such booking'),
+        '409': errorResponse(
+          'Not a photography booking, not confirmed, or no gallery photos uploaded yet',
+        ),
         '429': errorResponse('Too many requests'),
         '500': errorResponse('Site URL is not configured'),
       },
