@@ -4,6 +4,7 @@ import { Plus_Jakarta_Sans } from 'next/font/google';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { GoogleTagManager, GoogleTagManagerNoScript } from '@/components/site/GoogleTagManager';
 import { organizationJsonLd, websiteJsonLd } from '@/lib/seo/jsonld';
+import { isNoindexBuild } from '@/lib/seo/site';
 import './globals.css';
 
 // The brand serif (Fraunces) was retired on request: the app uses ONE sans everywhere now. Tailwind's
@@ -27,7 +28,8 @@ export const metadata: Metadata = {
   description:
     'Book Mauritius tours, activities and excursions direct with Belle Mare Tours: catamaran cruises, dolphin swims, island day tours, private sightseeing and airport taxi transfers. Transparent pricing, instant confirmation, no reseller markup.',
   applicationName: 'Belle Mare Tours',
-  robots: { index: true, follow: true },
+  // A sandbox build (NEXT_PUBLIC_SITE_NOINDEX) is never indexed; production is unchanged.
+  robots: isNoindexBuild() ? { index: false, follow: false } : { index: true, follow: true },
   openGraph: {
     type: 'website',
     siteName: 'Belle Mare Tours',

@@ -84,3 +84,14 @@ export function whatsappUrl(message: string, number: string = SITE.phone): strin
   const digits = number.replace(/[^\d]/g, '') || SITE.phone.replace(/[^\d]/g, '');
   return `https://wa.me/${digits}?text=${encodeURIComponent(message)}`;
 }
+
+/**
+ * True for a SANDBOX / test build (`NEXT_PUBLIC_SITE_NOINDEX=true`, baked in at build time by
+ * .github/workflows/sandbox.yml). Such a deployment is a public duplicate of the live site on a
+ * *.pages.dev address, so it must never be crawled or indexed — it would compete with the real
+ * domain. Off by default: production builds never set it, so nothing changes there. Read as a
+ * function (not a constant) so a test can flip the variable.
+ */
+export function isNoindexBuild(): boolean {
+  return process.env.NEXT_PUBLIC_SITE_NOINDEX === 'true';
+}

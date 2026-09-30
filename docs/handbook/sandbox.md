@@ -7,6 +7,8 @@ Supabase project** — never production. You get the real storefront, checkout a
 a full catalogue, test logins and fake bookings, so you can click through anything without touching a
 real customer, a real card, or a real inbox.
 
+Want a link for someone else to try? See [Publish it for testers](#publish-it-for-testers-a-hosted-link-on-cloudflare-pages) — a free hosted copy on Cloudflare Pages.
+
 > **Why it's safe.** In `next dev` the app **stubs payments and email** (`NODE_ENV=development` bypasses
 > the production fail-closed gate — see [development.md](development.md#local-setup)). Checkout
 > completes with no Peach account and no card; no confirmation email is ever sent. And
@@ -118,88 +120,105 @@ both steps any time you want to refresh the sandbox with the latest live catalog
 `.env.local.prod` copy, step 1 is
 `SUPABASE_DB_URL="$(grep '^SUPABASE_DB_URL=' .env.local.prod | cut -d= -f2-)" npx tsx scripts/dump-catalogue.ts`.)
 
-## Publish it for testers (a hosted link)
+## Publish it for testers (a hosted link on Cloudflare Pages)
 
-`npm run dev` is fine for you, but remote testers need a URL. Deploy the app to **Vercel**, pointed at
-the **same sandbox Supabase project** you seeded above. We use Vercel (not Cloudflare Pages) for the test
-env because it builds with plain `next build` — the Cloudflare `pages:build` is broken on Windows — and
-every route is already `runtime = 'edge'`, so it runs on Vercel's edge unchanged.
+`npm run dev` is fine for you, but anyone else needs a URL. The sandbox has its own **free Cloudflare
+Pages project** (default name `belle-mare-sandbox`, address `https://belle-mare-sandbox.pages.dev`),
+completely separate from the live site and wired to the **same sandbox Supabase project** you seeded
+above. A GitHub Action builds it on Linux (the local Windows build is broken) and deploys it. It runs on
+the same platform as production, which is why it replaced the old Vercel test site.
 
-> **A hosted deploy is not `next dev`, so payments are no longer stubbed** (`NODE_ENV=production` puts the
-> app in fail-closed mode). To let testers complete checkout you must wire **Peach SANDBOX** credentials
-> (the same test-mode ones prod uses). Test cards move no real money. Leave real/live Peach creds out.
+> **A hosted deploy is not `next dev`, so payments are no longer stubbed.** The site runs in production
+> mode and refuses the payment stub, so testers can complete checkout only if **Peach TEST keys** are
+> configured. They are optional: without them everything up to checkout still works. Test cards move no
+> real money, and the deploy refuses any Peach endpoint that is not a test one.
 
-### 1. Create the Vercel project (once)
+### One-time setup
+
+1. **Copy your sandbox settings to GitHub.** Your `.env.local` already points at the sandbox project:
+
+   ```bash
+   npm run sandbox:secrets
+   ```
+
+   It lists the setting **names** it will upload (never the values), asks you to confirm, and stops if
+   `.env.local` points at production, mixes keys from two Supabase projects, or holds live Peach
+   settings. Add `-- --dry-run` to look without uploading, `-- --status` to see what GitHub already
+   has, or `-- --no-peach` to skip card payments. Everything is stored as `SANDBOX_*`, and the workflow
+   reads only those names, so it can never fall back to a production value.
+
+2. **Supabase (sandbox project) → Authentication → URL Configuration:** add
+   `https://belle-mare-sandbox.pages.dev/**` to the Redirect URLs. Only new sign-ups and password
+   resets need it; the test logins work without it.
+
+3. **Peach sandbox dashboard:** allow-list the `belle-mare-sandbox.pages.dev` domain and point the
+   webhook at `https://belle-mare-sandbox.pages.dev/api/v1/webhooks/payments` (same webhook secret).
+   Without the allow-list the widget will not load and settlement never arrives. Switching Peach
+   accounts does **not** carry the allow-list with it, and the symptom is easy to misread: checkout
+   fails for the guest with **"An upstream service is unavailable"** while your keys are perfectly fine
+   (Peach answers "Merchant domain is not allowlisted"). If you see that message, check this step first.
+
+4. **Have something to book.** For the photography gallery flow the sandbox needs a **published
+   Photography package with open dates** (Admin → Photography).
+
+5. If the sandbox Supabase project is **paused** (free projects pause after about a week idle), click
+   **Restore** in the Supabase dashboard.
+
+If Cloudflare gives the project a different address (a name already taken by another account gets a
+random suffix), the first run prints the real one in its log and summary; use that in steps 2 and 3.
+
+### Deploy
 
 ```bash
-npx vercel login          # your Vercel account — I can't do this for you
-npx vercel link           # create/link a project; NAME IT so the URL is predictable,
-                          # e.g. "belle-mare-sandbox" → https://belle-mare-sandbox.vercel.app
+npm run sandbox:deploy
 ```
 
-A fixed name matters: `NEXT_PUBLIC_SITE_URL` is baked in at **build** time and must equal the real URL,
-or payments fail closed. Knowing the URL up front lets you set it before the first real build.
+This pushes **what you have checked out and committed** to the `sandbox` branch (a disposable deploy
+branch, so it is a force-push), which runs the _Sandbox deploy_ workflow. Follow it under GitHub →
+Actions; the run summary shows the URL. Uncommitted changes are not deployed, and to redeploy the same
+commit push an empty one (`git commit --allow-empty -m redeploy`, then deploy again).
 
-### 2. Set the environment variables
+Each run: **guard rails** (fails in seconds if anything looks wrong) → finds or creates the Pages
+project and applies its settings → builds the edge bundle → **applies `supabase/catch-up.sql` to the
+sandbox database** (schema only, idempotent, never production) → deploys → health check → tops up
+bookable dates. The health check also fetches the deployed site and fails the run unless it proves the
+sandbox is not indexable (`robots.txt`, `noindex` tag) and loads no analytics. The first run on a branch that has never had a Linux edge build is also the first proof
+that the edge bundle compiles.
 
-Vercel → Project → **Settings → Environment Variables** (scope: Production). The `NEXT_PUBLIC_*` ones are
-build-time — they must be present before the build testers use.
+### What it refuses, so a slip cannot reach production
 
-| Variable                                                                                                     | Value                                                            |
-| ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
-| `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY`                                                 | your **sandbox** Supabase project                                |
-| `SUPABASE_SERVICE_ROLE_KEY`                                                                                  | your **sandbox** service-role key                                |
-| `NEXT_PUBLIC_SITE_URL`                                                                                       | `https://belle-mare-sandbox.vercel.app` (your real URL)          |
-| `PEACH_CLIENT_ID` / `PEACH_CLIENT_SECRET` / `PEACH_MERCHANT_ID` / `PEACH_ENTITY_ID` / `PEACH_WEBHOOK_SECRET` | your **Peach sandbox** values                                    |
-| `PEACH_AUTH_BASE_URL`                                                                                        | `https://sandbox-dashboard.peachpayments.com`                    |
-| `PEACH_CHECKOUT_BASE_URL`                                                                                    | `https://testsecure.peachpayments.com`                           |
-| `PEACH_ENVIRONMENT`                                                                                          | `test`                                                           |
-| `PEACH_WEBHOOK_URL`                                                                                          | `https://belle-mare-sandbox.vercel.app/api/v1/webhooks/payments` |
+The rules live in [`scripts/sandbox/ci.mjs`](../../scripts/sandbox/ci.mjs) and are unit-tested. The run
+stops before anything is built or deployed if:
 
-Do **not** set `SUPABASE_DB_URL` (script-only), `PEACH_EXPECT_LIVE`, or `OWNER_WHATSAPP_TO` (it fails
-loudly on every runtime). Email (`RESEND_*`) is optional — unset means no confirmation emails are sent,
-which is fine for testing.
+- the Supabase URL is the **production** project, or a key belongs to a different project than the URL,
+  or the anon and service-role keys are swapped;
+- the Pages project is the **production** one, or its name does not contain `sandbox` (the Cloudflare
+  token can deploy to every project in the account, so a typo must not overwrite another site);
+- a Peach endpoint is not a test one, or the Peach group is only half configured;
+- the build would be handed a secret — only the public Supabase values reach it.
 
-```bash
-npx vercel@latest --prod   # build + deploy → prints the live URL
-```
+### What is deliberately switched off
 
-> **Two gotchas that already bit us:**
->
-> - Use `npx vercel@latest` for `login`/`link`/deploy. The version pinned in `package.json` (41.7.8) is
->   too old for the current device-flow login and just prints a deprecation notice.
-> - `.vercelignore` uses **gitignore syntax**, so a bare pattern like `supabase` also excludes
->   `src/lib/supabase/` and the build dies with `Module not found: @/lib/supabase/browser`. **Anchor
->   every pattern with a leading `/`** (`/supabase`, `/scripts`, `/tests`, …). The committed
->   [`.vercelignore`](../../.vercelignore) does this — keeps the 900 MB+ `.claude` cache out of the upload.
+- **Search indexing.** The sandbox is a public copy of the live site: `robots.txt` disallows everything
+  and pages carry `noindex`.
+- **Analytics.** The Google Tag Manager id is blanked, so test traffic never reaches the live Google
+  Analytics.
+- **Email and the cron Worker.** The sandbox database holds fake customers and queued emails, so
+  nothing here can send mail. "Confirm gallery complete" and the other delivery buttons show the link to
+  copy instead of emailing it, and emails queued by payments just wait in the outbox. Bookable dates are
+  topped up on each deploy instead of by cron. To add mail later: clear `notification_outbox` first, use
+  real inboxes, and update `SITE_URL` in `workers/cron/wrangler.sandbox.toml`.
+  (The old `gytm-cron-sandbox` Worker from the Vercel days is still deployed in the Cloudflare account,
+  still calling the retired Vercel address every few minutes. It does no harm; re-deploy it with the new
+  address to get automatic housekeeping back, or delete it.)
+- **Google Maps.** The live key only works on the live domain, so map and planner features are reduced.
 
-### 3. Point Supabase + Peach at the test URL (once)
+The site is public but unlisted. If you would like it private, a Cloudflare Access policy on the Pages
+project (dashboard → Workers & Pages → the project → Settings) is an optional extra.
 
-> Test **logins work immediately** — the app signs in with email+password (`signInWithPassword`), which
-> needs no redirect allowlist. The Supabase step below is only needed for NEW self-signups and password
-> resets (they use email redirects).
-
-- **Supabase** (sandbox project) → Authentication → URL Configuration → add
-  `https://belle-mare-sandbox.vercel.app/**` to the redirect allowlist (keep `http://localhost:3000/**`
-  too so local still works).
-- **Peach** (sandbox dashboard) → allowlist the `belle-mare-sandbox.vercel.app` domain, and point the
-  webhook at `…/api/v1/webhooks/payments` with the same `PEACH_WEBHOOK_SECRET`. Peach only calls back a
-  domain it has been told about — without the allowlist the widget won't load and settlement never
-  arrives, so the booking stays `payment_pending`.
-
-### 4. Seed once, share the link
-
-The seed data lives in the Supabase project, not the deploy — so `npm run sandbox:setup` (run once from
-your machine) is all the hosted app needs. Send testers the URL and the logins
-(`customer@sandbox.test` / `admin@sandbox.test`, password `Sandbox123!`). For test card numbers, use
-Peach's sandbox test cards (Peach dashboard → Testing).
-
-### Hosted caveats
-
-- **Availability is static** on the hosted env — the cron Worker that rolls new dates isn't deployed
-  here. 60 days are pre-seeded; re-run `npm run sandbox:setup` to top them up.
-- Vercel's edge runtime is compatible but not byte-identical to Cloudflare's — for a final pre-launch
-  check use a Cloudflare Pages preview, not this.
+> **The release pipeline's payment probe still points at the old test site.** The repository variable
+> `PAYMENT_SMOKE_BASE_URL` is `https://belle-mare-sandbox.vercel.app`. If you retire the Vercel site,
+> point it at the new address (and keep `PAYMENT_SMOKE_SUPABASE_*` on the same sandbox project).
 
 ## Resetting
 

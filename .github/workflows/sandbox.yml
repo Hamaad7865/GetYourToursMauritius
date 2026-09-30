@@ -1,0 +1,183 @@
+# Sandbox deploy — publishes this code to the SANDBOX test site: a throwaway copy of the app on its
+# own free Cloudflare Pages project (e.g. https://belle-mare-sandbox.pages.dev), wired to the sandbox
+# Supabase project and Peach TEST keys. It NEVER touches production.
+#
+#   one time    npm run sandbox:secrets     copies your sandbox settings from .env.local into GitHub
+#   each time   npm run sandbox:deploy      pushes what you have checked out to the `sandbox` branch,
+#                                           which runs this workflow (the URL is in the run summary)
+#
+# Full guide: docs/handbook/sandbox.md
+#
+# WHY A PUSH TRIGGER AND NOT ONLY A BUTTON: `workflow_dispatch` only appears in the Actions tab once
+# a workflow file is on the DEFAULT branch, and putting this file on `main` would run the whole
+# production release. A push to `sandbox` runs the copy of this file that is in the pushed commit, so
+# it works from any branch. ci.yml and release.yml both ignore the `sandbox` branch. (The manual
+# button will appear once this file reaches `main`; it is harmless to leave in.)
+#
+# SAFETY. Nearly every default in this repo points at production — the repo-level variables hold the
+# production Supabase project, the root wrangler.toml names the production Pages project, and the
+# Cloudflare token can deploy to every project in the account. So:
+#   * this workflow reads ONLY SANDBOX_* names, so nothing can fall back to a production value;
+#   * scripts/sandbox/ci.mjs (unit-tested) refuses, before anything is built or deployed: the
+#     production Supabase project, keys from two different projects, the production Pages project,
+#     any project not named "*sandbox*", and any Peach endpoint that is not a TEST one;
+#   * secrets are handed only to the steps that need them, never to the build or `npm ci`;
+#   * the sandbox is built with indexing off and the analytics container blanked.
+# Email and the cron Worker are deliberately NOT part of this workflow: the sandbox database holds
+# fake customers and a backlog of queued emails, so nothing here can send mail.
+name: Sandbox deploy
+
+on:
+  push:
+    branches: [sandbox]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One deploy at a time. A newer push WAITS rather than cancelling one that may be mid-upload.
+concurrency:
+  group: sandbox-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.repository == 'Hamaad7865/GetYourToursMauritius'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+
+      # FIRST, before the slow install and build, so a misconfiguration fails in seconds. This is the
+      # one step that holds every secret; it also finds (or creates) the sandbox Pages project and
+      # applies the runtime settings to it. The settings only take effect for the NEXT deployment,
+      # so a site that is live in the meantime is untouched.
+      - name: Guard rails, sandbox project and its runtime settings
+        id: sandbox
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # What PRODUCTION looks like — so the guard rails know exactly what to refuse.
+          PRODUCTION_PAGES_PROJECT: ${{ vars.CLOUDFLARE_PAGES_PROJECT }}
+          PRODUCTION_SUPABASE_REF: ${{ vars.SUPABASE_PROJECT_ID }}
+          PRODUCTION_URL: ${{ vars.PRODUCTION_URL }}
+          CANONICAL_HOST: ${{ vars.CANONICAL_HOST }}
+          # The sandbox. Only SANDBOX_* names, on purpose (see SAFETY above).
+          SANDBOX_PAGES_PROJECT: ${{ vars.SANDBOX_PAGES_PROJECT }}
+          SANDBOX_SITE_URL: ${{ vars.SANDBOX_SITE_URL }}
+          SANDBOX_SUPABASE_URL: ${{ vars.SANDBOX_SUPABASE_URL }}
+          SANDBOX_SUPABASE_ANON_KEY: ${{ secrets.SANDBOX_SUPABASE_ANON_KEY }}
+          SANDBOX_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SANDBOX_SUPABASE_SERVICE_ROLE_KEY }}
+          SANDBOX_SUPABASE_JWT_SECRET: ${{ secrets.SANDBOX_SUPABASE_JWT_SECRET }}
+          SANDBOX_INTERNAL_TASK_SECRET: ${{ secrets.SANDBOX_INTERNAL_TASK_SECRET }}
+          SANDBOX_DB_URL: ${{ secrets.SANDBOX_DB_URL }}
+          SANDBOX_PEACH_CLIENT_ID: ${{ secrets.SANDBOX_PEACH_CLIENT_ID }}
+          SANDBOX_PEACH_CLIENT_SECRET: ${{ secrets.SANDBOX_PEACH_CLIENT_SECRET }}
+          SANDBOX_PEACH_MERCHANT_ID: ${{ secrets.SANDBOX_PEACH_MERCHANT_ID }}
+          SANDBOX_PEACH_ENTITY_ID: ${{ secrets.SANDBOX_PEACH_ENTITY_ID }}
+          SANDBOX_PEACH_WEBHOOK_SECRET: ${{ secrets.SANDBOX_PEACH_WEBHOOK_SECRET }}
+          SANDBOX_PEACH_AUTH_BASE_URL: ${{ vars.SANDBOX_PEACH_AUTH_BASE_URL }}
+          SANDBOX_PEACH_CHECKOUT_BASE_URL: ${{ vars.SANDBOX_PEACH_CHECKOUT_BASE_URL }}
+        run: node scripts/sandbox/ci.mjs resolve
+
+      - name: Install
+        run: npm ci
+
+      # Bakes this run's commit into the bundle, so /api/v1/health can say WHICH code is live.
+      - name: Write release metadata
+        run: node scripts/release/write-release-metadata.mjs --sha "${{ github.sha }}" --run-id "${{ github.run_id }}"
+
+      # NEXT_PUBLIC_* are inlined at BUILD time, and `pages:build` shells out to a nested `vercel
+      # build` that does NOT inherit step-level env — so they are written to a .env file, exactly as
+      # ci.yml does. The file is ephemeral (gitignored). It gets ONLY the two public Supabase values
+      # and the site URL, and switches indexing off / blanks the analytics container (see
+      # renderBuildEnv in scripts/sandbox/ci.mjs).
+      - name: Write the build-time .env
+        env:
+          PRODUCTION_SUPABASE_REF: ${{ vars.SUPABASE_PROJECT_ID }}
+          SANDBOX_SUPABASE_URL: ${{ vars.SANDBOX_SUPABASE_URL }}
+          SANDBOX_SUPABASE_ANON_KEY: ${{ secrets.SANDBOX_SUPABASE_ANON_KEY }}
+          SANDBOX_RESOLVED_SITE_URL: ${{ steps.sandbox.outputs.site_url }}
+        run: node scripts/sandbox/ci.mjs build-env
+
+      # The deployable artifact. No secrets here: the build runs third-party code.
+      - name: Edge bundle (Cloudflare Pages)
+        run: npm run pages:build
+
+      # Greps the BUILT output for the Supabase values, so a build where they were not inlined fails
+      # here instead of shipping a site where every page dies behind the error boundary.
+      - name: Verify NEXT_PUBLIC_* were inlined into the client bundle
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.SANDBOX_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SANDBOX_SUPABASE_ANON_KEY }}
+        run: node scripts/release/verify-public-env-inlined.mjs
+
+      - name: Keep source maps out of the deployed files
+        run: node scripts/release/extract-source-maps.mjs
+
+      # Brings the sandbox database up to the schema this code expects. Idempotent and schema-only:
+      # it does not reseed the catalogue, availability or bookings, and it refuses the production
+      # project. (Without it a deploy that outpaces the database makes bookings fail with a 500.)
+      - name: Sync the sandbox database schema
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SANDBOX_DB_URL }}
+        run: node scripts/sandbox/apply-catchup.mjs
+
+      # The root wrangler.toml names the PRODUCTION Pages project. --project-name below already
+      # overrides it, but a deploy that landed on production would be a disaster, so this also
+      # rewrites the name in THIS throwaway checkout (never committed) — two independent safeguards.
+      - name: Point this workspace's wrangler.toml at the sandbox project
+        env:
+          PRODUCTION_PAGES_PROJECT: ${{ vars.CLOUDFLARE_PAGES_PROJECT }}
+          SANDBOX_RESOLVED_PROJECT: ${{ steps.sandbox.outputs.project }}
+        run: node scripts/sandbox/ci.mjs pin-wrangler
+
+      # Deploys to the project's production branch, so the address is always the same stable URL that
+      # NEXT_PUBLIC_SITE_URL was built with (a preview deployment would get a different host).
+      - name: Deploy to Cloudflare Pages
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          SANDBOX_PROJECT: ${{ steps.sandbox.outputs.project }}
+          SANDBOX_BRANCH: ${{ steps.sandbox.outputs.branch }}
+        run: |
+          set -euo pipefail
+          npx wrangler pages deploy .vercel/output/static \
+            --project-name "$SANDBOX_PROJECT" \
+            --branch "$SANDBOX_BRANCH" \
+            --commit-hash "${{ github.sha }}" \
+            --commit-dirty=true \
+            --commit-message "sandbox ${{ github.sha }} (run ${{ github.run_id }})"
+
+      # Waits for the new deployment to answer, then fails the run if the sandbox is broken in a way
+      # that matters (database or Supabase unreachable, LIVE payment mode). Missing Peach keys are
+      # only a warning: everything before checkout still works.
+      - name: Health check
+        env:
+          SANDBOX_RESOLVED_SITE_URL: ${{ steps.sandbox.outputs.site_url }}
+        run: node scripts/sandbox/ci.mjs health --sha "${{ github.sha }}"
+
+      # The production cron does this every 5 minutes; the sandbox has no cron, so one call per
+      # deploy tops up bookable dates and expires stale holds. Best effort — never fails the deploy.
+      - name: Top up bookable dates
+        env:
+          SANDBOX_RESOLVED_SITE_URL: ${{ steps.sandbox.outputs.site_url }}
+          SANDBOX_INTERNAL_TASK_SECRET: ${{ secrets.SANDBOX_INTERNAL_TASK_SECRET }}
+        run: node scripts/sandbox/ci.mjs maintenance
+
+      - name: Summary
+        env:
+          SITE_URL: ${{ steps.sandbox.outputs.site_url }}
+        run: |
+          {
+            echo "### Sandbox deployed"
+            echo "- Site: ${SITE_URL}"
+            echo "- Commit: \`${GITHUB_SHA}\`"
+            echo "- Database: the sandbox Supabase project (schema synced from \`supabase/catch-up.sql\`)"
+            echo "- Not indexed, no analytics, no email. Test logins and cards: \`docs/handbook/sandbox.md\`"
+          } >> "$GITHUB_STEP_SUMMARY"
