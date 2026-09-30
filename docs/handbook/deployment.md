@@ -21,9 +21,9 @@ clean against a reconciled ledger (111 migrations, 1:1).
 curl -s "https://bellemaretours.com/api/v1/health?deep=true" | jq '.data.releaseSha'
 ```
 
-Two things are still not fully armed, deliberately: `PAYMENT_SMOKE_BASE_URL` is unset so
-`payment-probe` skips with a warning, and `payment-smoke-manual-gate` auto-approves until required
-reviewers are configured on the `production-payment-smoke` environment. See
+One thing is still not fully armed, deliberately: `payment-smoke-manual-gate` auto-approves until
+required reviewers are configured on the `production-payment-smoke` environment. (`payment-probe` is
+armed: `PAYMENT_SMOKE_BASE_URL` points at the hosted sandbox, see [sandbox.md](sandbox.md).) See
 [Payment smoke gate](#payment-smoke-gate).
 
 ---
@@ -129,14 +129,14 @@ step to actually run (it's skipped with a warning if `PAYMENT_SMOKE_BASE_URL` is
 
 ### Repository variables to add
 
-| Variable                               | Example value                           | Notes                                                                                       |
-| -------------------------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `CLOUDFLARE_PAGES_PROJECT`             | `bellemaretours`                        | The REAL hosted Pages project name — see the rename note below                              |
-| `PRODUCTION_URL`                       | `https://bellemaretours.com`            | Used by health/DNS verification                                                             |
-| `CANONICAL_HOST`                       | `bellemaretours.com`                    | No scheme, no trailing slash                                                                |
-| `SUPABASE_PROJECT_ID`                  | the project ref, e.g. `abcdefghijklmno` | Dashboard → Settings → General → Reference ID                                               |
-| `SUPABASE_MIGRATION_LEDGER_RECONCILED` | `true` (only after step 4 above)        | Exact string `true` — anything else fails closed                                            |
-| `PAYMENT_SMOKE_BASE_URL`               | `https://staging.bellemaretours.com`    | A dedicated staging/sandbox deployment — MUST differ from `PRODUCTION_URL`/`CANONICAL_HOST` |
+| Variable                               | Example value                           | Notes                                                                                    |
+| -------------------------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `CLOUDFLARE_PAGES_PROJECT`             | `bellemaretours`                        | The REAL hosted Pages project name — see the rename note below                           |
+| `PRODUCTION_URL`                       | `https://bellemaretours.com`            | Used by health/DNS verification                                                          |
+| `CANONICAL_HOST`                       | `bellemaretours.com`                    | No scheme, no trailing slash                                                             |
+| `SUPABASE_PROJECT_ID`                  | the project ref, e.g. `abcdefghijklmno` | Dashboard → Settings → General → Reference ID                                            |
+| `SUPABASE_MIGRATION_LEDGER_RECONCILED` | `true` (only after step 4 above)        | Exact string `true` — anything else fails closed                                         |
+| `PAYMENT_SMOKE_BASE_URL`               | `https://belle-mare-sandbox.pages.dev`  | The hosted sandbox (see sandbox.md) — MUST differ from `PRODUCTION_URL`/`CANONICAL_HOST` |
 
 ### The Cloudflare project name — renamed 2026-07-22
 

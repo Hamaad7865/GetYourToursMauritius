@@ -157,14 +157,30 @@ the same platform as production, which is why it replaced the old Vercel test si
    `https://belle-mare-sandbox.pages.dev/**` to the Redirect URLs. Only new sign-ups and password
    resets need it; the test logins work without it.
 
-3. **Peach sandbox dashboard:** allow-list the `belle-mare-sandbox.pages.dev` domain and point the
-   webhook at `https://belle-mare-sandbox.pages.dev/api/v1/webhooks/payments` (same webhook secret). **Add**
-   the sandbox webhook alongside the existing ones, do not replace them — the release pipeline's payment
-   probe and any other test site still use theirs.
-   Without the allow-list the widget will not load and settlement never arrives. Switching Peach
-   accounts does **not** carry the allow-list with it, and the symptom is easy to misread: checkout
-   fails for the guest with **"An upstream service is unavailable"** while your keys are perfectly fine
-   (Peach answers "Merchant domain is not allowlisted"). If you see that message, check this step first.
+3. **Peach sandbox dashboard** (`sandbox-dashboard.peachpayments.com` — the test one, never the live
+   one). Open **Checkout** in the left menu and do these three things:
+   - **Allowlisted domains → Add domain:** `belle-mare-sandbox.pages.dev` — the bare host, no
+     `https://`, no wildcard (Peach documents none, and `*.pages.dev` would be every site on
+     Cloudflare). **Required.** Without it the widget will not load and every checkout fails for the
+     guest with **"An upstream service is unavailable"** while your keys are perfectly fine (Peach
+     answers "Merchant domain is not allowlisted"). Switching Peach accounts does **not** carry the
+     allow-list with it. The release pipeline's payment probe needs this entry too. Sandbox domains need
+     no Peach review. Test on this stable address, never the `<hash>.belle-mare-sandbox.pages.dev` link
+     a deploy prints: that is a different host.
+   - **Webhooks → Add webhook URL:** `https://belle-mare-sandbox.pages.dev/api/v1/webhooks/payments`,
+     typed exactly like that. It is the address every deploy hands the site as `PEACH_WEBHOOK_URL`, and
+     Peach signs over a URL. Peach sends each event to the dashboard URL **and** to the address the site
+     attaches to every checkout, and its documentation does not say which of the two the signature
+     covers, so keep them identical. Delete the entry for the retired `belle-mare-sandbox.vercel.app`
+     (it is dead, and Peach retries a failing address for 30 days); keep only entries still in use,
+     such as a dev tunnel.
+   - **Webhook security:** the key shown must equal `PEACH_WEBHOOK_SECRET` in `.env.local` (uploaded as
+     `SANDBOX_PEACH_WEBHOOK_SECRET`). **Never press "Regenerate secret key"**: it takes effect at once
+     and breaks every site using the old one. If no key is shown, HMAC signing is not switched on for
+     the test account, so webhooks are rejected and payments settle more slowly, through the
+     confirmation poll and the Worker's 5-minute reconcile.
+
+   Then book once with a Peach test card on the stable address to confirm.
 
 4. **Have something to book.** For the photography gallery flow the sandbox needs a **published
    Photography package with open dates** (Admin → Photography).
@@ -213,14 +229,20 @@ stops before anything is built or deployed if:
   and pages carry `noindex`.
 - **Analytics.** The Google Tag Manager id is blanked, so test traffic never reaches the live Google
   Analytics.
-- **Email and the cron Worker.** The sandbox database holds fake customers and queued emails, so
-  nothing here can send mail. "Confirm gallery complete" and the other delivery buttons show the link to
-  copy instead of emailing it, and emails queued by payments just wait in the outbox. Bookable dates are
-  topped up on each deploy instead of by cron. To add mail later: clear `notification_outbox` first, use
-  real inboxes, and update `SITE_URL` in `workers/cron/wrangler.sandbox.toml`.
-  (The old `gytm-cron-sandbox` Worker from the Vercel days is still deployed in the Cloudflare account,
-  still calling the retired Vercel address every few minutes. It does no harm; re-deploy it with the new
-  address to get automatic housekeeping back, or delete it.)
+- **Email.** The sandbox database holds fake customers and queued emails, so nothing here can send
+  mail (`emailConfigured:false` in `/api/v1/health`). "Confirm gallery complete" and the other delivery
+  buttons show the link to copy instead of emailing it. To add mail later: clear `notification_outbox`
+  first and use real inboxes, because rows that failed earlier are retried once a provider exists.
+- **The cron Worker is on, and sends nothing.** `gytm-cron-sandbox` (deployed by hand from
+  `workers/cron/wrangler.sandbox.toml`, separate from production's `gytm-cron`) calls the sandbox site.
+  Every 5 minutes it expires holds, reconciles payments against Peach's test API and rolls the bookable
+  dates forward. Every 2 minutes it runs the email drain, which fails closed without a mail provider:
+  queued emails are marked `failed` and nothing leaves. It was re-pointed from the retired Vercel address
+  on 2026-10-01. After any address change, redeploy it with
+  `npx wrangler deploy --config workers/cron/wrangler.sandbox.toml`; then
+  `npx wrangler tail --config workers/cron/wrangler.sandbox.toml` should show `-> 200` on both paths
+  (a 401 means its `INTERNAL_TASK_SECRET` no longer matches the site's; the header of that file has the
+  command). Each deploy also tops up bookable dates on its own.
 - **Google Maps.** The live key only works on the live domain, so map and planner features are reduced.
 
 Every runtime setting is stored on the Pages project as a **secret**, deliberately: with a Wrangler
@@ -231,9 +253,14 @@ were configured but the deployed site still cannot take a payment.
 The site is public but unlisted. If you would like it private, a Cloudflare Access policy on the Pages
 project (dashboard → Workers & Pages → the project → Settings) is an optional extra.
 
-> **The release pipeline's payment probe still points at the old test site.** The repository variable
-> `PAYMENT_SMOKE_BASE_URL` is `https://belle-mare-sandbox.vercel.app`. If you retire the Vercel site,
-> point it at the new address (and keep `PAYMENT_SMOKE_SUPABASE_*` on the same sandbox project).
+> **The release pipeline's payment probe targets this site.** The repository variable
+> `PAYMENT_SMOKE_BASE_URL` is `https://belle-mare-sandbox.pages.dev`. It was the Vercel address, which
+> answered HTTP 402 once Vercel suspended that project, so the probe ended every release red from
+> 2026-09-04 until it was re-pointed on 2026-10-01 (production itself deployed fine each time; only the
+> closing check failed). The probe signs in with the `PAYMENT_SMOKE_*` secrets, which must stay on this
+> same sandbox Supabase project, and its last step creates a real Peach **test** checkout, so it passes
+> only once the allow-list entry in step 3 exists. Only a brand-new release run uses the new value:
+> re-running an old run has replayed its old settings before.
 
 ## Resetting
 
@@ -244,9 +271,10 @@ project (dashboard → Workers & Pages → the project → Settings) is an optio
 
 ## Notes & limits
 
-- Because payments are stubbed, a "paid" sandbox booking never involved Peach — the stub webhook just
-  marks it paid. Don't use the sandbox to test the real Peach integration; that needs sandbox Peach
-  credentials and a tunnel (see [`.env.example`](../../.env.example) and the Peach section).
+- On your own machine (`npm run dev`) payments are stubbed, so a "paid" sandbox booking never involved
+  Peach — the stub webhook just marks it paid. To test the real Peach integration use the **hosted**
+  sandbox above (Peach TEST keys and test cards, once its domain is allow-listed), or a tunnel added to
+  the Peach allow-list (see [`.env.example`](../../.env.example) and the Peach section).
 - Optional integrations (Google Maps, AI planner, Telegram/WhatsApp alerts) stay off until you add their
   keys — everything else works without them.
 - **Never** run `npm run sandbox:setup` with production credentials in `.env.local`. It will refuse, but
