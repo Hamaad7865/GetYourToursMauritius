@@ -79,6 +79,13 @@ gallery — an open one has a **View gallery** button, an unpaid one is marked *
 **Pay the balance**. The tab only appears once a gallery has been delivered to that customer, so a guest
 whose photos are still in draft (or who has no photography booking) never sees it.
 
+The gallery's own link (`/bookings/REF#gallery` — the delivery email, **View gallery** in the account)
+opens the photos **without** the booking-confirmation card (receipt, pickup, invoice, cancel) above them.
+The card is one click away on the **Your booking** crumb in the gallery header, and a booking page opened
+without that link (Account → **View booking**, the return from a payment) still shows the card first. A
+locked gallery always shows the card, because the pay box lives in it. The rules are in
+`src/lib/booking/booking-view.ts`.
+
 **The optional supplements** are the extras a guest can add to a tour while booking, and you own both
 halves of each: type the name ("Lobster for lunch", "Snorkel gear") and the price per person — add as
 many rows as the tour sells. Remove a row and it disappears from the tour page. Guests pick how many

@@ -25,6 +25,7 @@ import {
   shouldKeepPollingGallery,
 } from '@/lib/checkout/confirm-poll';
 import { useScrollToHash } from '@/lib/ui/useScrollToHash';
+import { BOOKING_DETAILS_ID, galleryPhase, type GalleryPhase } from '@/lib/booking/booking-view';
 import {
   GALLERY_TABS,
   THUMB_ROW_HEIGHTS,
@@ -63,8 +64,15 @@ const TAB_LABEL: Record<GalleryTab, string> = {
  * invisible until the studio confirms the gallery complete; a "pay the balance" teaser while the
  * balance is owed (no photo URLs are ever sent for it); the full gallery once it is paid.
  */
-export function BookingGallery({ bookingRef }: { bookingRef: string }) {
-  const { session } = useAuth();
+export function BookingGallery({
+  bookingRef,
+  onPhase,
+}: {
+  bookingRef: string;
+  /** Reports what this section found, so the page can step the booking card aside (booking-view.ts). */
+  onPhase?: (phase: GalleryPhase) => void;
+}) {
+  const { session, loading: authLoading } = useAuth();
   const t = useT();
   const [data, setData] = useState<GalleryPayload | null>(null);
   const [loading, setLoading] = useState(true);
@@ -119,6 +127,18 @@ export function BookingGallery({ bookingRef }: { bookingRef: string }) {
   // the truthful count in meta, not the length of the array.
   const locked = Boolean(data?.locked) && (meta?.photoCount ?? 0) > 0;
   const showsGallery = Boolean(data) && (photos.length > 0 || locked);
+
+  // Tell the page what we found: for a delivered gallery opened by its own link it hides the
+  // booking-confirmation card above us (the guest came for the photos, not the receipt).
+  const phase = galleryPhase({
+    authLoading,
+    hasSession: Boolean(session),
+    hasData: data !== null,
+    open: showsGallery && !locked,
+  });
+  useEffect(() => {
+    onPhase?.(phase);
+  }, [phase, onPhase]);
 
   // Landing from a payment: the balance settles asynchronously, so while the gallery still reads
   // locked look again until it opens or the confirmation window elapses.
@@ -286,9 +306,25 @@ export function BookingGallery({ bookingRef }: { bookingRef: string }) {
         <div className="absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/35 to-ink/10" />
         <div className="relative mx-auto flex w-full max-w-shell flex-col gap-3 px-6 pb-10">
           <p className="animate-fade-up flex items-center gap-2 text-[13px] font-semibold text-white/80">
-            <span>{t('Your booking')}</span>
+            {/* The gallery's own link hides the booking-confirmation card; "Your booking" brings it
+                back (the page scrolls to it) and "Gallery" returns to the photos alone. */}
+            <a
+              href={`#${BOOKING_DETAILS_ID}`}
+              // The card is about to appear ABOVE what the guest is looking at. From anywhere but the
+              // top of the page the browser's scroll anchoring then holds the viewport on the gallery
+              // and nothing seems to happen, so start from the top (BookingPageBody scrolls to it).
+              onClick={() => window.scrollTo({ top: 0, behavior: 'instant' })}
+              className="underline-offset-4 transition hover:text-white hover:underline"
+            >
+              {t('Your booking')}
+            </a>
             <span aria-hidden>›</span>
-            <span>{t('Gallery')}</span>
+            <a
+              href="#gallery"
+              className="underline-offset-4 transition hover:text-white hover:underline"
+            >
+              {t('Gallery')}
+            </a>
           </p>
           <h1 className="animate-fade-up text-balance text-[clamp(32px,5vw,60px)] font-bold leading-[1.02] tracking-[-0.03em]">
             {meta?.packageTitle ?? t('Your gallery')}

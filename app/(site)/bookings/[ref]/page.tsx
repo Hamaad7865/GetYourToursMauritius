@@ -1,9 +1,7 @@
 import type { Metadata } from 'next';
-import { Suspense } from 'react';
 import { GygHeader } from '@/components/gyg/GygHeader';
 import { SiteFooter } from '@/components/site/SiteFooter';
-import { BookingConfirmation } from '@/components/gyg/detail/BookingConfirmation';
-import { BookingGallery } from '@/components/booking/BookingGallery';
+import { BookingPageBody } from '@/components/booking/BookingPageBody';
 import { PeachWidgetPreload } from '@/components/checkout/PeachWidgetPreload';
 
 export const runtime = 'edge';
@@ -22,10 +20,7 @@ export default async function BookingPage({ params }: { params: Promise<{ ref: s
       <GygHeader sticky showSearch={false} />
       <main className="min-h-[60vh] bg-white">
         <div className="mx-auto max-w-shell px-6">
-          <Suspense fallback={<p className="py-16 text-center text-sm text-ink-muted">Loading…</p>}>
-            <BookingConfirmation bookingRef={ref} />
-          </Suspense>
-          <BookingGallery bookingRef={ref} />
+          <BookingPageBody bookingRef={ref} />
         </div>
       </main>
       <SiteFooter />

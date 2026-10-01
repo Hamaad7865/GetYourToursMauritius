@@ -332,6 +332,23 @@ their photos are ready must stamp it** through `markGalleryReady` (`complete`, `
 a guest who pays with no gallery and no email. The stamp is also why `notify_balance_paid` does not
 auto-send on "photos exist" — a guest paying mid-upload would be told, and shown, half a shoot.
 
+### Two browser traps when the booking page hides or reveals content above the gallery
+
+`BookingPageBody` hides the booking-confirmation card for a gallery opened by `#gallery`
+(`src/lib/booking/booking-view.ts`). Both obvious ways of building that failed:
+
+- **CSS `#gallery:target` never matches.** The gallery section is mounted by a client fetch _after_ load,
+  and the browser designates the `:target` element at navigation time only, so an element inserted later is
+  never the target. The hash is read in React (`useSyncExternalStore` on `hashchange`) instead.
+- **A scroll made while revealing content above the viewport is undone.** Showing the card again from the
+  gallery header puts it ABOVE what the guest is looking at; the next layout makes the browser's scroll
+  anchoring shift `scrollTop` to keep the gallery where it was, which cancels a `scrollIntoView` issued in
+  the same frame, so "nothing happens". The crumb therefore scrolls to the top _first_ (anchoring does not
+  apply at `scrollTop` 0) and the page then scrolls to the card.
+
+A card held back while the gallery loads is released after a grace period, so a hung request can never hide
+the pay box, invoice and cancel controls for good. Verify any change here in a browser, not just in unit tests.
+
 ### The admin sidebar is not a security boundary
 
 `AdminShell` filters nav items by role. That's **cosmetic** — an `seo` user can type any `/admin` URL.
