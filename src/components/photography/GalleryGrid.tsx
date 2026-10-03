@@ -1,5 +1,7 @@
 'use client';
 
+import { responsiveImage } from '@/lib/images/resize';
+import { PHOTO_CARD } from '@/lib/images/presets';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useT } from '@/components/site/PreferencesProvider';
 import { GALLERY_TAGS, videoSource, type GalleryTag } from '@/lib/catalogue/photography';
@@ -160,7 +162,10 @@ function Tile({ item }: { item: GalleryItem }) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
-        src={item.thumb}
+        {...responsiveImage(item.thumb, {
+          sizes: '(min-width: 1024px) 380px, (min-width: 640px) 46vw, 92vw',
+          widths: PHOTO_CARD.widths,
+        })}
         alt={item.alt}
         loading="lazy"
         className={`${item.aspect} w-full object-cover transition duration-500 group-hover:scale-[1.02]`}
@@ -303,7 +308,7 @@ function Viewer({
           // eslint-disable-next-line @next/next/no-img-element
           <img
             key={item.key}
-            src={item.src}
+            {...responsiveImage(item.src, { sizes: '100vw', widths: [1200, 1600, 2400] })}
             alt={item.alt}
             className="max-h-[80vh] w-auto max-w-full rounded-xl object-contain"
           />

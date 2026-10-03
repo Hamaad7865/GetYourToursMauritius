@@ -1,5 +1,6 @@
 'use client';
 
+import { responsiveImage } from '@/lib/images/resize';
 import { isVideoUrl } from '@/lib/media';
 import { IconDownload, IconHeart, IconHeartFill, IconPlay } from '@/components/ui/icons';
 import type { GalleryPhoto, TFn } from '@/lib/booking/gallery-view';
@@ -76,7 +77,10 @@ export function GalleryGrid({
               />
             ) : (
               <img
-                src={p.url}
+                {...responsiveImage(p.url, {
+                  sizes: '(min-width: 640px) 380px, 50vw',
+                  widths: [400, 800],
+                })}
                 alt=""
                 loading="lazy"
                 onLoad={(e) => {

@@ -2,6 +2,8 @@
 
 /* eslint-disable @next/next/no-img-element -- CF Pages serves images unoptimized. */
 
+import { responsiveImage } from '@/lib/images/resize';
+import { PHOTO_CARD } from '@/lib/images/presets';
 import { useState } from 'react';
 import type { PhotographyOccasion } from '@/lib/catalogue/photography';
 import type { V3Package } from './packages-data';
@@ -128,7 +130,7 @@ export function PhotoPackagesSection({
             <>
               <div className="relative h-[210px] bg-teal-tint">
                 <img
-                  src={p.image}
+                  {...responsiveImage(p.image, PHOTO_CARD)}
                   alt={p.imageAlt}
                   loading="lazy"
                   className="h-full w-full object-cover transition duration-700 group-hover:scale-105"

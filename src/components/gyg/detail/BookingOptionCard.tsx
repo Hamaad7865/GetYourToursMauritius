@@ -11,6 +11,8 @@ import { Price } from '@/components/site/Price';
 import { SIGHTSEEING_SUV_MAX, CHILD_SEAT_EUR } from '@/lib/services/pricing';
 import { durationLabel } from '@/lib/catalogue/detail';
 import type { AltStop } from '@/lib/validation/tours';
+import { responsiveImage } from '@/lib/images/resize';
+import { PHOTO_THUMB } from '@/lib/images/presets';
 import {
   crossSellHref,
   isPhotographyCategory,
@@ -442,7 +444,7 @@ export function BookingOptionCard() {
                   {item.image ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={item.image}
+                      {...responsiveImage(item.image, PHOTO_THUMB)}
                       alt=""
                       className="h-10 w-10 shrink-0 rounded-md object-cover"
                     />

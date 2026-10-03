@@ -1,3 +1,4 @@
+import { responsiveImage } from '@/lib/images/resize';
 import Link from 'next/link';
 import { getT } from '@/lib/i18n/server';
 import { getPhotographyPhotos } from '@/lib/settings/photography-photos';
@@ -47,7 +48,10 @@ export async function OtherMoments() {
             >
               {/* eslint-disable-next-line @next/next/no-img-element -- CF Pages serves images unoptimized. */}
               <img
-                src={src}
+                {...responsiveImage(src, {
+                  sizes: '(min-width: 1024px) 280px, 46vw',
+                  widths: [400, 800],
+                })}
                 alt={cover?.alt ?? LABEL[tag]}
                 loading="lazy"
                 className="aspect-[3/4] w-full object-cover transition duration-300 group-hover:scale-[1.03]"

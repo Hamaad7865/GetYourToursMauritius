@@ -2,6 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element -- CF Pages serves images unoptimized. */
 
+import { responsiveImage } from '@/lib/images/resize';
 import { useEffect, useRef, useState } from 'react';
 import type { V3HeroSlide } from './packages-data';
 
@@ -87,7 +88,13 @@ export function PhotoHeroCollage({
             className={`absolute overflow-hidden rounded-[18px] bg-teal-tint transition-all duration-700 ease-[cubic-bezier(0.65,0,0.35,1)] ${tileClass(k)}`}
           >
             <img
-              src={s.src}
+              {...responsiveImage(
+                s.src,
+                // The main tile is ~57% of the collage; the stacked ones ~43% and half its height.
+                k === 0
+                  ? { sizes: '(min-width: 1024px) 400px, 60vw', widths: [400, 800, 1200] }
+                  : { sizes: '(min-width: 1024px) 280px, 42vw', widths: [400, 800] },
+              )}
               alt={s.alt}
               className="h-full w-full object-cover"
               loading={k === 0 ? undefined : 'lazy'}

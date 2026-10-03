@@ -2,6 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element -- gallery photos are external Supabase URLs. */
 
+import { responsiveImage } from '@/lib/images/resize';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { useT } from '@/components/site/PreferencesProvider';
@@ -299,7 +300,7 @@ export function BookingGallery({
       {/* hero */}
       <div className="relative flex h-[clamp(340px,52vh,520px)] items-end overflow-hidden bg-ink text-white">
         <img
-          src={cover.url}
+          {...responsiveImage(cover.url, { sizes: '100vw', widths: [1200, 1600, 2400] })}
           alt=""
           className="animate-gallery-ken-burns absolute inset-0 h-full w-full object-cover"
         />

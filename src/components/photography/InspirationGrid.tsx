@@ -1,5 +1,6 @@
 'use client';
 
+import { responsiveImage } from '@/lib/images/resize';
 import { useCallback, useEffect, useState } from 'react';
 import { useT } from '@/components/site/PreferencesProvider';
 import { useDialog } from '@/lib/a11y/useDialog';
@@ -57,7 +58,10 @@ export function InspirationGrid({ items }: { items: InspirationItem[] }) {
             className="group block w-full overflow-hidden rounded-xl"
           >
             <img
-              src={item.thumb ?? item.src}
+              {...responsiveImage(item.thumb ?? item.src, {
+                sizes: '(min-width: 640px) 240px, 46vw',
+                widths: [400, 800],
+              })}
               alt={item.alt}
               loading="lazy"
               className={`w-full object-cover transition duration-300 group-hover:scale-[1.03] ${item.aspect}`}

@@ -3,11 +3,19 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { TourImage } from '@/lib/validation/tours';
 import { isVideoUrl } from '@/lib/media';
+import { responsiveImage } from '@/lib/images/resize';
 import { Lightbox } from '@/components/ui/Lightbox';
 import { useT } from '@/components/site/PreferencesProvider';
 import { useDialog } from '@/lib/a11y/useDialog';
 
 /* eslint-disable @next/next/no-img-element -- CF Pages serves images unoptimized. */
+
+/** The lead tile is the big one (the page's LCP): ~60% of the column, or all of it on a phone. The four
+ *  side tiles are a fifth of the width each and only exist from `sm` up. */
+const LEAD_SIZES = '(min-width: 1280px) 700px, (min-width: 640px) 62vw, 100vw';
+const LEAD_WIDTHS = [800, 1200, 1600] as const;
+const SIDE_SIZES = '(min-width: 1280px) 240px, 20vw';
+const SIDE_WIDTHS = [400, 800] as const;
 
 function Tile({
   image,
@@ -42,7 +50,10 @@ function Tile({
         />
       ) : (
         <img
-          src={image.url}
+          {...responsiveImage(image.url, {
+            sizes: priority ? LEAD_SIZES : SIDE_SIZES,
+            widths: priority ? LEAD_WIDTHS : SIDE_WIDTHS,
+          })}
           alt={image.alt ?? `${title} — photo ${position}`}
           loading={priority ? 'eager' : 'lazy'}
           fetchPriority={priority ? 'high' : undefined}

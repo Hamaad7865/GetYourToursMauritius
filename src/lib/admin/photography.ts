@@ -366,12 +366,14 @@ export async function loadPhotographyPhotos(): Promise<PhotographyPhoto[]> {
   return (data ?? []).map(toPhotographyPhoto).filter((p): p is PhotographyPhoto => p !== null);
 }
 
-/** Upload a file to the public activity-images bucket (under photography/) and return its URL. */
+/** Upload a page photo to the public activity-images bucket (under photography/) and return its URL.
+ *  Shrunk to web size first — a page never shows more than ~2400 px. (Videos pass through untouched.) */
 export function uploadPhotographyPhoto(file: File): Promise<string> {
-  return uploadActivityImage(file, 'photography');
+  return uploadActivityImage(file, 'photography', { webSize: true });
 }
 
-/** Upload a customer-gallery file under galleries/<booking-ref>/ and return its public URL. */
+/** Upload a customer-gallery file under galleries/<booking-ref>/ and return its public URL.
+ *  DELIBERATELY not web-sized: the guest downloads these, so they stay exactly as the studio uploaded them. */
 export function uploadGalleryPhoto(file: File, ref: string): Promise<string> {
   return uploadActivityImage(file, `gallery-${ref}`);
 }

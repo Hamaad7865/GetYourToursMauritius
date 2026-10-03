@@ -1,5 +1,7 @@
 'use client';
 
+import { responsiveImage } from '@/lib/images/resize';
+import { PHOTO_THUMB } from '@/lib/images/presets';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   IconChevronLeft,
@@ -531,7 +533,7 @@ export function GalleryLightbox({
           ) : (
             <img
               key={item.id}
-              src={item.url}
+              {...responsiveImage(item.url, { sizes: '100vw', widths: [1600, 2400] })}
               alt=""
               draggable={false}
               className={`block max-h-[calc(100vh-176px)] max-w-[calc(100vw-40px)] select-none rounded shadow-[0_30px_80px_-24px_rgba(0,0,0,0.7)] sm:max-w-[calc(100vw-160px)] ${anim}`}
@@ -589,7 +591,7 @@ export function GalleryLightbox({
                 />
               ) : (
                 <img
-                  src={p.url}
+                  {...responsiveImage(p.url, PHOTO_THUMB)}
                   alt=""
                   loading="lazy"
                   draggable={false}

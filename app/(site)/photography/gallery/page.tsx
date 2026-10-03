@@ -1,3 +1,5 @@
+import { responsiveImage } from '@/lib/images/resize';
+import { PHOTO_BANNER } from '@/lib/images/presets';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { GygHeader } from '@/components/gyg/GygHeader';
@@ -65,7 +67,7 @@ export default async function PhotographyGalleryPage({
         <section className="relative isolate flex min-h-[380px] items-end overflow-hidden bg-ink text-white sm:min-h-[440px]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={slotUrl(photos, 'gallery-hero')}
+            {...responsiveImage(slotUrl(photos, 'gallery-hero'), PHOTO_BANNER)}
             alt={t('Photography in Mauritius')}
             fetchPriority="high"
             className="pg-focus-in absolute inset-0 -z-10 h-full w-full object-cover"

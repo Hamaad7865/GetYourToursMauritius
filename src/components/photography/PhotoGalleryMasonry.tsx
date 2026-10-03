@@ -2,6 +2,8 @@
 
 /* eslint-disable @next/next/no-img-element -- CF Pages serves images unoptimized. */
 
+import { responsiveImage } from '@/lib/images/resize';
+import { PHOTO_CARD } from '@/lib/images/presets';
 import { useEffect, useRef, useState } from 'react';
 import { useT } from '@/components/site/PreferencesProvider';
 import { IconChevron } from '@/components/ui/icons';
@@ -149,7 +151,10 @@ export function PhotoGalleryMasonry({
             className="group relative aspect-[3/3.8] w-[78%] flex-none snap-start overflow-hidden rounded-[18px] bg-teal-tint sm:w-[46%] lg:w-[31.5%]"
           >
             <img
-              src={g.src}
+              {...responsiveImage(g.src, {
+                sizes: '(min-width: 1024px) 380px, (min-width: 640px) 46vw, 78vw',
+                widths: PHOTO_CARD.widths,
+              })}
               alt={g.alt}
               loading="lazy"
               draggable={false}

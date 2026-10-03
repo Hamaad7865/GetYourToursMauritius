@@ -1,9 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { responsiveImage } from '@/lib/images/resize';
 import { IconChevronLeft, IconChevronRight, IconMinus, IconPlus, IconX } from './icons';
 
 /* eslint-disable @next/next/no-img-element -- CF Pages serves images unoptimized. */
+
+/** Full-screen photo: big, so the top of the ladder; the 64 px filmstrip needs only the smallest step. */
+const MAIN_WIDTHS = [1200, 1600, 2400] as const;
+const THUMB_WIDTHS = [400] as const;
 
 export interface LightboxItem {
   src: string;
@@ -120,7 +125,7 @@ export function Lightbox({
           ) : (
             <img
               key={item.src}
-              src={item.src}
+              {...responsiveImage(item.src, { sizes: '100vw', widths: MAIN_WIDTHS })}
               alt={item.alt}
               onClick={() => zoomTo(zoom > 1 ? 1 : 2.5)}
               className="max-h-full max-w-full select-none rounded-xl object-contain"
@@ -166,7 +171,10 @@ export function Lightbox({
                 />
               ) : (
                 <img
-                  src={thumb.thumb ?? thumb.src}
+                  {...responsiveImage(thumb.thumb ?? thumb.src, {
+                    sizes: '64px',
+                    widths: THUMB_WIDTHS,
+                  })}
                   alt=""
                   loading="lazy"
                   className="h-full w-full object-cover"

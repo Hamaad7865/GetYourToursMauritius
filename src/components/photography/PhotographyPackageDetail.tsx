@@ -1,3 +1,4 @@
+import { responsiveImage } from '@/lib/images/resize';
 import Link from 'next/link';
 /* eslint-disable @next/next/no-img-element -- CF Pages serves images unoptimized. */
 import { Price } from '@/components/site/Price';
@@ -95,7 +96,10 @@ export async function PhotographyPackageDetail({ activity }: { activity: TourDet
           <div className="col-span-2 overflow-hidden rounded-[18px] bg-teal-tint sm:col-span-1 sm:row-span-2">
             {/* The lead tile is the page's LCP — eager + high priority, like the old gallery lead. */}
             <img
-              src={cover}
+              {...responsiveImage(cover, {
+                sizes: '(min-width: 1280px) 780px, (min-width: 640px) 66vw, 100vw',
+                widths: [800, 1200, 1600],
+              })}
               alt={activity.title}
               loading="eager"
               fetchPriority="high"
@@ -106,7 +110,10 @@ export async function PhotographyPackageDetail({ activity }: { activity: TourDet
           {sidePhotos.map((img, i) => (
             <div key={img.id} className="overflow-hidden rounded-[18px] bg-teal-tint">
               <img
-                src={img.url}
+                {...responsiveImage(img.url, {
+                  sizes: '(min-width: 1280px) 390px, (min-width: 640px) 33vw, 50vw',
+                  widths: [400, 800],
+                })}
                 alt={img.alt ?? `${activity.title} — photo ${i + 2}`}
                 loading="lazy"
                 decoding="async"
@@ -119,7 +126,10 @@ export async function PhotographyPackageDetail({ activity }: { activity: TourDet
         cover && (
           <div className="overflow-hidden rounded-[18px] bg-teal-tint">
             <img
-              src={cover}
+              {...responsiveImage(cover, {
+                sizes: '(min-width: 1280px) 1200px, 100vw',
+                widths: [800, 1200, 1600, 2400],
+              })}
               alt={activity.title}
               loading="eager"
               fetchPriority="high"

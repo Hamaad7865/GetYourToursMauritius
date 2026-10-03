@@ -1,3 +1,5 @@
+import { responsiveImage } from '@/lib/images/resize';
+import { PHOTO_CARD } from '@/lib/images/presets';
 import Link from 'next/link';
 import { Price } from '@/components/site/Price';
 import { IconArrowRight } from '@/components/ui/icons';
@@ -30,7 +32,10 @@ export function PricingGuideCard({
       <div className="relative aspect-[16/10] overflow-hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={pkg.image}
+          {...responsiveImage(pkg.image, {
+            sizes: '(min-width: 1024px) 380px, (min-width: 640px) 46vw, 100vw',
+            widths: PHOTO_CARD.widths,
+          })}
           alt={pkg.imageAlt}
           loading="lazy"
           className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
