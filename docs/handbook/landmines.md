@@ -370,6 +370,33 @@ the model is `images = [cover, ...gallery]` (`photographyPackageValues` / `apply
 - The shared tour gallery's HTML must stay identical for photo-only tours (`Gallery`'s default variant) — the
   photoshoot layout is `variant="photography"`, and `sideTileClasses` is what keeps the 2×2 block hole-free for any count.
 
+### The full-screen photo viewer is a library — what not to undo
+
+Clicking a gallery photo opens [yet-another-react-lightbox](https://yet-another-react-lightbox.com/) (MIT; swipe, pinch,
+zoom, thumbnails, keyboard), wrapped in `src/components/ui/Lightbox.tsx` (the lazy loader callers use) and
+`LightboxViewer.tsx` (the library, its plugins, the brand skin in `lightbox.css`). `src/lib/images/viewer-slides.ts` turns a
+gallery's items into slides and is the unit-tested part. Swapping libraries means replacing `LightboxViewer` only.
+
+- **It brings its own dialog behaviour** — the page behind goes `inert`, Escape closes, the body stops scrolling. Do not put
+  `useDialog` or an arrow-key listener back in a caller: two handlers would fight. The one thing it does _not_ do reliably is
+  return focus to the button that opened it (it waits for a focus event, which a page without focus never sends), so the
+  `Lightbox` wrapper reads `document.activeElement` itself and restores it on close.
+- **Loaded on demand, never on the server** (`next/dynamic`, `ssr: false`): the library and its three stylesheets are not in
+  any page's first paint. The galleries call `preloadLightbox()` on hover / focus / touch so the first open is instant.
+- **The thumbnail strip is a looping window of five around the photo on show** (it is sized by `carousel.preload`). With fewer
+  than five photos that window repeats one, so a short gallery is `finite` and keeps every photo within the strip's reach. And
+  the strip paints its own background — setting `--yarl__thumbnails_container_background_color: transparent` shows the
+  page through the bottom of the screen.
+- **YouTube / Vimeo are our own `embed` slide** (the library's video plugin plays uploaded files only). Only the slide on
+  screen mounts its iframe: the carousel keeps neighbours ready, and a player mounted behind the photo would autoplay there.
+- **Resized photos keep the safety net.** A photo that can be resized gets a `srcSet` (heights are an assumed 3:2 — the real
+  shape is not stored, and it only steers which copy is picked) and `data-src-original`, passed through `carousel.imageProps`;
+  its thumbnail is drawn in `render.thumbnail` for the same reason (the library's own thumbnail `<img>` cannot carry the
+  marker). To test it, switch resizing on locally — `localhost` has no `/cdn-cgi/image`, so every resized URL fails — and
+  confirm every slide and thumbnail ends up on its original.
+- **Every screen-reader label is translated** (`labels` in `LightboxViewer`, 11 of them, French in `messages.ts`).
+  `{index} of {total}` is the library's own template, so `t()` must be called without variables.
+
 ### Photo resizing: every part of it can fail quietly
 
 Photos are resized by Cloudflare through `/cdn-cgi/image/…` (`src/lib/images/resize.ts`; owner steps in

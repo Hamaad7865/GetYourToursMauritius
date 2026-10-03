@@ -1,14 +1,13 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { TourImage } from '@/lib/validation/tours';
 import { videoSource } from '@/lib/media';
 import { PACKAGE_GRID_TILES, sideTileClasses } from '@/lib/catalogue/package-gallery';
 import { responsiveImage } from '@/lib/images/resize';
 import { IconPlay } from '@/components/ui/icons';
-import { Lightbox } from '@/components/ui/Lightbox';
+import { Lightbox, preloadLightbox, type LightboxItem } from '@/components/ui/Lightbox';
 import { useT } from '@/components/site/PreferencesProvider';
-import { useDialog } from '@/lib/a11y/useDialog';
 
 /* eslint-disable @next/next/no-img-element -- CF Pages serves images unoptimized. */
 
@@ -99,10 +98,18 @@ function Tile({
   );
 }
 
+/** Fetch the full-screen viewer as soon as a visitor reaches for the gallery (a hover, a focus, a touch), so
+ *  the first photo they open appears at once instead of after the viewer's code has downloaded. */
+const PRELOAD_VIEWER = {
+  onPointerEnter: preloadLightbox,
+  onFocus: preloadLightbox,
+  onTouchStart: preloadLightbox,
+};
+
 /** GetYourGuide-style gallery: one large image + a 2×2 grid (equal height), with a
- *  "View all photos" button opening a keyboard-navigable lightbox. Photos, uploaded videos and
- *  YouTube / Vimeo links all work. `variant="photography"` is the photoshoot package page's layout:
- *  the same lead + four, but filled for any number of photos and on a phone too. */
+ *  "View all photos" button opening a full-screen viewer (swipe, zoom, thumbnails, keyboard). Photos,
+ *  uploaded videos and YouTube / Vimeo links all work. `variant="photography"` is the photoshoot package
+ *  page's layout: the same lead + four, but filled for any number of photos and on a phone too. */
 export function Gallery({
   images,
   title,
@@ -114,28 +121,27 @@ export function Gallery({
   leadOnly?: boolean;
   variant?: 'tour' | 'photography';
 }) {
+  // `index` is only where the viewer opens; once open it pages through the photos itself, and it brings its
+  // own focus handling, Escape, arrow keys and scroll lock (no useDialog needed here).
   const [open, setOpen] = useState(false);
   const [index, setIndex] = useState(0);
   const t = useT();
-  // Focus moves into the lightbox on open, Tab is trapped, Escape closes, body scroll locks, and focus
-  // returns to the trigger on close — the shared modal hook the rest of the app's dialogs use.
-  const dialogRef = useDialog(open, () => setOpen(false));
 
-  const go = useCallback(
-    (dir: 1 | -1) => setIndex((i) => (i + dir + images.length) % Math.max(1, images.length)),
-    [images.length],
+  // What the viewer shows. Memoised because the viewer rebuilds its slides whenever this changes.
+  const viewerItems = useMemo(
+    () =>
+      images.map((img, i): LightboxItem => {
+        const v = videoSource(img.url);
+        return {
+          src: img.url,
+          ...(v?.kind === 'youtube' ? { thumb: v.thumbUrl } : {}),
+          alt: img.alt ?? `${title} — ${v ? 'video' : 'photo'} ${i + 1}`,
+          video: v !== null,
+          ...(v && v.kind !== 'file' ? { embedUrl: v.embedUrl } : {}),
+        };
+      }),
+    [images, title],
   );
-
-  // Left/right arrows page through the photos (useDialog owns Escape / Tab-trap / scroll-lock).
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowRight') go(1);
-      if (e.key === 'ArrowLeft') go(-1);
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, go]);
 
   function openAt(i: number) {
     setIndex(i);
@@ -163,27 +169,7 @@ export function Gallery({
         : t('View all {n} photos', { n: images.length });
 
   const lightbox = open && (
-    <Lightbox
-      items={images.map((img, i) => {
-        const v = videoSource(img.url);
-        return {
-          src: img.url,
-          ...(v?.kind === 'youtube' ? { thumb: v.thumbUrl } : {}),
-          alt: img.alt ?? `${title} — ${v ? 'video' : 'photo'} ${i + 1}`,
-          video: v !== null,
-          ...(v && v.kind !== 'file' ? { embedUrl: v.embedUrl } : {}),
-        };
-      })}
-      index={index}
-      onIndex={setIndex}
-      onClose={() => setOpen(false)}
-      dialogRef={dialogRef}
-      closeLabel={t('Close gallery')}
-      prevLabel={t('Previous photo')}
-      nextLabel={t('Next photo')}
-      zoomInLabel={t('Zoom in')}
-      zoomOutLabel={t('Zoom out')}
-    />
+    <Lightbox items={viewerItems} index={index} onClose={() => setOpen(false)} />
   );
 
   const viewAllButton = (
@@ -206,6 +192,7 @@ export function Gallery({
             inflate it), the lead on the left and a 2×2 block on the right. A phone stacks them: the lead
             on top, the block below in 120 px rows. */}
         <div
+          {...PRELOAD_VIEWER}
           className={`relative grid gap-3 ${
             solo
               ? ''
@@ -258,6 +245,7 @@ export function Gallery({
       {/* grid-rows-1 clamps the row to the pinned height — without it a portrait photo's
           intrinsic ratio inflates the implicit row and the tiles paint over the content below. */}
       <div
+        {...PRELOAD_VIEWER}
         className={`relative grid h-[240px] grid-rows-1 gap-2 sm:h-[360px] ${leadOnly ? '' : 'sm:grid-cols-[1.6fr_1fr]'}`}
       >
         <Tile

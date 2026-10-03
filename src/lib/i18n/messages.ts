@@ -406,6 +406,12 @@ export const fr: Record<string, string> = {
   'Next photo': 'Photo suivante',
   'Zoom in': 'Zoom avant',
   'Zoom out': 'Zoom arrière',
+  // The full-screen viewer's screen-reader labels (the library takes them as a table). 'Photo viewer' is
+  // defined further down, where the customer gallery's viewer already uses it.
+  Carousel: 'Carrousel',
+  Slide: 'Diapositive',
+  '{index} of {total}': '{index} sur {total}',
+  Thumbnails: 'Miniatures',
   'View photo {n}': 'Voir la photo {n}',
   Mon: 'lun',
   Tue: 'mar',

@@ -1,10 +1,9 @@
 'use client';
 
 import { responsiveImage } from '@/lib/images/resize';
-import { useCallback, useEffect, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useT } from '@/components/site/PreferencesProvider';
-import { useDialog } from '@/lib/a11y/useDialog';
-import { Lightbox } from '@/components/ui/Lightbox';
+import { Lightbox, preloadLightbox, type LightboxItem } from '@/components/ui/Lightbox';
 
 /* eslint-disable @next/next/no-img-element -- CF Pages serves images unoptimized. */
 
@@ -17,29 +16,27 @@ export interface InspirationItem {
 }
 
 /**
- * The package page's "Get inspired" strip: uniform tiles that open the shared lightbox
- * (thumbnails below, zoom on photos).
+ * The package page's "Get inspired" strip: uniform tiles that open the shared full-screen viewer (swipe,
+ * zoom, thumbnails, keyboard). The viewer brings its own focus handling, Escape and arrow keys.
  */
 export function InspirationGrid({ items }: { items: InspirationItem[] }) {
   const t = useT();
+  // `index` is only where the viewer opens; once open it pages through the photos itself.
   const [open, setOpen] = useState(false);
   const [index, setIndex] = useState(0);
-  const dialogRef = useDialog(open, () => setOpen(false));
 
-  const go = useCallback(
-    (dir: 1 | -1) => setIndex((i) => (i + dir + items.length) % Math.max(1, items.length)),
-    [items.length],
+  const viewerItems = useMemo(
+    () =>
+      items.map(
+        (item): LightboxItem => ({
+          src: item.src,
+          thumb: item.thumb,
+          alt: item.alt,
+          video: false,
+        }),
+      ),
+    [items],
   );
-
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowRight') go(1);
-      if (e.key === 'ArrowLeft') go(-1);
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, go]);
 
   function openAt(i: number) {
     setIndex(i);
@@ -48,7 +45,12 @@ export function InspirationGrid({ items }: { items: InspirationItem[] }) {
 
   return (
     <>
-      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <div
+        onPointerEnter={preloadLightbox}
+        onFocus={preloadLightbox}
+        onTouchStart={preloadLightbox}
+        className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3"
+      >
         {items.map((item, i) => (
           <button
             key={item.key}
@@ -71,23 +73,7 @@ export function InspirationGrid({ items }: { items: InspirationItem[] }) {
       </div>
 
       {open && items[index] && (
-        <Lightbox
-          items={items.map((item) => ({
-            src: item.src,
-            thumb: item.thumb,
-            alt: item.alt,
-            video: false,
-          }))}
-          index={index}
-          onIndex={setIndex}
-          onClose={() => setOpen(false)}
-          dialogRef={dialogRef}
-          closeLabel={t('Close gallery')}
-          prevLabel={t('Previous photo')}
-          nextLabel={t('Next photo')}
-          zoomInLabel={t('Zoom in')}
-          zoomOutLabel={t('Zoom out')}
-        />
+        <Lightbox items={viewerItems} index={index} onClose={() => setOpen(false)} />
       )}
     </>
   );

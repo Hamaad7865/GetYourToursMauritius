@@ -78,6 +78,26 @@ export function videoSource(url: string): VideoSource | null {
   return null;
 }
 
+const VIDEO_MIME: Record<string, string> = {
+  mp4: 'video/mp4',
+  m4v: 'video/mp4',
+  webm: 'video/webm',
+  mov: 'video/quicktime',
+  ogv: 'video/ogg',
+};
+
+/** The media type a `<video><source type>` wants for an uploaded file, or null when `url` is not one. */
+export function videoMime(url: string): string | null {
+  let path: string;
+  try {
+    path = new URL(url.trim(), 'https://placeholder.invalid').pathname;
+  } catch {
+    return null;
+  }
+  const ext = /\.([a-z0-9]+)$/i.exec(path)?.[1]?.toLowerCase();
+  return (ext && VIDEO_MIME[ext]) || null;
+}
+
 export type MediaKind = 'image' | 'file' | 'youtube' | 'vimeo';
 
 /**
