@@ -349,6 +349,30 @@ auto-send on "photos exist" — a guest paying mid-upload would be told, and sho
 A card held back while the gallery loads is released after a grace period, so a hung request can never hide
 the pay box, invoice and cancel controls for good. Verify any change here in a browser, not just in unit tests.
 
+### Photo resizing: every part of it can fail quietly
+
+Photos are resized by Cloudflare through `/cdn-cgi/image/…` (`src/lib/images/resize.ts`; owner steps in
+[deployment](deployment.md#photo-resizing-cloudflare-image-transformations)). What to know before touching it:
+
+- **It ships OFF.** `NEXT_PUBLIC_IMAGE_RESIZING=1` is inlined at build time; unset, every helper returns the
+  bare `src` and the markup is unchanged. Switching it on before the zone's allowed-origins list names the
+  Supabase host breaks every photo (`403 ERROR 9401`).
+- **`onerror=redirect` does nothing for an image on another domain, and a React `onError` misses images that
+  fail before hydration.** The net is the inline capture-phase script in `fallback.ts`. It must remove
+  `srcset` and `sizes` BEFORE resetting `src` (or the browser keeps choosing from the broken candidates) and
+  it is idempotent, not one-shot: it swaps whenever `src` is not already the original.
+- **`srcset` candidates contain commas** (`width=400,quality=80,…`): write `url 400w, url 800w` — a space after
+  every separating comma and none inside a URL.
+- **`sizes` must be real.** A wrong one only costs bytes or sharpness, but leaving it out makes the browser
+  assume `100vw` and fetch the biggest file. React 19 auto-preloads a `fetchPriority="high"` image with its
+  `imagesrcset`/`imagesizes`, so the lead photo is not downloaded twice — keep it that way.
+- **`*.pages.dev` and localhost have no `/cdn-cgi/image`** (404): the switch stays off on the sandbox and in
+  dev. To test the fallback locally, put the switch in a temporary `.env.development.local` and restart.
+- **Upload shrinking is opt-in** (`uploadActivityImage(file, slug, { webSize: true })`). Customer-gallery files
+  go through the same function and must stay full quality. Safari returns a PNG when asked for WebP (probed
+  once, then the same format as the source is kept), EXIF rotation is baked in with
+  `imageOrientation: 'from-image'`, and anything the browser can't decode is uploaded untouched.
+
 ### The admin sidebar is not a security boundary
 
 `AdminShell` filters nav items by role. That's **cosmetic** — an `seo` user can type any `/admin` URL.

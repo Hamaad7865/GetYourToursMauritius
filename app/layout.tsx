@@ -3,6 +3,8 @@ import type { ReactNode } from 'react';
 import { Plus_Jakarta_Sans } from 'next/font/google';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { GoogleTagManager, GoogleTagManagerNoScript } from '@/components/site/GoogleTagManager';
+import { IMAGE_FALLBACK_SCRIPT } from '@/lib/images/fallback';
+import { resizingEnabled } from '@/lib/images/resize';
 import { organizationJsonLd, websiteJsonLd } from '@/lib/seo/jsonld';
 import { isNoindexBuild } from '@/lib/seo/site';
 import './globals.css';
@@ -53,6 +55,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={body.variable}>
       <body>
+        {/* Only when photo resizing is switched on (NEXT_PUBLIC_IMAGE_RESIZING): puts the original back
+            for any resized photo that fails to load. First in <body>, so it is listening before any
+            image can fail. See src/lib/images/resize.ts. */}
+        {resizingEnabled() && (
+          <script dangerouslySetInnerHTML={{ __html: IMAGE_FALLBACK_SCRIPT }} />
+        )}
         <GoogleTagManagerNoScript />
         <JsonLd data={organizationJsonLd()} />
         {/* The site entity, paired with the business entity above — see websiteJsonLd for why the

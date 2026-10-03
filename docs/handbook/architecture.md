@@ -306,6 +306,8 @@ This is the table to check before every commit.
 | The domain                                                                  | `NEXT_PUBLIC_SITE_URL` (Pages env) **and** `SITE_URL` in `workers/cron/wrangler.toml` **and** `PEACH_WEBHOOK_URL` **and** re-verify the Resend sending domain                                     |
 | An English UI string passed to `t(...)`                                     | Update the matching key in `src/lib/i18n/messages.ts` — translation is an **exact string match**, and a near-miss silently falls back to English                                                  |
 | A `create or replace function`                                              | Find the **winning** (last-in-filename-order) body first — see [landmines](landmines.md#the-worst-one-migration-revert-drift)                                                                     |
+| A place that shows a photo from Supabase Storage                            | Spread `responsiveImage(url, { sizes, widths })` (`src/lib/images/resize.ts`) with the **real** `sizes` for that layout — a raw `<img src>` downloads the full-size original                      |
+| An upload path for a **page** photo                                         | Pass `{ webSize: true }` to `uploadActivityImage` (or call `preparePageImage`). Customer-gallery files must **not** — they stay full quality                                                      |
 
 ---
 

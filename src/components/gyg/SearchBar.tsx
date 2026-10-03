@@ -7,6 +7,8 @@ import { useCategories } from '@/lib/categories/useCategories';
 import { addRecentSearch, getRecentSearches } from '@/lib/search/recent';
 import { withTravellers } from '@/lib/search/query';
 import { useActivitySuggestions } from '@/lib/search/useActivitySuggestions';
+import { responsiveImage } from '@/lib/images/resize';
+import { PHOTO_THUMB } from '@/lib/images/presets';
 import {
   IconChevron,
   IconChevronLeft,
@@ -251,7 +253,11 @@ export function SearchBar({ variant = 'hero' }: { variant?: Variant }) {
                   <span className="grid h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-teal/10">
                     {s.imageUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element -- tiny dropdown thumbnail
-                      <img src={s.imageUrl} alt="" className="h-full w-full object-cover" />
+                      <img
+                        {...responsiveImage(s.imageUrl, PHOTO_THUMB)}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
                     ) : (
                       <span className="grid h-full w-full place-items-center bg-[linear-gradient(152deg,#13a0a6_0%,#0E8C92_46%,#0B5C63_100%)] text-xs font-bold text-white/90">
                         {s.title.slice(0, 1)}

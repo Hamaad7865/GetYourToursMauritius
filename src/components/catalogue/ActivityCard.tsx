@@ -8,6 +8,8 @@ import { WishHeart } from '@/components/gyg/WishHeart';
 import { Price } from '@/components/site/Price';
 import { useT } from '@/components/site/PreferencesProvider';
 import { activityRating } from '@/lib/content/activity-reviews';
+import { responsiveImage } from '@/lib/images/resize';
+import { PHOTO_CARD } from '@/lib/images/presets';
 
 /* eslint-disable @next/next/no-img-element -- CF Pages serves images unoptimized. */
 
@@ -31,7 +33,7 @@ export function ActivityCard({
       <div className="relative aspect-[4/3] overflow-hidden">
         {activity.heroImage ? (
           <img
-            src={activity.heroImage.url}
+            {...responsiveImage(activity.heroImage.url, PHOTO_CARD)}
             alt={activity.heroImage.alt ?? activity.title}
             loading="lazy"
             className="h-full w-full object-cover transition duration-500 group-hover:scale-105"

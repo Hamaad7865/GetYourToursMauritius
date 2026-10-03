@@ -86,6 +86,9 @@ jobs:
           NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${{ secrets.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY }}
           NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID: ${{ vars.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID }}
           NEXT_PUBLIC_GSC_VERIFICATION: ${{ vars.NEXT_PUBLIC_GSC_VERIFICATION }}
+          # Cloudflare photo resizing (src/lib/images/resize.ts): "1" turns it on, anything else (or unset)
+          # leaves every photo exactly as it was. Set it only AFTER the Supabase host is allow-listed.
+          NEXT_PUBLIC_IMAGE_RESIZING: ${{ vars.NEXT_PUBLIC_IMAGE_RESIZING }}
         run: |
           set -euo pipefail
           {
@@ -95,6 +98,7 @@ jobs:
             printf 'NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=%s\n' "$NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"
             printf 'NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID=%s\n'  "$NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID"
             printf 'NEXT_PUBLIC_GSC_VERIFICATION=%s\n'    "$NEXT_PUBLIC_GSC_VERIFICATION"
+            printf 'NEXT_PUBLIC_IMAGE_RESIZING=%s\n'       "$NEXT_PUBLIC_IMAGE_RESIZING"
           } > .env.production.local
           # Names only — never the values.
           echo "wrote .env.production.local with:"; cut -d= -f1 .env.production.local

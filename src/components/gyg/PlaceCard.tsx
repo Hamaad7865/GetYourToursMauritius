@@ -6,6 +6,8 @@ import { WishHeart } from './WishHeart';
 import { Price } from '@/components/site/Price';
 import { useT } from '@/components/site/PreferencesProvider';
 import { activityRating } from '@/lib/content/activity-reviews';
+import { responsiveImage } from '@/lib/images/resize';
+import { PHOTO_CARD } from '@/lib/images/presets';
 import { VEHICLE_BANDS } from '@/lib/services/pricing';
 import { IconCalendar, IconStar } from '@/components/ui/icons';
 
@@ -90,7 +92,11 @@ export function PlaceCard({
         {/* Only the image scales on hover — the card and text never move. */}
         {image ? (
           <img
-            src={image.url}
+            {...responsiveImage(image.url, {
+              ...PHOTO_CARD,
+              // A rail card has a fixed width; everything else sits in the same grids as ActivityCard.
+              sizes: rail ? (compact ? '228px' : '300px') : PHOTO_CARD.sizes,
+            })}
             alt={image.alt ?? activity.title}
             loading="lazy"
             className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"

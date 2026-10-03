@@ -129,14 +129,15 @@ step to actually run (it's skipped with a warning if `PAYMENT_SMOKE_BASE_URL` is
 
 ### Repository variables to add
 
-| Variable                               | Example value                           | Notes                                                                                    |
-| -------------------------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `CLOUDFLARE_PAGES_PROJECT`             | `bellemaretours`                        | The REAL hosted Pages project name — see the rename note below                           |
-| `PRODUCTION_URL`                       | `https://bellemaretours.com`            | Used by health/DNS verification                                                          |
-| `CANONICAL_HOST`                       | `bellemaretours.com`                    | No scheme, no trailing slash                                                             |
-| `SUPABASE_PROJECT_ID`                  | the project ref, e.g. `abcdefghijklmno` | Dashboard → Settings → General → Reference ID                                            |
-| `SUPABASE_MIGRATION_LEDGER_RECONCILED` | `true` (only after step 4 above)        | Exact string `true` — anything else fails closed                                         |
-| `PAYMENT_SMOKE_BASE_URL`               | `https://belle-mare-sandbox.pages.dev`  | The hosted sandbox (see sandbox.md) — MUST differ from `PRODUCTION_URL`/`CANONICAL_HOST` |
+| Variable                               | Example value                           | Notes                                                                                                                  |
+| -------------------------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `CLOUDFLARE_PAGES_PROJECT`             | `bellemaretours`                        | The REAL hosted Pages project name — see the rename note below                                                         |
+| `PRODUCTION_URL`                       | `https://bellemaretours.com`            | Used by health/DNS verification                                                                                        |
+| `CANONICAL_HOST`                       | `bellemaretours.com`                    | No scheme, no trailing slash                                                                                           |
+| `SUPABASE_PROJECT_ID`                  | the project ref, e.g. `abcdefghijklmno` | Dashboard → Settings → General → Reference ID                                                                          |
+| `SUPABASE_MIGRATION_LEDGER_RECONCILED` | `true` (only after step 4 above)        | Exact string `true` — anything else fails closed                                                                       |
+| `PAYMENT_SMOKE_BASE_URL`               | `https://belle-mare-sandbox.pages.dev`  | The hosted sandbox (see sandbox.md) — MUST differ from `PRODUCTION_URL`/`CANONICAL_HOST`                               |
+| `NEXT_PUBLIC_IMAGE_RESIZING`           | `1` (optional — unset = off)            | Photo resizing through Cloudflare — set ONLY after [the steps below](#photo-resizing-cloudflare-image-transformations) |
 
 ### The Cloudflare project name — renamed 2026-07-22
 
@@ -324,6 +325,57 @@ walkthrough).
 > by loosening the checks — fix the environment variables.**
 
 Env changes only take effect on a **new deployment**.
+
+---
+
+## Photo resizing (Cloudflare Image Transformations)
+
+Photos are stored at full camera size in Supabase Storage, and `images.unoptimized` means Next never
+resized them — a photoshoot package page referenced **53 MB**, its main photo alone 6 MB. Cloudflare can
+serve the same file as a 400–2400 px AVIF/WebP from the site's own domain, and
+`src/lib/images/resize.ts` asks for it. The code **ships OFF**: with the switch unset every photo is
+exactly the original, as before.
+
+**To turn it on (owner, in this order):**
+
+1. Cloudflare → **Images → Transformations** → the `bellemaretours.com` zone: it must say **Enabled**
+   (it already was on 2026-10-03: a test on the site's own hero image came back as a 22 KB AVIF).
+2. Same page → **Sources** (the allowed origins) → **Add origin** → exactly the host of
+   `NEXT_PUBLIC_SUPABASE_URL` — production: `dwjkfowhrrvdiqligxcj.supabase.co`. **Never `*.supabase.co`**:
+   that would let anyone's Supabase project spend this zone's free transformations. Until this is done
+   Cloudflare answers `403 ERROR 9401: Transformation origin is not in allowed origins list` (seen on
+   2026-10-03).
+3. Prove the zone works on its own, with no app involved. Expect `200`, a `content-type` of `image/avif` or
+   `image/webp`, and a small `content-length`:
+
+   ```bash
+   curl -sI "https://bellemaretours.com/cdn-cgi/image/width=800,quality=80,format=auto,fit=scale-down/https://dwjkfowhrrvdiqligxcj.supabase.co/storage/v1/object/public/activity-images/<any real photo path>"
+   ```
+
+4. Set the repository variable **`NEXT_PUBLIC_IMAGE_RESIZING` = `1`**. It is inlined into the client bundle
+   at **build** time, so it takes effect with the next push to `main` (re-running an old workflow run
+   replays the old settings).
+
+**Rolling back:** delete the variable (or set it to anything but `1`) and push again. Every photo is then
+the original once more.
+
+**What is resized:** public photos from this site's own Supabase project (`canResize`), on the photography
+pages, tour cards, tour galleries and lightboxes, search thumbnails, and the guest gallery grid and
+lightbox. **Not** resized: our own static files (already web-sized), SVG / GIF / video / PDF, emails, Open
+Graph and JSON-LD images and the sitemap (they need an absolute, crawlable original), and "Download all"
+and single downloads in the guest gallery (those stay full quality).
+
+**Safety net:** with the switch on, `src/lib/images/fallback.ts` puts the original back on any resized
+photo that fails to load (feature off on this host, origin not allow-listed, quota used up). Cloudflare's
+own `onerror=redirect` does nothing for an image on another domain, so this lives in our code.
+
+**Cost:** the Images Free plan includes **5,000 unique transformations a month**; each distinct
+(photo, width) counts once. Past that, new sizes fail with error 9422 (no charge, and the safety net serves
+originals) unless the account takes the Paid plan ($0.50 per 1,000). The width ladders are short and shared
+(`src/lib/images/presets.ts`) so cards, lightboxes and thumbnails reuse each other's copies.
+
+**Where it cannot work:** a `*.pages.dev` address (the hosted sandbox) has no `/cdn-cgi/image` (it answers
+404), and neither does localhost — leave the switch unset in both. Test on the production domain.
 
 ---
 
