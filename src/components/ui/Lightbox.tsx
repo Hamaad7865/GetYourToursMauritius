@@ -161,6 +161,9 @@ export function Lightbox({
       </div>
 
       {items.length > 1 && (
+        // Centred while the thumbnails fit; once there are more than fit, it scrolls from the left. That is
+        // the auto margins on the first and last thumbnail below: they share the free space, and collapse to 0
+        // when there is none. `justify-center` would clip the first thumbnails with no way to scroll back to them.
         <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
           {items.map((thumb, i) => (
             <button
@@ -169,7 +172,7 @@ export function Lightbox({
               aria-label={`${i + 1} / ${items.length}`}
               aria-current={i === index}
               onClick={() => onIndex(i)}
-              className={`h-16 w-16 shrink-0 overflow-hidden rounded-lg ring-2 transition ${
+              className={`h-16 w-16 shrink-0 overflow-hidden rounded-lg ring-2 transition first:ml-auto last:mr-auto ${
                 i === index ? 'ring-white' : 'ring-transparent opacity-60 hover:opacity-100'
               }`}
             >
