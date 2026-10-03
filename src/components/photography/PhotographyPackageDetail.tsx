@@ -97,8 +97,13 @@ export async function PhotographyPackageDetail({ activity }: { activity: TourDet
         <Gallery variant="photography" images={gallery} title={activity.title} />
       )}
 
+      {/* The page body wraps: content and booking card sit side by side when the row is wide enough, and the card
+          drops below the content when it is not. The content's grow factor (1000) dwarfs the card's (1), so
+          BESIDE the content the card stays at its 360 px basis; ALONE on its own line it grows to fill the column
+          (capped at 480 px and centred — see PhotoBookingCard) instead of sitting flush left at 360 px with dead
+          space beside it, which is what a fixed-basis, no-grow item did at every width between a phone and a laptop. */}
       <div className="flex flex-wrap items-start gap-10">
-        <div className="flex min-w-0 flex-[1_1_380px] flex-col gap-10">
+        <div className="flex min-w-0 flex-[1000_1_380px] flex-col gap-10">
           <div className="flex flex-col gap-4">
             <div className="flex flex-wrap gap-2">
               {duration && specs.showDuration && (

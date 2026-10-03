@@ -138,7 +138,7 @@ export function PhotoBookingCard({
     <aside
       ref={rootRef}
       id="book"
-      className="sticky top-[92px] flex min-w-[300px] flex-[0_1_360px] scroll-mt-6 flex-col gap-5 overflow-hidden rounded-2xl border border-ink/10 bg-white p-6 shadow-[0_24px_50px_-30px_rgba(10,46,54,0.45)]"
+      className="sticky top-[92px] mx-auto flex min-w-[300px] max-w-[480px] flex-[1_1_360px] scroll-mt-6 flex-col gap-5 overflow-hidden rounded-2xl border border-ink/10 bg-white p-6 shadow-[0_24px_50px_-30px_rgba(10,46,54,0.45)]"
     >
       {bestSeller && (
         <div className="-mx-6 -mt-6 bg-gradient-to-r from-coral to-[#E8584A] px-5 py-2.5 text-[12.5px] font-bold text-white">

@@ -401,6 +401,16 @@ gallery's items into slides and is the unit-tested part. Swapping libraries mean
   chunk and click a photo). `Lightbox` catches the failed import and renders `ViewerUnavailable`, which just closes the
   viewer, and the preload swallows its own failure. Keep the `.catch` on the `dynamic` import.
 
+### A wrapped flex item that cannot grow sits flush left
+
+The photoshoot page's body is a `flex-wrap` row: content and booking card side by side when there is room, the card
+dropping below when there is not. With the card at `flex-[0_1_360px]` (no grow) it stayed a fixed 360 px, flush left,
+at every width from a big phone to a laptop (a 402 px column held a 360 px card with 42 px of dead space; 192 px at 600).
+Only a phone narrower than the card looked right, because the card then shrank to fit. The fix keeps the wrap and the
+360 px beside the content: the content grows with a factor of 1000 and the card with 1 (so beside the content the card
+takes a share of well under a pixel), and the card is `max-w-[480px] mx-auto`, so alone on its line it fills a phone's
+column and sits centred on a tablet. Check a wrapping layout at 360, 390, 450, 600, 780 and 1024+, not only at 375.
+
 ### Photo resizing: every part of it can fail quietly
 
 Photos are resized by Cloudflare through `/cdn-cgi/image/…` (`src/lib/images/resize.ts`; owner steps in
