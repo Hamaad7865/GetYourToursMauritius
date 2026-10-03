@@ -396,6 +396,10 @@ gallery's items into slides and is the unit-tested part. Swapping libraries mean
   confirm every slide and thumbnail ends up on its original.
 - **Every screen-reader label is translated** (`labels` in `LightboxViewer`, 11 of them, French in `messages.ts`).
   `{index} of {total}` is the library's own template, so `t()` must be called without variables.
+- **A lazy chunk can fail to load; the old viewer never could.** A tab left open across a deploy asks for a viewer file the
+  new build no longer has. Unguarded, that sends the whole page to the "Something went wrong" screen (checked: block the
+  chunk and click a photo). `Lightbox` catches the failed import and renders `ViewerUnavailable`, which just closes the
+  viewer, and the preload swallows its own failure. Keep the `.catch` on the `dynamic` import.
 
 ### Photo resizing: every part of it can fail quietly
 

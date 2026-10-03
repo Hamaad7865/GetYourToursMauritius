@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
 import { useT } from '@/components/site/PreferencesProvider';
 import type { ViewerItem } from '@/lib/images/viewer-slides';
+import type { LightboxViewerProps } from './LightboxViewer';
 
 /** One thing in a gallery: a photo, an uploaded video, or a YouTube / Vimeo link. */
 export type LightboxItem = ViewerItem;
@@ -26,17 +27,28 @@ function ViewerLoading() {
   );
 }
 
+/** Stands in when the viewer's code cannot be fetched: a tab left open across a deploy asks for a file the new
+ *  build no longer has, or the connection drops. It closes the viewer, so a failed load costs the visitor one
+ *  click instead of throwing the whole page to its error screen. */
+function ViewerUnavailable({ onClose }: LightboxViewerProps) {
+  useEffect(() => {
+    onClose();
+  }, [onClose]);
+  return null;
+}
+
 // The viewer — the library, its plugins and their stylesheets — loads on demand and never on the server: a
 // static import would put all of it in the first paint of every tour page, for something most visitors never open.
-const Viewer = dynamic(() => import('./LightboxViewer'), {
-  ssr: false,
-  loading: () => <ViewerLoading />,
-});
+const Viewer = dynamic(
+  () => import('./LightboxViewer').catch(() => ({ default: ViewerUnavailable })),
+  { ssr: false, loading: () => <ViewerLoading /> },
+);
 
 /** Start fetching the viewer ahead of the click (a hover, a focus, a touch), so the first open is instant.
- *  Safe to call again and again: the module is fetched once. */
+ *  Safe to call again and again: the module is fetched once. A failed fetch here is not an error — the real
+ *  open tries again and, if that fails too, falls back to `ViewerUnavailable`. */
 export function preloadLightbox(): void {
-  void import('./LightboxViewer');
+  void import('./LightboxViewer').catch(() => undefined);
 }
 
 /**
