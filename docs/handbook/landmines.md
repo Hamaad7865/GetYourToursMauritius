@@ -349,15 +349,22 @@ auto-send on "photos exist" — a guest paying mid-upload would be told, and sho
 A card held back while the gallery loads is released after a grace period, so a hung request can never hide
 the pay box, invoice and cancel controls for good. Verify any change here in a browser, not just in unit tests.
 
-### A package's first image must be a photo (`images[0]` is read everywhere)
+### An activity's first image must be a photo (`images[0]` is read everywhere)
 
-A package page's gallery takes photos, uploaded videos and YouTube / Vimeo links, but `heroImage` is just "the image
+An activity's images take photos, uploaded videos and YouTube / Vimeo links (the Tours editor's **Photos & files** and
+the Photography package's **Gallery photos & videos** share one `ImagesEditor`), but `heroImage` is just "the image
 with the lowest `position`" (the RPC does `order by position limit 1`). Cards, search, the Open Graph image and the
-Product JSON-LD all read it, so a video or link at position 0 is a broken picture on every one of them. The model is
-`images = [cover, ...gallery]` (`photographyPackageValues` / `applyPackageInput` in `src/lib/admin/photography.ts`):
+Product JSON-LD all read it, so a video or link at position 0 is a broken picture on every one of them. For a package
+the model is `images = [cover, ...gallery]` (`photographyPackageValues` / `applyPackageInput` in
+`src/lib/admin/photography.ts`):
 
-- `ensureImageLead` promotes the first PHOTO when a video would lead, and `validatePackageMedia` blocks the save when
-  the cover is a video/link or there is no photo at all. The page re-asserts it on read (`packageGalleryImages`).
+- The line is held on WRITE, because cards and search read the RPC's `heroImage`, which no read-time fix can reach.
+  Every save goes through `replaceImages` → `imageRows` (`src/lib/admin/activity-write.ts`), which runs
+  `ensureImageLead` so the first PHOTO is written at position 0 when a video or link would lead. `createActivity` /
+  `updateActivity` call `assertMediaValid` first: a list of ONLY videos has no photo to promote, so it is refused
+  before any write, for every role and every caller (both forms, the Photography functions, the admin assistant).
+  The Tours form shows it on the Photos & files pane (`sectionIssues`); the package form uses `validatePackageMedia`,
+  which also insists the cover itself is a photo. The package page re-asserts it on read (`packageGalleryImages`).
 - Everything that classifies a URL goes through `mediaKind` / `videoSource` (`src/lib/media.ts`). Before the gallery
   supported links, a pasted YouTube URL rendered as a broken `<img>` in the editor and on the tour page.
 - The shared tour gallery's HTML must stay identical for photo-only tours (`Gallery`'s default variant) — the

@@ -5,6 +5,7 @@ import {
   ensureImageLead,
   packageGalleryImages,
   sideTileClasses,
+  validateLeadPhoto,
   validatePackageMedia,
 } from '@/lib/catalogue/package-gallery';
 import {
@@ -165,6 +166,10 @@ describe('validatePackageMedia', () => {
     expect(validatePackageMedia(PHOTO(1), [])).toBeNull();
   });
 
+  it('lets a photo cover carry a gallery of only videos and links (the cover is the photo)', () => {
+    expect(validatePackageMedia(PHOTO(1), [{ url: MP4 }, { url: YT }])).toBeNull();
+  });
+
   it('refuses a video or a link as the cover', () => {
     expect(validatePackageMedia(MP4, [])).toMatch(/cover/i);
     expect(validatePackageMedia(YT, [{ url: PHOTO(1) }])).toMatch(/cover/i);
@@ -177,6 +182,31 @@ describe('validatePackageMedia', () => {
 
   it('is fine with nothing at all (a draft package)', () => {
     expect(validatePackageMedia('', [])).toBeNull();
+  });
+});
+
+/* The Tours editor shares the photo/video editor with the package form, so it needs the same rule — the
+ * heroImage a card, a search result and the share image read is the first image of ANY activity. */
+describe('validateLeadPhoto (any activity’s photos, videos and links)', () => {
+  it('accepts photos, or a photo anywhere among videos and links', () => {
+    expect(validateLeadPhoto([{ url: PHOTO(1) }, { url: MP4 }])).toBeNull();
+    // A video first is put behind the photo when the images are written, so a photo LATER is enough.
+    expect(validateLeadPhoto([{ url: MP4 }, { url: YT }, { url: PHOTO(1) }])).toBeNull();
+  });
+
+  it('refuses videos or links with no photo to lead with', () => {
+    expect(validateLeadPhoto([{ url: MP4 }])).toMatch(/photo/i);
+    expect(validateLeadPhoto([{ url: YT }, { url: VIMEO }])).toMatch(/photo/i);
+  });
+
+  it('ignores blank rows (the editor’s empty last row) and accepts nothing at all', () => {
+    expect(validateLeadPhoto([])).toBeNull();
+    expect(validateLeadPhoto([{ url: '  ' }])).toBeNull();
+    expect(validateLeadPhoto([{ url: '  ' }, { url: MP4 }])).toMatch(/photo/i);
+  });
+
+  it('says the same thing the package form says, so the two editors never disagree', () => {
+    expect(validateLeadPhoto([{ url: MP4 }])).toBe(validatePackageMedia('', [{ url: MP4 }]));
   });
 });
 

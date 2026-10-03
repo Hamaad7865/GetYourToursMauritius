@@ -96,10 +96,13 @@ Videos, GIFs and SVGs upload exactly as they are, and so does any file the brows
 **A package's gallery is photos AND videos.** On the package page the **cover** is the big photo and the first four
 items of **Gallery photos & videos** fill the tiles beside it; everything else opens under **View all N**, where a visitor
 pages through photos and plays videos. Add an uploaded clip, or paste a **YouTube or Vimeo link** for a long film — an
-uploaded file counts against the storage size limit, a link does not. The cover has to be a **photo** (cards, search and the
-social-share image all use it), so a video can't be the cover or the first item; the form says so if you try. With one to
-four items the tiles resize to fill the space — there are never gaps. (The separate **Inspiration photos** are the
-"Get inspired by these shots" grid, not this gallery.)
+uploaded file counts against Supabase's upload limit (50 MB unless it is raised in Supabase's Storage settings, which
+needs a paid plan; the photo bucket itself has no cap and accepts any file type), a link does not. The cover has to be
+a **photo** (cards, search and the social-share image all use it), so a video can't be the cover or the first item; the
+form says so if you try. With one to four items the tiles resize to fill the space — there are never gaps. (The
+separate **Inspiration photos** are the "Get inspired by these shots" grid, not this gallery.) The same rule applies in
+**Tours → Photos & files**, which takes videos and links too: a photo always comes first (if a video is dragged to the
+front, the first photo is moved up when you save), and a tour with only videos can't be saved.
 
 **The optional supplements** are the extras a guest can add to a tour while booking, and you own both
 halves of each: type the name ("Lobster for lunch", "Snorkel gear") and the price per person — add as

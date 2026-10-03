@@ -108,4 +108,32 @@ describe('sectionIssues', () => {
     expect(sectionIssues(v, true).pricing).toBeUndefined();
     expect(sectionIssues(form({ title: '' }), true).basics).toMatch(/title/i);
   });
+
+  /* The editor takes uploaded videos and YouTube / Vimeo links as well as photos, but the first image is
+   * what every card, search result and share preview shows — a video there is a broken picture. A video
+   * list with no photo at all has nothing to put first, so the save has to stop and say which pane. */
+  describe('the Photos & files pane', () => {
+    const JPG = 'https://x.supabase.co/storage/v1/object/public/activity-images/t/a.jpg';
+    const MP4 = 'https://x.supabase.co/storage/v1/object/public/activity-images/t/film.mp4';
+    const YT = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+    const img = (url: string) => ({ url, alt: '' });
+
+    it('flags videos or links with no photo', () => {
+      expect(sectionIssues(form({ images: [img(MP4)] }), false).media).toMatch(/photo/i);
+      expect(sectionIssues(form({ images: [img(YT), img(MP4)] }), false).media).toMatch(/photo/i);
+    });
+
+    it('lets a tour with a photo save, even with a video first (it is moved behind the photo on save)', () => {
+      expect(sectionIssues(form({ images: [img(MP4), img(JPG)] }), false).media).toBeUndefined();
+      expect(sectionIssues(form({ images: [img(JPG), img(YT)] }), false).media).toBeUndefined();
+    });
+
+    it('allows a tour with no photos at all (a draft)', () => {
+      expect(sectionIssues(form({ images: [] }), false).media).toBeUndefined();
+    });
+
+    it('flags it for the restricted content role too — that role edits the photos', () => {
+      expect(sectionIssues(form({ images: [img(MP4)] }), true).media).toMatch(/photo/i);
+    });
+  });
 });

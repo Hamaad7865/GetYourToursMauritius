@@ -4,7 +4,9 @@
  *
  * One rule is load-bearing: `images[0]` must always be a real photo. Cards, search and the social-share
  * image all read it (`heroImage` is the image with the lowest position), so a video or a link there would
- * be a broken picture everywhere. The admin enforces it on save, and the page re-asserts it on read.
+ * be a broken picture everywhere. The rule is not specific to packages: both editors enforce it on save
+ * (`imageRows` puts a photo in front, `validateLeadPhoto` stops a list with no photo at all), and the
+ * package page re-asserts it on read.
  *
  * Pure — safe on the server, the client and in tests.
  */
@@ -74,6 +76,22 @@ export function sideTileClasses(sideCount: number): string[] {
   }
 }
 
+const NEEDS_A_PHOTO =
+  'Add at least one photo — the page leads with a photo, and a video can’t come first.';
+
+/**
+ * The first problem with a list of photos, videos and links (any activity's, not only a package's), or null:
+ * videos or links with no photo at all leave nothing to put first, so `images[0]` would be a video and every
+ * card would show a broken image. A video that merely sits in front of a photo is fine — `ensureImageLead`
+ * moves the photo up when the images are written. Blank rows are ignored.
+ */
+export function validateLeadPhoto(items: readonly { url: string }[]): string | null {
+  const urls = items.map((i) => i.url.trim()).filter(Boolean);
+  const hasVideo = urls.some((u) => mediaKind(u) !== 'image');
+  const hasPhoto = urls.some((u) => mediaKind(u) === 'image');
+  return hasVideo && !hasPhoto ? NEEDS_A_PHOTO : null;
+}
+
 /**
  * The first problem with a package's photos and videos, or null. The cover must be a photo, and videos need
  * a photo to lead the page — otherwise `images[0]` would be a video and every card would show a broken image.
@@ -86,11 +104,6 @@ export function validatePackageMedia(
   if (c && mediaKind(c) !== 'image') {
     return 'The cover has to be a photo — a video or a link can’t be the cover. Put it in the gallery instead.';
   }
-  const urls = gallery.map((g) => g.url.trim()).filter(Boolean);
-  const hasVideo = urls.some((u) => mediaKind(u) !== 'image');
-  const hasPhoto = Boolean(c) || urls.some((u) => mediaKind(u) === 'image');
-  if (hasVideo && !hasPhoto) {
-    return 'Add at least one photo — the page leads with a photo, and a video can’t come first.';
-  }
-  return null;
+  // A photo cover already leads the page; with no cover, the gallery has to supply the photo.
+  return c ? null : validateLeadPhoto(gallery);
 }

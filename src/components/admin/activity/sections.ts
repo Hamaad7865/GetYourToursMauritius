@@ -12,6 +12,7 @@ import {
   IconTag,
 } from '@/components/ui/icons';
 import { assertPricingValid, type ActivityFormValues } from '@/lib/admin/activity-write';
+import { validateLeadPhoto } from '@/lib/catalogue/package-gallery';
 
 /**
  * The tour editor's panes.
@@ -109,6 +110,10 @@ export function sectionIssues(
   const issues: Partial<Record<SectionId, string>> = {};
   if (!v.title.trim()) issues.basics = 'A title is required.';
   else if (!v.slug.trim()) issues.basics = 'A URL slug is required.';
+  // Photos and videos share one list, but the first image is what every card, search result and share
+  // preview shows. Not gated on contentOnly: the restricted role edits the photos too.
+  const media = validateLeadPhoto(v.images);
+  if (media) issues.media = media;
   // contentOnly saves skip assertPricingValid (RLS blocks the tables), so flagging it would point
   // at a pane the role can't even open.
   if (!contentOnly) {

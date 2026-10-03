@@ -2,6 +2,7 @@ import { getBrowserSupabase } from '@/lib/supabase/browser';
 import { preparePageImage } from '@/lib/images/prepare-upload';
 import { countRowsEq, countRowsIn, isForeignKeyViolation } from '@/lib/admin/delete-guards';
 import { normalizeBadges, type BadgeInput } from '@/lib/catalogue/badges';
+import { ensureImageLead, validateLeadPhoto } from '@/lib/catalogue/package-gallery';
 import type { PricingMode } from '@/lib/validation/tours';
 import {
   PHOTOGRAPHY_ADD_ONS_KEY,
@@ -453,6 +454,25 @@ export function planOptionReconcile(
 }
 
 /**
+ * The `activity_images` rows to write for an activity: blank rows dropped, a photo in front, positions 0..n.
+ *
+ * `heroImage` is the image with the lowest position, and every card, search result, social-share image and
+ * Product JSON-LD reads it — so a video or a YouTube / Vimeo link must never lead, or all of those show a
+ * broken picture. `ensureImageLead` moves the first photo up when one would. Both editors (Tours and
+ * Photography) save through `replaceImages`, so the rule lives here and neither form can skip it. A list of
+ * ONLY videos has no photo to promote; the forms refuse to save that (`validateLeadPhoto`).
+ */
+export function imageRows(activityId: string, images: readonly ImageInput[]) {
+  const real = images.map((i) => ({ url: i.url.trim(), alt: i.alt.trim() })).filter((i) => i.url);
+  return ensureImageLead(real).map((img, position) => ({
+    activity_id: activityId,
+    url: img.url,
+    alt: img.alt || null,
+    position,
+  }));
+}
+
+/**
  * Images have no downstream FK (booking_items snapshots, never references them). INSERT the new rows
  * BEFORE deleting the old ones (same reasoning as replacePrices — the browser client has no transaction,
  * so a delete-then-insert whose insert fails / the user navigating away would strand the tour with ZERO
@@ -466,14 +486,7 @@ async function replaceImages(activityId: string, images: ImageInput[]): Promise<
     .select('id')
     .eq('activity_id', activityId);
   if (readErr) throw readErr;
-  const rows = images
-    .filter((i) => i.url.trim())
-    .map((img, position) => ({
-      activity_id: activityId,
-      url: img.url.trim(),
-      alt: img.alt.trim() || null,
-      position,
-    }));
+  const rows = imageRows(activityId, images);
   if (rows.length) {
     const { error } = await sb.from('activity_images').insert(rows);
     if (error) throw error;
@@ -799,8 +812,20 @@ export interface SaveOpts {
   contentOnly?: boolean;
 }
 
+/**
+ * Videos or links with no photo would leave a video at `images[0]` (see `imageRows`). Checked before any
+ * write, for every entry point — the two editors, the Photography functions and the admin assistant all
+ * save through createActivity / updateActivity — and for every role: the restricted content role edits the
+ * photos too, so unlike the pricing check this one is not skipped for `contentOnly`.
+ */
+export function assertMediaValid(v: Pick<ActivityFormValues, 'images'>): void {
+  const problem = validateLeadPhoto(v.images);
+  if (problem) throw new Error(problem);
+}
+
 /** Create a new activity (+ images/options/prices). Returns the new id. */
 export async function createActivity(v: ActivityFormValues, opts: SaveOpts = {}): Promise<string> {
+  assertMediaValid(v);
   if (!opts.contentOnly) assertPricingValid(v);
   const sb = getBrowserSupabase();
   const opId = await operatorId();
@@ -826,6 +851,7 @@ export async function updateActivity(
   v: ActivityFormValues,
   opts: SaveOpts = {},
 ): Promise<{ keptWithBookings: string[] }> {
+  assertMediaValid(v);
   if (!opts.contentOnly) assertPricingValid(v);
   const sb = getBrowserSupabase();
   const opId = await operatorId();
