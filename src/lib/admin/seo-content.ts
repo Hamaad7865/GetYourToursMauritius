@@ -1,5 +1,6 @@
 import { getBrowserSupabase } from '@/lib/supabase/browser';
 import { slugify } from '@/lib/admin/activity-write';
+import { preparePageImage } from '@/lib/images/prepare-upload';
 
 /* Admin CRUD for the SEO module's three tables. RLS (is_content_editor: staff/admin/seo) gates the
  * writes, so the authenticated editor talks to the tables directly through the browser client — the
@@ -132,11 +133,15 @@ export interface PostInput {
  *  return its public URL. Content editors (staff/admin/seo) may write the bucket. */
 export async function uploadPostImage(file: File, slug: string): Promise<string> {
   const sb = getBrowserSupabase();
-  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '');
+  // A blog photo is a page photo: shrink it to web size first (no-op for anything already light).
+  const body = await preparePageImage(file);
+  const ext = (body.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '');
   const path = `blog/${slugify(slug) || 'post'}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-  const { error } = await sb.storage
-    .from('activity-images')
-    .upload(path, file, { cacheControl: '3600', upsert: false });
+  const { error } = await sb.storage.from('activity-images').upload(path, body, {
+    cacheControl: '3600',
+    upsert: false,
+    ...(body !== file ? { contentType: body.type } : {}),
+  });
   if (error) throw error;
   return sb.storage.from('activity-images').getPublicUrl(path).data.publicUrl;
 }

@@ -1,4 +1,5 @@
 import { getBrowserSupabase } from '@/lib/supabase/browser';
+import { preparePageImage } from '@/lib/images/prepare-upload';
 import { countRowsEq, countRowsIn, isForeignKeyViolation } from '@/lib/admin/delete-guards';
 import { normalizeBadges, type BadgeInput } from '@/lib/catalogue/badges';
 import type { PricingMode } from '@/lib/validation/tours';
@@ -1003,14 +1004,32 @@ export async function loadActivityTranslation(
   };
 }
 
+export interface UploadImageOptions {
+  /**
+   * Shrink the photo to web size IN THE BROWSER before it goes up (long edge ≤ 2400 px, re-encoded,
+   * EXIF stripped — see src/lib/images/prepare-upload.ts). OPT-IN, deliberately: page photos pass it, but
+   * customer-gallery files never do — a guest downloads those, so they must stay full quality. Videos,
+   * GIFs and anything the browser cannot re-encode upload exactly as they are.
+   */
+  webSize?: boolean;
+}
+
 /** Upload an image file to Supabase Storage and return its public URL. */
-export async function uploadActivityImage(file: File, slug: string): Promise<string> {
+export async function uploadActivityImage(
+  file: File,
+  slug: string,
+  opts: UploadImageOptions = {},
+): Promise<string> {
   const sb = getBrowserSupabase();
-  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const body = opts.webSize ? await preparePageImage(file) : file;
+  const ext = (body.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '');
   const path = `${slugify(slug) || 'activity'}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-  const { error } = await sb.storage
-    .from('activity-images')
-    .upload(path, file, { cacheControl: '3600', upsert: false });
+  const { error } = await sb.storage.from('activity-images').upload(path, body, {
+    cacheControl: '3600',
+    upsert: false,
+    // A re-encoded copy has a new type (and name); say so rather than trust the extension.
+    ...(body !== file ? { contentType: body.type } : {}),
+  });
   if (error) throw error;
   return sb.storage.from('activity-images').getPublicUrl(path).data.publicUrl;
 }

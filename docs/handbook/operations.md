@@ -86,6 +86,12 @@ without that link (Account → **View booking**, the return from a payment) stil
 locked gallery always shows the card, because the pay box lives in it. The rules are in
 `src/lib/booking/booking-view.ts`.
 
+**Photos you upload are shrunk for you.** A photo added to a tour, a rental, the blog or **Page photos** is
+resized in your browser to at most 2,400 pixels on its long edge and saved as WebP before it goes up (a
+10 MB camera file becomes a few hundred KB), and its location data is removed. The original is not kept.
+Videos, GIFs and SVGs upload exactly as they are, and so does any file the browser can't read.
+**Customer galleries are never shrunk** — guests download those at full quality.
+
 **The optional supplements** are the extras a guest can add to a tour while booking, and you own both
 halves of each: type the name ("Lobster for lunch", "Snorkel gear") and the price per person — add as
 many rows as the tour sells. Remove a row and it disappears from the tour page. Guests pick how many

@@ -155,7 +155,9 @@ function VehicleFields({
                   setUploadErr(null);
                   setUploading(true);
                   try {
-                    const url = await uploadActivityImage(file, v.slug || 'rental');
+                    const url = await uploadActivityImage(file, v.slug || 'rental', {
+                      webSize: true,
+                    });
                     patch({ imageUrl: url });
                   } catch (err) {
                     setUploadErr(err instanceof Error ? err.message : 'Upload failed');

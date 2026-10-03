@@ -38,7 +38,7 @@ export function ImagesEditor({
     try {
       const added: ImageInput[] = [];
       for (const file of Array.from(files)) {
-        const url = await uploadActivityImage(file, slug);
+        const url = await uploadActivityImage(file, slug, { webSize: true });
         added.push({ url, alt: '' });
       }
       onChange([...images, ...added]);
