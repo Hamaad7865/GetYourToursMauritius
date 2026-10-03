@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   VIEWER_THUMB_WIDTH,
   VIEWER_WIDTHS,
+  carouselWindow,
   viewerSlides,
   type ViewerItem,
 } from '@/lib/images/viewer-slides';
@@ -162,6 +163,26 @@ describe('viewerSlides — the list', () => {
 
   it('is empty for no items', () => {
     expect(viewerSlides([], ON)).toEqual([]);
+  });
+});
+
+/* The strip under the photo is a looping window of five around the photo on show, sized by the carousel's
+ * `preload`. Under five photos that window is wider than the list and repeats a thumbnail, so a short gallery does not
+ * loop — and then `preload` has to reach every photo or the strip hides some of them. */
+describe('carouselWindow', () => {
+  it('is a plain looping carousel from five photos up, with two neighbours ready', () => {
+    for (const n of [5, 6, 18]) expect(carouselWindow(n)).toEqual({ finite: false, preload: 2 });
+  });
+
+  it('does not loop under five, and keeps every photo within reach of the strip', () => {
+    expect(carouselWindow(2)).toEqual({ finite: true, preload: 1 });
+    expect(carouselWindow(3)).toEqual({ finite: true, preload: 2 });
+    expect(carouselWindow(4)).toEqual({ finite: true, preload: 3 });
+  });
+
+  it('is safe for none and for one', () => {
+    expect(carouselWindow(0)).toEqual({ finite: true, preload: 1 });
+    expect(carouselWindow(1)).toEqual({ finite: true, preload: 1 });
   });
 });
 

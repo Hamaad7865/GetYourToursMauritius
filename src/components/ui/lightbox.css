@@ -68,6 +68,18 @@
   }
 }
 
+/* The customers' gallery has six toolbar buttons (zoom, slideshow, favourite, download, close): on a phone they
+ * are drawn closer so the position and file name on the left keep room. */
+@media (max-width: 639px) {
+  .bmt-lightbox .yarl__toolbar {
+    padding: 8px;
+  }
+  .bmt-lightbox .yarl__toolbar .yarl__button {
+    margin: 0 1px;
+    padding: 8px;
+  }
+}
+
 /* The library only changes a button's colour on keyboard focus, which is too faint to find: draw a ring. */
 .bmt-lightbox .yarl__button:focus-visible {
   outline: 2px solid #fff;

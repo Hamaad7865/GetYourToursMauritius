@@ -4,6 +4,7 @@ import { responsiveImage } from '@/lib/images/resize';
 import { isVideoUrl } from '@/lib/media';
 import { IconDownload, IconHeart, IconHeartFill, IconPlay } from '@/components/ui/icons';
 import type { GalleryPhoto, TFn } from '@/lib/booking/gallery-view';
+import { preloadGalleryLightbox } from './GalleryLightbox';
 
 /* eslint-disable @next/next/no-img-element -- gallery photos are external Supabase URLs. */
 
@@ -44,7 +45,14 @@ export function GalleryGrid({
   onDownload: (photo: GalleryPhoto) => void;
 }) {
   return (
-    <div className="flex flex-wrap items-start gap-2">
+    // Fetch the full-screen viewer as soon as a guest reaches for the grid (a hover, a focus, a touch), so the
+    // first photo they open appears at once instead of after the viewer's code has downloaded.
+    <div
+      onPointerEnter={preloadGalleryLightbox}
+      onFocus={preloadGalleryLightbox}
+      onTouchStart={preloadGalleryLightbox}
+      className="flex flex-wrap items-start gap-2"
+    >
       {photos.map((p, i) => {
         const video = isVideoUrl(p.url);
         const r = ratios[p.id] ?? (video ? 16 / 9 : FALLBACK_RATIO);

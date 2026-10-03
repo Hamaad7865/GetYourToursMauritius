@@ -66,6 +66,18 @@ export interface ViewerSlidesOptions {
   supabaseUrl?: string | null;
 }
 
+/**
+ * How the viewer's carousel is set up for `count` slides. The thumbnail strip under the photo is a looping window
+ * of five around the photo on show, and its width is the carousel's `preload` (which is also how many neighbours
+ * are ready to swipe to). Under five photos that window is wider than the list and shows one of them twice, so a
+ * short gallery does not loop — and `preload` must then reach every photo, or the strip hides some of them.
+ * From five up the loop and the strip are clean with two neighbours each side.
+ */
+export function carouselWindow(count: number): { finite: boolean; preload: number } {
+  const finite = count < 5;
+  return { finite, preload: finite ? Math.max(1, count - 1) : 2 };
+}
+
 /** A photo's real shape is not stored (only its address), so each resized copy gets a height in the usual 3:2
  *  shape. It only steers which copy the library picks and caps nothing visible; the photo itself is never stretched. */
 const ASSUMED_ASPECT = 2 / 3;

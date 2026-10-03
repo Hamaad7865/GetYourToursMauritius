@@ -373,16 +373,34 @@ the model is `images = [cover, ...gallery]` (`photographyPackageValues` / `apply
 ### The full-screen photo viewer is a library — what not to undo
 
 Clicking a gallery photo opens [yet-another-react-lightbox](https://yet-another-react-lightbox.com/) (MIT; swipe, pinch,
-zoom, thumbnails, keyboard), wrapped in `src/components/ui/Lightbox.tsx` (the lazy loader callers use) and
-`LightboxViewer.tsx` (the library, its plugins, the brand skin in `lightbox.css`). `src/lib/images/viewer-slides.ts` turns a
-gallery's items into slides and is the unit-tested part. Swapping libraries means replacing `LightboxViewer` only.
+zoom, thumbnails, keyboard). There are TWO viewers on that one library, with one look: the tour / package gallery
+(`src/components/ui/Lightbox.tsx` → `LightboxViewer.tsx`) and the customers' own gallery
+(`src/components/booking/gallery/GalleryLightbox.tsx` → `GalleryViewer.tsx`: favourites, a download of the ORIGINAL, a
+slideshow with a progress bar, the file name, wheel zoom). What they share lives in `ui/viewer-parts.tsx` (stylesheets, the
+brand skin in `lightbox.css`, the thumbnail renderer, the fallback marker, the labels), `ui/lazyViewer.tsx` (the loader)
+and `src/lib/images/viewer-slides.ts` (items → slides, the unit-tested part). Swapping libraries means replacing the two
+`*Viewer.tsx` files and `viewer-parts`.
 
 - **It brings its own dialog behaviour** — the page behind goes `inert`, Escape closes, the body stops scrolling. Do not put
   `useDialog` or an arrow-key listener back in a caller: two handlers would fight. The one thing it does _not_ do reliably is
-  return focus to the button that opened it (it waits for a focus event, which a page without focus never sends), so the
-  `Lightbox` wrapper reads `document.activeElement` itself and restores it on close.
-- **Loaded on demand, never on the server** (`next/dynamic`, `ssr: false`): the library and its three stylesheets are not in
-  any page's first paint. The galleries call `preloadLightbox()` on hover / focus / touch so the first open is instant.
+  return focus to the button that opened it (it waits for a focus event, which a page without focus never sends), so
+  `lazyViewer` reads `document.activeElement` itself and restores it on close.
+- **Loaded on demand, never on the server** (`React.lazy` + `Suspense` inside `lazyViewer`): the library and its stylesheets
+  are not in any page's first paint. The galleries call the viewer's `preload…()` on hover / focus / touch so the first open
+  is instant. The `import()` must stay a literal `() => import('./TheViewer')` at the call site, and callers must import the
+  viewer's props with `import type` — a plain import would pull the library into the page.
+- **A new slides array resets the viewer to the photo it opened on.** The library treats a changed `slides` (or `index`)
+  prop as "start over". The customers' page builds a fresh array on every favourite toggle, so a heart tap sent the viewer
+  back to its first photo; `GalleryViewer` keys its slides on the files (`galleryItemsKey`) and tracks the position
+  (`on.view`) so a list that changes under it (un-hearting inside the Favourites tab) keeps its place, and it closes itself
+  when the list empties. Never pass the library an array you rebuild on every render.
+- **A custom toolbar button's label must be a key of the library's `Labels`** (it looks the English label up in the `labels`
+  table to translate it): `GalleryViewer` registers `Add to favourites` / `Remove from favourites` / `Download` in the
+  type and translates them in the table. And `toolbar.buttons` may only name plugins that are LOADED — an unknown key is
+  drawn as plain text — so `'slideshow'` is listed only when the Slideshow plugin is.
+- **Testing in this repo's hidden browser pane:** the page is `hidden`, so `img.decode()` never resolves and the library
+  keeps every photo marked "loading", which leaves zoom (and the slideshow) disabled. Patch
+  `HTMLImageElement.prototype.decode = () => Promise.resolve()` in the test page (a visitor's browser resolves it).
 - **The thumbnail strip is a looping window of five around the photo on show** (it is sized by `carousel.preload`). With fewer
   than five photos that window repeats one, so a short gallery is `finite` and keeps every photo within the strip's reach. And
   the strip paints its own background — setting `--yarl__thumbnails_container_background_color: transparent` shows the
@@ -394,12 +412,12 @@ gallery's items into slides and is the unit-tested part. Swapping libraries mean
   its thumbnail is drawn in `render.thumbnail` for the same reason (the library's own thumbnail `<img>` cannot carry the
   marker). To test it, switch resizing on locally — `localhost` has no `/cdn-cgi/image`, so every resized URL fails — and
   confirm every slide and thumbnail ends up on its original.
-- **Every screen-reader label is translated** (`labels` in `LightboxViewer`, 11 of them, French in `messages.ts`).
+- **Every screen-reader label is translated** (`labels` in each viewer, `sharedLabels` + its own, French in `messages.ts`).
   `{index} of {total}` is the library's own template, so `t()` must be called without variables.
-- **A lazy chunk can fail to load; the old viewer never could.** A tab left open across a deploy asks for a viewer file the
+- **A lazy chunk can fail to load; the old viewers never could.** A tab left open across a deploy asks for a viewer file the
   new build no longer has. Unguarded, that sends the whole page to the "Something went wrong" screen (checked: block the
-  chunk and click a photo). `Lightbox` catches the failed import and renders `ViewerUnavailable`, which just closes the
-  viewer, and the preload swallows its own failure. Keep the `.catch` on the `dynamic` import.
+  chunk and click a photo). `lazyViewer` catches the failed import and renders a stand-in that just closes the viewer, and
+  the preload swallows its own failure. Keep the `.catch` on the `lazy` import.
 
 ### A wrapped flex item that cannot grow sits flush left
 

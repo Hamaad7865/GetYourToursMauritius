@@ -4,6 +4,7 @@
  * guarded so it also runs in tests and SSR snapshots.
  */
 import { isVideoUrl } from '@/lib/media';
+import type { ViewerItem } from '@/lib/images/viewer-slides';
 
 export interface GalleryPhoto {
   id: string;
@@ -104,6 +105,24 @@ export function filterGalleryByTab(
   if (tab === 'favs') return photos.filter((p) => favs.has(p.id));
   const wantVideo = tab === 'videos';
   return photos.filter((p) => isVideoUrl(p.url) === wantVideo);
+}
+
+/**
+ * What the full-screen viewer is given for these files: each one as a photo or a film, by its file. No description
+ * of its own — the viewer already shows the file name, and a name read out as a picture's alt text helps nobody.
+ */
+export function galleryViewerItems(photos: readonly GalleryPhoto[]): ViewerItem[] {
+  return photos.map((p) => ({ src: p.url, alt: '', video: isVideoUrl(p.url) }));
+}
+
+/**
+ * A key that is the same for the same files in the same order, whatever array they arrive in. The viewer library
+ * resets itself to the photo it was opened on whenever it is handed a NEW list of slides, and this page builds a
+ * fresh array on every favourite toggle; keying the slides on this stops a heart tap sending the viewer back to
+ * where it started. Each id is length-prefixed so ids and urls that run together cannot collide.
+ */
+export function galleryItemsKey(photos: readonly GalleryPhoto[]): string {
+  return photos.map((p) => `${p.id.length}:${p.id}${p.url}`).join('\n');
 }
 
 export function galleryTabCounts(
