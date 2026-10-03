@@ -1,3 +1,4 @@
+import { categoryHref } from './category-hubs';
 import { SITE } from '@/lib/seo/site';
 import type { Review, TourDetail, TourSummary } from '@/lib/validation/tours';
 
@@ -24,10 +25,9 @@ export function breadcrumbTrail(activity: Pick<TourDetail, 'type' | 'category'>)
       label: activity.type === 'transport' ? 'Transfers' : 'Activities',
       href: activity.type === 'transport' ? '/activities?type=transport' : '/activities',
     },
-    {
-      label: activity.category,
-      href: `/activities?category=${encodeURIComponent(activity.category)}`,
-    },
+    // The category's landing page where it has one (see category-hubs.ts) — every catamaran tour's
+    // breadcrumb then links /mauritius-catamaran-cruise rather than a filter of /activities.
+    { label: activity.category, href: categoryHref(activity.category) },
   ];
 }
 

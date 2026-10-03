@@ -2,7 +2,9 @@
 
 import Link from 'next/link';
 import { useCategories } from '@/lib/categories/useCategories';
-import { useT } from '@/components/site/PreferencesProvider';
+import { usePreferences, useT } from '@/components/site/PreferencesProvider';
+import { categoryHref } from '@/lib/catalogue/category-hubs';
+import { localePath } from '@/lib/i18n/routing';
 import { useHomeShowcase, showActivitiesOnHome } from './HomeShowcaseContext';
 import { IconChevron } from '@/components/ui/icons';
 
@@ -53,12 +55,13 @@ function NavLabel({ label, light, hasMenu }: { label: string; light: boolean; ha
 
 function CategoriesMenu() {
   const categories = useCategories();
+  const { language } = usePreferences();
   return (
     <div className="invisible absolute left-0 top-full z-50 w-64 -translate-y-1 rounded-2xl border border-ink/10 bg-white p-2 opacity-0 shadow-[0_30px_60px_-25px_rgba(10,46,54,0.45)] transition group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100">
       {categories.map((category) => (
         <Link
           key={category.slug}
-          href={`/activities?category=${encodeURIComponent(category.name)}`}
+          href={localePath(language, categoryHref(category.name))}
           className="block rounded-lg px-3 py-2 text-sm font-medium text-ink hover:bg-cream hover:text-teal"
         >
           {category.name}

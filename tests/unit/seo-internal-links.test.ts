@@ -31,8 +31,8 @@ describe('hand-listed link targets exist', () => {
   });
 
   it('ATTRACTION_LINKS points at real guides and real areas', () => {
-    for (const [id, { guide, area }] of Object.entries(ATTRACTION_LINKS)) {
-      expect(guide || area, id).toBeTruthy();
+    for (const [id, { guide, area, catamaran }] of Object.entries(ATTRACTION_LINKS)) {
+      expect(guide || area || catamaran, id).toBeTruthy();
       if (guide) expect(postSlugs.has(guide), `${id} guide ${guide}`).toBe(true);
       if (area) expect(areaSlugs.has(area), `${id} area ${area}`).toBe(true);
     }

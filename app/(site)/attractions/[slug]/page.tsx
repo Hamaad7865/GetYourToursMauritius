@@ -228,9 +228,10 @@ export default async function AttractionDetailPage({
           )}
         </section>
 
-        {/* Go deeper — the long-form guide and the area guide (see ATTRACTION_LINKS). Inline French
-            rather than t() keys: two labels, and same-language hrefs so a French page links French. */}
-        {(guide || area) && (
+        {/* Go deeper — the long-form guide, the area guide and, where one of our catamaran cruises
+            calls, the catamaran page (see ATTRACTION_LINKS). Inline French rather than t() keys: a
+            few labels, and same-language hrefs so a French page links French. */}
+        {(guide || area || deeper?.catamaran) && (
           <section className="mt-9 border-t border-ink/10 pt-8">
             <h2 className="text-[22px] font-extrabold tracking-tight text-ink">
               {locale === 'fr' ? 'Pour aller plus loin' : 'Go deeper'}
@@ -261,6 +262,21 @@ export default async function AttractionDetailPage({
                     {locale === 'fr'
                       ? `${area.name}, île Maurice : que voir, que faire`
                       : `Things to do in ${area.name}`}
+                  </Link>
+                </li>
+              )}
+              {deeper?.catamaran && (
+                <li>
+                  <span className="text-ink/60">
+                    {locale === 'fr' ? 'En catamaran :' : 'By catamaran:'}
+                  </span>{' '}
+                  <Link
+                    href={localePath(locale, '/mauritius-catamaran-cruise')}
+                    className="font-semibold text-teal-dark hover:underline"
+                  >
+                    {locale === 'fr'
+                      ? 'Croisières en catamaran à l’île Maurice'
+                      : 'Catamaran cruises in Mauritius'}
                   </Link>
                 </li>
               )}

@@ -3,6 +3,7 @@ import { Logo } from './Logo';
 import { CATEGORIES } from '@/lib/seo/site';
 import { IconChevron, IconSearch } from '@/components/ui/icons';
 import { getT } from '@/lib/i18n/server';
+import { categoryHref } from '@/lib/catalogue/category-hubs';
 
 export async function SiteHeader() {
   const t = await getT();
@@ -48,7 +49,7 @@ export async function SiteHeader() {
           {CATEGORIES.map((category) => (
             <Link
               key={category}
-              href={`/activities?category=${encodeURIComponent(category)}`}
+              href={categoryHref(category)}
               className="whitespace-nowrap rounded-lg px-3 py-3 text-sm font-medium text-ink-muted hover:text-teal"
             >
               {category === 'Île aux Cerfs' ? category : t(category)}

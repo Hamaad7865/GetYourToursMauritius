@@ -137,6 +137,7 @@ export default async function ActivityDetailPage({
   if (CATALOGUE_HIDDEN_SLUGS.includes(activity.slug)) redirect('/airport-transfers');
 
   const t = await getT();
+  const locale = await getLocale();
   const related = await loadRelated(activity);
   const trail = breadcrumbTrail(activity);
   const faqs = buildFaq(activity);
@@ -200,7 +201,7 @@ export default async function ActivityDetailPage({
           >
             {trail.map((c) => (
               <span key={c.href} className="flex items-center gap-2">
-                <Link href={c.href} className="hover:text-teal">
+                <Link href={localePath(locale, c.href)} className="hover:text-teal">
                   {c.label}
                 </Link>
                 <span className="text-ink/25">/</span>

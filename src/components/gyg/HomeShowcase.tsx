@@ -2,7 +2,9 @@
 
 import Link from 'next/link';
 import type { TourSummary } from '@/lib/validation/tours';
-import { useT } from '@/components/site/PreferencesProvider';
+import { usePreferences, useT } from '@/components/site/PreferencesProvider';
+import { categoryHref } from '@/lib/catalogue/category-hubs';
+import { localePath } from '@/lib/i18n/routing';
 import { useCategories } from '@/lib/categories/useCategories';
 import { isSightseeingCategory } from '@/lib/categories/categories';
 import { PlaceCard } from './PlaceCard';
@@ -11,13 +13,15 @@ import { PlannerPromoCard } from '@/components/catalogue/PlannerPromoCard';
 
 /**
  * Home catalogue: one section per category, each showing up to four activities with a
- * "See all" link to the full filtered listing. Categories with no activities are skipped, so
+ * "See all" link to the category's landing page where it has one (category-hubs.ts), else the full
+ * filtered listing. Categories with no activities are skipped, so
  * the page never shows an empty rail. Ordered by the managed category list (DB order, with the
  * static fallback before the migration is applied); any category present in the data but not
  * in that list is appended.
  */
 export function HomeShowcase({ activities }: { activities: TourSummary[] }) {
   const t = useT();
+  const { language } = usePreferences();
   const categories = useCategories();
 
   const byCategory = new Map<string, TourSummary[]>();
@@ -78,7 +82,7 @@ export function HomeShowcase({ activities }: { activities: TourSummary[] }) {
               </p>
             </div>
             <Link
-              href={`/activities?category=${encodeURIComponent(cat.name)}`}
+              href={localePath(language, categoryHref(cat.name))}
               className="group inline-flex shrink-0 items-center gap-1.5 rounded-full border border-ink/15 px-4 py-2 text-[13.5px] font-bold text-ink transition-colors hover:border-teal hover:text-teal"
             >
               {t('See all')}

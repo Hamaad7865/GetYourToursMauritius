@@ -78,3 +78,23 @@ export function activityReviewBlock(
   const filler = activityReviews(activity, topUp);
   return { reviews: [...own, ...filler], pooled: filler.length > 0 };
 }
+
+/**
+ * The `n` newest reviews from a topic's pool — for a landing page that speaks for the whole topic
+ * (/mauritius-catamaran-cruise), where the latest guests matter more than a per-slug rotation.
+ * Newest regardless of stars: the block sits under the honest topic aggregate, so it must not pick
+ * only the flattering ones. `about` narrows on what the review is ABOUT — a topic bucket is matched
+ * loosely (the newest "catamaran" review was a "5 islands tour" that may have been the speedboat),
+ * which is fine for a rating but not for a quote under a heading that names the trip.
+ */
+export function latestTopicReviews(
+  activity: { category: string; title?: string },
+  n: number,
+  about: (text: string) => boolean = () => true,
+): Review[] {
+  return [...activityReviewPool(activity)]
+    .filter((r) => about(r.text))
+    .sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''))
+    .slice(0, n)
+    .map(toReview);
+}

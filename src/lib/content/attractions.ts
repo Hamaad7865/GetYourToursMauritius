@@ -262,39 +262,49 @@ export function localisedAttractionExtra(
  * mauritius", "le morne mauritius". A clear link from the attraction to the deeper page tells Google
  * which one to rank. Hand-listed, not inferred: a link to the wrong area is worse than none, so an
  * attraction whose area is ambiguous is simply left out.
+ *
+ * `catamaran` marks the places one of our catamaran cruises stops at or sails from (per the catalogue,
+ * Oct 2026), which then link /mauritius-catamaran-cruise — the page we want ranking for
+ * "catamaran mauritius". Only places a cruise really visits: the link is a promise of a trip there.
  */
-export const ATTRACTION_LINKS: Record<string, { guide?: string; area?: string }> = {
-  'grand-bassin-ganga-talao': { guide: 'grand-bassin-guide' },
-  'ile-aux-cerfs': { guide: 'ile-aux-cerfs-guide', area: 'trou-deau-douce' },
-  'tamarind-falls': { guide: 'tamarind-falls-guide' },
-  'black-river-gorges-national-park': { guide: 'black-river-gorges-guide' },
-  'black-river-gorges-viewpoint': { guide: 'black-river-gorges-guide' },
-  'chamarel-seven-coloured-earth': { guide: 'chamarel-guide' },
-  'chamarel-waterfall': { guide: 'chamarel-guide' },
-  'rhumerie-de-chamarel': { guide: 'chamarel-guide' },
-  'port-louis-central-market': { guide: 'mauritius-markets-guide', area: 'port-louis' },
-  'central-flacq-market': { guide: 'mauritius-markets-guide' },
-  'blue-bay-marine-park': { area: 'blue-bay' },
-  mahebourg: { area: 'blue-bay' },
-  'mahebourg-naval-museum': { area: 'blue-bay' },
-  'pointe-desny-beach': { area: 'blue-bay' },
-  'le-morne-brabant': { area: 'le-morne' },
-  'le-morne-beach': { area: 'le-morne' },
-  'crystal-rock': { area: 'le-morne' },
-  'belle-mare-beach': { area: 'belle-mare' },
-  'palmar-beach': { area: 'belle-mare' },
-  'trou-deau-douce': { area: 'trou-deau-douce' },
-  'grand-baie-beach': { area: 'grand-baie' },
-  'pereybere-beach': { area: 'pereybere' },
-  'trou-aux-biches-beach': { area: 'trou-aux-biches' },
-  'mont-choisy-beach': { area: 'mont-choisy' },
-  'cap-malheureux-church': { area: 'cap-malheureux' },
-  'pointe-aux-piments': { area: 'pointe-aux-piments' },
-  'flic-en-flac-beach': { area: 'flic-en-flac' },
-  'tamarin-beach': { area: 'tamarin' },
-  'tamarin-salt-pans-viewpoint': { area: 'tamarin' },
-  'bel-ombre-nature-reserve': { area: 'bel-ombre' },
-};
+export const ATTRACTION_LINKS: Record<string, { guide?: string; area?: string; catamaran?: true }> =
+  {
+    'grand-bassin-ganga-talao': { guide: 'grand-bassin-guide' },
+    'ile-aux-cerfs': { guide: 'ile-aux-cerfs-guide', area: 'trou-deau-douce', catamaran: true },
+    'grand-river-south-east-waterfall': { catamaran: true },
+    'ilot-gabriel-island': { catamaran: true },
+    'coin-de-mire-island': { catamaran: true },
+    'ile-aux-benitiers': { catamaran: true },
+    'riviere-noire-black-river': { catamaran: true },
+    'tamarind-falls': { guide: 'tamarind-falls-guide' },
+    'black-river-gorges-national-park': { guide: 'black-river-gorges-guide' },
+    'black-river-gorges-viewpoint': { guide: 'black-river-gorges-guide' },
+    'chamarel-seven-coloured-earth': { guide: 'chamarel-guide' },
+    'chamarel-waterfall': { guide: 'chamarel-guide' },
+    'rhumerie-de-chamarel': { guide: 'chamarel-guide' },
+    'port-louis-central-market': { guide: 'mauritius-markets-guide', area: 'port-louis' },
+    'central-flacq-market': { guide: 'mauritius-markets-guide' },
+    'blue-bay-marine-park': { area: 'blue-bay' },
+    mahebourg: { area: 'blue-bay' },
+    'mahebourg-naval-museum': { area: 'blue-bay' },
+    'pointe-desny-beach': { area: 'blue-bay' },
+    'le-morne-brabant': { area: 'le-morne' },
+    'le-morne-beach': { area: 'le-morne' },
+    'crystal-rock': { area: 'le-morne', catamaran: true },
+    'belle-mare-beach': { area: 'belle-mare' },
+    'palmar-beach': { area: 'belle-mare' },
+    'trou-deau-douce': { area: 'trou-deau-douce', catamaran: true },
+    'grand-baie-beach': { area: 'grand-baie', catamaran: true },
+    'pereybere-beach': { area: 'pereybere' },
+    'trou-aux-biches-beach': { area: 'trou-aux-biches' },
+    'mont-choisy-beach': { area: 'mont-choisy' },
+    'cap-malheureux-church': { area: 'cap-malheureux' },
+    'pointe-aux-piments': { area: 'pointe-aux-piments' },
+    'flic-en-flac-beach': { area: 'flic-en-flac' },
+    'tamarin-beach': { area: 'tamarin' },
+    'tamarin-salt-pans-viewpoint': { area: 'tamarin' },
+    'bel-ombre-nature-reserve': { area: 'bel-ombre' },
+  };
 
 /** Same-region neighbours first, then fill from elsewhere — for the "Nearby attractions" rail. */
 export function nearbyPlaces(all: PlannerPlace[], place: PlannerPlace, n = 4): PlannerPlace[] {
