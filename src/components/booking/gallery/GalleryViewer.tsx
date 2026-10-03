@@ -1,6 +1,13 @@
 'use client';
 
-import { useEffect, useMemo, useState, type ReactNode, type SVGProps } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+  type SVGProps,
+} from 'react';
 import YARL, { IconButton, useLightboxState } from 'yet-another-react-lightbox';
 import Slideshow from 'yet-another-react-lightbox/plugins/slideshow';
 import Thumbnails from 'yet-another-react-lightbox/plugins/thumbnails';
@@ -52,6 +59,22 @@ export interface GalleryViewerProps {
   /** Download the ORIGINAL of this file (never the resized copy the viewer shows). */
   onDownload: (photo: GalleryPhoto) => void;
   onClose: () => void;
+}
+
+const NARROW_PHONE = '(max-width: 359px)';
+
+/** True on the narrowest phones, where the toolbar's six buttons would run into the position counter (a gallery
+ *  can hold 100 files: "100 / 100" is the widest it gets). */
+function useNarrowPhone(): boolean {
+  return useSyncExternalStore(
+    (onChange) => {
+      const media = window.matchMedia(NARROW_PHONE);
+      media.addEventListener('change', onChange);
+      return () => media.removeEventListener('change', onChange);
+    },
+    () => window.matchMedia(NARROW_PHONE).matches,
+    () => false,
+  );
 }
 
 /** The solid heart for a favourited file, in the brand coral. */
@@ -175,6 +198,7 @@ export default function GalleryViewer({
   // that file) it stays on the same place instead of jumping back to where it opened.
   const [position, setPosition] = useState(initialIndex);
   const [playing, setPlaying] = useState(false);
+  const narrow = useNarrowPhone();
 
   // Nothing left to show (the last favourite was just removed): leave, rather than sit on a blank, locked page.
   useEffect(() => {
@@ -233,6 +257,8 @@ export default function GalleryViewer({
         controls: () => <Chrome t={t} items={items} playing={playing} />,
         // One file has nowhere to go: no arrows (the library would draw two disabled ones).
         ...(several ? {} : { buttonPrev: () => null, buttonNext: () => null }),
+        // The narrowest phones: no room for the zoom buttons beside the position (pinch and double-tap still zoom).
+        ...(narrow ? { buttonZoom: () => null } : {}),
       }}
     />
   );

@@ -398,6 +398,10 @@ and `src/lib/images/viewer-slides.ts` (items → slides, the unit-tested part). 
   table to translate it): `GalleryViewer` registers `Add to favourites` / `Remove from favourites` / `Download` in the
   type and translates them in the table. And `toolbar.buttons` may only name plugins that are LOADED — an unknown key is
   drawn as plain text — so `'slideshow'` is listed only when the Slideshow plugin is.
+- **Phones narrower than 360 px have no room for six toolbar buttons beside the position** (a gallery can hold 100 files,
+  so "100 / 100" is the widest counter; at 320 px it overlapped the first button by 28 px). `GalleryViewer` drops the two
+  zoom buttons there (`useNarrowPhone` → `render.buttonZoom`); pinch and double-tap still zoom. Check a long counter at 320
+  and 360 px when changing the toolbar.
 - **Testing in this repo's hidden browser pane:** the page is `hidden`, so `img.decode()` never resolves and the library
   keeps every photo marked "loading", which leaves zoom (and the slideshow) disabled. Patch
   `HTMLImageElement.prototype.decode = () => Promise.resolve()` in the test page (a visitor's browser resolves it).
