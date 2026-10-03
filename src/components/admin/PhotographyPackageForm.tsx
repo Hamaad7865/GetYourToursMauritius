@@ -19,6 +19,9 @@ import {
   photographySlots,
 } from '@/lib/catalogue/photography';
 import type { PhotographyShoot } from '@/lib/catalogue/photography-shoots';
+import { slugify } from '@/lib/admin/activity-write';
+import { validatePackageMedia } from '@/lib/catalogue/package-gallery';
+import { ImagesEditor } from '@/components/admin/activity/ImagesEditor';
 import { IconChevron, IconPlus, IconX } from '@/components/ui/icons';
 import {
   P_BTN,
@@ -46,6 +49,7 @@ const START: PhotographyPackageInput = {
   features: ['Edited high-resolution photos', 'Private online gallery', 'Location scouting'],
   addOns: PHOTOGRAPHY_ADD_ON_PRESETS.map((a) => ({ ...a })),
   imageUrl: '',
+  gallery: [],
   status: 'published',
   bestSeller: false,
   photoCount: 0,
@@ -173,6 +177,8 @@ export function PhotographyPackageForm({
     if (v.included < 1) return setError('The price must cover at least 1 guest.');
     if (v.maxGuests < v.included)
       return setError('Max guests can’t be below the guests the price covers.');
+    const mediaError = validatePackageMedia(v.imageUrl, v.gallery);
+    if (mediaError) return setError(mediaError);
     setBusy(true);
     try {
       if (packageId && loaded) {
@@ -356,7 +362,7 @@ export function PhotographyPackageForm({
             </div>
             <PField
               label="Cover photo (optional)"
-              hint="Upload, or paste a URL. Add more photos later in the editor."
+              hint="The big photo at the top of the page and on the cards — it has to be a photo. Add the other photos and videos in “Gallery photos & videos” below."
             >
               {v.imageUrl.trim() && (
                 <span className="mb-2 block overflow-hidden rounded-lg">
@@ -394,6 +400,22 @@ export function PhotographyPackageForm({
               </div>
             </PField>
           </div>
+        </PSection>
+
+        <PSection
+          title="Gallery photos & videos"
+          description="Shown at the top of the package page: the cover plus the first four below, and the rest open under “View all”. Upload photos or short videos, or paste a YouTube / Vimeo link for a long film. Drag to reorder. A video can’t be the cover."
+        >
+          <ImagesEditor
+            images={v.gallery}
+            slug={slugify(v.title) || 'photography'}
+            onChange={(g) => set('gallery', g)}
+            firstNumber={2}
+          />
+          <p className="mt-3 text-[12px] leading-snug text-ink-muted">
+            The “Inspiration photos” further down are a different set: the “Get inspired by these
+            shots” grid.
+          </p>
         </PSection>
 
         <PSection title="Price, guests & dates">

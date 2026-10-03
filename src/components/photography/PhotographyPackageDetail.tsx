@@ -1,4 +1,3 @@
-import { responsiveImage } from '@/lib/images/resize';
 import Link from 'next/link';
 /* eslint-disable @next/next/no-img-element -- CF Pages serves images unoptimized. */
 import { Price } from '@/components/site/Price';
@@ -9,7 +8,8 @@ import { PhotoBookingCard } from './PhotoBookingCard';
 import { buildInspirationItems } from './packages-data';
 import { getT } from '@/lib/i18n/server';
 import { durationLabel } from '@/lib/catalogue/detail';
-import { isVideoUrl } from '@/lib/media';
+import { Gallery } from '@/components/gyg/detail/Gallery';
+import { packageGalleryImages } from '@/lib/catalogue/package-gallery';
 import { activityFromPriceEur } from '@/lib/catalogue/options';
 import { getPhotographyPhotos } from '@/lib/settings/photography-photos';
 import {
@@ -27,7 +27,7 @@ import type { TourDetail } from '@/lib/validation/tours';
 
 /**
  * The v3 package page (design: .design-tmp/photo-handoff "Photography Services v3", Package
- * screen): breadcrumb, 3-photo grid, spec chips, long copy, "What's included", the "Photographed
+ * screen): breadcrumb, photo + video gallery (lead + four, "View all"), spec chips, long copy, "What's included", the "Photographed
  * by locals" card, meeting-point + cancellation info cards, and the sticky PhotoBookingCard — all
  * on live catalogue data. The v3 "How the session runs" timeline has no data source in the
  * catalogue, so it is omitted rather than faked.
@@ -47,13 +47,14 @@ export async function PhotographyPackageDetail({ activity }: { activity: TourDet
     // "Location: …" rows are location surcharges (chosen with the location), not generic add-ons.
     .filter((n) => n.trim() && !isLocationSupplementName(n));
   const photos = await getPhotographyPhotos();
-  // The lead tile is the package's COVER (cards/search/SEO read the same URL); the two side tiles
-  // come from the gallery pool minus the cover, images only (the grid renders <img> tiles).
-  const cover = photographyCover(activity.extra) ?? activity.images[0]?.url ?? null;
-  const sidePool = (
-    cover ? activity.images.filter((i) => i.url !== cover) : activity.images.slice(1)
-  ).filter((i) => !isVideoUrl(i.url));
-  const sidePhotos = sidePool.slice(0, 2);
+  // The lead tile is the package's COVER (cards/search/SEO read the same URL); the tiles after it are the
+  // gallery the owner arranged — photos, uploaded videos and YouTube / Vimeo links. The first PHOTO always
+  // leads (a video can never be the lead tile), and the cover is never repeated.
+  const gallery = packageGalleryImages(
+    activity.images,
+    photographyCover(activity.extra) ?? activity.images[0]?.url ?? null,
+    activity.title,
+  );
   const { tag, items: inspiration } = buildInspirationItems(
     t,
     photos,
@@ -90,54 +91,10 @@ export async function PhotographyPackageDetail({ activity }: { activity: TourDet
         <span className="font-semibold text-ink">{activity.title}</span>
       </nav>
 
-      {/* 3-photo grid: cover lead + two from the gallery pool (full-width lead when < 2 side photos) */}
-      {cover && sidePhotos.length >= 2 ? (
-        <div className="grid grid-cols-2 grid-rows-[150px_150px] gap-3 sm:grid-cols-[2fr_1fr] sm:grid-rows-[220px_220px]">
-          <div className="col-span-2 overflow-hidden rounded-[18px] bg-teal-tint sm:col-span-1 sm:row-span-2">
-            {/* The lead tile is the page's LCP — eager + high priority, like the old gallery lead. */}
-            <img
-              {...responsiveImage(cover, {
-                sizes: '(min-width: 1280px) 780px, (min-width: 640px) 66vw, 100vw',
-                widths: [800, 1200, 1600],
-              })}
-              alt={activity.title}
-              loading="eager"
-              fetchPriority="high"
-              decoding="async"
-              className="h-full w-full object-cover"
-            />
-          </div>
-          {sidePhotos.map((img, i) => (
-            <div key={img.id} className="overflow-hidden rounded-[18px] bg-teal-tint">
-              <img
-                {...responsiveImage(img.url, {
-                  sizes: '(min-width: 1280px) 390px, (min-width: 640px) 33vw, 50vw',
-                  widths: [400, 800],
-                })}
-                alt={img.alt ?? `${activity.title} — photo ${i + 2}`}
-                loading="lazy"
-                decoding="async"
-                className="h-full w-full object-cover"
-              />
-            </div>
-          ))}
-        </div>
-      ) : (
-        cover && (
-          <div className="overflow-hidden rounded-[18px] bg-teal-tint">
-            <img
-              {...responsiveImage(cover, {
-                sizes: '(min-width: 1280px) 1200px, 100vw',
-                widths: [800, 1200, 1600, 2400],
-              })}
-              alt={activity.title}
-              loading="eager"
-              fetchPriority="high"
-              decoding="async"
-              className="aspect-[16/9] h-full w-full object-cover sm:aspect-[21/9]"
-            />
-          </div>
-        )
+      {/* Lead + four tiles, then "View all N" for the rest. Photos, uploaded videos and YouTube / Vimeo
+          links; the owner arranges them in Photography → package → Gallery photos & videos. */}
+      {gallery.length > 0 && (
+        <Gallery variant="photography" images={gallery} title={activity.title} />
       )}
 
       <div className="flex flex-wrap items-start gap-10">

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { responsiveImage } from '@/lib/images/resize';
-import { IconChevronLeft, IconChevronRight, IconMinus, IconPlus, IconX } from './icons';
+import { IconChevronLeft, IconChevronRight, IconMinus, IconPlay, IconPlus, IconX } from './icons';
 
 /* eslint-disable @next/next/no-img-element -- CF Pages serves images unoptimized. */
 
@@ -14,7 +14,10 @@ export interface LightboxItem {
   src: string;
   thumb?: string | null;
   alt: string;
+  /** A video of any kind: an uploaded file, or an embedded YouTube / Vimeo player (see `embedUrl`). */
   video: boolean;
+  /** A YouTube / Vimeo player to embed instead of playing `src` as a file. */
+  embedUrl?: string | null;
 }
 
 /**
@@ -113,7 +116,16 @@ export function Lightbox({
           </button>
         )}
         <div className="flex h-full w-full items-center justify-center overflow-auto">
-          {item.video ? (
+          {item.embedUrl ? (
+            <iframe
+              key={item.embedUrl}
+              src={item.embedUrl}
+              title={item.alt}
+              allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
+              allowFullScreen
+              className="aspect-video max-h-full w-full max-w-5xl rounded-xl bg-black"
+            />
+          ) : item.video ? (
             <video
               key={item.src}
               src={item.src}
@@ -161,7 +173,12 @@ export function Lightbox({
                 i === index ? 'ring-white' : 'ring-transparent opacity-60 hover:opacity-100'
               }`}
             >
-              {thumb.video ? (
+              {thumb.embedUrl && !thumb.thumb ? (
+                // A Vimeo link has no still to show: a dark tile with a play mark.
+                <span className="grid h-full w-full place-items-center bg-ink text-white">
+                  <IconPlay width={18} height={18} />
+                </span>
+              ) : thumb.video && !thumb.embedUrl ? (
                 <video
                   src={thumb.src}
                   muted

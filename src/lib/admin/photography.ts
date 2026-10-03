@@ -7,9 +7,11 @@ import {
   updateActivity,
   uploadActivityImage,
   type ActivityFormValues,
+  type ImageInput,
   type OptionInput,
   type SupplementInput,
 } from '@/lib/admin/activity-write';
+import { ensureImageLead } from '@/lib/catalogue/package-gallery';
 import { loadAvailabilityState, setDailyCapacity } from '@/lib/admin/availability-write';
 import { createCategory } from '@/lib/admin/categories';
 import {
@@ -204,7 +206,11 @@ export interface PhotographyPackageInput {
   /** `id` = an existing supplement row, updated IN PLACE on edit so the booking_supplements that
    *  reference it keep their link; absent = a new add-on. */
   addOns: { id?: string; name: string; nameFr: string; priceEur: number }[];
+  /** The cover: always a PHOTO, and always `images[0]` — cards, search and sharing read it. */
   imageUrl: string;
+  /** Every photo, video file and YouTube / Vimeo link AFTER the cover, in display order. The page shows the
+   *  lead plus the first four; the rest open under "View all". */
+  gallery: ImageInput[];
   status: 'draft' | 'published';
   /** The owner's pick for the price-card badge — only one package should have it. */
   bestSeller: boolean;
@@ -272,6 +278,29 @@ function packageSupplements(input: PhotographyPackageInput): SupplementInput[] {
     }));
   return [...addOns, ...locationRows];
 }
+/**
+ * The `images` a package is saved with: the cover first, then the gallery in the owner's order. A repeat of
+ * the cover or of any URL, and empty rows left in the editor, are dropped. The cover keeps the alt text it
+ * already had (a NEW cover starts from the package title). A video or link can never be first: the first
+ * photo is promoted — see ensureImageLead for why.
+ */
+function packageImages(
+  input: PhotographyPackageInput,
+  saved: ActivityFormValues | null,
+): ImageInput[] {
+  const cover = input.imageUrl.trim();
+  const seen = new Set<string>(cover ? [cover] : []);
+  const rest: ImageInput[] = [];
+  for (const g of input.gallery) {
+    const url = g.url.trim();
+    if (!url || seen.has(url)) continue;
+    seen.add(url);
+    rest.push({ url, alt: g.alt });
+  }
+  const alt = saved?.images.find((i) => i.url === cover)?.alt || input.title.trim();
+  return ensureImageLead(cover ? [{ url: cover, alt }, ...rest] : rest);
+}
+
 export function photographyPackageValues(input: PhotographyPackageInput): ActivityFormValues {
   const title = input.title.trim();
   const features = input.features.map((f) => f.trim()).filter(Boolean);
@@ -299,7 +328,7 @@ export function photographyPackageValues(input: PhotographyPackageInput): Activi
     languages: ['English', 'French'],
     highlights: features,
     inclusions: features,
-    images: input.imageUrl.trim() ? [{ url: input.imageUrl.trim(), alt: title }] : [],
+    images: packageImages(input, null),
     options: [
       {
         name: input.kind === 'weddings' ? 'Wedding coverage' : 'Private shoot',
@@ -589,6 +618,7 @@ export function packageInputFromValues(
 ): PhotographyPackageInput {
   const opt = v.options[privateOptionIndex(v)];
   const specs = photographySpecs(v.sourceExtra);
+  const cover = photographyCover(v.sourceExtra) ?? v.images[0]?.url ?? '';
   const kind = v.photographyGroup || photographyGroup({ title: v.title, summary: v.summary });
   // Location surcharges live as "Location: …" supplement rows; the generic add-on editor must not
   // show them, and each location picks its row's id back up (id match preferred, name fallback) so
@@ -632,7 +662,10 @@ export function packageInputFromValues(
           ? [...v.photographyOccasions]
           : photographyOccasions({ title: v.title, summary: v.summary }, v.sourceExtra)
         : [],
-    imageUrl: photographyCover(v.sourceExtra) ?? v.images[0]?.url ?? '',
+    imageUrl: cover,
+    gallery: v.images
+      .filter((i) => i.url.trim() && i.url !== cover)
+      .map((i) => ({ url: i.url, alt: i.alt })),
     status: v.status,
     bestSeller: specs.bestSeller,
     photoCount: specs.photoCount ?? 0,
@@ -649,8 +682,9 @@ export function packageInputFromValues(
 
 /**
  * Apply the simple form's edits onto the full saved package, touching ONLY what the form shows. The
- * slug, description, photos after the first, itinerary, French, badges, other options — everything
- * edited in the full tour editor — is carried through unchanged. Pure, so it's unit-tested.
+ * slug, description, itinerary, French, badges, other options — everything edited in the full tour editor —
+ * is carried through unchanged. The photos ARE edited here: the cover plus the gallery (photos, videos and
+ * links), written as `images = [cover, ...gallery]`. Pure, so it's unit-tested.
  */
 export function applyPackageInput(
   v: ActivityFormValues,
@@ -681,12 +715,7 @@ export function applyPackageInput(
             ...privateFields,
           } as OptionInput,
         ];
-  const cover = input.imageUrl.trim();
-  const images = cover
-    ? v.images[0]?.url === cover
-      ? v.images
-      : [{ url: cover, alt: v.images[0]?.alt || title }, ...v.images.slice(1)]
-    : v.images.slice(1);
+  const images = packageImages(input, v);
   // Highlights follow the "What's included" list only while they were the same list (the template
   // writes both); highlights the owner curated separately in the tour editor are left alone.
   const sameLists = v.highlights.join('\n') === v.inclusions.join('\n');
@@ -778,6 +807,7 @@ export function starterPackageInput(
     features: [...p.features],
     addOns: PHOTOGRAPHY_ADD_ON_PRESETS.map((a) => ({ ...a })),
     imageUrl: p.image,
+    gallery: [],
     status,
     bestSeller: false,
     photoCount: 0,

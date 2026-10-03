@@ -27,23 +27,24 @@ which check failed**. Always look here first.
 
 All of this is in `/admin`:
 
-| You want to change…                          | Where                                                                                                  |
-| -------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| Tours: photos, descriptions, options, prices | **Tours** → pick a tour                                                                                |
-| Optional per-person upgrades (e.g. lobster)  | **Tours** → tour → **Optional supplements** (as many as you like, each with a name + price)            |
-| Which dates a tour is bookable, and how big  | **Tours** → tour → **Availability** (trips per day × guests per trip)                                  |
-| Any transfer or vehicle fare                 | **Pricing** (5 sections: sightseeing, road trips, transport add-on, airport transfers, hotel-to-hotel) |
-| Rental cars & scooters                       | **Rental**                                                                                             |
-| Photography packages (weddings, shoots)      | **Photography** → New package, or **Edit** on a package (price, guests, add-ons, per day, publish)     |
-| Offer a photographer on a private tour       | **Tours** → tour → **Logistics** → **Photography add-ons**                                             |
-| Photos on /photography and the price list    | **Photography** → **Page photos** (upload, replace, tag and reorder the gallery)                       |
-| Deliver a photography gallery (photos done)  | **Photography** → **Customer galleries** → upload → **Confirm gallery complete** (see below)           |
-| Chase a photography balance on its own       | **Photography** → **Balances to collect** → **Request balance** (emails the guest a pay link)          |
-| The order tour cards appear in               | **Tours** → filter to one category → drag them                                                         |
-| A page's Google title & description          | **SEO** (18 pages)                                                                                     |
-| Blog posts                                   | **Blog**                                                                                               |
-| Redirect an old URL to a new one             | **Redirects**                                                                                          |
-| Approve or reject a customer review          | **Reviews**                                                                                            |
+| You want to change…                          | Where                                                                                                                           |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Tours: photos, descriptions, options, prices | **Tours** → pick a tour                                                                                                         |
+| Optional per-person upgrades (e.g. lobster)  | **Tours** → tour → **Optional supplements** (as many as you like, each with a name + price)                                     |
+| Which dates a tour is bookable, and how big  | **Tours** → tour → **Availability** (trips per day × guests per trip)                                                           |
+| Any transfer or vehicle fare                 | **Pricing** (5 sections: sightseeing, road trips, transport add-on, airport transfers, hotel-to-hotel)                          |
+| Rental cars & scooters                       | **Rental**                                                                                                                      |
+| Photography packages (weddings, shoots)      | **Photography** → New package, or **Edit** on a package (price, guests, add-ons, per day, publish)                              |
+| Photos and videos on a package's page        | **Photography** → **Edit** on the package → **Gallery photos & videos** (upload, paste a YouTube / Vimeo link, drag to reorder) |
+| Offer a photographer on a private tour       | **Tours** → tour → **Logistics** → **Photography add-ons**                                                                      |
+| Photos on /photography and the price list    | **Photography** → **Page photos** (upload, replace, tag and reorder the gallery)                                                |
+| Deliver a photography gallery (photos done)  | **Photography** → **Customer galleries** → upload → **Confirm gallery complete** (see below)                                    |
+| Chase a photography balance on its own       | **Photography** → **Balances to collect** → **Request balance** (emails the guest a pay link)                                   |
+| The order tour cards appear in               | **Tours** → filter to one category → drag them                                                                                  |
+| A page's Google title & description          | **SEO** (18 pages)                                                                                                              |
+| Blog posts                                   | **Blog**                                                                                                                        |
+| Redirect an old URL to a new one             | **Redirects**                                                                                                                   |
+| Approve or reject a customer review          | **Reviews**                                                                                                                     |
 
 Prices are typed in euros and take effect immediately — the server prices every new quote from those
 rows.
@@ -91,6 +92,14 @@ resized in your browser to at most 2,400 pixels on its long edge and saved as We
 10 MB camera file becomes a few hundred KB), and its location data is removed. The original is not kept.
 Videos, GIFs and SVGs upload exactly as they are, and so does any file the browser can't read.
 **Customer galleries are never shrunk** — guests download those at full quality.
+
+**A package's gallery is photos AND videos.** On the package page the **cover** is the big photo and the first four
+items of **Gallery photos & videos** fill the tiles beside it; everything else opens under **View all N**, where a visitor
+pages through photos and plays videos. Add an uploaded clip, or paste a **YouTube or Vimeo link** for a long film — an
+uploaded file counts against the storage size limit, a link does not. The cover has to be a **photo** (cards, search and the
+social-share image all use it), so a video can't be the cover or the first item; the form says so if you try. With one to
+four items the tiles resize to fill the space — there are never gaps. (The separate **Inspiration photos** are the
+"Get inspired by these shots" grid, not this gallery.)
 
 **The optional supplements** are the extras a guest can add to a tour while booking, and you own both
 halves of each: type the name ("Lobster for lunch", "Snorkel gear") and the price per person — add as

@@ -53,6 +53,7 @@ const INPUT: PhotographyPackageInput = {
   features: ['Edited photos', '  ', 'Online gallery'],
   addOns: PHOTOGRAPHY_ADD_ON_PRESETS.map((a) => ({ ...a })),
   imageUrl: '',
+  gallery: [],
   status: 'published',
   bestSeller: false,
   photoCount: 0,

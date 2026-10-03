@@ -399,6 +399,7 @@ export const fr: Record<string, string> = {
   Share: 'Partager',
   'View photo': 'Voir la photo',
   'View all {n} photos': 'Voir les {n} photos',
+  'View all {n} photos and videos': 'Voir les {n} photos et vidéos',
   'Photo gallery': 'Galerie de photos',
   'Close gallery': 'Fermer la galerie',
   'Previous photo': 'Photo précédente',

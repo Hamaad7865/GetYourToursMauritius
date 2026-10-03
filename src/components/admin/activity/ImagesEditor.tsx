@@ -1,19 +1,58 @@
 'use client';
 
 import { useState } from 'react';
-import { IconChevron, IconGrip, IconX } from '@/components/ui/icons';
+import { IconChevron, IconGrip, IconPlay, IconX } from '@/components/ui/icons';
 import { inputClass } from '@/components/admin/fields';
 import { moveItem } from '@/lib/admin/reorder';
 import { uploadActivityImage, type ImageInput } from '@/lib/admin/activity-write';
+import { videoSource } from '@/lib/media';
+
+/** The little picture beside a row: a photo, a video file's first frame, a YouTube still, or a dark
+ *  tile (Vimeo offers none) — each with a play mark when it is a video, never a broken image. */
+function Preview({ url, alt }: { url: string; alt: string }) {
+  const video = videoSource(url);
+  const frame = 'h-14 w-20 rounded-lg object-cover';
+  return (
+    <>
+      {video?.kind === 'file' ? (
+        <video src={url} muted playsInline preload="metadata" className={`${frame} bg-ink`} />
+      ) : video?.kind === 'youtube' ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={video.thumbUrl} alt={alt || 'video preview'} className={frame} />
+      ) : video ? (
+        <span aria-hidden className={`block ${frame} bg-ink`} />
+      ) : (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={url} alt={alt || 'preview'} className={frame} />
+      )}
+      {video && (
+        <span
+          aria-hidden
+          className="absolute inset-0 m-auto grid h-7 w-7 place-items-center rounded-full bg-ink/65 text-white"
+        >
+          <IconPlay width={13} height={13} />
+        </span>
+      )}
+    </>
+  );
+}
 
 export function ImagesEditor({
   images,
   slug,
   onChange,
+  firstNumber = 1,
+  gridTiles = 5,
 }: {
   images: ImageInput[];
   slug: string;
   onChange: (images: ImageInput[]) => void;
+  /** The number shown on the first row. Default 1 (the first photo IS the lead); a list that sits after a
+   *  separate cover starts at 2. */
+  firstNumber?: number;
+  /** How many photos the page's grid shows (the lead plus four): rows up to this number are teal, the rest
+   *  open under "View all". */
+  gridTiles?: number;
 }) {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -93,18 +132,13 @@ export function ImagesEditor({
             </button>
           </div>
           <div className="relative shrink-0">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={img.url}
-              alt={img.alt || 'preview'}
-              className="h-14 w-20 rounded-lg object-cover"
-            />
+            <Preview url={img.url} alt={img.alt} />
             <span
               className={`absolute left-1 top-1 grid h-5 min-w-5 place-items-center rounded-full px-1 text-[11px] font-bold ${
-                i < 5 ? 'bg-teal text-white' : 'bg-ink/55 text-white'
+                i + firstNumber <= gridTiles ? 'bg-teal text-white' : 'bg-ink/55 text-white'
               }`}
             >
-              {i + 1}
+              {i + firstNumber}
             </span>
           </div>
           <div className="flex min-w-0 flex-1 flex-col gap-1.5">
@@ -112,7 +146,7 @@ export function ImagesEditor({
               className={inputClass}
               value={img.url}
               onChange={(e) => update(i, { url: e.target.value })}
-              placeholder="https://…/photo.jpg"
+              placeholder="https://…/photo.jpg — or a YouTube / Vimeo link"
             />
             <input
               className={inputClass}
@@ -149,9 +183,13 @@ export function ImagesEditor({
           onClick={() => onChange([...images, { url: '', alt: '' }])}
           className="rounded-full border border-ink/15 px-4 py-2 text-sm font-bold text-ink hover:border-teal hover:text-teal"
         >
-          Add image URL
+          Add a link (photo, YouTube or Vimeo)
         </button>
       </div>
+      <p className="text-[12px] leading-snug text-ink-muted">
+        Videos: upload a short clip, or paste a YouTube / Vimeo link for a long film — very large
+        uploads can be rejected by the storage size limit.
+      </p>
       {uploadError && <p className="text-[13px] font-medium text-coral">{uploadError}</p>}
     </div>
   );
