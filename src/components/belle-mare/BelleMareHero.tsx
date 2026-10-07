@@ -129,6 +129,10 @@ export function BelleMareHero({
           <span className="bm-rise block text-[clamp(56px,14vw,196px)] [animation-delay:0.15s]">
             {nameLines[0]}
           </span>
+          {/* A real space between the two lines. Without it the heading's TEXT is "BelleMare" — the
+              spans only look separate because they are display:block — and that is how Google
+              indexed it: its snippet for this page opened "BelleMare." on the one query the page
+              exists for. Collapsed between two blocks, so nothing moves on screen. */}{' '}
           <span className="bm-rise ml-[clamp(24px,11vw,190px)] block text-[clamp(56px,14vw,196px)] text-teal-tint [animation-delay:0.27s]">
             {nameLines[1]}
           </span>

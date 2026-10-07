@@ -79,11 +79,17 @@ export function getArea(slug: string): Area | null {
  * missing the dominant query. Belle Mare: "belle mare", "belle mare mauritius" and "belle mare beach"
  * are 56% of the page's impressions, at ~0.6% CTR under the old "Area Guide" title — and it is the
  * one area with a curated hotel list, so it can honestly promise hotels.
+ *
+ * The English title must LEAD WITH THE PLACE ("Belle Mare, Mauritius"), not the beach. From
+ * 2026-09-29 it led with "Belle Mare Beach, Mauritius", which is how /attractions/belle-mare-beach
+ * already titles itself: two of our pages opening on the same three words. The guide's impressions
+ * halved that day (~200 → ~85 a day), it slipped off page one for the bare "belle mare", and Google
+ * began showing the beach page for it instead. The place is this page's; the beach has its own.
  */
 const AREA_META: Partial<Record<string, Record<Locale, { title: string; description: string }>>> = {
   'belle-mare': {
     en: {
-      title: 'Belle Mare Beach, Mauritius: Hotels & Things to Do',
+      title: 'Belle Mare, Mauritius: Beach, Hotels & Things to Do',
       description:
         'Belle Mare’s long white-sand beach and turquoise lagoon on Mauritius’ east coast: the resorts along it, Île aux Cerfs trips and what to do nearby.',
     },
@@ -111,6 +117,23 @@ export function areaMetaTitle(a: Area, locale: Locale = 'en'): string {
 export function areaMetaDescription(a: Area, locale: Locale = 'en'): string {
   // Pass the LOCALISED area: `intro` is the translated copy on French pages.
   return AREA_META[a.slug]?.[locale]?.description ?? fitSnippet(a.intro);
+}
+
+/**
+ * Anchor text for a link to an area guide from another page (attraction pages, hotel transfer pages).
+ *
+ * Most guides are titled "X, Mauritius: Things to Do", so "Things to do in X" is the honest anchor.
+ * An area with its own top-level page is different: it is the page for the PLACE NAME, and Belle Mare
+ * also has a separate /things-to-do-in-belle-mare — so "Things to do in Belle Mare" pointing at
+ * /belle-mare sent that phrase to the wrong one of our two pages. Those are linked by name.
+ */
+export function areaLinkLabel(a: Area, locale: Locale = 'en'): string {
+  if (AREA_PATH_OVERRIDES[a.slug]) {
+    return locale === 'fr' ? `${a.name}, île Maurice` : `${a.name}, Mauritius`;
+  }
+  return locale === 'fr'
+    ? `${a.name}, île Maurice : que voir, que faire`
+    : `Things to do in ${a.name}`;
 }
 
 /** An area guide in the visitor's language, falling back to English per field. */

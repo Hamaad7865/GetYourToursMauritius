@@ -16,7 +16,7 @@ import {
 import { mergedFaq } from '@/lib/content/destination-faq-extra';
 import { hotelPhoto } from '@/lib/content/hotel-photos';
 import { getTransfer, transferPath } from '@/lib/content/transfers';
-import { attractionImage, attractionImageSrc } from '@/lib/content/attractions';
+import { attractionImage, attractionImageSrc, attractionPath } from '@/lib/content/attractions';
 import {
   destinationJsonLd,
   breadcrumbListJsonLd,
@@ -26,6 +26,7 @@ import {
 import { overrideMetadata } from '@/lib/seo/override';
 import { SITE, OG_IMAGE, whatsappUrl } from '@/lib/seo/site';
 import { getT, getLocale } from '@/lib/i18n/server';
+import { localePath } from '@/lib/i18n/routing';
 import { getWhatsAppNumber } from '@/lib/settings/whatsapp-number';
 
 export const runtime = 'edge';
@@ -64,6 +65,18 @@ const BEACH_IMAGE: Record<string, { url: string; source: string }> = {
   // Ours, so no Commons credit — `source` is empty rather than absent to keep the shape uniform.
   'Palmar Beach': { url: '/activities/palmar-beach.jpg', source: '' },
   "Trou d'Eau Douce": attractionImage('trou-deau-douce') ?? { url: '', source: '' },
+};
+
+/**
+ * The beach's own attraction page, by the same beach name. This guide is the page for the PLACE;
+ * each beach has its own page, and without a link from here to there Google had nothing telling it
+ * which of the two answers "belle mare" and which answers "belle mare beach". Poste de Flacq has no
+ * attraction page, so its card stays unlinked.
+ */
+const BEACH_PAGE: Record<string, string> = {
+  'Belle Mare Public Beach': 'belle-mare-beach',
+  'Palmar Beach': 'palmar-beach',
+  "Trou d'Eau Douce": 'trou-deau-douce',
 };
 
 function isCommons(source: string | undefined): boolean {
@@ -144,7 +157,9 @@ export default async function BelleMarePage() {
       <JsonLd data={destinationJsonLd({ name: a.name, description: a.intro, path: a.path })} />
       {hotels.length > 0 && (
         <JsonLd
-          data={itemListJsonLd(hotels.map((h) => ({ name: h.name, path: '/airport-transfers' })))}
+          // Each hotel's OWN transfer page — the same href its card links to. Every item used to
+          // carry the one /airport-transfers URL, which is fourteen list items naming one page.
+          data={itemListJsonLd(railHotels.map((h) => ({ name: h.name, path: h.href })))}
         />
       )}
       <JsonLd
@@ -247,22 +262,38 @@ export default async function BelleMarePage() {
               <RevealGroup className="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
                 {a.beaches.map((b) => {
                   const img = BEACH_IMAGE[b];
+                  const page = BEACH_PAGE[b];
+                  const photo = (
+                    <div className="aspect-[3/4] w-full">
+                      {img?.url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={attractionImageSrc(img.url)}
+                          alt={t('{beach}, east coast Mauritius', { beach: b })}
+                          loading="lazy"
+                          className="h-full w-full object-cover"
+                        />
+                      ) : null}
+                    </div>
+                  );
                   return (
                     <figure
                       key={b}
                       className="relative overflow-hidden rounded-2xl bg-[linear-gradient(135deg,#0B5C63_0%,#0A2E36_100%)]"
                     >
-                      <div className="aspect-[3/4] w-full">
-                        {img?.url ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={attractionImageSrc(img.url)}
-                            alt={t('{beach}, east coast Mauritius', { beach: b })}
-                            loading="lazy"
-                            className="h-full w-full object-cover"
-                          />
-                        ) : null}
-                      </div>
+                      {/* The caption below is pointer-events-none, so the whole card is this link.
+                          Its name comes from the photo's alt; the label covers a photo-less card. */}
+                      {page ? (
+                        <Link
+                          href={localePath(locale, attractionPath(page))}
+                          aria-label={img?.url ? undefined : b}
+                          className="block"
+                        >
+                          {photo}
+                        </Link>
+                      ) : (
+                        photo
+                      )}
                       <figcaption className="pointer-events-none absolute inset-x-0 bottom-0 bg-[linear-gradient(180deg,rgba(10,46,54,0),rgba(10,46,54,0.88))] px-4 pb-4 pt-8 text-[15px] font-bold leading-tight text-white">
                         {b}
                       </figcaption>

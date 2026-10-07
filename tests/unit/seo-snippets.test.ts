@@ -107,8 +107,14 @@ describe('area meta', () => {
 
   it('uses the hand-tuned Belle Mare copy that names the beach and the hotels', () => {
     const bm = areas.find((a) => a.slug === 'belle-mare')!;
-    expect(areaMetaTitle(bm)).toBe('Belle Mare Beach, Mauritius: Hotels & Things to Do');
+    expect(areaMetaTitle(bm)).toBe('Belle Mare, Mauritius: Beach, Hotels & Things to Do');
     expect(areaMetaTitle(bm, 'fr')).toContain('île Maurice');
+    // The place, not the beach. /attractions/belle-mare-beach titles itself "Belle Mare Beach…", and
+    // the week this title opened on the same three words the guide lost half its impressions and
+    // Google started answering "belle mare" with the beach page.
+    const beach = attractionMetaTitle(place({ id: 'belle-mare-beach', name: 'Belle Mare Beach' }));
+    expect(beach.startsWith('Belle Mare Beach')).toBe(true);
+    expect(areaMetaTitle(bm).startsWith('Belle Mare Beach')).toBe(false);
     // It promises hotels — only honest because this area carries a curated hotel list.
     expect(bm.stayOptions?.length ?? 0).toBeGreaterThan(0);
   });

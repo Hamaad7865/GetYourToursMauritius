@@ -204,3 +204,12 @@ export function hotelGroupsFor(slug: string): HotelGroup[] | null {
 export function hotelsFor(slug: string): DestinationHotel[] {
   return (BY_SLUG[slug] ?? []).flatMap((g) => g.hotels);
 }
+
+/** The destination guide that lists this hotel, if any — so the hotel's own transfer page can link
+ *  back to the guide that links to it. */
+export function destinationSlugForHotel(hotelSlug: string): string | null {
+  for (const [slug, groups] of Object.entries(BY_SLUG)) {
+    if (groups.some((g) => g.hotels.some((h) => h.slug === hotelSlug))) return slug;
+  }
+  return null;
+}

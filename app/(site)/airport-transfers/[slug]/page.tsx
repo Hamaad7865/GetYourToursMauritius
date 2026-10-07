@@ -15,11 +15,14 @@ import {
   genericTransferFaq,
 } from '@/lib/content/transfers';
 import { parseGuestHotel } from '@/lib/content/guest-hotel';
+import { getArea, areaLinkLabel } from '@/lib/content/areas';
+import { destinationSlugForHotel } from '@/lib/content/destination-hotels';
 import { loadAirportFares, transferFromPriceEur } from '@/lib/transfers/from-price';
 import { transferServiceJsonLd, breadcrumbListJsonLd, faqPageJsonLd } from '@/lib/seo/jsonld';
 import { overrideMetadata } from '@/lib/seo/override';
 import { SITE, OG_IMAGE } from '@/lib/seo/site';
 import { getT, getLocale } from '@/lib/i18n/server';
+import { localePath } from '@/lib/i18n/routing';
 
 export const runtime = 'edge';
 
@@ -101,6 +104,11 @@ export default async function TransferDetailPage({
   // This hotel's real entry fare (its zone's standard car, one way) — the same number the booking
   // widget quotes below. Never a per-region estimate: the two drifted and the page under-advertised.
   const fromPriceEur = transferFromPriceEur(hotel.slug, await loadAirportFares());
+
+  // The destination guide that lists this hotel (today: the Belle Mare roster). The guide links to
+  // each of these pages; this is the link back, by the place's name.
+  const guideSlug = destinationSlugForHotel(hotel.slug);
+  const areaGuide = guideSlug ? getArea(guideSlug) : null;
 
   const path = hotel.path;
   const homeLabel = t('Home');
@@ -225,12 +233,22 @@ export default async function TransferDetailPage({
                     </li>
                   ))}
                 </ul>
-                <Link
-                  href="/attractions"
-                  className="mt-5 inline-flex items-center gap-1.5 text-sm font-bold text-teal hover:text-teal-dark"
-                >
-                  {t('Explore things to do in Mauritius →')}
-                </Link>
+                <div className="mt-5 flex flex-wrap gap-x-6 gap-y-2">
+                  {areaGuide && (
+                    <Link
+                      href={localePath(locale, areaGuide.path)}
+                      className="inline-flex items-center gap-1.5 text-sm font-bold text-teal hover:text-teal-dark"
+                    >
+                      {areaLinkLabel(areaGuide, locale)} →
+                    </Link>
+                  )}
+                  <Link
+                    href="/attractions"
+                    className="inline-flex items-center gap-1.5 text-sm font-bold text-teal hover:text-teal-dark"
+                  >
+                    {t('Explore things to do in Mauritius →')}
+                  </Link>
+                </div>
               </section>
             )}
 

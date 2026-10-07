@@ -1,9 +1,22 @@
 import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import nextConfig from '../../next.config.mjs';
-import { AREA_PATH_OVERRIDES, areas, destinationPath, getArea } from '@/lib/content/areas';
-import { hotelsFor, DEFAULT_AIRPORT_MINUTES } from '@/lib/content/destination-hotels';
+import { BelleMareHero } from '@/components/belle-mare/BelleMareHero';
+import {
+  AREA_PATH_OVERRIDES,
+  areaLinkLabel,
+  areas,
+  destinationPath,
+  getArea,
+} from '@/lib/content/areas';
+import {
+  hotelsFor,
+  destinationSlugForHotel,
+  DEFAULT_AIRPORT_MINUTES,
+} from '@/lib/content/destination-hotels';
 import { BELLE_MARE_HOTEL_PHOTOS } from '@/lib/content/hotel-photos';
 import { getTransfer } from '@/lib/content/transfers';
 import { LOCALE_PREFIX } from '@/lib/i18n/routing';
@@ -98,6 +111,47 @@ describe('AREA_PATH_OVERRIDES', () => {
         expect(rule?.permanent, `${source} must be permanent`).toBe(true);
       }
     }
+  });
+});
+
+describe('the page is findable as "Belle Mare"', () => {
+  /*
+   * The hero sets the name on two lines, one span each. With nothing between the spans the heading's
+   * text is "BelleMare" — and Google indexed it exactly so: its snippet for this page began
+   * "BelleMare." on the one query the page exists to answer. The fix is a single space in the
+   * markup, which is precisely the kind of thing a tidy-up removes.
+   */
+  it('renders an H1 whose text is the place name, as two words', () => {
+    const html = renderToStaticMarkup(
+      createElement(BelleMareHero, {
+        eyebrow: 'Destination guide',
+        nameLines: ['Belle', 'Mare'],
+        intro: 'Intro',
+        photo: '/x.jpg',
+        photoAlt: 'Alt',
+        scrollCue: 'Dive in',
+      }),
+    );
+    const h1 = /<h1[^>]*>([\s\S]*?)<\/h1>/.exec(html)?.[1] ?? '';
+    expect(h1.replace(/<[^>]+>/g, '')).toBe('Belle Mare');
+  });
+
+  /* An area with its own top-level page is linked by its NAME. "Things to do in Belle Mare" is the
+     anchor for /things-to-do-in-belle-mare; pointing it at /belle-mare split the phrase across two
+     of our own pages. Every other guide keeps the things-to-do anchor its title promises. */
+  it('is linked by the place name, while ordinary guides keep the things-to-do anchor', () => {
+    const bm = getArea('belle-mare')!;
+    expect(areaLinkLabel(bm)).toBe('Belle Mare, Mauritius');
+    expect(areaLinkLabel(bm, 'fr')).toBe('Belle Mare, île Maurice');
+    const other = areas.find((a) => !AREA_PATH_OVERRIDES[a.slug])!;
+    expect(areaLinkLabel(other)).toBe(`Things to do in ${other.name}`);
+  });
+
+  it('is linked back from the transfer page of every hotel it lists, and from no other', () => {
+    for (const h of hotelsFor('belle-mare')) {
+      expect(destinationSlugForHotel(h.slug), h.slug).toBe('belle-mare');
+    }
+    expect(destinationSlugForHotel('not-a-listed-hotel')).toBeNull();
   });
 });
 

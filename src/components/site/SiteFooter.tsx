@@ -51,8 +51,9 @@ const COLUMNS = [
       // The Belle Mare area guide is the page that ranks for the bare query "belle mare" (the
       // legacy visitemaurice.com article 301s into it). It was reachable only from /destinations,
       // the things-to-do guide and the sitemap — so the site's own indexed pages passed it nothing.
-      // A footer entry links it from every page on the site.
-      { label: 'Belle Mare area guide', href: '/belle-mare' },
+      // A footer entry links it from every page on the site — by the place's NAME, which is the
+      // search the page is for ("belle mare", "belle mare mauritius"), not by "area guide".
+      { label: 'Belle Mare, Mauritius', href: '/belle-mare' },
       { label: 'Things to do in Belle Mare', href: '/things-to-do-in-belle-mare' },
       { label: 'Mauritius travel blog', href: '/blog' },
       { label: 'Belle Mare Tours', href: '/belle-mare-tours' },

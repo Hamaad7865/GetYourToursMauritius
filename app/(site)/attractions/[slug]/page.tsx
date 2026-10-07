@@ -21,7 +21,7 @@ import {
   ATTRACTION_LINKS,
 } from '@/lib/content/attractions';
 import { getPost, localisedPost } from '@/lib/content/blog';
-import { getArea } from '@/lib/content/areas';
+import { getArea, areaLinkLabel } from '@/lib/content/areas';
 import { attractionJsonLd, breadcrumbListJsonLd, faqPageJsonLd } from '@/lib/seo/jsonld';
 import { overrideMetadata } from '@/lib/seo/override';
 import { SITE } from '@/lib/seo/site';
@@ -259,9 +259,7 @@ export default async function AttractionDetailPage({
                     href={localePath(locale, area.path)}
                     className="font-semibold text-teal-dark hover:underline"
                   >
-                    {locale === 'fr'
-                      ? `${area.name}, île Maurice : que voir, que faire`
-                      : `Things to do in ${area.name}`}
+                    {areaLinkLabel(area, locale)}
                   </Link>
                 </li>
               )}
