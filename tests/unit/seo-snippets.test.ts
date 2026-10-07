@@ -110,8 +110,8 @@ describe('area meta', () => {
     expect(areaMetaTitle(bm)).toBe('Belle Mare, Mauritius: Beach, Hotels & Things to Do');
     expect(areaMetaTitle(bm, 'fr')).toContain('île Maurice');
     // The place, not the beach. /attractions/belle-mare-beach titles itself "Belle Mare Beach…", and
-    // the week this title opened on the same three words the guide lost half its impressions and
-    // Google started answering "belle mare" with the beach page.
+    // the week this title opened on the same three words the guide lost half its impressions — the
+    // suspected cause, not a proven one (see AREA_META). Two of our pages must not share a lead.
     const beach = attractionMetaTitle(place({ id: 'belle-mare-beach', name: 'Belle Mare Beach' }));
     expect(beach.startsWith('Belle Mare Beach')).toBe(true);
     expect(areaMetaTitle(bm).startsWith('Belle Mare Beach')).toBe(false);

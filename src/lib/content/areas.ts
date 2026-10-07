@@ -83,8 +83,10 @@ export function getArea(slug: string): Area | null {
  * The English title must LEAD WITH THE PLACE ("Belle Mare, Mauritius"), not the beach. From
  * 2026-09-29 it led with "Belle Mare Beach, Mauritius", which is how /attractions/belle-mare-beach
  * already titles itself: two of our pages opening on the same three words. The guide's impressions
- * halved that day (~200 → ~85 a day), it slipped off page one for the bare "belle mare", and Google
- * began showing the beach page for it instead. The place is this page's; the beach has its own.
+ * halved that day (~200 → ~85 a day, mostly mobile) while its average position on the exact query
+ * stayed near #8 — it was simply shown in fewer searches. SUSPECTED cause, not proven: Google's
+ * September spam update was rolling out that same week, and pages we had not retitled moved too.
+ * Either way the place is this page's and the beach has its own, so the two must not share a lead.
  */
 const AREA_META: Partial<Record<string, Record<Locale, { title: string; description: string }>>> = {
   'belle-mare': {
