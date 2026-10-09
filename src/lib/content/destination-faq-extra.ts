@@ -26,6 +26,10 @@ export interface FaqEntry {
 
 const BELLE_MARE_EN: FaqEntry[] = [
   {
+    q: 'What is there to do in Belle Mare, Mauritius?',
+    a: 'Swim and snorkel in the lagoon, take a speedboat or catamaran to Île aux Cerfs from nearby Trou d’Eau Douce, kitesurf or windsurf on the trade winds, play The Legend or The Links golf courses, and visit the GRSE waterfall or Bras d’Eau National Park. Our things-to-do guide lists every bookable trip from this coast.',
+  },
+  {
     q: 'What side of Mauritius is Belle Mare on?',
     a: 'The east. That matters more than it sounds: the east coast catches the prevailing south-east trade winds, so the lagoon runs cooler and breezier than the north or west, and is at its calmest roughly from November to April. It is also why the east is the island’s kitesurfing and sailing coast.',
   },
@@ -48,6 +52,10 @@ const BELLE_MARE_EN: FaqEntry[] = [
 ];
 
 const BELLE_MARE_FR: FaqEntry[] = [
+  {
+    q: 'Que faire à Belle Mare, à l’île Maurice ?',
+    a: 'Nager et faire du snorkeling dans le lagon, rejoindre l’Île aux Cerfs en hors-bord ou en catamaran depuis Trou d’Eau Douce tout proche, faire du kitesurf ou de la planche à voile grâce aux alizés, jouer sur les golfs The Legend ou The Links, et visiter la cascade de GRSE ou le parc national de Bras d’Eau. Notre guide des activités liste toutes les sorties réservables depuis cette côte.',
+  },
   {
     q: 'Sur quelle côte de Maurice se trouve Belle Mare ?',
     a: 'À l’est. Ce détail compte : la côte est reçoit les alizés du sud-est, le lagon y est donc plus frais et plus venteux qu’au nord ou à l’ouest, et il est au plus calme de novembre à avril environ. C’est aussi pourquoi l’est est la côte du kitesurf et de la voile.',
