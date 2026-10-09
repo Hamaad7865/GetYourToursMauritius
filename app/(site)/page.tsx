@@ -21,7 +21,7 @@ const DEFAULT_METADATA: Metadata = {
   // title past a sensible SERP length.
   title: { absolute: 'Belle Mare Tours — Mauritius Tours, Activities & Airport Taxi' },
   description:
-    'Book Mauritius tours, activities and excursions direct with Belle Mare Tours: catamaran cruises, dolphin swims, island day tours, private sightseeing and airport taxi transfers. Transparent pricing, instant confirmation, no reseller markup.',
+    'Book Mauritius tours direct with the local operator: catamaran cruises, dolphin swims, island day tours and airport taxi transfers. Fixed prices, no markup.',
   keywords: [
     'Mauritius tours',
     'tours in Mauritius',

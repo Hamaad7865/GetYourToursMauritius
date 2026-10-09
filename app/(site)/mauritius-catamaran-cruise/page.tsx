@@ -28,7 +28,7 @@ export const runtime = 'edge';
 const PATH = '/mauritius-catamaran-cruise';
 const TITLE = 'Catamaran Cruises & Tours in Mauritius | Belle Mare Tours';
 const DESCRIPTION =
-  'Mauritius catamaran cruises booked direct: a full day on the lagoon with snorkelling, a barbecue lunch on board and stops at Île aux Cerfs or the northern islets. Shared or private charters, fixed prices, no reseller markup.';
+  'Catamaran cruises in Mauritius, booked direct: snorkelling, a barbecue lunch on board and Île aux Cerfs or the northern islets. Shared or private, fixed prices.';
 
 const DEFAULT_METADATA: Metadata = {
   title: { absolute: TITLE },

@@ -27,7 +27,7 @@ export const runtime = 'edge';
 const PATH = '/things-to-do-in-belle-mare';
 const TITLE = 'Things to Do in Belle Mare — Best Activities, Beaches & Day Trips';
 const DESCRIPTION =
-  'The best things to do in Belle Mare, Mauritius — beach and lagoon activities, Île aux Cerfs boat trips, catamaran cruises, kitesurfing, golf and day tours, from the licensed local operator based right here on the east coast.';
+  'The best things to do in Belle Mare, Mauritius: the beach and lagoon, Île aux Cerfs boat trips, catamaran cruises, golf and day tours, from the local operator.';
 
 const DEFAULT_METADATA: Metadata = {
   title: { absolute: TITLE },
