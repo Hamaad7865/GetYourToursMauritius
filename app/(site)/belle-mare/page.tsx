@@ -564,6 +564,19 @@ export async function generateMetadata(): Promise<Metadata> {
   const a = localisedArea(raw, locale);
   const title = areaMetaTitle(a, locale);
   const description = areaMetaDescription(a, locale);
+  // The beach itself as the share/search image, not the island-wide default: Google showed the logo
+  // as this page's thumbnail. Through /api/img (crawlable per robots.ts) so it is served from our
+  // own domain like the hero.
+  const beach = attractionImage('belle-mare-beach');
+  const images = beach
+    ? [
+        {
+          url: attractionImageSrc(beach.url),
+          alt: 'The white sand and turquoise lagoon at Belle Mare, east coast Mauritius',
+        },
+        OG_IMAGE,
+      ]
+    : [OG_IMAGE];
   return overrideMetadata(a.path, {
     title,
     description,
@@ -572,7 +585,7 @@ export async function generateMetadata(): Promise<Metadata> {
       title,
       description,
       url: `${SITE.url}${a.path}`,
-      images: [OG_IMAGE],
+      images,
     },
   });
 }
