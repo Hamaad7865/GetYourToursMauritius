@@ -1,5 +1,6 @@
 import { POSTS_RAW } from './_blog.gen';
 import { POSTS_FR } from './_blog.fr.gen';
+import { HANDWRITTEN_POSTS, HANDWRITTEN_POSTS_FR } from './blog-handwritten';
 import { BLOG_HERO } from './blog-images';
 import { localiseContent } from './localise';
 import type { Locale } from '@/lib/i18n/config';
@@ -44,7 +45,7 @@ export type PostTranslation = Partial<Pick<PostContent, 'title' | 'excerpt' | 's
 
 /** A post in the visitor's language, falling back to English per field. */
 export function localisedPost(post: Post, locale: Locale): Post {
-  return localiseContent(post, POSTS_FR[post.slug], locale);
+  return localiseContent(post, POSTS_FR[post.slug] ?? HANDWRITTEN_POSTS_FR[post.slug], locale);
 }
 
 export function blogPath(slug: string): string {
@@ -123,6 +124,11 @@ export const POST_META_FR: Record<
     metaTitle: 'Coucher de soleil à l’île Maurice : les plus beaux spots',
   },
   'scuba-diving-mauritius': { metaTitle: 'Plongée à l’île Maurice : meilleurs sites et saisons' },
+  'private-vs-shared-catamaran-mauritius': {
+    metaTitle: 'Catamaran privé ou partagé à l’île Maurice ?',
+    metaDescription:
+      'Catamaran privé ou partagé à l’île Maurice ? Prix, taille du groupe, itinéraire et déjeuner pour la journée à l’île aux Cerfs : comparez et choisissez.',
+  },
 };
 
 /**
@@ -154,6 +160,23 @@ export const RELATED_POSTS: Record<string, string[]> = {
     'ile-aux-cerfs-guide',
     'getting-around-mauritius',
   ],
+  // The catamaran cluster: the private-vs-shared comparison sits between the route guide and the
+  // Île aux Cerfs guide, so each of the three points at the other two.
+  'private-vs-shared-catamaran-mauritius': [
+    'catamaran-cruises-mauritius',
+    'ile-aux-cerfs-guide',
+    'ile-aux-cerfs-vs-blue-bay',
+  ],
+  'catamaran-cruises-mauritius': [
+    'private-vs-shared-catamaran-mauritius',
+    'ile-aux-cerfs-guide',
+    'swimming-with-dolphins-mauritius',
+  ],
+  'ile-aux-cerfs-guide': [
+    'private-vs-shared-catamaran-mauritius',
+    'catamaran-cruises-mauritius',
+    'ile-aux-cerfs-vs-blue-bay',
+  ],
   // The south-west circuit: one day trip, four guides that should point at each other.
   'grand-bassin-guide': ['black-river-gorges-guide', 'tamarind-falls-guide', 'chamarel-guide'],
   'black-river-gorges-guide': ['grand-bassin-guide', 'chamarel-guide', 'tamarind-falls-guide'],
@@ -161,7 +184,7 @@ export const RELATED_POSTS: Record<string, string[]> = {
   'chamarel-guide': ['black-river-gorges-guide', 'grand-bassin-guide', 'tamarind-falls-guide'],
 };
 
-export const posts: Post[] = POSTS_RAW.map((p, i) => ({
+const generatedPosts: Post[] = POSTS_RAW.map((p, i) => ({
   ...p,
   ...POST_META_OVERRIDES[p.slug],
   // Seed posts carry no photo of their own, which left the index a wall of text-only cards and every
@@ -171,7 +194,13 @@ export const posts: Post[] = POSTS_RAW.map((p, i) => ({
   heroImageUrl: p.heroImageUrl ?? BLOG_HERO[p.slug] ?? null,
   path: blogPath(p.slug),
   datePublished: dateForIndex(i),
-})).sort((a, b) => b.datePublished.localeCompare(a.datePublished));
+}));
+
+/** Hand-written posts (blog-handwritten.ts) carry their own real publish date and hero. */
+export const posts: Post[] = [
+  ...HANDWRITTEN_POSTS.map((p) => ({ ...p, path: blogPath(p.slug) })),
+  ...generatedPosts,
+].sort((a, b) => b.datePublished.localeCompare(a.datePublished));
 
 export function getPost(slug: string): Post | null {
   return posts.find((p) => p.slug === slug) ?? null;

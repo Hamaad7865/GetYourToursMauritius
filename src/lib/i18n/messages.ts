@@ -229,6 +229,7 @@ export const fr: Record<string, string> = {
     'Oui — la prise en charge et le retour à l’hôtel sont possibles en supplément, calculé selon votre zone de prise en charge lors du paiement. {meeting}Indiquez votre lieu de prise en charge après la réservation, jusqu’à 24 heures avant le départ.',
   'This experience is guided in {languages}.': 'Cette expérience est guidée en {languages}.',
   ' and ': ' et ',
+  'Private vs shared catamaran': 'Catamaran privé ou partagé',
   English: 'anglais',
   French: 'français',
   German: 'allemand',

@@ -413,6 +413,10 @@ export default async function MauritiusCatamaranCruisePage() {
           <RelatedLinks
             links={[
               { label: t('Île aux Cerfs tours'), href: lp('/ile-aux-cerfs-tours') },
+              {
+                label: t('Private vs shared catamaran'),
+                href: lp('/blog/private-vs-shared-catamaran-mauritius'),
+              },
               { label: t('Dolphin swim'), href: lp('/dolphin-swim-mauritius') },
               { label: t('All Mauritius tours'), href: lp('/mauritius-tours') },
               {
