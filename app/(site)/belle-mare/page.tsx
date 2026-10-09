@@ -79,6 +79,29 @@ const BEACH_PAGE: Record<string, string> = {
   "Trou d'Eau Douce": 'trou-deau-douce',
 };
 
+/**
+ * The landing pages this guide links by name, under "Things to do". Labels are existing t() keys.
+ * /belle-mare-tours is the operator, the other two the trips that leave from this coast.
+ */
+const SIBLING_PAGES: { label: string; href: string }[] = [
+  { label: 'Catamaran cruises', href: '/mauritius-catamaran-cruise' },
+  { label: 'Île aux Cerfs tours', href: '/ile-aux-cerfs-tours' },
+  { label: 'Belle Mare Tours', href: '/belle-mare-tours' },
+];
+
+/**
+ * The attraction page for each "What's nearby" entry that has one, by the entry's text in
+ * `areas.nearbyAttractions` (never translated, so the English key holds on /fr too). The golf
+ * courses and the leisure park have no page and stay plain text.
+ */
+const NEARBY_PAGE: Record<string, string> = {
+  'Île aux Cerfs': 'ile-aux-cerfs',
+  "Trou d'Eau Douce village and boat jetty": 'trou-deau-douce',
+  'Grand River South East (GRSE) Waterfall': 'grand-river-south-east-waterfall',
+  'Centre de Flacq market town': 'central-flacq-market',
+  "Bras d'Eau National Park": 'bras-deau-national-park',
+};
+
 function isCommons(source: string | undefined): boolean {
   return !!source && /(wikimedia|wikipedia)\.org/.test(source);
 }
@@ -154,7 +177,18 @@ export default async function BelleMarePage() {
 
   return (
     <>
-      <JsonLd data={destinationJsonLd({ name: a.name, description: a.intro, path: a.path })} />
+      <JsonLd
+        data={destinationJsonLd({
+          name: a.name,
+          description: a.intro,
+          path: a.path,
+          // The original file, not the /api/img proxy the <img> uses: robots.txt disallows /api/.
+          image: heroImage?.url || '/activities/palmar-beach.jpg',
+          // Belle Mare village, east coast.
+          geo: { latitude: -20.19, longitude: 57.77 },
+          touristType: a.goodFor,
+        })}
+      />
       {hotels.length > 0 && (
         <JsonLd
           // Each hotel's OWN transfer page — the same href its card links to. Every item used to
@@ -249,6 +283,20 @@ export default async function BelleMarePage() {
                 </article>
               ))}
             </RevealGroup>
+            {/* The bookable side of the place, by name. Belle Mare is where the Île aux Cerfs boats
+                and most east-coast catamarans leave from, so this guide is the natural page to link
+                the two landing pages from, and the operator page that shares the place name. */}
+            <nav className="mt-8 flex flex-wrap gap-2.5" aria-label={t('Belle Mare Tours')}>
+              {SIBLING_PAGES.map((s) => (
+                <Link
+                  key={s.href}
+                  href={localePath(locale, s.href)}
+                  className="rounded-full border border-ink/15 bg-white px-4 py-2 text-[14px] font-semibold text-ink hover:border-teal hover:text-teal"
+                >
+                  {t(s.label)}
+                </Link>
+              ))}
+            </nav>
           </div>
         </section>
 
@@ -412,7 +460,16 @@ export default async function BelleMarePage() {
                     <span className="min-w-[22px] text-[11px] font-extrabold tracking-[0.16em] text-teal">
                       {pad(i)}
                     </span>
-                    {n}
+                    {NEARBY_PAGE[n] ? (
+                      <Link
+                        href={localePath(locale, attractionPath(NEARBY_PAGE[n]))}
+                        className="underline decoration-ink/25 underline-offset-4 hover:text-teal hover:decoration-teal"
+                      >
+                        {n}
+                      </Link>
+                    ) : (
+                      n
+                    )}
                   </p>
                 ))}
               </div>

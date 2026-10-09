@@ -331,6 +331,10 @@ export function destinationJsonLd(opts: {
   name: string;
   description: string;
   path: string;
+  /** Absolute or site-relative photo of the place. */
+  image?: string;
+  geo?: { latitude: number; longitude: number };
+  touristType?: string[];
 }): Record<string, unknown> {
   return {
     '@context': 'https://schema.org',
@@ -339,5 +343,11 @@ export function destinationJsonLd(opts: {
     description: opts.description,
     url: `${SITE.url}${opts.path}`,
     address: { '@type': 'PostalAddress', addressRegion: 'Mauritius', addressCountry: 'MU' },
+    containedInPlace: { '@type': 'Country', name: 'Mauritius' },
+    ...(opts.image
+      ? { image: opts.image.startsWith('http') ? opts.image : `${SITE.url}${opts.image}` }
+      : {}),
+    ...(opts.geo ? { geo: { '@type': 'GeoCoordinates', ...opts.geo } } : {}),
+    ...(opts.touristType?.length ? { touristType: opts.touristType } : {}),
   };
 }

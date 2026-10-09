@@ -21,7 +21,7 @@ export const runtime = 'edge';
 const PATH = '/belle-mare-tours';
 const TITLE = 'Belle Mare Tours — Licensed Mauritius Tour Operator';
 const DESCRIPTION =
-  'Belle Mare Tours is a licensed Mauritius tour operator on the east coast, run by veteran driver-guide Noorani. Book catamaran cruises, island day tours, dolphin swims and airport transfers direct — fixed prices, no reseller markup.';
+  'Belle Mare Tours is a licensed tour operator on Mauritius’ east coast: catamaran cruises, island tours, dolphin swims and airport transfers, booked direct.';
 
 const DEFAULT_METADATA: Metadata = {
   title: { absolute: TITLE },
@@ -240,7 +240,8 @@ export default async function BelleMareToursPage() {
               plus calmes de l’île, et son lagon turquoise, avec l’Île aux Cerfs et Trou d’Eau Douce
               juste à côté sur la côte. Être basés ici signifie des prises en charge rapides et sans
               stress pour les complexes de l’est et un accès facile aux embarcadères — mais nous
-              venons vous chercher n’importe où sur l’île. Consultez notre guide local des{' '}
+              venons vous chercher n’importe où sur l’île. Lisez notre guide de{' '}
+              <InlineLink href="/belle-mare">Belle Mare, île Maurice</InlineLink>, celui des{' '}
               <InlineLink href="/things-to-do-in-belle-mare">
                 choses à faire à Belle Mare
               </InlineLink>
@@ -252,7 +253,8 @@ export default async function BelleMareToursPage() {
               Belle Mare is known for one of the island’s longest, calmest white-sand beaches and
               its turquoise lagoon, with Île aux Cerfs and Trou d’Eau Douce just down the coast.
               Being based here means quick, unhurried pickups for eastern resorts and an easy run to
-              the boat jetties — but we collect from anywhere on the island. See our local guide to{' '}
+              the boat jetties — but we collect from anywhere on the island. Read our guide to{' '}
+              <InlineLink href="/belle-mare">Belle Mare, Mauritius</InlineLink>, our local guide to{' '}
               <InlineLink href="/things-to-do-in-belle-mare">things to do in Belle Mare</InlineLink>
               , or read about the area and its neighbours in our guide to the{' '}
               <InlineLink href="/destinations">regions of Mauritius</InlineLink>.
@@ -260,7 +262,9 @@ export default async function BelleMareToursPage() {
           )}
           <RelatedLinks
             links={[
+              { label: t('Belle Mare, Mauritius'), href: '/belle-mare' },
               { label: t('Things to do in Belle Mare'), href: '/things-to-do-in-belle-mare' },
+              { label: t('Catamaran cruises'), href: '/mauritius-catamaran-cruise' },
               { label: t('Our tours'), href: '/mauritius-tours' },
               { label: t('Airport transfers'), href: '/airport-transfers' },
               { label: t('Things to do'), href: '/attractions' },
