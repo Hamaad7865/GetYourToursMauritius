@@ -14,6 +14,7 @@ import { browseQueryString, parseBrowseParams } from '@/lib/catalogue/browse';
 import type { Review, TourDetail, TourSummary } from '@/lib/validation/tours';
 import { activityExtraSchema, tourSummarySchema } from '@/lib/validation/tours';
 import { SITE } from '@/lib/seo/site';
+import { translate } from '@/lib/i18n/translate';
 
 describe('tourSummarySchema — map point', () => {
   const base = {
@@ -181,6 +182,22 @@ describe('buildFaq', () => {
   it('asks where we meet when pickup is unavailable', () => {
     const faqs = buildFaq(detail({ pickupAvailable: false }));
     expect(faqs.some((f) => /where do we meet/i.test(f.q))).toBe(true);
+  });
+
+  it('localises every question and interpolated answer when given a French translator', () => {
+    const fr = (key: string, vars?: Record<string, string | number>) => translate('fr', key, vars);
+    const faqs = buildFaq(detail(), fr);
+    const pickup = faqs.find((f) => /prise en charge/i.test(f.q))!;
+    expect(pickup.a).toMatch(/^Oui — /);
+    expect(pickup.a).toContain('Belle Mare public beach jetty. ');
+    expect(faqs.find((f) => /langues/i.test(f.q))!.a).toBe(
+      'Cette expérience est guidée en anglais et français.',
+    );
+    expect(faqs.at(-1)!.a).toContain(SITE.operator);
+    // The same list feeds the FAQPage JSON-LD, so no English question may survive on /fr.
+    expect(faqs.map((f) => f.q).filter((q) => /^(What|How|Is|Where|Which|Can) /.test(q))).toEqual(
+      [],
+    );
   });
 
   it('omits the cancellation question when there is no policy', () => {

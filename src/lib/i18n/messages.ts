@@ -220,6 +220,23 @@ export const fr: Record<string, string> = {
   'Where do we meet?': 'Où nous retrouvons-nous ?',
   'Which languages are available?': 'Quelles langues sont disponibles ?',
   'Can I pay securely online?': 'Puis-je payer en ligne en toute sécurité ?',
+  // buildFaq answers — they also feed the FAQPage JSON-LD, so a missed key here ships English
+  // structured data on the /fr tour pages.
+  'Is hotel pickup available?': 'La prise en charge à l’hôtel est-elle possible ?',
+  'Yes — hotel pickup and drop-off are included in the price. {meeting}Add your pickup details after booking, up to 24 hours before you go.':
+    'Oui — la prise en charge et le retour à l’hôtel sont inclus dans le prix. {meeting}Indiquez votre lieu de prise en charge après la réservation, jusqu’à 24 heures avant le départ.',
+  'Yes — hotel pickup and drop-off are available at an additional cost, calculated from your pickup area at checkout. {meeting}Add your pickup details after booking, up to 24 hours before you go.':
+    'Oui — la prise en charge et le retour à l’hôtel sont possibles en supplément, calculé selon votre zone de prise en charge lors du paiement. {meeting}Indiquez votre lieu de prise en charge après la réservation, jusqu’à 24 heures avant le départ.',
+  'This experience is guided in {languages}.': 'Cette expérience est guidée en {languages}.',
+  ' and ': ' et ',
+  English: 'anglais',
+  French: 'français',
+  German: 'allemand',
+  Italian: 'italien',
+  Spanish: 'espagnol',
+  'Yes. Payments are processed securely by Peach Payments — your card is encrypted and never stored by {operator}.':
+    'Oui. Les paiements sont traités en toute sécurité par Peach Payments — votre carte est chiffrée et n’est jamais conservée par {operator}.',
+  'Full refund up to 24 Hours': 'Remboursement intégral jusqu’à 24 heures avant',
   Breadcrumb: 'Fil d’Ariane',
   'Activity provider:': 'Prestataire de l’activité :',
   Itinerary: 'Itinéraire',

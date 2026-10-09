@@ -70,46 +70,68 @@ export interface Faq {
   a: string;
 }
 
-/** FAQ assembled from real fields (cancellation, pickup, languages) + fixed policy answers. */
-export function buildFaq(activity: TourDetail): Faq[] {
+type Translate = (key: string, vars?: Record<string, string | number>) => string;
+
+/** Identity translator: English is the source language, so untranslated callers get English back. */
+const english: Translate = (key, vars) =>
+  Object.entries(vars ?? {}).reduce((out, [k, v]) => out.split(`{${k}}`).join(String(v)), key);
+
+/**
+ * FAQ assembled from real fields (cancellation, pickup, languages) + fixed policy answers.
+ *
+ * Translated HERE rather than in the <Faq> component because the same list feeds the FAQPage JSON-LD:
+ * translating only at render time left /fr tour pages with French questions on screen but English
+ * structured data, and every answer that interpolates a field (pickup, languages) missed its key.
+ */
+export function buildFaq(activity: TourDetail, t: Translate = english): Faq[] {
   const faqs: Faq[] = [];
   if (activity.cancellationPolicy) {
-    faqs.push({ q: 'What is the cancellation policy?', a: activity.cancellationPolicy });
+    faqs.push({ q: t('What is the cancellation policy?'), a: t(activity.cancellationPolicy) });
   }
   faqs.push({
-    q: 'How will I receive my confirmation?',
-    a: 'Your booking is confirmed instantly and a voucher is emailed to you. Show it on the day — printed or on your phone.',
+    q: t('How will I receive my confirmation?'),
+    a: t(
+      'Your booking is confirmed instantly and a voucher is emailed to you. Show it on the day — printed or on your phone.',
+    ),
   });
+  const meeting = activity.meetingPoint ? `${activity.meetingPoint}. ` : '';
   if (activity.pickupAvailable) {
     // Sightseeing (flat per-vehicle price) includes transport; per-person / per-group price hotel
     // pickup as a region-based add-on at checkout — so don't answer a flat "yes, included" there.
     faqs.push(
       activity.pricingMode === 'vehicle'
         ? {
-            q: 'Is hotel pickup included?',
-            a: `Yes — hotel pickup and drop-off are included in the price. ${
-              activity.meetingPoint ? `${activity.meetingPoint}. ` : ''
-            }Add your pickup details after booking, up to 24 hours before you go.`,
+            q: t('Is hotel pickup included?'),
+            a: t(
+              'Yes — hotel pickup and drop-off are included in the price. {meeting}Add your pickup details after booking, up to 24 hours before you go.',
+              { meeting },
+            ),
           }
         : {
-            q: 'Is hotel pickup available?',
-            a: `Yes — hotel pickup and drop-off are available at an additional cost, calculated from your pickup area at checkout. ${
-              activity.meetingPoint ? `${activity.meetingPoint}. ` : ''
-            }Add your pickup details after booking, up to 24 hours before you go.`,
+            q: t('Is hotel pickup available?'),
+            a: t(
+              'Yes — hotel pickup and drop-off are available at an additional cost, calculated from your pickup area at checkout. {meeting}Add your pickup details after booking, up to 24 hours before you go.',
+              { meeting },
+            ),
           },
     );
   } else if (activity.meetingPoint) {
-    faqs.push({ q: 'Where do we meet?', a: activity.meetingPoint });
+    faqs.push({ q: t('Where do we meet?'), a: activity.meetingPoint });
   }
   if (activity.languages.length > 0) {
     faqs.push({
-      q: 'Which languages are available?',
-      a: `This experience is guided in ${activity.languages.join(' and ')}.`,
+      q: t('Which languages are available?'),
+      a: t('This experience is guided in {languages}.', {
+        languages: activity.languages.map((l) => t(l)).join(t(' and ')),
+      }),
     });
   }
   faqs.push({
-    q: 'Can I pay securely online?',
-    a: `Yes. Payments are processed securely by Peach Payments — your card is encrypted and never stored by ${SITE.operator}.`,
+    q: t('Can I pay securely online?'),
+    a: t(
+      'Yes. Payments are processed securely by Peach Payments — your card is encrypted and never stored by {operator}.',
+      { operator: SITE.operator },
+    ),
   });
   return faqs;
 }

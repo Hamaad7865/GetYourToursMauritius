@@ -140,7 +140,7 @@ export default async function ActivityDetailPage({
   const locale = await getLocale();
   const related = await loadRelated(activity);
   const trail = breadcrumbTrail(activity);
-  const faqs = buildFaq(activity);
+  const faqs = buildFaq(activity, t);
   const descriptionParas = (activity.description ?? '')
     .split(/\n{2,}/)
     .map((p) => p.trim())
