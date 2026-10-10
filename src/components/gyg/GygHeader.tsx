@@ -357,7 +357,8 @@ export function GygHeader({
   return (
     <header
       ref={headerRef}
-      className={`${position} z-50 ${bg} transition-[background-color,box-shadow] duration-300`}
+      // data-menu-open is set by MainNav while one of its full-width menus is open.
+      className={`${position} z-50 ${bg} transition-[background-color,box-shadow] duration-300 data-[menu-open]:bg-white`}
     >
       <div className={`border-b ${scrolled ? 'border-ink/[0.08]' : 'border-transparent'}`}>
         <div className="mx-auto flex max-w-shell items-center gap-4 px-6 py-2.5">

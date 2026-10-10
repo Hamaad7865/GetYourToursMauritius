@@ -2,6 +2,7 @@ import type { PlannerPlace } from '@/lib/validation/planner';
 import { SITE } from '@/lib/seo/site';
 import { snippetWithTail } from '@/lib/seo/snippet';
 import { ATTRACTION_IMAGES } from './_attraction-images.gen';
+import { proxiedImageSrc } from './wikimedia';
 import { ATTRACTIONS_FR, REGION_INTRO_FR } from './_additional-attractions.fr.gen';
 import { localiseContent } from './localise';
 import { translate } from '@/lib/i18n/translate';
@@ -12,22 +13,9 @@ export function attractionImage(slug: string): { url: string; source: string } |
   return ATTRACTION_IMAGES[slug] ?? null;
 }
 
-/**
- * The src to actually render for an attraction photo. Wikimedia thumbnails are hot-linked from
- * upload.wikimedia.org, which rate-limits (429) the ~20-image burst a single page load fires — so route
- * those through our cached /api/img proxy (served from our own edge, fetched from Wikimedia at most once
- * per POP). Local/own photos and any other host are returned unchanged.
- */
-export function attractionImageSrc(url: string): string {
-  try {
-    if (new URL(url, 'https://x').hostname === 'upload.wikimedia.org') {
-      return `/api/img?u=${encodeURIComponent(url)}`;
-    }
-  } catch {
-    /* not an absolute URL — a local /public path; use it directly */
-  }
-  return url;
-}
+/** The src to actually render for an attraction photo — Wikimedia through our cached proxy, anything
+ *  else unchanged. The rule itself lives in ./wikimedia so the browser can use it without this module. */
+export const attractionImageSrc = proxiedImageSrc;
 
 /**
  * Presentation + SEO content layer for attraction pages. The base data (name, region,

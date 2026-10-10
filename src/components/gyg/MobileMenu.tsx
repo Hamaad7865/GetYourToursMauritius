@@ -25,6 +25,7 @@ import {
   IconInfo,
   IconLogOut,
   IconMail,
+  IconFlag,
   IconMenu,
   IconPin,
   IconSettings,
@@ -36,6 +37,10 @@ import {
 const NAV_LINKS = [
   { label: 'About us', href: '/about', icon: IconInfo },
   { label: 'Activities', href: '/activities', icon: IconStar },
+  // The desktop bar's "Places to see" menu, as its two index pages: a sixty-link panel has no place
+  // in a phone's slide-over, and both pages carry the same lists (by type, by coast, by area).
+  { label: 'Places to see', href: '/attractions', icon: IconFlag },
+  { label: 'Areas of the island', href: '/destinations', icon: IconGlobe },
   { label: 'AI Trip Planner', href: '/ai-road-trip-planner', icon: IconPin },
   { label: 'Rent a car or scooter', href: '/rent', icon: IconWallet },
   { label: 'Airport transfers', href: '/airport-transfers', icon: IconBolt },

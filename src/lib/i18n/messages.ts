@@ -2841,6 +2841,35 @@ export const fr: Record<string, string> = {
   'Something to change? Reply to this email, or contact us at {emailLink} or {phone}.':
     'Une modification ? Répondez à cet e-mail ou contactez-nous à {emailLink} ou au {phone}.',
 
+  // Header menus ("Places to see", "Things to do") and the attraction-type filter on /attractions.
+  // Most of these reach t() through a variable (the menu's data file), so the coverage scan cannot
+  // see them — a label added to src/lib/nav/mega-menu.ts needs its line here by hand.
+  // The bar's own link used the plural "Transfers", which had no entry and so showed in English.
+  'Airport Transfers': 'Transferts aéroport',
+  'Places to see': 'Lieux à voir',
+  'Top sights': 'Incontournables',
+  'Attraction types': 'Types de lieux',
+  Areas: 'Régions',
+  'By coast': 'Par côte',
+  'Tours & activities': 'Excursions et activités',
+  'Getting around': 'Se déplacer',
+  Guides: 'Guides',
+  'See all attractions': 'Voir tous les lieux',
+  'See all areas': 'Voir toutes les régions',
+  Beaches: 'Plages',
+  Islands: 'Îles',
+  Waterfalls: 'Cascades',
+  Viewpoints: 'Points de vue',
+  Gardens: 'Jardins',
+  Markets: 'Marchés',
+  Landmarks: 'Sites emblématiques',
+  'Food & drink': 'Gastronomie',
+  'North coast': 'Côte nord',
+  'South coast': 'Côte sud',
+  'West coast': 'Côte ouest',
+  'Central plateau': 'Plateau central',
+  'Areas of the island': 'Régions de l’île',
+
   // Homepage (GetYourGuide structure): hero, "Continue planning", place tiles, tabbed rails, why direct.
   'Mauritius tours, booked direct.': 'Excursions à l’île Maurice, en direct.',
   'Catamaran cruises, dolphin swims, island day tours and airport taxis from a licensed local operator in Belle Mare.':

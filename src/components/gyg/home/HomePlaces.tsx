@@ -3,6 +3,7 @@ import { getT, getLocale } from '@/lib/i18n/server';
 import { localePath } from '@/lib/i18n/routing';
 import { destinationPath } from '@/lib/content/areas';
 import { attractionImage, attractionImageSrc } from '@/lib/content/attractions';
+import { wikimediaThumb } from '@/lib/content/wikimedia';
 
 /* eslint-disable @next/next/no-img-element -- CF Pages serves images unoptimized. */
 
@@ -56,22 +57,6 @@ const PLACES: { name: string; where: string; href: string; photo: string }[] = [
 
 /** Widest a tile is ever drawn is ~190 CSS px, so a 500px rendition covers a 2x screen. */
 const TILE_WIDTH = 500;
-
-/**
- * A Wikimedia Commons URL at thumbnail size. The stored URLs are 1280px renditions (or, for a few,
- * the multi-megabyte original) — far more than a tile needs, and six of them sit above the fold.
- * Any other URL (our own /public photos) is returned unchanged.
- */
-function wikimediaThumb(url: string, width: number): string {
-  const sized = url.match(/^(https:\/\/upload\.wikimedia\.org\/.+\/thumb\/.+\/)\d+px-([^/]+)$/);
-  if (sized) return `${sized[1]}${width}px-${sized[2]}`;
-  const original = url.match(
-    /^(https:\/\/upload\.wikimedia\.org\/wikipedia\/commons)\/([0-9a-f]\/[0-9a-f]{2})\/([^/]+)$/,
-  );
-  if (original)
-    return `${original[1]}/thumb/${original[2]}/${original[3]}/${width}px-${original[3]}`;
-  return url;
-}
 
 function resolvedPlaces() {
   return PLACES.flatMap((place) => {

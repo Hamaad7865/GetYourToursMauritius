@@ -14,6 +14,8 @@ import {
 import { breadcrumbListJsonLd, itemListJsonLd } from '@/lib/seo/jsonld';
 import { SITE, OG_IMAGE } from '@/lib/seo/site';
 import { getT, getLocale } from '@/lib/i18n/server';
+import { localePath } from '@/lib/i18n/routing';
+import { ATTRACTION_TYPES, regionAnchor } from '@/lib/nav/mega-menu';
 
 export const runtime = 'edge';
 
@@ -42,15 +44,29 @@ const DEFAULT_METADATA: Metadata = {
   },
 };
 
-export default async function AttractionsIndexPage() {
+export default async function AttractionsIndexPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ type?: string | string[] }>;
+}) {
   const rawPlaces = await loadPlaces();
   const t = await getT();
   const locale = await getLocale();
   const places = rawPlaces.map((p) => localisedPlace(p, locale));
+
+  // `?type=beach` narrows the guide to one kind of place (the header's "Attraction types" menu
+  // links here). It is a VIEW of this page, not another page: the canonical stays /attractions and
+  // the structured data below still lists every place. An unknown type simply shows everything.
+  const { type } = await searchParams;
+  const activeType = ATTRACTION_TYPES.find((x) => x.slug === type) ?? null;
+  const shown = activeType ? places.filter((p) => p.category === activeType.category) : places;
+  // Only offer a type that has places, so no chip leads to an empty guide.
+  const types = ATTRACTION_TYPES.filter((x) => places.some((p) => p.category === x.category));
+
   const groups = REGION_ORDER.map((region) => ({
     region,
     intro: localisedRegionIntro(region, locale),
-    items: places.filter((p) => p.region === region),
+    items: shown.filter((p) => p.region === region),
   })).filter((g) => g.items.length > 0);
 
   const breadcrumb = breadcrumbListJsonLd([
@@ -73,6 +89,31 @@ export default async function AttractionsIndexPage() {
           { count: places.length || 'the', operator: SITE.operator },
         )}
       >
+        {types.length > 1 && (
+          <nav aria-label={t('Attraction types')} className="mb-9 flex flex-wrap gap-2">
+            {[null, ...types].map((option) => {
+              const current = (option?.slug ?? null) === (activeType?.slug ?? null);
+              return (
+                <Link
+                  key={option?.slug ?? 'all'}
+                  href={localePath(
+                    locale,
+                    option ? `/attractions?type=${option.slug}` : '/attractions',
+                  )}
+                  aria-current={current ? 'page' : undefined}
+                  className={`rounded-full border px-4 py-2 text-[14px] font-semibold transition-colors ${
+                    current
+                      ? 'border-teal-dark bg-teal-dark text-white'
+                      : 'border-ink/15 bg-white text-ink hover:border-teal hover:text-teal'
+                  }`}
+                >
+                  {option ? t(option.label) : t('All')}
+                </Link>
+              );
+            })}
+          </nav>
+        )}
+
         {groups.length === 0 ? (
           <p className="text-[15px] text-ink/70">
             {t('Our attractions guide is coming online shortly. In the meantime,')}{' '}
@@ -85,6 +126,7 @@ export default async function AttractionsIndexPage() {
           groups.map((group) => (
             <section
               key={group.region}
+              id={regionAnchor(group.region)}
               className="scroll-mt-28 border-t border-ink/10 py-9 first:border-t-0 first:pt-0"
             >
               <h2 className="text-[22px] font-extrabold tracking-tight text-ink">
