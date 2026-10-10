@@ -76,7 +76,8 @@ export function PanelMenu({
     }`;
 
   return (
-    <div className="absolute inset-0 z-20">
+    // Above the dates block (z-30) and the dates strip (z-20): the menu covers the whole panel.
+    <div className="absolute inset-0 z-40">
       <button
         type="button"
         tabIndex={-1}

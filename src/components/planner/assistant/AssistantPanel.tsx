@@ -135,7 +135,11 @@ export function AssistantPanel({
     session.party === 1 ? t('1 traveller') : t('{n} travellers', { n: session.party });
 
   const setupArea = setup && (
-    <div className="zilai-view mt-3">
+    // `relative z-30`: the calendar hangs out of this block over whatever comes after it. Every block
+    // in the panel has an entrance animation, and an animation that has finished but is still held
+    // (fill-mode: both) makes its element a stacking layer of its own — so later blocks painted over
+    // the calendar no matter what z-index the calendar itself carried. The lift has to be here.
+    <div className="zilai-view relative z-30 mt-3">
       {setup === 'dates' ? (
         <TripDatePicker
           compact
@@ -327,7 +331,9 @@ export function AssistantPanel({
       {started ? (
         <>
           {/* ── dates & travellers, folded away under the header ── */}
-          <div className="shrink-0 border-b border-ink/[0.08] px-4 py-2">
+          {/* `relative z-20` for the same reason as the dates block: the calendar opens downwards
+              out of this strip, over the conversation, whose messages are animated layers too. */}
+          <div className="relative z-20 shrink-0 border-b border-ink/[0.08] bg-white px-4 py-2">
             <button
               type="button"
               onClick={() => setSetup((s) => (s ? null : 'dates'))}

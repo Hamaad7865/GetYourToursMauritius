@@ -181,3 +181,25 @@ describe('a private sightseeing tour can be customised from its own page', () =>
     }
   });
 });
+
+describe('the trip-date calendar opens on top of the panel, not underneath it', () => {
+  // Every block in the panel has a held entrance animation, which makes each one a stacking layer:
+  // a later block paints over an earlier one whatever z-index the calendar inside it has. The block
+  // the calendar hangs out of has to be lifted itself. Shipped once without this — the calendar
+  // opened behind the message box and the starter questions.
+  const panel = code(read('src/components/planner/assistant/AssistantPanel.tsx'));
+
+  it('lifts the dates block above the blocks that follow it', () => {
+    expect(panel).toMatch(/className="zilai-view relative z-30[^"]*"/);
+  });
+
+  it('lifts the dates strip above the conversation', () => {
+    expect(panel).toMatch(/className="relative z-20 shrink-0 border-b[^"]*"/);
+  });
+
+  it('keeps the menu above both', () => {
+    expect(code(read('src/components/planner/assistant/PanelMenu.tsx'))).toContain(
+      'absolute inset-0 z-40',
+    );
+  });
+});
