@@ -19,6 +19,17 @@ const MIN_FOR_YOU = 4;
 
 const hasPhoto = (a: TourSummary) => a.heroImage != null || a.images.length > 0;
 
+/**
+ * A category name as an id fragment. Category names carry spaces and ampersands ("Sea & water
+ * activities"), an id may not contain whitespace, and aria-controls / aria-labelledby read a space
+ * as the gap between several ids — so a raw name would leave every tab pointing at nothing.
+ */
+const idFragment = (name: string) =>
+  name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+
 interface Panel {
   id: string;
   label: string;
@@ -110,10 +121,10 @@ export function HomeRails() {
       href: '/activities',
       planner: false,
     },
-    ...categoryNames.map((name) => {
+    ...categoryNames.map((name, index) => {
       const planner = isSightseeingCategory(name);
       return {
-        id: `cat-${name}`,
+        id: `cat-${idFragment(name) || index}`,
         label: t(name),
         // Leave room for the promo card so a sightseeing panel still fills whole rows.
         items: byCategory.get(name)!.slice(0, planner ? PER_PANEL - 1 : PER_PANEL),
