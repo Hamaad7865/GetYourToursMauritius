@@ -1,7 +1,7 @@
 import { categorySchema, tourTypeSchema } from '@/lib/validation/common';
 import type { Category, TourType } from '@/lib/validation/common';
 
-export const BROWSE_PAGE_SIZE = 24;
+export const BROWSE_PAGE_SIZE = 48;
 
 export interface BrowseParams {
   q?: string;
