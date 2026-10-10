@@ -2414,6 +2414,9 @@ export const fr: Record<string, string> = {
   'Where we pick up': 'Où nous assurons la prise en charge',
   'Why book direct with Belle Mare Tours': 'Pourquoi réserver en direct avec Belle Mare Tours',
   'Mauritius tours FAQ': 'FAQ excursions à Maurice',
+  'Mauritius tour itineraries: 3, 5 or 7 days':
+    'Itinéraires d’excursions à Maurice : 3, 5 ou 7 jours',
+  'Things to do in Mauritius, by type': 'Que faire à l’île Maurice, par type d’activité',
   'Ready to plan your Mauritius tours?': 'Prêt à organiser vos excursions à Maurice ?',
 
   // Task 10 batch B — app/(site)/things-to-do-in-belle-mare/page.tsx

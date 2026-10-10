@@ -21,7 +21,7 @@ export const runtime = 'edge';
 const PATH = '/mauritius-tours';
 const TITLE = 'Mauritius Tours & Day Trips — Book Direct | Belle Mare Tours';
 const DESCRIPTION =
-  'Book Mauritius tours and day trips direct with Belle Mare Tours: catamaran cruises, dolphin swims, Île aux Cerfs days and private island sightseeing — fixed prices, instant confirmation, no reseller markup.';
+  'Mauritius tours and day trips, booked direct with the local operator: catamaran cruises, dolphin swims, Île aux Cerfs and private island tours. No markup.';
 
 const DEFAULT_METADATA: Metadata = {
   title: { absolute: TITLE },
@@ -156,9 +156,9 @@ export default async function MauritiusToursPage() {
               <p>
                 Tout ce qui suit est réservable en ligne avec confirmation instantanée, des prix
                 transparents en euros et une prise en charge porte à porte gratuite. Parcourez notre
-                catalogue complet en temps réel sur la page{' '}
-                <InlineLink href="/activities">excursions et activités</InlineLink>, ou consultez la
-                vue d’ensemble dans notre{' '}
+                catalogue complet des{' '}
+                <InlineLink href="/activities">activités à l’île Maurice</InlineLink>, ou consultez
+                la vue d’ensemble dans notre{' '}
                 <InlineLink href="/mauritius-travel-guide">guide de voyage à Maurice</InlineLink>.
               </p>
             </>
@@ -173,9 +173,9 @@ export default async function MauritiusToursPage() {
               </p>
               <p>
                 Everything below is bookable online with instant confirmation, transparent EUR
-                pricing and free door-to-door pickup. Browse the full live catalogue on our{' '}
-                <InlineLink href="/activities">tours &amp; activities</InlineLink> page, or read the
-                bigger picture in our{' '}
+                pricing and free door-to-door pickup. Browse the full live catalogue of{' '}
+                <InlineLink href="/activities">Mauritius activities</InlineLink>, or read the bigger
+                picture in our{' '}
                 <InlineLink href="/mauritius-travel-guide">Mauritius travel guide</InlineLink>.
               </p>
             </>
@@ -373,6 +373,70 @@ export default async function MauritiusToursPage() {
               { label: t('Guest reviews'), href: '/reviews' },
             ]}
           />
+        </ContentSection>
+
+        <ContentSection id="itineraries" title={t('Mauritius tour itineraries: 3, 5 or 7 days')}>
+          {locale === 'fr' ? (
+            <>
+              <p>
+                Vous préférez un circuit sur plusieurs jours ? Gardez votre hôtel et combinez nos
+                excursions à la journée : vous voyez toute l’île sans changer de chambre, et chaque
+                journée part de votre porte.
+              </p>
+              <p>
+                <strong>3 jours.</strong> Une{' '}
+                <InlineLink href="/mauritius-catamaran-cruise">croisière en catamaran</InlineLink>{' '}
+                vers l’Île aux Cerfs, une visite privée du sud sauvage (Chamarel, Grand Bassin,
+                Black River Gorges) et une journée libre à la plage.
+              </p>
+              <p>
+                <strong>5 jours.</strong> Ajoutez une{' '}
+                <InlineLink href="/dolphin-swim-mauritius">nage avec les dauphins</InlineLink> sur
+                la côte ouest et une journée dans le nord, avec Port-Louis ou les îles du nord.
+              </p>
+              <p>
+                <strong>7 jours.</strong> Complétez avec une marche sous-marine ou une plongée, une
+                randonnée au Morne et une sortie au coucher du soleil. Les journées en mer à l’est
+                vont de pair avec une journée à terre à l’ouest, pour équilibrer les trajets.
+              </p>
+              <p>
+                Notre{' '}
+                <InlineLink href="/mauritius-travel-guide">guide de voyage à Maurice</InlineLink>{' '}
+                détaille ces itinéraires, et le{' '}
+                <InlineLink href="/ai-road-trip-planner">planificateur de road trip IA</InlineLink>{' '}
+                vous donne un prix pour une journée sur mesure.
+              </p>
+            </>
+          ) : (
+            <>
+              <p>
+                Want a multi-day Mauritius tour? Keep one hotel and string our day tours together:
+                you see the whole island without changing rooms, and every day starts at your door.
+              </p>
+              <p>
+                <strong>3 days.</strong> A{' '}
+                <InlineLink href="/mauritius-catamaran-cruise">catamaran cruise</InlineLink> to Île
+                aux Cerfs, a private tour of the wild south (Chamarel, Grand Bassin, Black River
+                Gorges) and a free beach day.
+              </p>
+              <p>
+                <strong>5 days.</strong> Add a{' '}
+                <InlineLink href="/dolphin-swim-mauritius">dolphin swim</InlineLink> on the west
+                coast and a day in the north, with Port Louis or the northern islands.
+              </p>
+              <p>
+                <strong>7 days.</strong> Round it off with a sea walk or a dive, a hike up Le Morne
+                and a sunset cruise. Pair east-coast boat days with west-coast land days to keep the
+                driving balanced.
+              </p>
+              <p>
+                Our <InlineLink href="/mauritius-travel-guide">Mauritius travel guide</InlineLink>{' '}
+                covers these itineraries in more depth, and the{' '}
+                <InlineLink href="/ai-road-trip-planner">AI road-trip planner</InlineLink> prices a
+                tailor-made day for you.
+              </p>
+            </>
+          )}
         </ContentSection>
 
         <ContentSection id="faq" title={t('Mauritius tours FAQ')}>
