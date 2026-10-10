@@ -1,14 +1,16 @@
 import { describe, expect, it, vi } from 'vitest';
-import { MockLanguageModelV1 } from 'ai/test';
-import type { LanguageModelV1, LanguageModelV1CallOptions } from 'ai';
+import type { LanguageModel } from 'ai';
+import { MockLanguageModelV2 } from 'ai/test';
+import { scriptedModel as replay } from '../helpers/scripted-model';
 import { runPlannerTurn } from '@/lib/services/planner-agent';
+import { searchPlannerPlaces } from '@/lib/planner/tools';
 import type { ServiceContext } from '@/lib/services/context';
 import type { PlannerPlace, PlannerTrip } from '@/lib/validation/planner';
 import type { PlannedRoute } from '@/lib/maps/route-planning';
 import type { BmtCandidate } from '@/lib/planner/our-activities';
 
-/* The agent loop scripted end-to-end without Gemini or Google: the model is a MockLanguageModelV1
- * that replays tool calls, and the billed tool internals (Places search, route planning, catalogue
+/* The agent loop scripted end-to-end without Gemini or Google: the model is a mock that replays
+ * scripted tool calls, and the billed tool internals (Places search, route planning, catalogue
  * availability) are mocked. This proves the range-mode CONTRACT — commits merge by date, an invented
  * activity slug can never survive, one activity never lands on two days — which is the part that must
  * hold when the real model misbehaves. */
@@ -94,33 +96,87 @@ function scriptedModel(
     | { toolCalls: Array<{ toolName: string; args: object }> }
     | { text: string }
   >,
-): LanguageModelV1 {
-  let step = 0;
-  return new MockLanguageModelV1({
-    doGenerate: async (_options: LanguageModelV1CallOptions) => {
-      const s = steps[Math.min(step, steps.length - 1)]!;
-      step += 1;
-      const base = {
-        rawCall: { rawPrompt: null, rawSettings: {} },
-        usage: { promptTokens: 1, completionTokens: 1 },
-      };
-      if ('text' in s) return { ...base, finishReason: 'stop' as const, text: s.text };
-      const calls = 'toolCalls' in s ? s.toolCalls : [s];
-      return {
-        ...base,
-        finishReason: 'tool-calls' as const,
-        toolCalls: calls.map((c, i) => ({
-          toolCallType: 'function' as const,
-          toolCallId: `call-${step}-${i}`,
-          toolName: c.toolName,
-          args: JSON.stringify(c.args),
-        })),
-      };
-    },
-  });
+): LanguageModel {
+  return replay(
+    steps.map((s) =>
+      'text' in s
+        ? s
+        : {
+            calls: ('toolCalls' in s ? s.toolCalls : [s]).map((c) => ({
+              toolName: c.toolName,
+              input: c.args,
+            })),
+          },
+    ),
+  ).model;
 }
 
 describe('runPlannerTurn — range mode', () => {
+  it('names each day, keeps a hearted stop on its day, and does not duplicate one that moved', async () => {
+    const model = scriptedModel([
+      {
+        toolName: 'set_trip_plan',
+        args: {
+          days: [
+            // Day 1 drops its hearted stop → it must come back.
+            { date: '2026-09-01', placeIds: [], title: 'Lagoon morning' },
+            // Day 2 keeps its own stop; nothing to restore.
+            {
+              date: '2026-09-02',
+              placeIds: ['pl-ile'],
+              title: 'Island day',
+              notes: [{ placeId: 'pl-ile', why: 'Sandbanks you can walk at low tide.' }],
+            },
+          ],
+        },
+      },
+      { text: 'Both days set.' },
+    ]);
+    const result = await runPlannerTurn(
+      ctx,
+      {
+        messages: [{ role: 'user', content: 'regenerate my trip' }],
+        trip: trip(),
+        pinnedIds: ['pl-belle-mare', 'pl-ile'],
+      },
+      model,
+    );
+    const [day1, day2] = result.days;
+    expect(day1!.title).toBe('Lagoon morning');
+    expect(day1!.places.map((p) => p.id)).toEqual(['pl-belle-mare']);
+    expect(day2!.title).toBe('Island day');
+    expect(day2!.places.map((p) => p.id)).toEqual(['pl-ile']);
+    expect(day2!.notes).toEqual([
+      { placeId: 'pl-ile', why: 'Sandbanks you can walk at low tide.', tip: null },
+    ]);
+  });
+
+  it('does not re-insert a hearted stop the model moved to another day', async () => {
+    const model = scriptedModel([
+      {
+        toolName: 'set_trip_plan',
+        args: {
+          days: [
+            { date: '2026-09-01', placeIds: [] },
+            { date: '2026-09-02', placeIds: ['pl-ile', 'pl-belle-mare'] },
+          ],
+        },
+      },
+      { text: 'Moved.' },
+    ]);
+    const result = await runPlannerTurn(
+      ctx,
+      {
+        messages: [{ role: 'user', content: 'do the beach on day two' }],
+        trip: trip(),
+        pinnedIds: ['pl-belle-mare'],
+      },
+      model,
+    );
+    expect(result.days[0]!.places).toEqual([]);
+    expect(result.days[1]!.places.map((p) => p.id)).toEqual(['pl-ile', 'pl-belle-mare']);
+  });
+
   it('commits days (merged, date-sorted) and anchors only a surfaced activity slug', async () => {
     const model = scriptedModel([
       { toolName: 'search_our_activities', args: { dates: ['2026-09-01', '2026-09-02'] } },
@@ -418,7 +474,7 @@ describe('runPlannerTurn — single-day mode unchanged', () => {
   });
 
   it('still lets a real provider failure through — a graceful reply must not hide an outage', async () => {
-    const model = new MockLanguageModelV1({
+    const model = new MockLanguageModelV2({
       doGenerate: async () => {
         throw new Error('Gemini quota exceeded');
       },
@@ -426,6 +482,150 @@ describe('runPlannerTurn — single-day mode unchanged', () => {
     await expect(
       runPlannerTurn(ctx, { messages: [{ role: 'user', content: 'hi' }] }, model),
     ).rejects.toThrow('Gemini quota exceeded');
+  });
+
+  it('re-raises a tool that failed while running — the SDK would let the model apologise over it', async () => {
+    // AI SDK v5 no longer throws when a tool's execute throws: it hands the error to the model, which
+    // then writes a polite reply on top of a real outage. That reply must not be what leaves here.
+    vi.mocked(searchPlannerPlaces).mockRejectedValueOnce(new Error('Places is down'));
+    const model = scriptedModel([
+      { toolName: 'search_places', args: { region: 'South' } },
+      { text: 'I had trouble searching, but here are some ideas anyway.' },
+    ]);
+    await expect(
+      runPlannerTurn(ctx, { messages: [{ role: 'user', content: 'a south day' }] }, model),
+    ).rejects.toThrow('Places is down');
+  });
+
+  it('carries the day title and card text, cleaned and only for stops that made it in', async () => {
+    const model = scriptedModel([
+      {
+        toolName: 'set_itinerary',
+        args: {
+          placeIds: ['pl-belle-mare', 'pl-ghost'],
+          title: '  **East coast, slowly**  ',
+          notes: [
+            {
+              placeId: 'pl-belle-mare',
+              why: 'A long, shallow lagoon —\n  **calm** enough for children.',
+              tip: 'Best before 10am, when the wind is down.',
+            },
+            { placeId: 'pl-ghost', why: 'Never resolved, so never shown.' },
+            { placeId: 'pl-belle-mare', why: 'x'.repeat(400), tip: null },
+          ],
+        },
+      },
+      { text: 'Done.' },
+    ]);
+    const result = await runPlannerTurn(
+      ctx,
+      {
+        messages: [{ role: 'user', content: 'an easy east day' }],
+        itinerary: [place('pl-belle-mare', 'Belle Mare Beach')],
+      },
+      model,
+    );
+    expect(result.title).toBe('East coast, slowly');
+    // One note per stop (the last one wins), none for a stop that never resolved, and a runaway
+    // line is cut rather than rejected — a bound in the schema would have cost the whole commit.
+    expect(result.notes).toHaveLength(1);
+    expect(result.notes[0]!.placeId).toBe('pl-belle-mare');
+    expect(result.notes[0]!.why).toHaveLength(280);
+    expect(result.notes[0]!.tip).toBeNull();
+  });
+
+  it('strips markdown and whitespace from card text', async () => {
+    const model = scriptedModel([
+      {
+        toolName: 'set_itinerary',
+        args: {
+          placeIds: ['pl-belle-mare'],
+          notes: [
+            {
+              placeId: 'pl-belle-mare',
+              why: 'A long, shallow lagoon —\n  **calm** enough for children.',
+              tip: '  Best before 10am.  ',
+            },
+          ],
+        },
+      },
+      { text: 'Done.' },
+    ]);
+    const result = await runPlannerTurn(
+      ctx,
+      {
+        messages: [{ role: 'user', content: 'a beach' }],
+        itinerary: [place('pl-belle-mare', 'Belle Mare Beach')],
+      },
+      model,
+    );
+    expect(result.title).toBeNull();
+    expect(result.notes).toEqual([
+      {
+        placeId: 'pl-belle-mare',
+        why: 'A long, shallow lagoon — calm enough for children.',
+        tip: 'Best before 10am.',
+      },
+    ]);
+  });
+
+  it('puts a hearted stop back when the model leaves it out of a regenerate', async () => {
+    // "Regenerate unpinned" is a promise to the visitor. The prompt asks the model to keep hearted
+    // stops; this is what holds when it does not.
+    const model = scriptedModel([
+      { toolName: 'set_itinerary', args: { placeIds: ['pl-new'] } },
+      { text: 'Fresh plan.' },
+    ]);
+    const result = await runPlannerTurn(
+      ctx,
+      {
+        messages: [{ role: 'user', content: 'regenerate' }],
+        itinerary: [
+          place('pl-first', 'First Stop'),
+          place('pl-belle-mare', 'Belle Mare Beach'),
+          place('pl-new', 'New Stop'),
+        ],
+        pinnedIds: ['pl-belle-mare'],
+      },
+      model,
+    );
+    expect(result.places.map((p) => p.name)).toEqual(['New Stop', 'Belle Mare Beach']);
+  });
+
+  it('leaves a commit alone when every hearted stop is already in it', async () => {
+    const model = scriptedModel([
+      { toolName: 'set_itinerary', args: { placeIds: ['pl-belle-mare', 'pl-new'] } },
+      { text: 'Kept it.' },
+    ]);
+    const result = await runPlannerTurn(
+      ctx,
+      {
+        messages: [{ role: 'user', content: 'regenerate' }],
+        itinerary: [place('pl-belle-mare', 'Belle Mare Beach'), place('pl-new', 'New Stop')],
+        pinnedIds: ['pl-belle-mare'],
+      },
+      model,
+    );
+    expect(result.places.map((p) => p.name)).toEqual(['Belle Mare Beach', 'New Stop']);
+  });
+
+  it('asks for low thinking on a planning turn — the speed is the model AND the setting', async () => {
+    // Flash left to think freely measured SLOWER than Pro (19.1 s against 17.7 s); at low thinking
+    // it took 5.8 s. Drop this option and ZilAi quietly triples its wait with nothing else changing.
+    let seen: unknown;
+    const model = new MockLanguageModelV2({
+      doGenerate: async (options) => {
+        seen = options.providerOptions;
+        return {
+          content: [{ type: 'text' as const, text: 'ok' }],
+          finishReason: 'stop' as const,
+          usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+          warnings: [],
+        };
+      },
+    });
+    await runPlannerTurn(ctx, { messages: [{ role: 'user', content: 'hi' }] }, model);
+    expect(seen).toMatchObject({ google: { thinkingConfig: { thinkingLevel: 'low' } } });
   });
 
   it('offers a multi-day split, dropping an invented slug and a repeated one', async () => {

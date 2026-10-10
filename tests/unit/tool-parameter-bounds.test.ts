@@ -9,9 +9,9 @@ import {
 /**
  * THE LINT RULE IS THE FIX; THIS FILE IS WHAT KEEPS IT ONE.
  *
- * A bound inside an AI tool's `parameters` is not a validation — the AI SDK checks model-supplied
- * arguments BEFORE `execute` runs, so the bound throws AI_InvalidToolArgumentsError out of
- * generateText as an unhandled 500. It has cost us four production failures across two files and two
+ * A bound inside an AI tool's `inputSchema` is not a validation — the AI SDK checks model-supplied
+ * arguments BEFORE `execute` runs, so the call is refused and never executes (an unhandled 500 under
+ * SDK v4, a lost step under v5). It has cost us four production failures across two files and two
  * authors in eight days, which is why the guard is a parser rule rather than a review habit.
  *
  * A rule nothing exercises is worse than no rule: an esquery selector that quietly stops matching
@@ -35,15 +35,17 @@ async function lintSnippet(code: string): Promise<string[]> {
     .map((m) => m.message);
 }
 
-const withParameters = (schema: string) => `
+const withSchemaKey = (key: string) => (schema: string) => `
 import { tool } from 'ai';
 import { z } from 'zod';
 export const t = tool({
   description: 'probe',
-  parameters: z.object({ ${schema} }),
+  ${key}: z.object({ ${schema} }),
   execute: async () => ({ ok: true }),
 });
 `;
+/** The key every tool in this repo uses since the AI SDK v5 migration. */
+const withParameters = withSchemaKey('inputSchema');
 
 describe('no bounds inside an AI tool’s parameters', () => {
   it('catches .optional(), which admits undefined but not the null a model sends', async () => {
@@ -60,6 +62,13 @@ describe('no bounds inside an AI tool’s parameters', () => {
   it('catches a bound nested deep in the schema, not just at the top level', async () => {
     const messages = await lintSnippet(
       withParameters(`days: z.array(z.object({ note: z.string().max(140) }))`),
+    );
+    expect(messages).toHaveLength(1);
+  });
+
+  it('still catches the pre-v5 `parameters` key, so a tool copied from an old example is guarded', async () => {
+    const messages = await lintSnippet(
+      withSchemaKey('parameters')(`ids: z.array(z.string()).max(6)`),
     );
     expect(messages).toHaveLength(1);
   });

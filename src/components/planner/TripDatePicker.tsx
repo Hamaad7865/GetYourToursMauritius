@@ -139,7 +139,11 @@ export function TripDatePicker({
   to,
   onChange,
   minDate,
+  compact = false,
 }: {
+  /** One month instead of two, for a column too narrow to hold the 36rem two-month popover (the
+   *  assistant panel) — it would be clipped by the panel's own scroll box. */
+  compact?: boolean;
   from: string;
   to: string;
   /** Commits a range, or ('', '') when cleared. A same-day pick returns that day twice. */
@@ -286,7 +290,11 @@ export function TripDatePicker({
         // Two elements on purpose: the outer one owns the centering transform, the inner one owns the
         // pop animation. Sharing them would let the animation's `transform: scale()` overwrite
         // `-translate-x-1/2` mid-flight and shove the panel off the right edge of the viewport.
-        <div className="absolute left-1/2 top-[calc(100%+8px)] z-40 w-[min(94vw,20rem)] -translate-x-1/2 sm:w-[36rem]">
+        <div
+          className={`absolute left-1/2 top-[calc(100%+8px)] z-40 w-[min(94vw,20rem)] -translate-x-1/2 ${
+            compact ? '' : 'sm:w-[36rem]'
+          }`}
+        >
           <div
             role="dialog"
             aria-label={t('Choose your trip dates')}
@@ -304,9 +312,11 @@ export function TripDatePicker({
               </button>
               <div className="flex flex-1 justify-around font-display text-[15px] font-semibold text-ink">
                 <span>{formatLocaleDate(view, language, { month: 'long', year: 'numeric' })}</span>
-                <span className="hidden sm:inline">
-                  {formatLocaleDate(nextMonth, language, { month: 'long', year: 'numeric' })}
-                </span>
+                {!compact && (
+                  <span className="hidden sm:inline">
+                    {formatLocaleDate(nextMonth, language, { month: 'long', year: 'numeric' })}
+                  </span>
+                )}
               </div>
               <button
                 type="button"
@@ -332,7 +342,7 @@ export function TripDatePicker({
                   onHover={setHovered}
                 />
               </div>
-              <div className="hidden flex-1 sm:block">
+              <div className={compact ? 'hidden' : 'hidden flex-1 sm:block'}>
                 <RangeMonth
                   month={nextMonth}
                   from={gridFrom}

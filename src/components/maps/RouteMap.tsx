@@ -99,7 +99,10 @@ export function RouteMap({
   activities,
   onActivityClick,
   dinner,
+  onStopClick,
 }: {
+  /** Called with a stop's index in `stops` when its pin is clicked. Pins stay inert without it. */
+  onStopClick?: (index: number) => void;
   stops: ItineraryStop[];
   /** Marker role per stop (aligned to `stops`). Defaults to start (index 0) + main (rest). */
   kinds?: StopKind[];
@@ -131,6 +134,9 @@ export function RouteMap({
   // Latest click handler behind a ref so a new callback identity doesn't force a full overlay redraw.
   const onActivityClickRef = useRef(onActivityClick);
   onActivityClickRef.current = onActivityClick;
+  const onStopClickRef = useRef(onStopClick);
+  onStopClickRef.current = onStopClick;
+  const stopsClickable = Boolean(onStopClick);
 
   useEffect(() => {
     if (status !== 'ready' || !elRef.current || stops.length === 0) return;
@@ -169,11 +175,12 @@ export function RouteMap({
             const pos = await resolveStop(s);
             if (!pos) return null;
             const kind: StopKind = kinds?.[idx] ?? (idx === 0 ? 'start' : 'main');
-            return { pos, kind, title: s.title };
+            return { pos, kind, title: s.title, idx };
           }),
         )
       ).filter(
-        (r): r is { pos: google.maps.LatLngLiteral; kind: StopKind; title: string } => r !== null,
+        (r): r is { pos: google.maps.LatLngLiteral; kind: StopKind; title: string; idx: number } =>
+          r !== null,
       );
       if (cancelled || !mapRef.current) return;
       if (resolved.length === 0) {
@@ -183,17 +190,23 @@ export function RouteMap({
       const points = resolved.map((r) => r.pos);
 
       const bounds = new google.maps.LatLngBounds();
-      resolved.forEach(({ pos, kind, title }, i) => {
+      resolved.forEach(({ pos, kind, title, idx }, i) => {
         const hollow = kind === 'other';
         const color = kind === 'start' ? '#F76C5E' : '#0E8C92';
-        track(
+        const marker = track(
           new google.maps.marker.AdvancedMarkerElement({
             map,
             position: pos,
             content: pinElement({ color, hollow, glyph: labels?.[i] ?? i + 1 }),
             title,
+            gmpClickable: stopsClickable,
           }),
         );
+        // The ORIGINAL index, not `i`: a stop that failed to resolve is dropped from `resolved`, and
+        // the caller indexes its own list.
+        if (stopsClickable) {
+          marker.addEventListener('gmp-click', () => onStopClickRef.current?.(idx));
+        }
         bounds.extend(pos);
       });
       // Belle Mare Tours activity pills + the dinner fork. Selected activities and the dinner join
@@ -329,7 +342,7 @@ export function RouteMap({
         rafRef.current = null;
       }
     };
-  }, [status, stops, kinds, labels, animate, carColor, activities, dinner]);
+  }, [status, stops, kinds, labels, animate, carColor, activities, dinner, stopsClickable]);
 
   // Final teardown on unmount: drop every overlay and release the map.
   useEffect(() => {

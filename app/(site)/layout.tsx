@@ -6,6 +6,7 @@ import { ToastProvider } from '@/components/site/ToastProvider';
 import { ContactFloat } from '@/components/site/ContactFloat';
 import { EnquiryContextProvider } from '@/components/site/EnquiryContext';
 import { WhatsAppNumberProvider } from '@/components/site/WhatsAppNumberProvider';
+import { ZilAiProvider } from '@/components/planner/assistant/ZilAiProvider';
 import { getLocale, getServerCurrency } from '@/lib/i18n/server';
 import { getUsdRate } from '@/lib/money/fx';
 import { getWhatsAppNumber } from '@/lib/settings/whatsapp-number';
@@ -39,7 +40,11 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
             ContactFloat, which sits above every page in the tree, can prefill its enquiry form. */}
         <EnquiryContextProvider>
           <ToastProvider>
-            <AuthProvider>{children}</AuthProvider>
+            <AuthProvider>
+              {/* ZilAi, the planning assistant: a context here, and nothing else until a visitor
+                  opens it — the panel itself is fetched on demand and never rendered into page HTML. */}
+              <ZilAiProvider>{children}</ZilAiProvider>
+            </AuthProvider>
           </ToastProvider>
           <ContactFloat />
         </EnquiryContextProvider>

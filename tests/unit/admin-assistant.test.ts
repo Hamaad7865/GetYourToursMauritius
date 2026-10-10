@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MockLanguageModelV1 } from 'ai/test';
-import type { LanguageModelV1 } from 'ai';
+import { scriptedModel } from '../helpers/scripted-model';
 import {
   buildAssistantTools,
   runAdminAssistant,
@@ -85,6 +84,16 @@ function makePort(overrides: Partial<AssistantPort> = {}): AssistantPort {
 
 const CALL = { toolCallId: 'test', messages: [] } as never;
 
+/** Runs one tool the way the loop would. AI SDK v5 types `execute` as possibly streaming
+ *  (AsyncIterable); none of ours do, so the awaited value is the plain result. */
+async function run<I, O>(
+  t: { execute?: (input: I, options: never) => O | PromiseLike<O> | AsyncIterable<O> },
+  input: I,
+  _options: unknown = CALL,
+): Promise<O> {
+  return (await t.execute!(input, CALL)) as O;
+}
+
 describe('the assistant proposes but never writes', () => {
   it('exposes exactly the expected tools — a new mutating tool must be a deliberate change', () => {
     const tools = buildAssistantTools(makePort(), () => {});
@@ -110,7 +119,7 @@ describe('the assistant proposes but never writes', () => {
   describe('tour_pricing — a price the operator can repeat to a guest', () => {
     it('prices a sightseeing tour per VEHICLE for the party, not per person', async () => {
       const tools = buildAssistantTools(makePort(), () => {});
-      const out = await tools.tour_pricing.execute!({ slug: 'south-tour', guests: 2 }, CALL);
+      const out = await run(tools.tour_pricing, { slug: 'south-tour', guests: 2 });
       expect(out).toMatchObject({
         found: true,
         pricing: { pricingMode: 'vehicle', vehicle: { vehicle: 'Sedan', totalEur: 90, guests: 2 } },
@@ -119,18 +128,18 @@ describe('the assistant proposes but never writes', () => {
 
     it('defaults to a party of 2 and clamps a nonsense party instead of throwing', async () => {
       const tools = buildAssistantTools(makePort(), () => {});
-      const noGuests = await tools.tour_pricing.execute!({ slug: 'south-tour' }, CALL);
+      const noGuests = await run(tools.tour_pricing, { slug: 'south-tour' });
       expect(noGuests.pricing!.vehicle!.guests).toBe(2);
       // A model slip must be corrected, never surfaced as a 500 (see the eslint rule on bounds).
-      const silly = await tools.tour_pricing.execute!({ slug: 'south-tour', guests: 0 }, CALL);
+      const silly = await run(tools.tour_pricing, { slug: 'south-tour', guests: 0 });
       expect(silly.pricing!.vehicle!.guests).toBe(1);
-      const huge = await tools.tour_pricing.execute!({ slug: 'south-tour', guests: 900 }, CALL);
+      const huge = await run(tools.tour_pricing, { slug: 'south-tour', guests: 900 });
       expect(huge.pricing!.vehicle!.guests).toBe(25);
     });
 
     it('reports an unknown tour rather than pricing something else', async () => {
       const tools = buildAssistantTools(makePort(), () => {});
-      const out = await tools.tour_pricing.execute!({ slug: 'no-such-tour', guests: 2 }, CALL);
+      const out = await run(tools.tour_pricing, { slug: 'no-such-tour', guests: 2 });
       expect(out.found).toBe(false);
     });
 
@@ -147,7 +156,7 @@ describe('the assistant proposes but never writes', () => {
         }),
         () => {},
       );
-      const out = await tools.tour_pricing.execute!({ slug: 'south-tour', guests: 2 }, CALL);
+      const out = await run(tools.tour_pricing, { slug: 'south-tour', guests: 2 });
       expect(out.pricing!.unavailable).toMatch(/no vehicle pricing/i);
       expect(out.pricing!.vehicle).toBeUndefined();
     });
@@ -155,7 +164,7 @@ describe('the assistant proposes but never writes', () => {
 
   it('search_catalogue carries the from-price, so a price question has an anchor', async () => {
     const tools = buildAssistantTools(makePort(), () => {});
-    const out = await tools.search_catalogue.execute!({ query: 'catamaran' }, CALL);
+    const out = await run(tools.search_catalogue, { query: 'catamaran' });
     expect(out.activities[0]).toMatchObject({ fromPriceEur: 55 });
   });
 
@@ -168,7 +177,8 @@ describe('the assistant proposes but never writes', () => {
       },
     });
     const tools = buildAssistantTools(explodingPort, (a) => collected.push(a));
-    const out = await tools.propose_new_tour.execute!(
+    const out = await run(
+      tools.propose_new_tour,
       {
         label: 'Create draft tour "Sunset cruise"',
         patch: { title: 'Sunset cruise', summary: 'Golden hour on the lagoon.' },
@@ -185,7 +195,8 @@ describe('the assistant proposes but never writes', () => {
   it('propose_new_tour refuses a nameless tour instead of proposing junk', async () => {
     const collected: AssistantAction[] = [];
     const tools = buildAssistantTools(makePort(), (a) => collected.push(a));
-    const out = await tools.propose_new_tour.execute!(
+    const out = await run(
+      tools.propose_new_tour,
       { label: 'Create tour', patch: { summary: 'no title here' } },
       CALL,
     );
@@ -197,7 +208,8 @@ describe('the assistant proposes but never writes', () => {
     const collected: AssistantAction[] = [];
     const tools = buildAssistantTools(makePort(), (a) => collected.push(a));
 
-    const ok = await tools.propose_tour_update.execute!(
+    const ok = await run(
+      tools.propose_tour_update,
       {
         label: 'Copy the highlights across',
         slug: 'catamaran-ile-aux-cerfs',
@@ -208,7 +220,8 @@ describe('the assistant proposes but never writes', () => {
     expect(ok.proposed).toBe(true);
     expect(collected[0]).toMatchObject({ kind: 'update_tour', activityId: 'act-1' });
 
-    const bad = await tools.propose_tour_update.execute!(
+    const bad = await run(
+      tools.propose_tour_update,
       { label: 'x', slug: 'no-such-tour', patch: { summary: 'y' } },
       CALL,
     );
@@ -218,7 +231,7 @@ describe('the assistant proposes but never writes', () => {
 
   it('read_tour returns the real text, which is what makes "copy from X" a copy and not a paraphrase', async () => {
     const tools = buildAssistantTools(makePort(), () => {});
-    const out = await tools.read_tour.execute!({ slug: 'catamaran-ile-aux-cerfs' }, CALL);
+    const out = await run(tools.read_tour, { slug: 'catamaran-ile-aux-cerfs' });
     expect(out.found).toBe(true);
     expect(out.tour?.highlights).toEqual(TOURS['catamaran-ile-aux-cerfs']!.highlights);
   });
@@ -227,7 +240,7 @@ describe('the assistant proposes but never writes', () => {
     const collected: AssistantAction[] = [];
     const tools = buildAssistantTools(makePort(), (a) => collected.push(a));
     const email = 'Hello, we are 4 adults and 2 children for the catamaran on 20 October. Thanks!';
-    await tools.draft_quote_from_email.execute!({ label: 'Draft a quote', email }, CALL);
+    await run(tools.draft_quote_from_email, { label: 'Draft a quote', email });
     expect(collected[0]).toMatchObject({ kind: 'draft_quote_from_email', email });
   });
 });
@@ -274,18 +287,7 @@ describe('runAdminAssistant', () => {
   });
 
   it('grounds the prompt in today, the rules, the screen and what is on it', async () => {
-    let seen = '';
-    const model: LanguageModelV1 = new MockLanguageModelV1({
-      doGenerate: async (options) => {
-        seen = JSON.stringify(options.prompt);
-        return {
-          rawCall: { rawPrompt: null, rawSettings: {} },
-          finishReason: 'stop' as const,
-          usage: { promptTokens: 1, completionTokens: 1 },
-          text: 'Adults are €55 on that departure.',
-        };
-      },
-    });
+    const { model, seenPrompts } = scriptedModel([{ text: 'Adults are €55 on that departure.' }]);
     const result = await runAdminAssistant(
       ctx,
       makePort(),
@@ -297,6 +299,7 @@ describe('runAdminAssistant', () => {
     );
     expect(result.available).toBe(true);
     expect(result.reply).toContain('€55');
+    const seen = seenPrompts.join(' ');
     expect(seen).toContain('2026-08-08');
     expect(seen).toContain('NEVER invent');
     expect(seen).toContain('Quotes screen');
@@ -306,14 +309,7 @@ describe('runAdminAssistant', () => {
   });
 
   it('never leaves a blank bubble when the model answers with tools only', async () => {
-    const model: LanguageModelV1 = new MockLanguageModelV1({
-      doGenerate: async () => ({
-        rawCall: { rawPrompt: null, rawSettings: {} },
-        finishReason: 'stop' as const,
-        usage: { promptTokens: 1, completionTokens: 1 },
-        text: '',
-      }),
-    });
+    const { model } = scriptedModel([{ text: '' }]);
     const result = await runAdminAssistant(
       ctx,
       makePort(),

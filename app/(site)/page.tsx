@@ -5,7 +5,7 @@ import { HomeShowcaseProvider } from '@/components/gyg/HomeShowcaseContext';
 import { HomeHero } from '@/components/gyg/home/HomeHero';
 import { ContinuePlanning } from '@/components/gyg/home/ContinuePlanning';
 import { ContinuePlanningReserve } from '@/components/gyg/home/ContinuePlanningReserve';
-import { HomePlaces, HomePlacesCredits } from '@/components/gyg/home/HomePlaces';
+import { HomeTours } from '@/components/gyg/home/HomeTours';
 import { HomeRails } from '@/components/gyg/home/HomeRails';
 import { WhyDirect } from '@/components/gyg/home/WhyDirect';
 import { SiteFooter } from '@/components/site/SiteFooter';
@@ -70,8 +70,8 @@ async function getActivities(): Promise<TourSummary[]> {
  * The homepage, in GetYourGuide's order: header, a hero that is just a line and a search field,
  * then what the visitor is most likely to want next.
  *
- * It has two states, and the server only ever renders the first. A first-time visitor gets the place
- * tiles straight under the hero. A returning one gets "Continue planning your trip" above them —
+ * It has two states, and the server only ever renders the first. A first-time visitor gets our
+ * private day tours straight under the hero. A returning one gets "Continue planning your trip" above them —
  * resolved in the browser from what they viewed, saved or left in their cart, because this page is
  * edge-cached and identical for everyone (see ContinuePlanning).
  */
@@ -86,12 +86,11 @@ export default async function HomePage() {
         <ContinuePlanning />
         {/* Must directly follow the rail it reserves space for. */}
         <ContinuePlanningReserve />
-        <HomePlaces />
+        <HomeTours activities={activities} />
         <HomeRails />
         <WhyDirect />
         <FeaturedReviews />
         <PopularSearches />
-        <HomePlacesCredits />
       </main>
       <SiteFooter />
     </HomeShowcaseProvider>

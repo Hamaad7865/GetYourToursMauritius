@@ -1,11 +1,13 @@
 import {
   generateText,
   tool,
-  InvalidToolArgumentsError,
+  stepCountIs,
+  InvalidToolInputError,
   NoSuchToolError,
-  type CoreMessage,
-  type LanguageModelV1,
+  type LanguageModel,
+  type ModelMessage,
 } from 'ai';
+import { toolExecutionFault } from '@/lib/ai/tool-faults';
 import { z } from 'zod';
 import type { ServiceContext } from './context';
 import { plannerModel } from './planner-agent';
@@ -156,7 +158,7 @@ export function buildAssistantTools(port: AssistantPort, collect: (a: AssistantA
       description:
         'Search the published activity catalogue. Returns slug, title, category, region and ' +
         'pricing mode. Use the slug with other tools. Empty query lists everything.',
-      parameters: z.object({
+      inputSchema: z.object({
         query: z.string().nullish().describe('Free-text filter over title/category/slug'),
       }),
       execute: async ({ query }) => {
@@ -178,7 +180,7 @@ export function buildAssistantTools(port: AssistantPort, collect: (a: AssistantA
         'much / what is the price" question. Never state a tour price that did not come from here ' +
         'or from activity_departures.',
       // Bounds live in execute, not in `parameters` — see `capped` above and the eslint rule.
-      parameters: z.object({
+      inputSchema: z.object({
         slug: z.string(),
         guests: z.number().nullish().describe('Party size; defaults to 2'),
       }),
@@ -198,7 +200,7 @@ export function buildAssistantTools(port: AssistantPort, collect: (a: AssistantA
         'The full CONTENT of one tour by slug — summary, description, highlights, inclusions, ' +
         'exclusions, what to bring, important info. Read a tour with this before copying any of ' +
         'its content onto another tour, so the copy is the real text and not a paraphrase.',
-      parameters: z.object({ slug: z.string() }),
+      inputSchema: z.object({ slug: z.string() }),
       execute: async ({ slug }) => {
         const key = capped(slug, 200);
         const tour = await port.readTour(key);
@@ -210,7 +212,7 @@ export function buildAssistantTools(port: AssistantPort, collect: (a: AssistantA
       description:
         'The OPEN departures of one activity on one day (yyyy-mm-dd), with the real price tiers ' +
         '(EUR) a quote line is built from. A departure with a refusal cannot be a catalogue line.',
-      parameters: z.object({
+      inputSchema: z.object({
         slug: z.string(),
         date: z.string().describe('yyyy-mm-dd'),
       }),
@@ -238,7 +240,7 @@ export function buildAssistantTools(port: AssistantPort, collect: (a: AssistantA
       description:
         'The round-trip hotel transfer fare (EUR) for an activity, from the transport fare tables ' +
         'the booking widget uses. Give the hotel name (geocoded to a region) or a pickup region.',
-      parameters: z.object({
+      inputSchema: z.object({
         activitySlug: z.string(),
         guests: z.number().describe('Party size, 1–60'),
         hotel: z.string().nullish(),
@@ -276,7 +278,7 @@ export function buildAssistantTools(port: AssistantPort, collect: (a: AssistantA
     lookup_booking: tool({
       description:
         'A booking by its BMT… reference: status, payment state, guest, totals, balance still due.',
-      parameters: z.object({ ref: z.string() }),
+      inputSchema: z.object({ ref: z.string() }),
       execute: async ({ ref }) => {
         const key = capped(ref, 40);
         const row = await port.lookupBooking(key);
@@ -286,7 +288,7 @@ export function buildAssistantTools(port: AssistantPort, collect: (a: AssistantA
 
     lookup_quote: tool({
       description: 'A quote by its Q… reference: status, guest, total, validity, conversion.',
-      parameters: z.object({ ref: z.string() }),
+      inputSchema: z.object({ ref: z.string() }),
       execute: async ({ ref }) => {
         const key = capped(ref, 40);
         const row = await port.lookupQuote(key);
@@ -296,7 +298,7 @@ export function buildAssistantTools(port: AssistantPort, collect: (a: AssistantA
 
     rental_fleet: tool({
       description: 'The car/scooter rental fleet with real daily rates (EUR).',
-      parameters: z.object({}),
+      inputSchema: z.object({}),
       execute: async () => ({ vehicles: await port.rentalFleet() }),
     }),
 
@@ -310,7 +312,7 @@ export function buildAssistantTools(port: AssistantPort, collect: (a: AssistantA
         'summary of 1–2 sentences, a description of 2–4 short paragraphs, and 4–6 concrete ' +
         'highlights. If the operator asked to copy content from another tour, read_tour it first ' +
         'and reuse its actual text.',
-      parameters: z.object({
+      inputSchema: z.object({
         label: z.string().describe('Card header, e.g. Create draft tour "Sunset cruise"'),
         patch: tourContentPatchInputSchema,
       }),
@@ -341,7 +343,7 @@ export function buildAssistantTools(port: AssistantPort, collect: (a: AssistantA
         'from another tour, add inclusions…). Resolve the tour with search_catalogue/read_tour ' +
         'first — never invent an id. Send ONLY the fields that change; a list field REPLACES the ' +
         'existing list, so include the full intended list. You cannot change prices or publishing.',
-      parameters: z.object({
+      inputSchema: z.object({
         label: z.string(),
         slug: z.string().describe('The slug of the tour to change'),
         patch: tourContentPatchInputSchema,
@@ -375,7 +377,7 @@ export function buildAssistantTools(port: AssistantPort, collect: (a: AssistantA
         'whenever they paste an email or thread and want a quote/booking from it. Pass the ' +
         'pasted text back VERBATIM — the quote pipeline re-reads it and prices from the ' +
         'catalogue; do not summarise it and do not quote a price yourself.',
-      parameters: z.object({
+      inputSchema: z.object({
         label: z.string(),
         email: z.string().describe('The pasted enquiry, verbatim'),
       }),
@@ -445,13 +447,16 @@ export async function runAdminAssistant(
   port: AssistantPort,
   input: { messages: AssistantMessage[]; page?: AssistantPageContext | null },
   // Injectable so the chat can be tested with a scripted model; defaults to the real Gemini.
-  modelOverride?: LanguageModelV1 | null,
+  modelOverride?: LanguageModel | null,
 ): Promise<AssistantTurnResult> {
   const model = modelOverride !== undefined ? modelOverride : plannerModel(ctx);
   if (!model) return { available: false, reply: null, actions: [] };
 
   const actions: AssistantAction[] = [];
-  const messages: CoreMessage[] = input.messages.map((m) => ({ role: m.role, content: m.content }));
+  const messages: ModelMessage[] = input.messages.map((m) => ({
+    role: m.role,
+    content: m.content,
+  }));
 
   let text: string;
   try {
@@ -461,8 +466,11 @@ export async function runAdminAssistant(
       messages,
       tools: buildAssistantTools(port, (a) => actions.push(a)),
       // Enough for search → read → propose in one question; mirrors runPlannerTurn's cap.
-      maxSteps: 10,
+      stopWhen: stepCountIs(10),
     });
+    // A tool that threw while running is a real fault, not a model slip — see tool-faults.ts.
+    const fault = toolExecutionFault(result.steps);
+    if (fault !== undefined) throw fault;
     text = result.text;
   } catch (err) {
     // The same backstop runPlannerTurn carries, and this file is why it is worth having twice: the
@@ -473,7 +481,7 @@ export async function runAdminAssistant(
     // Scoped to exactly the two errors that mean "malformed tool call". A Gemini outage or a quota
     // refusal is a real fault and must keep propagating to apiHandler and into error_logs — a polite
     // reply there would hide an outage. Any proposal already collected this turn survives.
-    if (!InvalidToolArgumentsError.isInstance(err) && !NoSuchToolError.isInstance(err)) throw err;
+    if (!InvalidToolInputError.isInstance(err) && !NoSuchToolError.isInstance(err)) throw err;
     text = 'Sorry — I lost my thread there. Could you ask me that again?';
   }
 

@@ -1,13 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
-import { MockLanguageModelV1 } from 'ai/test';
-import type { LanguageModelV1 } from 'ai';
+import { scriptedObjectModel } from '../helpers/scripted-model';
 import { extractQuoteFromEmail } from '@/lib/services/quote-extraction';
 import { quoteExtractionSchema, type QuoteExtraction } from '@/lib/validation/quote-extraction';
 import type { ServiceContext } from '@/lib/services/context';
 
 /**
  * The AI email → structured extraction step (plan Task A1), scripted end-to-end without Gemini: the
- * model is a `MockLanguageModelV1` that returns a fixed JSON object, and the candidate-list fetches
+ * model is a `mock model` that returns a fixed JSON object, and the candidate-list fetches
  * (published activities, rental fleet) are mocked so the test never touches a DB. This proves the
  * CONTRACT that must hold when the real model runs — the result is exactly the Zod-validated shape,
  * and with no model configured the feature reports itself unavailable rather than throwing.
@@ -63,19 +62,6 @@ const EXPECTED: QuoteExtraction = {
   rental: { requested: true, matchedSlug: 'economy-auto', days: 1, transmission: 'automatic' },
   preferences: 'un jour de repos entre les excursions',
 };
-
-/** A model that answers `generateObject` with a fixed JSON object (json object-generation mode). */
-function scriptedObjectModel(object: unknown): LanguageModelV1 {
-  return new MockLanguageModelV1({
-    defaultObjectGenerationMode: 'json',
-    doGenerate: async () => ({
-      rawCall: { rawPrompt: null, rawSettings: {} },
-      finishReason: 'stop' as const,
-      usage: { promptTokens: 1, completionTokens: 1 },
-      text: JSON.stringify(object),
-    }),
-  });
-}
 
 describe('extractQuoteFromEmail', () => {
   it('returns the Zod-validated structured extraction from a scripted model', async () => {

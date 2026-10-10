@@ -34,10 +34,10 @@
     "email:test": "tsx scripts/send-test-email.ts"
   },
   "dependencies": {
-    "@ai-sdk/google": "^1.1.17",
+    "@ai-sdk/google": "^2.0.102",
     "@supabase/supabase-js": "^2.49.1",
     "@types/leaflet": "^1.9.21",
-    "ai": "^4.1.46",
+    "ai": "^5.0.273",
     "jose": "^5.10.0",
     "leaflet": "^1.9.4",
     "next": "15.5.19",

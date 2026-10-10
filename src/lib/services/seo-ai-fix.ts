@@ -1,4 +1,4 @@
-import { generateObject, type LanguageModelV1 } from 'ai';
+import { generateObject, type LanguageModel } from 'ai';
 import type { ServiceContext } from './context';
 import { plannerModel } from './planner-agent';
 import { ValidationError } from './errors';
@@ -189,7 +189,7 @@ export async function runSeoAiFix(
   port: SeoFixPort,
   path: string,
   // Injectable so the fix is testable with a scripted model; defaults to the real Gemini.
-  modelOverride?: LanguageModelV1 | null,
+  modelOverride?: LanguageModel | null,
 ): Promise<SeoAiFixResponse> {
   const target = path.trim();
   const pages = await port.listPages();

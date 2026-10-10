@@ -70,6 +70,28 @@ describe('mapGooglePlace', () => {
     });
   });
 
+  it('carries Google’s rating with its review count, rounded to one decimal', () => {
+    const p = mapGooglePlace({
+      id: 'r1',
+      displayName: { text: 'Blue Bay Beach' },
+      location: { latitude: -20.44, longitude: 57.71 },
+      rating: 4.3499,
+      userRatingCount: 557,
+    });
+    expect(p).toMatchObject({ rating: 4.3, ratingCount: 557 });
+  });
+
+  it('shows no rating at all when Google has no reviews — never a "0.0 (0)"', () => {
+    const base = {
+      id: 'r2',
+      displayName: { text: 'Quiet Cove' },
+      location: { latitude: -20.44, longitude: 57.71 },
+    };
+    expect(mapGooglePlace({ ...base, rating: 0, userRatingCount: 0 })).not.toHaveProperty('rating');
+    expect(mapGooglePlace({ ...base, rating: 4.8 })).not.toHaveProperty('rating');
+    expect(mapGooglePlace(base)).not.toHaveProperty('ratingCount');
+  });
+
   it('returns null when essentials are missing', () => {
     expect(mapGooglePlace({ displayName: { text: 'No coords' } })).toBeNull();
     expect(mapGooglePlace({ id: 'x', location: { latitude: -20, longitude: 57 } })).toBeNull();

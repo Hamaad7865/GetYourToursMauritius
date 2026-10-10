@@ -6,6 +6,8 @@ import {
   planSignature,
   pruneToBudget,
   relativeSavedAt,
+  savedChatKind,
+  savedStopCount,
   snapshotTitle,
   upsertChat,
   type PlannerSnapshot,
@@ -210,5 +212,88 @@ describe('relativeSavedAt', () => {
     expect(relativeSavedAt(now - 3 * 3_600_000, now)).toBe('3h ago');
     expect(relativeSavedAt(now - 2 * 86_400_000, now)).toBe('2d ago');
     expect(relativeSavedAt(now - 30 * 86_400_000, now)).toMatch(/Jul/);
+  });
+});
+
+describe('the assistant’s additions to a saved chat', () => {
+  const day = { date: '2026-09-01', stopIds: ['a', 'b'], dinnerId: null, activitySlug: null };
+
+  it('opens a chat saved before hearts, card text and day titles existed', () => {
+    // The storage key was deliberately NOT versioned for these fields — which only holds if an
+    // older entry, with none of them, still parses and comes back with usable empties.
+    const old = {
+      id: 'old',
+      savedAt: 5,
+      title: 'Old chat',
+      snapshot: snapshot({ stopIds: ['a'] }),
+    };
+    const [parsed] = parseSavedChats(JSON.stringify([old]));
+    expect(parsed!.snapshot.pinnedIds).toEqual([]);
+    expect(parsed!.snapshot.notes).toEqual({});
+    expect(parsed!.snapshot.dayTitles).toEqual({});
+    expect(parsed!.snapshot.prompt).toBe('');
+    expect(parsed!.snapshot.view).toBe('list');
+  });
+
+  it('round-trips them when they are there', () => {
+    const entry = {
+      id: 'new',
+      savedAt: 9,
+      title: 'South day',
+      snapshot: snapshot({
+        stopIds: ['a'],
+        pinnedIds: ['a'],
+        notes: { a: { why: 'Calm water.', tip: 'Best early.' } },
+        dayTitles: { single: 'Wild south' },
+        prompt: 'a south day',
+        view: 'compare',
+      }),
+    };
+    const [parsed] = parseSavedChats(JSON.stringify([entry]));
+    expect(parsed!.snapshot).toMatchObject({
+      pinnedIds: ['a'],
+      notes: { a: { why: 'Calm water.', tip: 'Best early.' } },
+      dayTitles: { single: 'Wild south' },
+      prompt: 'a south day',
+      view: 'compare',
+    });
+  });
+
+  it('discards damaged values field by field instead of throwing the chat away', () => {
+    const damaged = {
+      id: 'bad',
+      savedAt: 3,
+      title: 'x',
+      snapshot: {
+        ...snapshot({ stopIds: ['a'] }),
+        pinnedIds: ['a', 7, null],
+        notes: ['not', 'an', 'object'],
+        dayTitles: { single: 'Kept', other: 42 },
+        prompt: 12,
+        view: 'sideways',
+      },
+    };
+    const [parsed] = parseSavedChats(JSON.stringify([damaged]));
+    expect(parsed!.snapshot.pinnedIds).toEqual(['a']);
+    expect(parsed!.snapshot.notes).toEqual({});
+    expect(parsed!.snapshot.dayTitles).toEqual({ single: 'Kept' });
+    expect(parsed!.snapshot.prompt).toBe('');
+    expect(parsed!.snapshot.view).toBe('list');
+  });
+
+  it('sorts a saved chat into the menu’s filters by what it holds', () => {
+    expect(savedChatKind(snapshot())).toBe('chat');
+    expect(savedChatKind(snapshot({ stopIds: ['a'] }))).toBe('itinerary');
+    expect(savedChatKind(snapshot({ stopIds: ['a'], view: 'compare' }))).toBe('comparison');
+    // A comparison of nothing is still just a chat.
+    expect(savedChatKind(snapshot({ view: 'compare' }))).toBe('chat');
+    expect(savedChatKind(snapshot({ days: [day] }))).toBe('itinerary');
+  });
+
+  it('counts a trip’s stops across all its days', () => {
+    expect(savedStopCount(snapshot({ stopIds: ['a', 'b', 'c'] }))).toBe(3);
+    expect(
+      savedStopCount(snapshot({ days: [day, { ...day, date: '2026-09-02', stopIds: ['c'] }] })),
+    ).toBe(3);
   });
 });

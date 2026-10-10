@@ -4,6 +4,8 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Logo } from '@/components/site/Logo';
 import { useDialog } from '@/lib/a11y/useDialog';
+import { useZilAiOptional } from '@/components/planner/assistant/ZilAiProvider';
+import { opensInPlace } from '@/components/planner/assistant/open-in-place';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { useInbox } from '@/lib/notifications/inbox';
 import { NotificationsList } from '@/components/site/NotificationsList';
@@ -41,7 +43,7 @@ const NAV_LINKS = [
   // in a phone's slide-over, and both pages carry the same lists (by type, by coast, by area).
   { label: 'Places to see', href: '/attractions', icon: IconFlag },
   { label: 'Areas of the island', href: '/destinations', icon: IconGlobe },
-  { label: 'AI Trip Planner', href: '/ai-road-trip-planner', icon: IconPin },
+  { label: 'Plan with AI', href: '/ai-road-trip-planner', icon: IconPin, assistant: true },
   { label: 'Rent a car or scooter', href: '/rent', icon: IconWallet },
   { label: 'Airport transfers', href: '/airport-transfers', icon: IconBolt },
   { label: 'Contact us', href: '/contact', icon: IconMail },
@@ -58,7 +60,7 @@ function MenuRow({
   icon: React.ReactNode;
   label: string;
   value?: string;
-  onClick?: () => void;
+  onClick?: (e: React.MouseEvent) => void;
   href?: string;
 }) {
   const inner = (
@@ -103,6 +105,7 @@ export function MobileMenu({ light = false }: { light?: boolean }) {
   const { language, currency, openPrefs } = usePreferences();
   const { notes, unread, markAllRead } = useInbox();
   const t = useT();
+  const assistant = useZilAiOptional();
 
   const close = () => setOpen(false);
   // Scroll-lock, Escape, focus move-in/return, and a Tab focus trap (APG modal dialog).
@@ -160,7 +163,20 @@ export function MobileMenu({ light = false }: { light?: boolean }) {
                 <MenuRow
                   key={l.href}
                   href={l.href}
-                  onClick={close}
+                  onClick={(e) => {
+                    close();
+                    // "Plan with AI" opens the assistant over the page the visitor is on; the href
+                    // stays a real link for a long-press "open in new tab" and for no-JS.
+                    if (
+                      'assistant' in l &&
+                      l.assistant &&
+                      assistant?.available &&
+                      opensInPlace(e)
+                    ) {
+                      e.preventDefault();
+                      assistant.openAssistant();
+                    }
+                  }}
                   label={t(l.label)}
                   icon={<l.icon width={18} height={18} />}
                 />

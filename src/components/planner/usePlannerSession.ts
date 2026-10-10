@@ -3,19 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePlannerData } from './usePlannerData';
-import { HeroSection } from './HeroSection';
-import { ItineraryPanel } from './ItineraryPanel';
-import { ChatCopilot } from './ChatCopilot';
-import { PlacesDrawer } from './PlacesDrawer';
-import { QuoteModal } from './QuoteModal';
-import { AIInsights } from './AIInsights';
-import { DayTabs } from './DayTabs';
-import { PlannerPrintSheet } from './PlannerPrintSheet';
-import { RouteMap, type ActivityMarker, type StopKind } from '@/components/maps/RouteMap';
-import { PresetsSection, type PresetCard } from './PresetsSection';
-import { FeaturesSection } from './FeaturesSection';
-import { TrustSection } from './TrustSection';
-import { FaqSection } from './FaqSection';
+import type { ActivityMarker, StopKind } from '@/components/maps/RouteMap';
+import type { PresetCard } from './PresetsSection';
 import { PICKUPS, PRESETS, fmtDur, type PlannerPoint } from './planner-constants';
 import { reportClientError } from '@/lib/client-error-report';
 import { computePlannerRoute } from '@/lib/planner/route';
@@ -42,11 +31,19 @@ import {
   persistChat,
   planSignature,
   snapshotTitle,
+  type CanvasView,
   type PlannerSnapshot,
   type SavedChat,
+  type StopNote,
 } from '@/lib/planner/chat-history';
 import { useMoney, useT } from '@/components/site/PreferencesProvider';
-import { Price } from '@/components/site/Price';
+
+export const PLANNER_PATH = '/ai-road-trip-planner';
+
+/** True on the planner's own route (in either language) — the only page whose URL carries a plan. */
+function onPlannerRoute(): boolean {
+  return typeof window !== 'undefined' && window.location.pathname.endsWith(PLANNER_PATH);
+}
 
 const CUSTOM_SLUG = 'custom-road-trip';
 const CUSTOM_TITLE = 'Custom Road Trip';
@@ -63,22 +60,30 @@ function dayDateLabel(dayKey: string): string {
     : d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
+/** Which pane a small screen should bring forward (it shows one at a time). */
+export type SessionPane = 'chat' | 'plan' | 'map';
+
 /**
- * AI Road Trip Planner — the design experience wired to LIVE Google Places. Places are no longer
- * seeded: the drawer + co-pilot discover them from Google, and every place we encounter (browsed,
- * AI-chosen, preset, deep-linked) is kept in a `catalog` so the map/itinerary can resolve any stop.
- * `stopIds` + `pickup` are the source of truth; route, drive times, price + the share URL derive from
- * them. The co-pilot is the real grounded agent; the map is the real Google map with a red car;
- * "Get my quote" runs the live availability → hold → /checkout booking.
+ * One planning session with ZilAi: the conversation, the day or trip it has built, and everything
+ * derived from them. `stopIds` + `pickup` are the source of truth; route, drive times, price and the
+ * share link all derive from them. Places are live Google Places — every place met (searched,
+ * AI-chosen, preset, deep-linked) is kept in a `catalog` so any stop can be drawn.
+ *
+ * This is the state the old three-pane PlannerShell owned, lifted out so the assistant panel, the
+ * results canvas and the landing page can share one session that survives moving between pages.
+ * "Get my quote" still runs the live availability → hold → /checkout booking, unchanged.
  */
-export function PlannerShell({ mayUseDeviceLocation = false }: { mayUseDeviceLocation?: boolean }) {
+export function usePlannerSession(onFocusPane: (pane: SessionPane) => void) {
+  // Behind a ref so a new callback identity never re-creates the operations below.
+  const focusRef = useRef(onFocusPane);
+  focusRef.current = onFocusPane;
+  const focusPane = useCallback((pane: SessionPane) => focusRef.current(pane), []);
   const router = useRouter();
   const t = useT();
   const money = useMoney();
   const { pricing } = usePlannerData();
 
   const [catalog, setCatalog] = useState<Map<string, PlannerPlace>>(new Map());
-  const [heroValue, setHeroValue] = useState('');
   const [pickup, setPickup] = useState<PlannerPoint>(PICKUPS[0]!);
   const [dropoff, setDropoff] = useState<PlannerPoint | null>(null);
   // Whether the customer wants a distinct drop-off. Owned here (not in ItineraryPanel) so the toggle
@@ -118,14 +123,24 @@ export function PlannerShell({ mayUseDeviceLocation = false }: { mayUseDeviceLoc
   const [bookError, setBookError] = useState<string | null>(null);
   const [boost, setBoost] = useState<Boost | null>(null);
   const [bannerTour, setBannerTour] = useState<string | null>(null);
-  const [isMobile, setIsMobile] = useState(false);
-  const [mobileTab, setMobileTab] = useState<'chat' | 'day' | 'map'>('chat');
+  // ── the assistant's own state: hearted stops, what ZilAi wrote about each stop, its name for the
+  //    day(s), the request the plan answers, and how the canvas is showing it ──
+  const [pinnedIds, setPinnedIds] = useState<Set<string>>(new Set());
+  const [notes, setNotes] = useState<Map<string, StopNote>>(new Map());
+  const [dayTitles, setDayTitles] = useState<Map<string, string>>(new Map());
+  const [prompt, setPrompt] = useState('');
+  const [view, setView] = useState<CanvasView>('list');
+  // Whether "use my current location" may be offered. Asked of the server once per session (see
+  // /api/planner/locality) — it used to be a page prop, which a site-wide assistant cannot have.
+  const [mayUseDeviceLocation, setMayUseDeviceLocation] = useState(false);
   const [shared, setShared] = useState(false);
   // ── saved chats: this conversation's id, the shelf we render, and which proposals were accepted ──
   const [sessionId, setSessionId] = useState('');
   const [savedChats, setSavedChats] = useState<SavedChat[]>([]);
   const [appliedProposals, setAppliedProposals] = useState<Set<string>>(new Set());
   const initRef = useRef(false);
+  // Bumped to make the deep-link effect read the URL again (see `restoreFromUrl`).
+  const [restoreNonce, setRestoreNonce] = useState(0);
   const lastOptimizedKey = useRef('');
   /** The plan this visit OPENED with (a shared link). A session that only looks at it has nothing new
    *  to remember — the link already carries the plan — so history stays a shelf of real work. */
@@ -298,24 +313,90 @@ export function PlannerShell({ mayUseDeviceLocation = false }: { mayUseDeviceLoc
     };
   }, [optimizeKey, stops, pickup, activeDate, applyStops]);
 
-  // ── mount: responsive + dates ──
+  // ── mount: dates + locality ──
   useEffect(() => {
-    const mq = window.matchMedia('(max-width: 920px)');
-    const upd = () => setIsMobile(mq.matches);
-    upd();
-    mq.addEventListener('change', upd);
     // Earliest bookable day is TOMORROW (we don't fulfil same-day) — the server rejects today too.
     const tomorrow = new Date(Date.now() + 86_400_000);
     setMinDate(nominalDayKey(tomorrow));
     setDate(nominalDayKey(tomorrow));
-    return () => mq.removeEventListener('change', upd);
+    let active = true;
+    fetch('/api/planner/locality')
+      .then((r) => r.json())
+      .then((res) => {
+        if (active && res.ok) setMayUseDeviceLocation(Boolean(res.data?.mayUseDeviceLocation));
+      })
+      .catch(() => {
+        /* the button simply stays hidden; searching for a pick-up always works */
+      });
+    return () => {
+      active = false;
+    };
   }, []);
+
+  // ── customising one of our tours ──
+  /** The tour whose stops are loaded as the starting point, if any. */
+  const [tourSlug, setTourSlug] = useState<string | null>(null);
+  /**
+   * Hand a sightseeing tour's itinerary to the session: its stops are resolved server-side into real
+   * places and loaded as the day, ready to be changed. A tour page's "Customize this tour" calls this
+   * with the assistant opening in place; the `?fromTour=` link form calls it after a page load.
+   */
+  const loadTour = useCallback(
+    async (slug: string) => {
+      setTourSlug(slug);
+      try {
+        const res = await fetch(`/api/planner/from-tour?slug=${encodeURIComponent(slug)}`).then(
+          (r) => r.json(),
+        );
+        const tourName: string | null = res.ok ? (res.data?.tour ?? null) : null;
+        const places: PlannerPlace[] =
+          res.ok && Array.isArray(res.data?.places) ? res.data.places : [];
+        if (tourName) setBannerTour(tourName.slice(0, 80));
+        if (places.length) {
+          addToCatalog(places);
+          openedPlan.current = planSignature(
+            places.map((p) => p.id),
+            null,
+          );
+          setStopIds(places.map((p) => p.id));
+          setHasBuilt(true);
+          setChat([
+            {
+              role: 'assistant',
+              kind: 'text',
+              text: t(
+                "You're customizing {tour} — I've loaded its stops. Add, drop or reorder anything and I'll keep the route and price live.",
+                { tour: tourName ?? t('this tour') },
+              ),
+            },
+          ]);
+        } else {
+          setChat([
+            {
+              role: 'assistant',
+              kind: 'text',
+              text: t(
+                "Let's build on {tour}. Tell me what you'd like to see, or browse places and I'll shape the day around them.",
+                { tour: tourName ?? t('this tour') },
+              ),
+            },
+          ]);
+        }
+      } catch {
+        /* tour resolution failed — start from an empty day */
+      }
+    },
+    [addToCatalog, t],
+  );
 
   // ── mount: deep-link. `?fromTour=slug` hands a sightseeing tour's itinerary to the planner (stops
   //    resolved server-side); `?stops=placeId,placeId&tour=Name` is the shareable form. ──
   useEffect(() => {
     if (initRef.current) return;
     initRef.current = true;
+    // Only the planner's own URL carries a plan. Opened from any other page, the assistant must not
+    // read that page's query string as one.
+    if (!onPlannerRoute()) return;
     const params = new URLSearchParams(window.location.search);
 
     // A shared TRIP link (?from&to&dN…) restores the whole multi-day plan and wins over the
@@ -367,49 +448,7 @@ export function PlannerShell({ mayUseDeviceLocation = false }: { mayUseDeviceLoc
 
     const fromTour = params.get('fromTour');
     if (fromTour) {
-      (async () => {
-        try {
-          const res = await fetch(
-            `/api/planner/from-tour?slug=${encodeURIComponent(fromTour)}`,
-          ).then((r) => r.json());
-          const tourName: string | null = res.ok ? (res.data?.tour ?? null) : null;
-          const places: PlannerPlace[] =
-            res.ok && Array.isArray(res.data?.places) ? res.data.places : [];
-          if (tourName) setBannerTour(tourName.slice(0, 80));
-          if (places.length) {
-            addToCatalog(places);
-            openedPlan.current = planSignature(
-              places.map((p) => p.id),
-              null,
-            );
-            setStopIds(places.map((p) => p.id));
-            setHasBuilt(true);
-            setChat([
-              {
-                role: 'assistant',
-                kind: 'text',
-                text: t(
-                  "You're customizing {tour} — I've loaded its stops. Add, drop or reorder anything and I'll keep the route and price live.",
-                  { tour: tourName ?? t('this tour') },
-                ),
-              },
-            ]);
-          } else {
-            setChat([
-              {
-                role: 'assistant',
-                kind: 'text',
-                text: t(
-                  "Let's build on {tour}. Tell me what you'd like to see, or browse places and I'll shape the day around them.",
-                  { tour: tourName ?? t('this tour') },
-                ),
-              },
-            ]);
-          }
-        } catch {
-          /* tour resolution failed — start from an empty day */
-        }
-      })();
+      void loadTour(fromTour);
       return;
     }
 
@@ -454,11 +493,17 @@ export function PlannerShell({ mayUseDeviceLocation = false }: { mayUseDeviceLoc
     }
     // `t` only seeds the initial chat copy; the initRef guard makes a re-run (e.g. on language change)
     // a no-op, so listing it satisfies exhaustive-deps without re-resolving the deep link.
-  }, [addToCatalog, t]);
+  }, [addToCatalog, t, restoreNonce, loadTour]);
+  /** Read the plan out of the current URL again. The session outlives pages now, so a visitor who
+   *  already has the assistant running can still arrive at a shared link and have it load. */
+  const restoreFromUrl = useCallback(() => {
+    initRef.current = false;
+    setRestoreNonce((n) => n + 1);
+  }, []);
 
   // ── shareable URL ──
   useEffect(() => {
-    if (!initRef.current || typeof window === 'undefined') return;
+    if (!initRef.current || !onPlannerRoute()) return;
     const params = new URLSearchParams(window.location.search);
     // The tour hand-off is a one-shot trigger; drop it so the URL settles into the shareable form.
     params.delete('fromTour');
@@ -601,9 +646,26 @@ export function PlannerShell({ mayUseDeviceLocation = false }: { mayUseDeviceLoc
     [addToCatalog, commitStopId, dayRegions, blockedMessage],
   );
   const removeStop = useCallback(
-    (id: string) => setActiveStopIds((prev) => prev.filter((x) => x !== id)),
+    (id: string) => {
+      setActiveStopIds((prev) => prev.filter((x) => x !== id));
+      // A heart means "keep this"; removing the stop by hand withdraws it.
+      setPinnedIds((prev) => {
+        if (!prev.has(id)) return prev;
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    },
     [setActiveStopIds],
   );
+  const togglePin = useCallback((id: string) => {
+    setPinnedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
   const moveStop = useCallback(
     (from: number, to: number) => {
       setActiveStopIds((prev) => {
@@ -617,6 +679,16 @@ export function PlannerShell({ mayUseDeviceLocation = false }: { mayUseDeviceLoc
     [setActiveStopIds],
   );
   const clearTrip = useCallback(() => {
+    setSessionId(crypto.randomUUID());
+    openedPlan.current = '';
+    setPinnedIds(new Set());
+    setNotes(new Map());
+    setDayTitles(new Map());
+    setPrompt('');
+    setView('list');
+    setAppliedProposals(new Set());
+    setBannerTour(null);
+    setTourSlug(null);
     setStopIds([]);
     setChat([]);
     setBoost(null);
@@ -774,8 +846,15 @@ export function PlannerShell({ mayUseDeviceLocation = false }: { mayUseDeviceLoc
       dropoff: dropoff
         ? { id: dropoff.id, name: dropoff.name, lat: dropoff.lat, lng: dropoff.lng }
         : null,
+      // Only what the saved plan still refers to — a note for a stop long since removed is dead
+      // weight against the storage budget.
+      pinnedIds: [...pinnedIds].filter((id) => ids.has(id)),
+      notes: Object.fromEntries([...notes].filter(([id]) => ids.has(id))),
+      dayTitles: Object.fromEntries(dayTitles),
+      prompt,
+      view,
     };
-  }, [chat, stopIds, days, catalog, pickup, dropoff]);
+  }, [chat, stopIds, days, catalog, pickup, dropoff, pinnedIds, notes, dayTitles, prompt, view]);
 
   // Save as they go, debounced — a chat is worth resuming long before they think to save it, and
   // there is no "save" button to forget to press.
@@ -815,15 +894,21 @@ export function PlannerShell({ mayUseDeviceLocation = false }: { mayUseDeviceLoc
       setWantsDropoff(Boolean(s.dropoff));
       setBoost(null);
       setTyping(false);
+      setPinnedIds(new Set(s.pinnedIds ?? []));
+      setNotes(new Map(Object.entries(s.notes ?? {})));
+      setDayTitles(new Map(Object.entries(s.dayTitles ?? {})));
+      setPrompt(s.prompt ?? '');
+      setView(s.view ?? 'list');
       setHasBuilt(s.chat.length > 0 || s.stopIds.length > 0);
       // Resuming continues that conversation, so later saves overwrite ITS slot rather than
       // leaving the visitor with two copies of the same plan.
       setSessionId(saved.id);
       // A restored trip may anchor activities whose catalogue data this visit never loaded.
       if ((s.days ?? []).some((d) => d.activitySlug)) void ensureBmtList();
-      setMobileTab('chat');
+      const hasPlan = s.stopIds.length > 0 || (s.days ?? []).some((d) => d.stopIds.length > 0);
+      focusPane(hasPlan ? 'plan' : 'chat');
     },
-    [addToCatalog, ensureBmtList],
+    [addToCatalog, ensureBmtList, focusPane],
   );
 
   const removeSavedChat = useCallback((id: string) => setSavedChats(deleteSavedChat(id)), []);
@@ -889,6 +974,19 @@ export function PlannerShell({ mayUseDeviceLocation = false }: { mayUseDeviceLoc
     [applyRange, ensureBmtList],
   );
 
+  const mergeNotes = useCallback((list: TurnNote[]) => {
+    if (!list.length) return;
+    setNotes((prev) => {
+      const next = new Map(prev);
+      for (const n of list) {
+        if (n && typeof n.placeId === 'string' && (n.why || n.tip)) {
+          next.set(n.placeId, { why: n.why ?? null, tip: n.tip ?? null });
+        }
+      }
+      return next;
+    });
+  }, []);
+
   // ── chat (real grounded agent over live Google Places) ──
   async function sendChat(text: string) {
     const trimmed = text.trim();
@@ -924,6 +1022,7 @@ export function PlannerShell({ mayUseDeviceLocation = false }: { mayUseDeviceLoc
           messages: [...history, { role: 'user', content: trimmed }].slice(-12),
           // The current day, so ZilAi keeps/modifies it (e.g. "add a beach") rather than replacing it.
           ...(tripPayload ? { trip: tripPayload } : { itinerary: stops }),
+          ...(pinnedIds.size ? { pinnedIds: [...pinnedIds] } : {}),
         }),
       }).then((r) => r.json());
       setTyping(false);
@@ -938,7 +1037,14 @@ export function PlannerShell({ mayUseDeviceLocation = false }: { mayUseDeviceLoc
           places: PlannerPlace[];
           dinner: PlannerPlace | null;
           activitySlug: string | null;
+          title?: string | null;
+          notes?: TurnNote[];
         }> = Array.isArray(res.data.days) ? res.data.days : [];
+        // What ZilAi wrote for the result cards this turn, whichever mode it committed in.
+        mergeNotes([
+          ...(Array.isArray(res.data.notes) ? (res.data.notes as TurnNote[]) : []),
+          ...committedDays.flatMap((d) => (Array.isArray(d.notes) ? d.notes : [])),
+        ]);
         const recommendations: BmtCandidate[] = Array.isArray(res.data.recommendations)
           ? res.data.recommendations
           : [];
@@ -977,6 +1083,13 @@ export function PlannerShell({ mayUseDeviceLocation = false }: { mayUseDeviceLoc
             });
           });
           // Reply + a branded card for each day that GAINED a recommended activity + the day summary.
+          setDayTitles((prev) => {
+            const next = new Map(prev);
+            for (const d of committedDays) if (d.title) next.set(d.date, d.title);
+            return next;
+          });
+          setPrompt(keepFirst(trimmed));
+          focusPane('plan');
           const newActivityCards = committedDays
             .filter((d) => d.activitySlug && prevBySlug.get(d.date) !== d.activitySlug)
             .map(
@@ -997,13 +1110,17 @@ export function PlannerShell({ mayUseDeviceLocation = false }: { mayUseDeviceLoc
           ]);
         } else if (!tripPayload && places.length) {
           addToCatalog(places);
-          const ids = places.map((p) => p.id);
-          const newOnes = ids.filter((id) => !stopIds.includes(id));
-          setStopIds(ids);
+          setStopIds(places.map((p) => p.id));
+          if (typeof res.data.title === 'string' && res.data.title) {
+            setDayTitles((prev) => new Map(prev).set(SINGLE_DAY, res.data.title as string));
+          }
+          setPrompt(keepFirst(trimmed));
+          focusPane('plan');
+          // The stops themselves are the canvas's job now — the chat keeps the words and one
+          // summary chip that reopens the plan.
           setChat((c) => [
             ...c,
             { role: 'assistant', kind: 'text', text: reply },
-            ...newOnes.map((id) => ({ role: 'assistant', kind: 'place', id }) as ChatMsg),
             ...proposalCards,
             { role: 'assistant', kind: 'summary' } as ChatMsg,
           ]);
@@ -1039,27 +1156,6 @@ export function PlannerShell({ mayUseDeviceLocation = false }: { mayUseDeviceLoc
     }
   }
 
-  function scrollToPlanner() {
-    const el = document.getElementById('planner');
-    if (el)
-      window.scrollTo({
-        top: el.getBoundingClientRect().top + window.scrollY - 60,
-        behavior: 'smooth',
-      });
-  }
-
-  function submitHero() {
-    const v =
-      heroValue.trim() ||
-      (isTrip
-        ? 'Plan every day of my trip with the best of Mauritius — include lunch and dinner spots, and recommend your activities where they fit.'
-        : 'A relaxed day in the south — two beaches and a waterfall, back by 5pm.');
-    scrollToPlanner();
-    setMobileTab('chat');
-    void sendChat(v);
-    setHeroValue('');
-  }
-
   function openPreset(id: string) {
     const p = PRESETS.find((x) => x.id === id);
     if (!p) return;
@@ -1069,7 +1165,8 @@ export function PlannerShell({ mayUseDeviceLocation = false }: { mayUseDeviceLoc
     setHasBuilt(true);
     setBannerTour(null);
     setDrawerOpen(false);
-    setMobileTab('day');
+    setPrompt(p.name);
+    focusPane('plan');
     setChat([
       {
         role: 'assistant',
@@ -1080,7 +1177,6 @@ export function PlannerShell({ mayUseDeviceLocation = false }: { mayUseDeviceLoc
         ),
       },
     ]);
-    scrollToPlanner();
   }
 
   async function bookDay() {
@@ -1185,9 +1281,20 @@ export function PlannerShell({ mayUseDeviceLocation = false }: { mayUseDeviceLoc
     }
   }
 
+  /** The link that restores this plan — always the planner's own URL, whichever page the visitor
+   *  has the assistant open on. */
+  function shareUrl(): string {
+    const params = new URLSearchParams();
+    if (days !== null) tripToParams(params, days);
+    else if (stopIds.length) params.set('stops', stopsToParam(stopIds));
+    const prefix = window.location.pathname.startsWith('/fr') ? '/fr' : '';
+    const qs = params.toString();
+    return `${window.location.origin}${prefix}${PLANNER_PATH}${qs ? `?${qs}` : ''}`;
+  }
+
   async function copyLink() {
     try {
-      await navigator.clipboard.writeText(window.location.href);
+      await navigator.clipboard.writeText(shareUrl());
       setShared(true);
       setTimeout(() => setShared(false), 2000);
     } catch {
@@ -1282,7 +1389,7 @@ export function PlannerShell({ mayUseDeviceLocation = false }: { mayUseDeviceLoc
   function askAboutActivity(slug: string) {
     const info = bmtCatalog.get(slug);
     if (!info) return;
-    setMobileTab('chat');
+    focusPane('chat');
     void sendChat(
       markerDate
         ? t(
@@ -1298,317 +1405,189 @@ export function PlannerShell({ mayUseDeviceLocation = false }: { mayUseDeviceLoc
     setChat((c) => [...c, { role: 'assistant', kind: 'activity', slug, date: markerDate }]);
   }
 
-  const itinerary = (
-    <ItineraryPanel
-      stops={stops}
-      pickup={pickup}
-      onPickup={choosePickup}
-      dropoff={dropoff}
-      onDropoff={setDropoff}
-      wantsDropoff={wantsDropoff}
-      onWantsDropoff={setWantsDropoff}
-      route={route}
-      quote={quote}
-      onAddPlaces={() => setDrawerOpen(true)}
-      dayFull={dayFull}
-      onRemove={removeStop}
-      onMove={moveStop}
-      onQuote={() => setQuoteOpen(true)}
-      onShare={copyLink}
-      shared={shared}
-      dayLabel={
-        activeDay
-          ? `${t('Day {n}', { n: activeDayIdx + 1 })} — ${dayDateLabel(activeDay.date)}`
-          : null
+  /** "Regenerate unpinned": keep the hearted stops, ask ZilAi to replace the rest. The server
+   *  re-inserts any hearted stop the model drops, so this is a promise rather than a request. */
+  function regenerate() {
+    void sendChat(
+      activeDay
+        ? t('Regenerate {day} — keep the stops I hearted and swap the rest for different places.', {
+            day: dayDateLabel(activeDay.date),
+          })
+        : t(
+            'Regenerate my plan — keep the stops I hearted and swap the rest for different places.',
+          ),
+    );
+  }
+
+  /** Start planning from the landing page's hero or a suggestion: optional dates first, then the ask. */
+  function startWith(text: string) {
+    focusPane('chat');
+    void sendChat(text);
+  }
+
+  // ── card text for stops ZilAi never wrote about (a preset, a shared link, a place added by hand)
+  //    and that Google has no summary for. One background request per new batch, never repeated. ──
+  const insightAsked = useRef(new Set<string>());
+  useEffect(() => {
+    if (typing) return;
+    const missing = stops.filter(
+      (p) => !notes.has(p.id) && !p.blurb && !insightAsked.current.has(p.id),
+    );
+    if (!missing.length) return;
+    const timer = setTimeout(async () => {
+      missing.forEach((p) => insightAsked.current.add(p.id));
+      try {
+        const res = await fetch('/api/ai/place-insights', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            places: missing.map((p) => ({ name: p.name, category: p.category, region: p.region })),
+          }),
+        }).then((r) => r.json());
+        const items: Array<{ name: string; insight: string }> = res.ok
+          ? (res.data?.insights?.items ?? [])
+          : [];
+        const byName = new Map(items.map((i) => [i.name.trim().toLowerCase(), i.insight]));
+        mergeNotes(
+          missing.flatMap((p) => {
+            const why = byName.get(p.name.trim().toLowerCase());
+            return why ? [{ placeId: p.id, why, tip: null }] : [];
+          }),
+        );
+      } catch {
+        /* the card simply shows its facts without a sentence */
       }
-      activity={
-        selectedBmt && activeDay
-          ? { activity: selectedBmt, date: activeDay.date, seatsLeft: selectedBmt.seatsLeft }
-          : null
-      }
-      onRemoveActivity={activeDay ? () => removeDayActivity(activeDay.date) : undefined}
-      dinner={dinnerPlace}
-      onRemoveDinner={activeDay ? () => removeDayDinner(activeDay.date) : undefined}
-      onUseMyLocation={mayUseDeviceLocation ? () => void runPickupDetection(true) : undefined}
-      locating={locating}
-      locateError={locateError}
-    />
-  );
-  const copilot = (
-    <ChatCopilot
-      messages={chat}
-      typing={typing}
-      boost={boost}
-      hasBuilt={hasBuilt}
-      stops={stops}
-      placesById={catalog}
-      stopIndex={stopIndex}
-      route={route}
-      quote={quote}
-      onSend={sendChat}
-      onApplyBoost={applyBoost}
-      onDismissBoost={() => setBoost(null)}
-      onClear={clearTrip}
-      onBrowse={() => setDrawerOpen(true)}
-      onQuote={() => setQuoteOpen(true)}
-      onAddPlace={addStopId}
-      addReasonById={(id) => addBlockReason(catalog.get(id)?.region ?? null, dayRegions)}
-      bmtBySlug={bmtCatalog}
-      previewByName={previewByName}
-      savedChats={savedChats}
-      sessionId={sessionId}
-      onResumeChat={resumeChat}
-      onDeleteChat={removeSavedChat}
-      onAcceptProposal={acceptProposal}
-      appliedProposals={appliedProposals}
-    />
-  );
-  const map = (
-    <div className="relative h-full w-full">
-      <RouteMap
-        stops={mapStops}
-        kinds={mapKinds}
-        labels={mapLabels}
-        animate={stops.length > 0}
-        carColor="#DC2626"
-        className="h-full w-full"
-        activities={mapActivities}
-        onActivityClick={askAboutActivity}
-        dinner={mapDinner}
-      />
-      {/* "Belle Mare Tours activities" browse layer toggle. */}
-      <button
-        type="button"
-        onClick={toggleBmtLayer}
-        aria-pressed={showBmtLayer}
-        className={`absolute left-3 top-3 z-10 inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-2 text-[12px] font-extrabold shadow-[0_6px_16px_rgba(10,46,54,.18)] transition ${
-          showBmtLayer
-            ? 'border-coral bg-coral text-white'
-            : 'border-[#F8D3CE] bg-white text-coral hover:bg-[#FDECEA]'
-        }`}
-      >
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden>
-          <path
-            d="M12 3l2.3 4.7 5.2.3-3.7 3.6.9 5.1L12 14.5 7.3 16.7l.9-5.1L4.5 8l5.2-.3L12 3Z"
-            fill={showBmtLayer ? '#fff' : '#F76C5E'}
-          />
-        </svg>
-        {bmtLoading ? t('Loading activities…') : t('Our activities')}
-      </button>
-    </div>
-  );
-  const drawer = (
-    <PlacesDrawer
-      open={drawerOpen}
-      onClose={() => setDrawerOpen(false)}
-      selectedIds={stopIds}
-      onAdd={addPlace}
-      addReason={(region) => addBlockReason(region, dayRegions)}
-    />
-  );
+    }, 1400);
+    return () => clearTimeout(timer);
+  }, [stops, notes, typing, mergeNotes]);
 
-  return (
-    <main className="min-h-screen bg-white">
-      {/* "PDF" prints THIS, not the page. The live UI is `print:hidden` below, so a print run yields
-          the trip document rather than a screenshot of the app (hero, chat, nav and all). */}
-      <PlannerPrintSheet
-        days={days}
-        stops={stops}
-        pickup={pickup}
-        dropoff={dropoff}
-        quote={quote}
-        party={party}
-        date={date || minDate}
-        time={time}
-        catalog={catalog}
-        bmtBySlug={bmtCatalog}
-      />
-      <div className="print:hidden">
-        <HeroSection
-          value={heroValue}
-          onChange={setHeroValue}
-          onSubmit={submitHero}
-          onChip={(c) => {
-            setHeroValue(c);
-            scrollToPlanner();
-            setMobileTab('chat');
-            void sendChat(c);
-            setHeroValue('');
-          }}
-          from={rangeFrom}
-          to={rangeTo}
-          onRange={applyRange}
-          minDate={minDate}
-          isTrip={isTrip}
-        />
+  const dayTitle = dayTitles.get(activeDay?.date ?? SINGLE_DAY) ?? null;
+  const hasPlan = isTrip
+    ? (days ?? []).some((d) => d.stopIds.length > 0 || d.activitySlug)
+    : stopIds.length > 0;
 
-        <div id="planner" style={{ background: 'linear-gradient(180deg,#FFFFFF, #F6FBFA)' }}>
-          {bannerTour && (
-            <div className="mx-auto max-w-shell px-[22px] pt-3.5">
-              <div
-                className="flex items-center gap-3 rounded-[14px] border border-[#D8ECEA] px-[15px] py-[11px]"
-                style={{ background: 'linear-gradient(120deg,#EAF7F5,#fff)' }}
-              >
-                <span className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-[9px] bg-coral">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-                    <path
-                      d="M12 3l2.3 4.7L19.5 8l-3.7 3.6.9 5.1L12 14.5 7.3 16.7l.9-5.1L4.5 8l5.2-.3L12 3Z"
-                      fill="#fff"
-                    />
-                  </svg>
-                </span>
-                <div className="flex-1">
-                  <span className="text-[11px] font-extrabold uppercase tracking-[0.05em] text-coral">
-                    {t('Customizing')}
-                  </span>
-                  <div className="text-[14.5px] font-bold text-ink">
-                    {t('{tour} — make it yours', { tour: bannerTour })}
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setBannerTour(null)}
-                  aria-label={t('Dismiss')}
-                  className="cursor-pointer p-1.5 text-ink-muted"
-                >
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden>
-                    <path
-                      d="M6 6l12 12M18 6L6 18"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {isMobile ? (
-            <div className="px-3 pt-2.5">
-              {isTrip && days && (
-                <div className="mb-2.5">
-                  <DayTabs
-                    days={days}
-                    activeIdx={activeDayIdx}
-                    onSelect={setActiveDayIdx}
-                    onExit={exitTrip}
-                  />
-                </div>
-              )}
-              <div className="relative h-[calc(100vh-220px)] min-h-[460px] overflow-hidden rounded-[18px] border border-[#EAF2F1] bg-white shadow-[0_14px_34px_rgba(10,46,54,.08)]">
-                <div className="h-full">
-                  {mobileTab === 'chat' ? copilot : mobileTab === 'map' ? map : itinerary}
-                </div>
-                {drawer}
-              </div>
-              <div className="sticky bottom-0 mt-2.5 flex gap-1.5 rounded-[16px] border border-[#EAF2F1] bg-white p-1.5 shadow-[0_10px_24px_rgba(10,46,54,.1)]">
-                {(
-                  [
-                    ['chat', 'ZilAi'],
-                    ['day', 'Your day'],
-                    ['map', 'Map'],
-                  ] as const
-                ).map(([k, lab]) => (
-                  <button
-                    key={k}
-                    type="button"
-                    onClick={() => setMobileTab(k)}
-                    className={`flex-1 cursor-pointer rounded-[11px] py-2.5 text-[13px] font-bold ${mobileTab === k ? 'bg-teal-tint text-teal-dark' : 'bg-transparent text-ink-muted'}`}
-                  >
-                    {t(lab)}
-                  </button>
-                ))}
-              </div>
-              {stops.length > 0 && (
-                <div className="sticky bottom-0 mt-2.5 flex items-center gap-3 rounded-[16px] bg-ink px-3.5 py-[11px] shadow-[0_12px_28px_rgba(10,46,54,.28)]">
-                  <div className="flex-1 text-white">
-                    <div className="text-[12.5px] font-bold">
-                      {t('{n} stops · {dur} driving', {
-                        n: stops.length,
-                        dur: fmtDur(route.totalMinutes),
-                      })}
-                    </div>
-                    <div className="text-xs text-[#9FD2CD]">
-                      ~{quote ? <Price eur={quote.totalEur} /> : '—'} {t('estimate')}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setQuoteOpen(true)}
-                    className="cursor-pointer rounded-xl bg-coral px-[18px] py-[11px] text-sm font-extrabold text-white"
-                  >
-                    {t('Get quote')}
-                  </button>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="mx-auto max-w-shell px-[22px] pb-2 pt-[18px]">
-              {isTrip && days && (
-                <div className="mb-3">
-                  <DayTabs
-                    days={days}
-                    activeIdx={activeDayIdx}
-                    onSelect={setActiveDayIdx}
-                    onExit={exitTrip}
-                  />
-                </div>
-              )}
-              <div
-                className="grid h-[min(720px,80vh)] gap-4"
-                style={{ gridTemplateColumns: '330px 1fr 0.86fr' }}
-              >
-                <div className="overflow-hidden rounded-[18px] border border-[#EAF2F1] shadow-[0_18px_44px_rgba(10,46,54,.07)]">
-                  {itinerary}
-                </div>
-                <div className="relative overflow-hidden rounded-[18px] border border-[#EAF2F1] shadow-[0_18px_44px_rgba(10,46,54,.08)]">
-                  {copilot}
-                  {drawer}
-                </div>
-                <div className="overflow-hidden rounded-[18px] border border-[#EAF2F1] shadow-[0_18px_44px_rgba(10,46,54,.07)]">
-                  {map}
-                </div>
-              </div>
-            </div>
-          )}
-
-          <AIInsights stops={stops} />
-        </div>
-
-        <PresetsSection items={presetCards} onOpen={openPreset} />
-        <FeaturesSection />
-        <TrustSection />
-        <FaqSection />
-
-        <QuoteModal
-          open={quoteOpen}
-          onClose={() => setQuoteOpen(false)}
-          stops={stops}
-          route={route}
-          quote={quote}
-          quoteError={quoteError}
-          maxParty={pricing.maxParty}
-          date={isTrip ? (activeDay?.date ?? date) : date}
-          setDate={(d) => {
-            setDate(d);
-            setDateChosen(true);
-          }}
-          minDate={minDate}
-          lockedDate={isTrip ? (activeDay?.date ?? null) : null}
-          time={time}
-          setTime={setTime}
-          party={party}
-          setParty={setParty}
-          suv={suv}
-          setSuv={setSuv}
-          childSeats={childSeats}
-          setChildSeats={setChildSeats}
-          booking={booking}
-          bookError={bookError}
-          onBook={bookDay}
-        />
-      </div>
-    </main>
-  );
+  return {
+    // conversation
+    chat,
+    typing,
+    hasBuilt,
+    sendChat,
+    startWith,
+    regenerate,
+    boost,
+    applyBoost,
+    dismissBoost: () => setBoost(null),
+    appliedProposals,
+    acceptProposal,
+    previewByName,
+    // the plan
+    prompt,
+    hasPlan,
+    stops,
+    stopIndex,
+    route,
+    dayTitle,
+    notes,
+    pinnedIds,
+    togglePin,
+    removeStop,
+    moveStop,
+    addStopId,
+    addPlace,
+    addReasonForRegion: (region: string | null) => addBlockReason(region, dayRegions),
+    dayFull,
+    view,
+    setView,
+    openPreset,
+    presetCards,
+    bannerTour,
+    dismissBanner: () => setBannerTour(null),
+    // trip
+    isTrip,
+    days,
+    activeDay,
+    activeDayIdx,
+    setActiveDayIdx,
+    rangeFrom,
+    rangeTo,
+    applyRange,
+    exitTrip,
+    dayDateLabel,
+    selectedBmt,
+    removeDayActivity,
+    dinnerPlace,
+    removeDayDinner,
+    bmtCatalog,
+    // map
+    mapStops,
+    mapKinds,
+    mapLabels,
+    mapActivities,
+    mapDinner,
+    askAboutActivity,
+    showBmtLayer,
+    toggleBmtLayer,
+    bmtLoading,
+    // pick-up
+    pickup,
+    choosePickup,
+    dropoff,
+    setDropoff,
+    wantsDropoff,
+    setWantsDropoff,
+    mayUseDeviceLocation,
+    locating,
+    locateError,
+    useMyLocation: () => void runPickupDetection(true),
+    // quote + booking
+    pricing,
+    quote,
+    quoteError,
+    party,
+    setParty,
+    suv,
+    setSuv,
+    childSeats,
+    setChildSeats,
+    date,
+    setDate: (d: string) => {
+      setDate(d);
+      setDateChosen(true);
+    },
+    minDate,
+    time,
+    setTime,
+    quoteOpen,
+    setQuoteOpen,
+    booking,
+    bookError,
+    bookDay,
+    drawerOpen,
+    setDrawerOpen,
+    activeStopIds,
+    // sharing + saved chats
+    copyLink,
+    shared,
+    catalog,
+    sessionId,
+    savedChats,
+    resumeChat,
+    removeSavedChat,
+    newChat: clearTrip,
+    restoreFromUrl,
+    loadTour,
+    tourSlug,
+  };
 }
+
+/** The canvas is headed by the request the plan answers. "Add a beach" and "regenerate" change
+ *  that plan; they are not what it is a result FOR — so the first request stands until a new chat. */
+const keepFirst = (text: string) => (current: string) => current || text;
+
+/** The key a single (date-less) day's title is stored under. */
+const SINGLE_DAY = 'single';
+
+/** One stop's card text as a turn returns it. */
+type TurnNote = { placeId: string; why?: string | null; tip?: string | null };
+
+export type PlannerSession = ReturnType<typeof usePlannerSession>;

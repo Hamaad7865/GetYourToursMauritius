@@ -24,6 +24,15 @@ export const MAX_SAVED_CHATS = 6;
  *  so the planner takes a small, predictable slice of it. */
 export const MAX_HISTORY_BYTES = 400_000;
 
+/** What ZilAi wrote about one stop for its result card. */
+export interface StopNote {
+  why: string | null;
+  tip: string | null;
+}
+
+/** How the results canvas is showing the plan. */
+export type CanvasView = 'list' | 'compare';
+
 /** Everything needed to put a visitor back where they left off. */
 export interface PlannerSnapshot {
   chat: ChatMsg[];
@@ -35,6 +44,17 @@ export interface PlannerSnapshot {
   places: PlannerPlace[];
   pickup: { id: string; name: string; lat: number; lng: number };
   dropoff: { id: string; name: string; lat: number; lng: number } | null;
+  // Everything below arrived with the assistant redesign. All optional: a chat saved by the older
+  // planner has none of it and must still open, so the storage key did not need a new version.
+  /** Stops the visitor hearted ("keep this when you regenerate"). */
+  pinnedIds?: string[];
+  /** Card text by place id. */
+  notes?: Record<string, StopNote>;
+  /** ZilAi's name for each day, by date (`single` for a date-less day). */
+  dayTitles?: Record<string, string>;
+  /** The request the plan on screen answers — the canvas heading. */
+  prompt?: string;
+  view?: CanvasView;
 }
 
 export interface SavedChat {
@@ -57,6 +77,21 @@ export function snapshotTitle(snapshot: PlannerSnapshot): string {
   const first = snapshot.places.find((p) => p.id === snapshot.stopIds[0]);
   if (first) return `Day out — ${first.name}`;
   return 'Planning session';
+}
+
+/** What a saved chat holds, for the menu's filters: a plan seen as a comparison, a plan seen as an
+ *  itinerary, or a conversation that never produced one. */
+export type SavedChatKind = 'itinerary' | 'comparison' | 'chat';
+
+export function savedChatKind(snapshot: PlannerSnapshot): SavedChatKind {
+  if (planSignature(snapshot.stopIds, snapshot.days) === '') return 'chat';
+  return snapshot.view === 'compare' ? 'comparison' : 'itinerary';
+}
+
+/** How many stops a saved plan holds across all its days — the number shown on a "My trips" row. */
+export function savedStopCount(snapshot: PlannerSnapshot): number {
+  if (snapshot.days) return snapshot.days.reduce((n, d) => n + d.stopIds.length, 0);
+  return snapshot.stopIds.length;
 }
 
 /** True when a snapshot holds enough to be worth saving (and worth showing in the list). */
@@ -135,10 +170,32 @@ export function parseSavedChats(raw: string | null): SavedChat[] {
         places: s.places as PlannerPlace[],
         pickup: s.pickup as PlannerSnapshot['pickup'],
         dropoff: (s.dropoff as PlannerSnapshot['dropoff']) ?? null,
+        pinnedIds: Array.isArray(s.pinnedIds)
+          ? s.pinnedIds.filter((id): id is string => typeof id === 'string')
+          : [],
+        notes: plainRecord(s.notes) as Record<string, StopNote>,
+        dayTitles: stringRecord(s.dayTitles),
+        prompt: typeof s.prompt === 'string' ? s.prompt : '',
+        view: s.view === 'compare' ? 'compare' : 'list',
       },
     });
   }
   return out.sort((a, b) => b.savedAt - a.savedAt);
+}
+
+/** A stored value as a plain object, or `{}` — an array or a string here means a damaged entry. */
+function plainRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function stringRecord(value: unknown): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(plainRecord(value)).filter(
+      (entry): entry is [string, string] => typeof entry[1] === 'string',
+    ),
+  );
 }
 
 /** "Just now" / "2h ago" / "Tue 12 Aug" — a saved chat is found by when it happened. */

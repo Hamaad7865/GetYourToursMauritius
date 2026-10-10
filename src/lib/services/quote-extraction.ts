@@ -1,4 +1,4 @@
-import { generateObject, type LanguageModelV1 } from 'ai';
+import { generateObject, type LanguageModel } from 'ai';
 import type { ServiceContext } from './context';
 import { plannerModel } from './planner-agent';
 import { searchActivities } from './activities';
@@ -13,7 +13,7 @@ import { quoteExtractionSchema, type QuoteExtraction } from '@/lib/validation/qu
  * act on. The model is built with the same `plannerModel(ctx)` seam the planner uses: real Gemini only
  * when the provider is Google AND a key is set; otherwise null, and the feature reports itself
  * unavailable so the operator fills the quote by hand (the Gemini-billing blocker documented in the
- * plan). Tests inject a scripted `MockLanguageModelV1`.
+ * plan). Tests inject a scripted `MockLanguageModelV2`.
  *
  * THE GUARDRAIL STARTS HERE. The model is given candidate lists — the published catalogue and the
  * rental fleet — and asked to return at most one candidate `slug` per request, or `null` when unsure.
@@ -93,7 +93,7 @@ export async function extractQuoteFromEmail(
   ctx: ServiceContext,
   emailText: string,
   // Injectable so the extraction can be tested with a scripted model; defaults to the real Gemini.
-  modelOverride?: LanguageModelV1 | null,
+  modelOverride?: LanguageModel | null,
 ): Promise<QuoteExtractionResult> {
   const model = modelOverride ?? plannerModel(ctx);
   // No model (stub provider / no key) → graceful "unavailable" BEFORE any DB work, so the manual path

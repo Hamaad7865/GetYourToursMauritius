@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { MockLanguageModelV1 } from 'ai/test';
+import { scriptedModel as replay } from '../helpers/scripted-model';
 import { createTestDb, type TestDb } from '../db/pglite';
 import { pgliteRpc } from '../db/rpc';
 import { StubPaymentProvider } from '@/lib/payments/stub';
@@ -72,36 +72,9 @@ const okJson = (body: unknown) => ({ ok: true, json: async () => body }) as unkn
 
 /** A mock Gemini that runs a fixed script (tool calls, then a reply) and records the prompts it saw. */
 function scriptedModel(steps: Array<{ tool: string; args: unknown } | { text: string }>) {
-  const seenPrompts: string[] = [];
-  let i = 0;
-  const model = new MockLanguageModelV1({
-    doGenerate: async (opts) => {
-      seenPrompts.push(JSON.stringify(opts.prompt));
-      const step = steps[i++]!;
-      if ('text' in step) {
-        return {
-          finishReason: 'stop',
-          usage: { promptTokens: 0, completionTokens: 0 },
-          text: step.text,
-          rawCall: { rawPrompt: null, rawSettings: {} },
-        };
-      }
-      return {
-        finishReason: 'tool-calls',
-        usage: { promptTokens: 0, completionTokens: 0 },
-        toolCalls: [
-          {
-            toolCallType: 'function',
-            toolCallId: `c${i}`,
-            toolName: step.tool,
-            args: JSON.stringify(step.args),
-          },
-        ],
-        rawCall: { rawPrompt: null, rawSettings: {} },
-      };
-    },
-  });
-  return { model, seenPrompts };
+  return replay(
+    steps.map((s) => ('text' in s ? s : { calls: [{ toolName: s.tool, input: s.args }] })),
+  );
 }
 
 describe('runPlannerTurn — keeps the current day when adding', () => {

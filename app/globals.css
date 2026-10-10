@@ -947,6 +947,111 @@
   }
 }
 
+/* ── "Plan with AI" ───────────────────────────────────────────────────────────
+   The header's way into ZilAi (PlanWithAiButton). Meant to catch the eye: a filled pill in deep teal,
+   a band of light crossing it every few seconds, and a spark that twinkles in step.
+
+   The fill never gets lighter than #0A7078 — white text on it is 5.9:1, above the AA line this site
+   is held to. The brand teal (#0E8C92) is only 4:1 under white, so it appears here as light passing
+   over the pill, never as the surface the label sits on. */
+.zilai-cta {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background-image: linear-gradient(115deg, #0b5c63 0%, #0a7078 45%, #0b5c63 100%);
+  background-size: 220% 100%;
+  box-shadow: 0 8px 20px -8px rgb(var(--color-teal) / 0.75);
+  transition:
+    transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.2s ease;
+  animation: zilaiCtaDrift 7s ease-in-out infinite alternate;
+}
+.zilai-cta::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(
+    100deg,
+    transparent 35%,
+    rgb(255 255 255 / 0.34) 50%,
+    transparent 65%
+  );
+  transform: translateX(-120%);
+  animation: zilaiCtaSheen 4.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+.zilai-cta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 26px -8px rgb(var(--color-teal) / 0.9);
+}
+.zilai-cta:active {
+  transform: translateY(0) scale(0.97);
+}
+.zilai-cta:focus-visible {
+  outline: 2px solid rgb(var(--color-ink));
+  outline-offset: 3px;
+}
+.zilai-cta-spark {
+  transform-origin: 42% 42%;
+  animation: zilaiCtaTwinkle 4.2s ease-in-out infinite;
+}
+.zilai-cta-spark-small {
+  transform-origin: 75% 70%;
+  animation: zilaiCtaTwinkleSmall 4.2s ease-in-out infinite;
+}
+@keyframes zilaiCtaDrift {
+  to {
+    background-position: 100% 0;
+  }
+}
+/* The sheen crosses in the first third of the cycle and then waits, so it reads as a glint rather
+   than a loading bar. */
+@keyframes zilaiCtaSheen {
+  0% {
+    transform: translateX(-120%);
+  }
+  32%,
+  100% {
+    transform: translateX(120%);
+  }
+}
+@keyframes zilaiCtaTwinkle {
+  0%,
+  36%,
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+  16% {
+    transform: scale(1.18) rotate(18deg);
+  }
+}
+@keyframes zilaiCtaTwinkleSmall {
+  0%,
+  40%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  20% {
+    opacity: 0.35;
+    transform: scale(0.6);
+  }
+}
+/* Still the loudest thing in the bar, by colour and depth alone. */
+@media (prefers-reduced-motion: reduce) {
+  .zilai-cta,
+  .zilai-cta-spark,
+  .zilai-cta-spark-small {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+  }
+  .zilai-cta::before {
+    display: none;
+  }
+}
+
 /* ── Touch: no focus-zoom ─────────────────────────────────────────────────────
    WebKit zooms the whole page when you focus a form control whose font-size is under 16px, and it
    does not zoom back out on blur — the viewport stays scrolled and clipped (the "Search" button and

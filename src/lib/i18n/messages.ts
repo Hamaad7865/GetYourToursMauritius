@@ -697,8 +697,8 @@ export const fr: Record<string, string> = {
   'Every distance and drive time comes from real map data, recalculated each time you change the plan — no chatbot guesswork. Totals always add up.':
     'Chaque distance et temps de trajet provient de vraies données cartographiques, recalculés à chaque modification du plan — aucune approximation de chatbot. Les totaux sont toujours justes.',
   'Can I change a plan the AI made?': 'Puis-je modifier un plan créé par l’IA ?',
-  'Completely. Drag to reorder, drop a stop, add a beach, or just tell ZilAi — the route and price update live.':
-    'Totalement. Glissez pour réorganiser, retirez un arrêt, ajoutez une plage, ou dites-le simplement à ZilAi — l’itinéraire et le prix se mettent à jour en temps réel.',
+  'Completely. Move a stop earlier or later, drop one, add a beach, or just tell ZilAi — the route and price update live.':
+    'Totalement. Avancez ou reculez une étape, retirez-en une, ajoutez une plage, ou dites-le simplement à ZilAi — l’itinéraire et le prix se mettent à jour en temps réel.',
   'How fast is a quote, really?': 'À quelle vitesse obtient-on vraiment un devis ?',
   'A verified local driver confirms your quote within minutes by WhatsApp, not "sometime today".':
     'Un chauffeur local vérifié confirme votre devis en quelques minutes par WhatsApp, pas « dans la journée ».',
@@ -2903,4 +2903,107 @@ export const fr: Record<string, string> = {
     'Un opérateur local mauricien, installé à Belle Mare',
   'Belle Mare Tours is the operator, not a marketplace. The price you see is ours, with no reseller markup.':
     'Belle Mare Tours est l’opérateur, pas une place de marché. Le prix affiché est le nôtre, sans marge de revendeur.',
+
+  // ── ZilAi assistant: the site-wide panel + results canvas (2026-10) ──
+  'Plan with AI': 'Planifier avec l’IA',
+  'AI assistant': 'Assistant IA',
+  'New chat': 'Nouvelle discussion',
+  'Copy a link to this plan': 'Copier un lien vers ce programme',
+  'Close ZilAi': 'Fermer ZilAi',
+  'Dates & travellers': 'Dates et voyageurs',
+  Dates: 'Dates',
+  Recents: 'Récents',
+  '1 traveller': '1 voyageur',
+  '{vehicle} · one price for the vehicle': '{vehicle} · un seul prix pour le véhicule',
+  'Ask for a change…': 'Demandez un changement…',
+  'Describe your day…': 'Décrivez votre journée…',
+  'View your plan': 'Voir votre programme',
+  'Let’s plan your Mauritius trip': 'Préparons votre voyage à l’île Maurice',
+  'Real places and real drive times, at one price for your own car and driver.':
+    'De vrais lieux et de vrais temps de trajet, à un seul prix pour votre voiture avec chauffeur.',
+  'Ask anything': 'Posez votre question',
+  'A relaxed day in the south: two beaches and a waterfall':
+    'Une journée tranquille dans le sud : deux plages et une cascade',
+  'Three days on the east coast with a catamaran cruise':
+    'Trois jours sur la côte est avec une croisière en catamaran',
+  'The best viewpoints in the west, back before sunset':
+    'Les plus beaux points de vue de l’ouest, retour avant le coucher du soleil',
+  'Still on it — checking real places and drive times takes a moment.':
+    'Toujours en cours — vérifier de vrais lieux et temps de trajet prend un instant.',
+  'ZilAi is working on it…': 'ZilAi y travaille…',
+  'ZilAi, the AI trip assistant': 'ZilAi, l’assistant de voyage IA',
+  'Assistant views': 'Vues de l’assistant',
+  Chat: 'Discussion',
+  Plan: 'Programme',
+  'ZilAi menu': 'Menu ZilAi',
+  'My trips': 'Mes voyages',
+  Comparison: 'Comparaison',
+  'This chat': 'Cette discussion',
+  'Delete “{title}”': 'Supprimer « {title} »',
+  'Plans you build with ZilAi are kept here, on this device, so you can come back to them.':
+    'Les programmes que vous créez avec ZilAi sont conservés ici, sur cet appareil, pour que vous puissiez y revenir.',
+  'Your chats with ZilAi are kept here, on this device. Nothing yet.':
+    'Vos discussions avec ZilAi sont conservées ici, sur cet appareil. Rien pour l’instant.',
+  'Nothing saved matches that filter.': 'Aucun élément enregistré ne correspond à ce filtre.',
+  'Results for “{query}”': 'Résultats pour « {query} »',
+  'Your plan': 'Votre programme',
+  'Day 1': 'Jour 1',
+  'Close the plan': 'Fermer le programme',
+  'Compare my options': 'Comparer mes options',
+  'Print or save as PDF': 'Imprimer ou enregistrer en PDF',
+  'Keeps the stops you hearted and replaces the rest':
+    'Conserve les étapes que vous avez aimées et remplace les autres',
+  'Regenerate unpinned': 'Régénérer le reste',
+  'Updating your plan': 'Mise à jour de votre programme',
+  '{n} stops · {dur} driving · {km} km': '{n} étapes · {dur} de route · {km} km',
+  '{m} min · {km} km': '{m} min · {km} km',
+  'Drop me off somewhere else': 'Déposez-moi ailleurs',
+  'No driving stops on this day — the tour fills it. Add one if you’d like more.':
+    'Aucune étape en voiture ce jour-là — l’excursion l’occupe. Ajoutez-en une si vous le souhaitez.',
+  'Nothing on this day yet. Ask ZilAi in the chat, or add a stop yourself.':
+    'Rien de prévu ce jour-là pour l’instant. Demandez à ZilAi dans la discussion, ou ajoutez une étape vous-même.',
+  'Day full — 6 stops': 'Journée complète — 6 étapes',
+  'Add a stop': 'Ajouter une étape',
+  'Back at': 'Retour à',
+  'Dinner nearby': 'Dîner à proximité',
+  'Remove {name} from the day': 'Retirer {name} de la journée',
+  '{vehicle} with your own driver': '{vehicle} avec votre chauffeur',
+  'Private car with your own driver': 'Voiture privée avec votre chauffeur',
+  'one price for the vehicle, not per person': 'un seul prix pour le véhicule, pas par personne',
+  'for the day': 'pour la journée',
+  'on Google': 'sur Google',
+  'guest reviews': 'avis de clients',
+  'Rated {rating} out of 5 from {count} reviews, {source}':
+    'Noté {rating} sur 5 d’après {count} avis, {source}',
+  'Kept — stays when you regenerate': 'Conservée — reste quand vous régénérez',
+  'Keep this stop': 'Conserver cette étape',
+  'Stop keeping {name}': 'Ne plus conserver {name}',
+  'Keep {name} when the plan is regenerated': 'Conserver {name} quand le programme est régénéré',
+  'Open in Google Maps': 'Ouvrir dans Google Maps',
+  'Hide details': 'Masquer les détails',
+  'See details': 'Voir les détails',
+  'Move {name} earlier': 'Avancer {name}',
+  'Move {name} later': 'Reculer {name}',
+  'Our tour': 'Notre excursion',
+  '{n} seats left on this date': '{n} places restantes à cette date',
+  'View & book': 'Voir et réserver',
+  'Not available': 'Non disponible',
+  'Your stops compared side by side': 'Vos étapes comparées côte à côte',
+  'Google rating': 'Note Google',
+  'Time there': 'Temps sur place',
+  Closes: 'Ferme à',
+  'Drive from previous stop': 'Trajet depuis l’étape précédente',
+  'Why go': 'Pourquoi y aller',
+  'Best when': 'Le bon moment',
+  'Regenerate {day} — keep the stops I hearted and swap the rest for different places.':
+    'Régénère {day} — garde les étapes que j’ai aimées et remplace les autres par des lieux différents.',
+  'Regenerate my plan — keep the stops I hearted and swap the rest for different places.':
+    'Régénère mon programme — garde les étapes que j’ai aimées et remplace les autres par des lieux différents.',
+  'Remove a stop': 'Retirer une étape',
+  'Highest rated': 'La mieux notée',
+  'What it is': 'Ce que c’est',
+  'Private day tours with your own driver': 'Excursions privées à la journée, avec votre chauffeur',
+  'Customize this tour with ZilAi': 'Personnalisez cette excursion avec ZilAi',
+  'Add, drop or swap stops with our AI assistant, and see the price of your version.':
+    'Ajoutez, retirez ou remplacez des étapes avec notre assistant IA, et voyez le prix de votre version.',
 };

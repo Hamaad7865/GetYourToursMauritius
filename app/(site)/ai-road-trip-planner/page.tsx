@@ -2,9 +2,8 @@ import type { Metadata } from 'next';
 import { overrideMetadata } from '@/lib/seo/override';
 import { GygHeader } from '@/components/gyg/GygHeader';
 import { SiteFooter } from '@/components/site/SiteFooter';
-import { PlannerShell } from '@/components/planner/PlannerShell';
+import { PlannerLanding } from '@/components/planner/PlannerLanding';
 import { OG_IMAGE } from '@/lib/seo/site';
-import { visitorLocality } from '@/lib/geo/visitor-country';
 
 export const runtime = 'edge';
 
@@ -22,20 +21,20 @@ const DEFAULT_METADATA: Metadata = {
   },
 };
 
-export default async function AiRoadTripPlannerPage() {
-  // Where the visitor is browsing from, from Cloudflare's CF-IPCountry (see src/lib/geo/visitor-country).
-  // A CONFIRMED foreign country hides the "use my current location" control entirely — those visitors
-  // keep 'Belle Mare (our base)' and are never prompted. 'unknown' (local dev, or not behind
-  // Cloudflare) still offers it, because the coordinate check on the real fix is what actually
-  // protects the booking. Only a boolean crosses into the client bundle, never the country.
-  //
-  // NOTE: this makes the page's HTML country-dependent — it must never be added to the cached-route
-  // list in next.config.mjs, whose `Vary: Cookie` does not vary on country.
-  const locality = await visitorLocality();
+/**
+ * The assistant's landing page. The planner itself is ZilAi, which opens as a panel on any page
+ * (see ZilAiProvider); this route introduces it and is where shared plans and "customise this tour"
+ * links land.
+ *
+ * Whether "use my current location" may be offered used to be decided here from the visitor's
+ * country and passed down as a prop. The assistant now asks /api/planner/locality for it instead,
+ * so this page's HTML no longer depends on where it is requested from.
+ */
+export default function AiRoadTripPlannerPage() {
   return (
     <>
       <GygHeader />
-      <PlannerShell mayUseDeviceLocation={locality !== 'abroad'} />
+      <PlannerLanding />
       <SiteFooter />
     </>
   );

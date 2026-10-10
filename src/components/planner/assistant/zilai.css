@@ -1,0 +1,530 @@
+/*
+ * ZilAi assistant — shell layout and motion.
+ *
+ * Imported by ZilAiDock, so it ships in the assistant's own lazy chunk: no page pays for it until
+ * someone opens the panel. Everything is keyed off two attributes the dock writes:
+ *
+ *   <html data-zilai="panel|workspace">      what the PAGE has to do about the assistant
+ *   .zilai-root[data-open][data-canvas][data-pane]   what the assistant itself is showing
+ *
+ * The panel is a MODAL that slides in from the left, over the page — it never moves the page.
+ * (An earlier build pushed the page aside on wide screens; the owner asked for a slide-over instead.)
+ *   >= 1024   a 400px sheet over a dimmed page; with a plan open, the canvas fills the rest
+ *   <  1024   a full-screen sheet; with a plan open, tabs switch Chat / Plan / Map
+ *
+ * No font sizes are set on form controls here: this file loads after globals.css, so it would beat
+ * the 16px touch rule at the end of that file and bring back iOS focus-zoom.
+ */
+
+:root {
+  --zilai-w: 400px;
+  --zilai-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --zilai-tabs-h: 58px;
+}
+
+/* ── What the page does ───────────────────────────────────────────────────── */
+
+/* Nothing but hold still: the assistant sits on top of the page, so the page underneath must not
+   scroll behind it. It is never resized, padded or moved. */
+html[data-zilai] {
+  overflow: hidden;
+  /* Keep the scrollbar's lane while it is gone, or the whole page jumps sideways by its width the
+     moment the panel opens — and back again when it closes. */
+  scrollbar-gutter: stable;
+}
+
+/* ── The panel ────────────────────────────────────────────────────────────── */
+
+.zilai-panel {
+  position: fixed;
+  inset-block: 0;
+  left: 0;
+  z-index: 70;
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  background: #fff;
+  transform: translateX(-100%);
+  visibility: hidden;
+  /* `visibility` flips AFTER the slide on the way out, so a closed panel is neither focusable nor
+     read out, without cutting its own exit short. */
+  transition:
+    transform 0.38s var(--zilai-ease),
+    box-shadow 0.38s ease,
+    visibility 0s linear 0.38s;
+}
+.zilai-root[data-open='true'] .zilai-panel {
+  transform: none;
+  visibility: visible;
+  transition:
+    transform 0.38s var(--zilai-ease),
+    box-shadow 0.38s ease,
+    visibility 0s;
+}
+@media (min-width: 1024px) {
+  .zilai-panel {
+    width: var(--zilai-w);
+    /* Beside the canvas, the panel is separated from it by a hairline… */
+    box-shadow: 1px 0 0 rgb(var(--color-ink) / 0.09);
+  }
+  /* …floating over the page, by a shadow instead. One or the other, never both. */
+  .zilai-root[data-open='true'][data-canvas='false'] .zilai-panel {
+    box-shadow: 28px 0 70px -34px rgb(10 46 54 / 0.5);
+  }
+}
+
+.zilai-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  border: 0;
+  background: rgb(var(--color-ink) / 0.3);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+/* The page dims behind the open panel, and a click on it closes the panel. (Below 1024px the
+   sheet is the whole screen, and with the canvas open there is no page left to dim.) */
+@media (min-width: 1024px) {
+  .zilai-root[data-open='true'][data-canvas='false'] .zilai-scrim {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+/* ── The results canvas ───────────────────────────────────────────────────── */
+
+.zilai-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 65;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  visibility: hidden;
+  /* Unrolls from the panel's edge — the plan comes out of the conversation that made it. Kept
+     mounted while hidden (never display:none) so the map keeps its size and is not rebuilt, which
+     would be another billed map load every time the visitor peeks at the page behind. */
+  clip-path: inset(0 100% 0 0);
+  transition:
+    clip-path 0.5s var(--zilai-ease),
+    visibility 0s linear 0.5s;
+}
+@media (min-width: 1024px) {
+  .zilai-canvas {
+    left: var(--zilai-w);
+  }
+}
+.zilai-root[data-open='true'][data-canvas='true'] .zilai-canvas {
+  visibility: visible;
+  clip-path: inset(0);
+  transition:
+    clip-path 0.5s var(--zilai-ease),
+    visibility 0s;
+}
+
+/* ── Small screens: one pane at a time, switched by the tab bar ───────────── */
+
+.zilai-tabs {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 75;
+  display: none;
+  height: calc(var(--zilai-tabs-h) + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+  background: #fff;
+  box-shadow: 0 -1px 0 rgb(var(--color-ink) / 0.09);
+}
+@media (max-width: 1023px) {
+  .zilai-root[data-open='true'][data-canvas='true'] .zilai-tabs {
+    display: flex;
+  }
+  .zilai-root[data-canvas='true'] .zilai-panel,
+  .zilai-root[data-canvas='true'] .zilai-canvas {
+    bottom: calc(var(--zilai-tabs-h) + env(safe-area-inset-bottom));
+  }
+  /* The chat tab shows the panel; the other two show the canvas. */
+  .zilai-root[data-open='true'][data-canvas='true'][data-pane='chat'] .zilai-canvas,
+  .zilai-root[data-open='true'][data-canvas='true']:not([data-pane='chat']) .zilai-panel {
+    visibility: hidden;
+    pointer-events: none;
+  }
+  .zilai-root[data-open='true'][data-canvas='true'][data-pane='chat'] .zilai-canvas {
+    clip-path: inset(0);
+  }
+  /* Inside the canvas, Plan and Map are the two halves of the desktop layout. */
+  .zilai-root[data-pane='plan'] .zilai-canvas-map,
+  .zilai-root[data-pane='map'] .zilai-canvas-list {
+    display: none;
+  }
+}
+
+/* ── Browser surfaces inside the assistant ────────────────────────────────── */
+
+.zilai-root ::selection {
+  background: rgb(var(--color-teal) / 0.22);
+  color: rgb(var(--color-ink));
+}
+/* The default keyboard-focus ring for everything in the assistant. Wrapped in :where() so it has NO
+   specificity: a control that draws its own focus state and opts out with `outline-none` — the
+   message box, whose whole rounded frame lights up; the pick-up search; the quote dialog's fields —
+   keeps its own treatment. Written as a plain `.zilai-root :focus-visible` it outranked that
+   utility and drew a second ring inside the message box. */
+:where(.zilai-root :focus-visible) {
+  outline: 2px solid rgb(var(--color-teal));
+  outline-offset: 2px;
+}
+.zilai-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--color-ink) / 0.18) transparent;
+  overscroll-behavior: contain;
+}
+/* A box that scrolls SIDEWAYS inside one that scrolls down (the comparison table, the day chips,
+   the map's rail) must let a vertical wheel or swipe through to the scroller around it. With the
+   blanket `contain` above, the pointer resting on the comparison table swallowed every wheel turn
+   and the plan could not be scrolled at all. Sideways stays contained; up-and-down passes on. */
+.zilai-scroll-x {
+  overscroll-behavior: contain auto;
+}
+.zilai-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.zilai-scroll::-webkit-scrollbar-thumb {
+  border-radius: 8px;
+  background: rgb(var(--color-ink) / 0.16);
+}
+.zilai-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--color-ink) / 0.3);
+}
+
+/* ── Motion ───────────────────────────────────────────────────────────────── */
+
+/* A chat message arriving. */
+@keyframes zilaiMsgIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+.zilai-msg {
+  animation: zilaiMsgIn 0.26s var(--zilai-ease) both;
+}
+
+/* The home state's parts settle in order once, as the panel opens. */
+.zilai-rise {
+  animation: zilaiMsgIn 0.5s var(--zilai-ease) both;
+  animation-delay: calc(var(--i, 0) * 55ms + 120ms);
+}
+
+/* THE authored moment: a plan landing. The day is drawn as a road — the spine runs down from the
+   pick-up, each numbered stop drops onto it in order, and its card follows. `--i` is the stop's
+   position; the delay is capped so a six-stop day does not take longer to arrive than a two-stop
+   one feels it should. */
+@keyframes zilaiSpine {
+  from {
+    transform: scaleY(0);
+  }
+}
+.zilai-spine {
+  transform-origin: top;
+  animation: zilaiSpine 0.9s var(--zilai-ease) both;
+}
+@keyframes zilaiNode {
+  from {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  60% {
+    transform: scale(1.12);
+  }
+}
+.zilai-node {
+  animation: zilaiNode 0.5s var(--zilai-ease) both;
+  animation-delay: calc(min(var(--i, 0), 6) * 80ms + 80ms);
+}
+@keyframes zilaiCardIn {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+    filter: blur(4px);
+  }
+}
+.zilai-card {
+  animation: zilaiCardIn 0.6s var(--zilai-ease) both;
+  animation-delay: calc(min(var(--i, 0), 6) * 80ms + 140ms);
+}
+
+/* ZilAi's "best when…" line: a highlighter drawn across it after the card has landed. */
+@keyframes zilaiMark {
+  from {
+    background-size: 0% 100%;
+  }
+}
+.zilai-mark {
+  background-image: linear-gradient(rgb(var(--color-teal) / 0.2), rgb(var(--color-teal) / 0.2));
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  padding: 1px 3px;
+  margin: 0 -3px;
+  border-radius: 3px;
+  animation: zilaiMark 0.7s ease-out both;
+  animation-delay: calc(min(var(--i, 0), 6) * 80ms + 620ms);
+}
+
+/* Heart: the press is acknowledged, then it rests. */
+@keyframes zilaiHeart {
+  40% {
+    transform: scale(1.32);
+  }
+  70% {
+    transform: scale(0.92);
+  }
+}
+.zilai-heart[aria-pressed='true'] svg {
+  animation: zilaiHeart 0.42s var(--zilai-ease);
+}
+
+/* Working: a car on a dashed road. The wait for a plan is long (tens of seconds); this is what
+   says "still driving" without pretending to know which step the model is on. */
+@keyframes zilaiDash {
+  to {
+    background-position-x: -24px;
+  }
+}
+@keyframes zilaiDrive {
+  from {
+    transform: translateX(-10%);
+  }
+  to {
+    transform: translateX(calc(100% + 190px));
+  }
+}
+.zilai-road {
+  background-image: linear-gradient(
+    90deg,
+    rgb(var(--color-teal) / 0.45) 0 12px,
+    transparent 12px 24px
+  );
+  background-size: 24px 2px;
+  background-repeat: repeat-x;
+  background-position: 0 50%;
+  animation: zilaiDash 0.9s linear infinite;
+}
+.zilai-road-car {
+  animation: zilaiDrive 2.6s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+}
+
+/* The plan is being changed: a thin indeterminate bar under the canvas header. */
+@keyframes zilaiProgress {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(350%);
+  }
+}
+.zilai-progress::after {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 30%;
+  background: rgb(var(--color-teal));
+  animation: zilaiProgress 1.25s ease-in-out infinite;
+}
+
+/* Placeholder cards while a restored plan's places are still being fetched. */
+@keyframes zilaiShimmer {
+  to {
+    background-position-x: -200%;
+  }
+}
+.zilai-skel {
+  background: linear-gradient(
+    100deg,
+    rgb(var(--color-ink) / 0.06) 30%,
+    rgb(var(--color-ink) / 0.11) 50%,
+    rgb(var(--color-ink) / 0.06) 70%
+  );
+  background-size: 200% 100%;
+  animation: zilaiShimmer 1.4s linear infinite;
+}
+
+/* Itinerary <-> comparison, and the menu drawer. */
+@keyframes zilaiViewIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+.zilai-view {
+  animation: zilaiViewIn 0.32s var(--zilai-ease) both;
+}
+@keyframes zilaiDrawerIn {
+  from {
+    transform: translateX(-102%);
+  }
+}
+.zilai-drawer {
+  animation: zilaiDrawerIn 0.34s var(--zilai-ease) both;
+}
+@keyframes zilaiFade {
+  from {
+    opacity: 0;
+  }
+}
+.zilai-fade {
+  animation: zilaiFade 0.2s ease-out both;
+}
+
+/* Reduced motion: every entrance settles at its RESTING frame — in place and fully visible. The
+   keyframes above only declare a `from`, so removing the animation is enough to land there, but
+   transform/opacity/filter are restated anyway: the next keyframe someone adds with a hidden base
+   state must not strand content (that trap has shipped here before — see globals.css). Looping
+   indicators stop; the highlighter and the progress bar stay as static marks, because they are
+   information, not decoration. */
+@media (prefers-reduced-motion: reduce) {
+  .zilai-panel,
+  .zilai-canvas,
+  .zilai-scrim {
+    transition: none !important;
+  }
+  .zilai-msg,
+  .zilai-rise,
+  .zilai-spine,
+  .zilai-node,
+  .zilai-card,
+  .zilai-view,
+  .zilai-drawer,
+  .zilai-fade,
+  .zilai-heart[aria-pressed='true'] svg,
+  .zilai-road-car {
+    animation: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+    filter: none !important;
+  }
+  .zilai-mark {
+    animation: none !important;
+    background-size: 100% 100% !important;
+  }
+  .zilai-road,
+  .zilai-skel {
+    animation: none !important;
+  }
+  .zilai-progress::after {
+    animation: none !important;
+    width: 100%;
+    opacity: 0.35;
+  }
+}
+
+/* ── Result cards ─────────────────────────────────────────────────────────── */
+
+/* A card lays out by the width of the LIST it is in, not of the window: the list is the whole
+   screen on a phone, a little over half the canvas on a laptop, and wide on a desktop — and a
+   viewport breakpoint cannot tell a 1280px laptop's 440px list from a 1920px desktop's 700px one. */
+.zilai-canvas-list {
+  container-type: inline-size;
+}
+.zilai-stop-body {
+  flex-direction: column;
+}
+.zilai-stop-photo {
+  width: 100%;
+  height: 190px;
+}
+@container (min-width: 600px) {
+  .zilai-stop-body {
+    flex-direction: row;
+  }
+  .zilai-stop-photo {
+    width: 172px;
+    height: 172px;
+  }
+}
+
+/* ── Compare my options ───────────────────────────────────────────────────── */
+
+/* A comparison needs width, and the map says nothing about it — so while comparing, the list takes
+   the whole canvas. The map is taken out of the flow rather than hidden with display:none or
+   squeezed to nothing: it keeps its exact size, so Google has nothing to redraw when the visitor
+   switches back. (Below 1024px the map is its own tab already.) */
+@media (min-width: 1024px) {
+  .zilai-canvas-body {
+    position: relative;
+  }
+  .zilai-canvas-body[data-view='compare'] .zilai-canvas-map {
+    position: absolute;
+    inset-block: 0;
+    right: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+}
+
+/* On a narrow list (a phone, a small laptop's canvas) there is no room for a column of row labels
+   beside the stops. Each label moves inside its cells instead, so one stop's column reads on its
+   own as the visitor swipes across. The label cells are hidden visually only — the table is still a
+   table to a screen reader. */
+@container (max-width: 599px) {
+  .zilai-compare .zilai-compare-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .zilai-compare col.zilai-compare-label {
+    display: none;
+  }
+  .zilai-compare td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 2px;
+    font-size: 12px;
+    font-weight: 700;
+    color: rgb(var(--color-ink-muted));
+  }
+  .zilai-compare table {
+    /* One stop and the edge of the next, so it is obvious there is more to swipe to. */
+    --zilai-col: 76cqw;
+  }
+  .zilai-compare thead th,
+  .zilai-compare tbody td {
+    width: var(--zilai-col);
+    min-width: var(--zilai-col);
+  }
+}
+
+/* A stop that was just pointed at (its name in the chat, its pin, its tile in the map's rail). */
+.zilai-stop[data-flash='true'] .zilai-stop-body {
+  border-color: rgb(var(--color-teal));
+  box-shadow: 0 0 0 4px rgb(var(--color-teal) / 0.2);
+}
+
+/* Printing. The assistant itself never prints. With a plan open, "print" means the plan: the page
+   underneath is suppressed and the dedicated trip sheet (PlannerPrintSheet, in .zilai-print) is the
+   only thing on paper. With no plan open the sheet stays hidden, so printing an ordinary page while
+   the panel happens to be open prints that page and nothing else. */
+@media print {
+  .zilai-root,
+  .zilai-print {
+    display: none !important;
+  }
+  html[data-zilai='workspace'] body > :not(.zilai-print) {
+    display: none !important;
+  }
+  html[data-zilai='workspace'] .zilai-print {
+    display: block !important;
+  }
+  /* The scroll lock above would otherwise clip the printed sheet to one screenful. */
+  html[data-zilai] {
+    overflow: visible !important;
+  }
+}

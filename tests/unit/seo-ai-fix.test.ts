@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MockLanguageModelV1 } from 'ai/test';
-import type { LanguageModelV1 } from 'ai';
+import { scriptedObjectModel } from '../helpers/scripted-model';
 import {
   runSeoAiFix,
   verifySeoFix,
@@ -12,7 +11,7 @@ import { ValidationError } from '@/lib/services/errors';
 import type { ServiceContext } from '@/lib/services/context';
 
 /**
- * The one-click AI fix, proved WITHOUT Gemini: the model is a MockLanguageModelV1 answering
+ * The one-click AI fix, proved WITHOUT Gemini: the model is a mock model answering
  * generateObject with fixed JSON, and the port is a stub page list — so these tests pin the
  * CONTRACT that must hold in production:
  *   - a rewrite is saved only if it passes budgets + brand + keyword + duplicate verification;
@@ -24,19 +23,6 @@ const ctx = {
   locale: 'en',
   ai: { name: 'google', model: 'gemini-2.0-flash' },
 } as unknown as ServiceContext;
-
-/** A model that answers `generateObject` with a fixed JSON object (json object-generation mode). */
-function scriptedObjectModel(object: unknown): LanguageModelV1 {
-  return new MockLanguageModelV1({
-    defaultObjectGenerationMode: 'json',
-    doGenerate: async () => ({
-      rawCall: { rawPrompt: null, rawSettings: {} },
-      finishReason: 'stop' as const,
-      usage: { promptTokens: 1, completionTokens: 1 },
-      text: JSON.stringify(object),
-    }),
-  });
-}
 
 function page(over: Partial<SeoFixPage> = {}): SeoFixPage {
   return {

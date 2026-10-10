@@ -19,10 +19,15 @@ const DETAILS_TTL_MS = 30 * 24 * 60 * 60 * 1000; // place details: 30d (rarely c
  */
 const SEARCH_URL = 'https://places.googleapis.com/v1/places:searchText';
 const DETAILS_BASE = 'https://places.googleapis.com/v1/places/';
+// `rating` + `userRatingCount` bill at Google's "Enterprise" tier; `editorialSummary`, already here,
+// bills at the tier above it, so asking for the ratings adds nothing to the Places invoice.
 const FIELDS =
-  'places.id,places.displayName,places.location,places.types,places.primaryType,places.editorialSummary,places.regularOpeningHours,places.photos,nextPageToken';
+  'places.id,places.displayName,places.location,places.types,places.primaryType,places.editorialSummary,places.regularOpeningHours,places.photos,places.rating,places.userRatingCount,nextPageToken';
 const DETAIL_FIELDS =
-  'id,displayName,location,types,primaryType,editorialSummary,regularOpeningHours,photos';
+  'id,displayName,location,types,primaryType,editorialSummary,regularOpeningHours,photos,rating,userRatingCount';
+/** Bumped when the cached PlannerPlace shape gains data older entries lack (v2: Google ratings), so
+ *  cards don't wait out a 30-day TTL to show it. */
+const CACHE_VERSION = 'v2';
 
 /** Categories aggregated for the default "All" browse, so it shows a broad set (not just 20). */
 const BROWSE_CATEGORIES = [
@@ -124,6 +129,8 @@ interface RawPlace {
   editorialSummary?: { text?: string };
   regularOpeningHours?: OpeningHours;
   photos?: Array<{ name?: string }>;
+  rating?: number;
+  userRatingCount?: number;
 }
 
 /** Our photo proxy URL for a Google photo resource name (keeps the API key server-side). */
@@ -146,6 +153,12 @@ export function mapGooglePlace(raw: RawPlace): PlannerPlace | null {
     .map((p) => p.name)
     .filter((n): n is string => Boolean(n))
     .slice(0, 3);
+  // A rating only means something next to the number of reviews behind it — and "0.0 (0)" would be
+  // a claim Google never made — so the pair travels together or not at all.
+  const hasRating =
+    typeof raw.rating === 'number' &&
+    typeof raw.userRatingCount === 'number' &&
+    raw.userRatingCount > 0;
   return {
     id,
     name,
@@ -158,6 +171,9 @@ export function mapGooglePlace(raw: RawPlace): PlannerPlace | null {
     blurb: raw.editorialSummary?.text ?? null,
     imageUrl: photoNames[0] ? photoProxyUrl(photoNames[0]) : null,
     ...(photoNames.length ? { imageUrls: photoNames.map(photoProxyUrl) } : {}),
+    ...(hasRating
+      ? { rating: Math.round(raw.rating! * 10) / 10, ratingCount: raw.userRatingCount! }
+      : {}),
   };
 }
 
@@ -218,7 +234,7 @@ async function searchTextCached(
   apiKey: string,
   maxPages: number,
 ): Promise<PlannerPlace[]> {
-  const cacheKey = `s:${textQuery}|${maxPages}`;
+  const cacheKey = `s:${CACHE_VERSION}:${textQuery}|${maxPages}`;
   const hit = await cacheGet<PlannerPlace[]>(cacheKey);
   if (hit) return hit;
   const out: PlannerPlace[] = [];
@@ -292,7 +308,7 @@ export async function resolvePlaceByText(
 export async function placeDetailsByIds(ids: string[], apiKey: string): Promise<PlannerPlace[]> {
   const results = await Promise.all(
     ids.map(async (id) => {
-      const cached = await cacheGet<PlannerPlace>(`d:${id}`);
+      const cached = await cacheGet<PlannerPlace>(`d:${CACHE_VERSION}:${id}`);
       if (cached) return cached;
       try {
         const res = await fetch(`${DETAILS_BASE}${encodeURIComponent(id)}`, {
@@ -300,7 +316,7 @@ export async function placeDetailsByIds(ids: string[], apiKey: string): Promise<
         });
         if (!res.ok) return null;
         const place = mapGooglePlace((await res.json()) as RawPlace);
-        if (place) await cacheSet(`d:${place.id}`, place, DETAILS_TTL_MS);
+        if (place) await cacheSet(`d:${CACHE_VERSION}:${place.id}`, place, DETAILS_TTL_MS);
         return place;
       } catch {
         return null;

@@ -6,9 +6,9 @@ import { createStubAiProvider } from './stub';
 export * from './types';
 
 /**
- * Selects the AI provider from `AI_PROVIDER`. Defaults to Google Gemini Flash
- * (free tier). Other providers are wired in Phase 5; until then they fall back to
- * the stub so the app builds without their SDKs/keys.
+ * Selects the AI provider from `AI_PROVIDER`. Defaults to Google Gemini (paid tier —
+ * the free tier may not serve EEA/UK visitors). The other providers are not wired:
+ * they fall back to the stub so the app builds without their SDKs/keys.
  */
 export function getAiProvider(): AiProvider {
   const env = getServerEnv();

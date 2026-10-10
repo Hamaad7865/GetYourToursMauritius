@@ -10,6 +10,7 @@ import { useInbox } from '@/lib/notifications/inbox';
 import { SearchBar } from './SearchBar';
 import { MainNav } from './MainNav';
 import { MobileMenu } from './MobileMenu';
+import { PlanWithAiButton } from '@/components/planner/assistant/PlanWithAiButton';
 import { MobileSearch } from './MobileSearch';
 import { HERO_SEARCH_ID } from './home/anchors';
 import { NotificationsList } from '@/components/site/NotificationsList';
@@ -377,6 +378,8 @@ export function GygHeader({
             )}
           </div>
           <nav className="ml-auto flex shrink-0 items-center gap-1 sm:ml-0">
+            {/* The way into ZilAi, the planning assistant. Leads the cluster on purpose. */}
+            <PlanWithAiButton />
             <HeaderAction
               label={t('Wishlist')}
               href="/wishlist"

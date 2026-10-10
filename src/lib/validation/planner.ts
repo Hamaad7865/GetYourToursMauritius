@@ -21,6 +21,11 @@ export const plannerPlaceSchema = z.object({
    *  so places already sitting in the durable places_cache — written before this field existed —
    *  keep parsing instead of dropping out of the catalogue. */
   imageUrls: z.array(z.string()).max(4).optional(),
+  /** Google's own rating (0–5, one decimal) and how many reviews it averages. Shown on result cards
+   *  labelled as Google's. Optional for the same reason as `imageUrls`, and absent — never zero —
+   *  when Google has no reviews for the place. */
+  rating: z.number().min(0).max(5).nullish(),
+  ratingCount: z.number().int().min(0).nullish(),
 });
 
 export type PlannerPlace = z.infer<typeof plannerPlaceSchema>;
@@ -69,6 +74,9 @@ export const plannerChatInputSchema = z.object({
   // Range mode: the whole multi-day trip (dates + per-day plans). When present the agent plans across
   // days with the trip tools; when absent the single-day behaviour is byte-for-byte unchanged.
   trip: plannerTripSchema.optional(),
+  // Stops the visitor has hearted. ZilAi is told to keep them, and the commit tools re-insert any it
+  // drops anyway — "Regenerate unpinned" has to be a promise, not a request.
+  pinnedIds: z.array(z.string().min(1).max(200)).max(42).optional(),
 });
 export type PlannerChatInput = z.infer<typeof plannerChatInputSchema>;
 

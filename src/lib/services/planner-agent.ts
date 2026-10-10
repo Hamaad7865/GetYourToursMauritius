@@ -1,11 +1,13 @@
 import {
   generateText,
   tool,
-  InvalidToolArgumentsError,
+  stepCountIs,
+  InvalidToolInputError,
   NoSuchToolError,
-  type LanguageModelV1,
+  type LanguageModel,
 } from 'ai';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { executedToolNames, toolExecutionFault } from '@/lib/ai/tool-faults';
 import { z } from 'zod';
 import type { ServiceContext } from './context';
 import { getServerEnv } from '@/lib/config/env';
@@ -40,9 +42,19 @@ const VOICE = `HOW YOU TALK
 - Like a person who lives here, not an assistant. Short: 2–4 sentences, or one line per day when planning a trip. No preamble, no sign-off, no emoji.
 - Wrap EVERY place and activity name in double asterisks so it stands out: **Blue Bay Beach**, **Catamaran Cruise – Ile Aux Cerfs**.
 - Give one real reason per stop — what it is actually like, when it is best, what to watch for — not adjectives.
-- Quote the real total driving time your commit tool returned, and real prices from search_our_activities. Never blur them into vagueness.
+- When you mention driving, quote the real time BETWEEN STOPS your commit tool returned, and call it that. The drive from the visitor's pick-up and back is on top of it and is shown in their plan, so never call your figure the day's total. Quote real prices from search_our_activities. Never blur either into vagueness.
 - End with ONE concrete next move as a question ("want me to swap the falls for **Le Souffleur**?"), never a menu of options.
 - Never write: "I hope this helps", "Let me know if", "Feel free to", "Certainly!", "Great choice!", "As an AI", "I cannot" or "unfortunately".`;
+
+/** What the commit tools also carry, and what hearted stops mean. Shared by both modes: the result
+ *  cards are filled from these fields, so a plan committed without them renders as bare names. */
+const CARDS_AND_HEARTS = `THE RESULT CARDS
+- Every commit also carries what is printed on the visitor's result cards. Send a short "title" for the day (what it is, e.g. "Blue Bay and the wild south coast" — no date, no "Day 1") and, for EVERY stop, a "notes" entry: "why" is one or two plain sentences on what the stop is actually like and what to do there; "tip" is one short line on when or for whom it works best ("Best first thing, before the tour buses", "Skip it after heavy rain").
+- Write them the way you talk: specific, no adjectives doing the work, no place name repeated back, no asterisks.
+
+HEARTED STOPS
+- Stops listed as hearted are ones the visitor chose to keep. They stay in the plan whatever else changes — never drop, replace or move them to another day.
+- "Regenerate" means: keep every hearted stop and replace the others with DIFFERENT real places from search_places, then commit.`;
 
 const SYSTEM_PROMPT = `You are ZilAi — a Mauritian who plans days out for visitors, working inside the Belle Mare Tours road-trip planner. You know these roads because you drive them. Help the visitor build a day.
 
@@ -65,6 +77,8 @@ GROUNDING — never break these
 SPREADING TOURS OVER DAYS
 - When more than one of our tours is in play, or the visitor mentions staying several days, don't cram them into one day — lay them out one per day and call propose_trip_days with that split. The visitor gets a card they can accept in one tap, which turns their plan into a real multi-day trip.
 - Use only slugs search_our_activities returned, at most one tour per day, in an order that works (a full-day boat trip early in the stay, a hike on a fresh morning) — and say in your reply which tour lands on which day.
+
+${CARDS_AND_HEARTS}
 
 ${VOICE}`;
 
@@ -89,6 +103,8 @@ SPREADING OUR TOURS OVER THE DAYS
 - Spread the tours ACROSS the trip: at most ONE per day, never the same one on two days, matched to that day's region, attached to its day via activitySlug — only slugs returned by search_our_activities are valid. Mention its real price and say plainly which day it lands on.
 - On a day with a tour, keep the driving plan light (or empty for a full-day tour). If nothing is available, say so honestly and plan a great driving day instead.
 
+${CARDS_AND_HEARTS}
+
 ${VOICE}`;
 
 /** Sent back to the model when a turn searched for places but never committed them — the failure the
@@ -102,47 +118,49 @@ function commitNudge(commitTool: string): string {
   );
 }
 
+/** Said when a turn ends with the model having fumbled its tool calls rather than answered. */
+const LOST_THREAD_REPLY =
+  "Sorry — I lost my thread there. Could you say that again? Everything you've planned so far is safe.";
+
 /** The tools that actually put something on the visitor's map. */
 const COMMIT_TOOLS = new Set(['set_itinerary', 'set_trip_plan']);
 
-/** Every tool name the model called across a turn's steps, in order. */
-function toolNames(
-  steps: ReadonlyArray<{ readonly toolCalls: ReadonlyArray<{ readonly toolName: string }> }>,
-): string[] {
-  return steps.flatMap((s) => s.toolCalls.map((c) => c.toolName));
-}
+type LoopSteps = Parameters<typeof executedToolNames>[0];
 
-/** Whether a turn actually put something on the map. */
-function committedInSteps(
-  steps: ReadonlyArray<{ readonly toolCalls: ReadonlyArray<{ readonly toolName: string }> }>,
-): boolean {
-  return toolNames(steps).some((n) => COMMIT_TOOLS.has(n));
+/** Whether a turn actually put something on the map. A commit call the SDK rejected as malformed
+ *  never ran, so it does not count. */
+function committedInSteps(steps: LoopSteps): boolean {
+  return executedToolNames(steps).some((n) => COMMIT_TOOLS.has(n));
 }
 
 /** True when the model went looking for places and then never put any on the map — the turn shape
  *  behind "ZilAi described a lovely day and nothing appeared". A turn that never searched is just a
  *  conversation (a question about one of our tours, a refusal to cross the island) and is left alone. */
-function needsCommitRepair(
-  steps: ReadonlyArray<{ readonly toolCalls: ReadonlyArray<{ readonly toolName: string }> }>,
-): boolean {
-  return toolNames(steps).includes('search_places') && !committedInSteps(steps);
+function needsCommitRepair(steps: LoopSteps): boolean {
+  return executedToolNames(steps).includes('search_places') && !committedInSteps(steps);
 }
 
 /** The visitor's current day, rendered for the system prompt so the model can keep/modify it (rather
  *  than rebuilding from scratch and silently dropping stops it was never told about). */
-function currentDayContext(places: PlannerPlace[]): string {
+function currentDayContext(places: PlannerPlace[], pinned: ReadonlySet<string>): string {
   if (!places.length) return '';
-  const lines = places.map((p, i) => `  ${i + 1}. ${p.name} [id: ${p.id}]`).join('\n');
+  const lines = places
+    .map((p, i) => `  ${i + 1}. ${p.name} [id: ${p.id}]${pinned.has(p.id) ? ' (hearted)' : ''}`)
+    .join('\n');
   return `\n\nThe visitor's current day already has these stops, in order:\n${lines}\nReuse these exact ids when you call set_itinerary so they are kept.`;
 }
 
 /** The whole trip, rendered for the range-mode system prompt: dates, each day's current stops (with
  *  ids the model must reuse), dinner + anchored activity, and which day the visitor is viewing. */
-function currentTripContext(trip: PlannerTrip): string {
+function currentTripContext(trip: PlannerTrip, pinned: ReadonlySet<string>): string {
   const dayLines = trip.days
     .map((d, i) => {
       const stops = d.places.length
-        ? d.places.map((p, j) => `${j + 1}. ${p.name} [id: ${p.id}]`).join(' · ')
+        ? d.places
+            .map(
+              (p, j) => `${j + 1}. ${p.name} [id: ${p.id}]${pinned.has(p.id) ? ' (hearted)' : ''}`,
+            )
+            .join(' · ')
         : 'no stops yet';
       const dinner = d.dinner ? `dinner: ${d.dinner.name} [id: ${d.dinner.id}]` : 'dinner: none';
       const activity = d.activitySlug
@@ -154,12 +172,47 @@ function currentTripContext(trip: PlannerTrip): string {
   return `\n\nThe trip runs ${trip.from} to ${trip.to} (${trip.days.length} days). The visitor is viewing ${trip.activeDate}.\nCurrent day plans:\n${dayLines}\nReuse these exact ids in set_trip_plan to keep a day's existing stops.`;
 }
 
-/** Build the real Gemini model, or null when unconfigured (stub provider / missing key). */
-export function plannerModel(ctx: ServiceContext): LanguageModelV1 | null {
+/** Build the real Gemini model, or null when unconfigured (stub provider / missing key). This is
+ *  the back-office model (admin assistant, quote extraction, SEO fix) — the name is historical. */
+export function plannerModel(ctx: ServiceContext): LanguageModel | null {
   if (ctx.ai.name !== 'google') return null;
   const env = getServerEnv();
   if (!env.GOOGLE_GENERATIVE_AI_API_KEY) return null;
   return createGoogleGenerativeAI({ apiKey: env.GOOGLE_GENERATIVE_AI_API_KEY })(ctx.ai.model);
+}
+
+/**
+ * The model for calls a VISITOR is waiting on: ZilAi's planning turns and its place insights.
+ *
+ * Measured 2026-10-11 on the same search → commit → reply loop: Gemini 3.1 Pro 17.7 s, Pro at low
+ * thinking 12.8 s, Gemini 3.8 Flash 19.1 s, Flash at low thinking 5.8 s. The lesson is in the third
+ * figure: Flash is NOT faster on its own — left to think as much as it likes it was slower than Pro.
+ * The speed comes from the pair, so the two travel together: this model, with
+ * {@link visitorModelOptions}. The owner chose it over Pro for the public assistant; the back
+ * office stays on Pro.
+ */
+const VISITOR_MODEL_DEFAULT = 'gemini-3.8-flash';
+
+function visitorModelId(): string {
+  return getServerEnv().GOOGLE_GENERATIVE_AI_FAST_MODEL ?? VISITOR_MODEL_DEFAULT;
+}
+
+export function visitorModel(ctx: ServiceContext): LanguageModel | null {
+  if (ctx.ai.name !== 'google') return null;
+  const env = getServerEnv();
+  if (!env.GOOGLE_GENERATIVE_AI_API_KEY) return null;
+  return createGoogleGenerativeAI({ apiKey: env.GOOGLE_GENERATIVE_AI_API_KEY })(visitorModelId());
+}
+
+/** Provider options that go with {@link visitorModel}: low thinking. `thinkingLevel` only exists
+ *  from Gemini 3 on, so a model id pinned to an older family is sent no option rather than one the
+ *  API would reject. */
+export function visitorModelOptions():
+  | { google: { thinkingConfig: { thinkingLevel: 'low' } } }
+  | undefined {
+  return /^gemini-(?:[3-9]|\d{2,})/.test(visitorModelId())
+    ? { google: { thinkingConfig: { thinkingLevel: 'low' } } }
+    : undefined;
 }
 
 function mapsKey(): string | null {
@@ -175,6 +228,17 @@ export interface PlannerTurnInput {
   itinerary?: PlannerPlace[];
   /** Range mode: the whole multi-day trip. When present the agent plans across days. */
   trip?: PlannerTrip;
+  /** Stops the visitor has hearted. Kept by instruction AND by the commit tools (see `keepPinned`). */
+  pinnedIds?: string[];
+}
+
+/** What ZilAi wrote about one stop for its result card. */
+export interface PlannerStopNote {
+  placeId: string;
+  /** One or two sentences on what the stop is like. */
+  why: string | null;
+  /** The highlighted "best when…" line. */
+  tip: string | null;
 }
 
 /** One committed day of a range-mode turn. */
@@ -186,6 +250,10 @@ export interface PlannerDayResult {
   route: PlannedRoute;
   rejectedFarRegion: string[];
   droppedOverCap: string[];
+  /** ZilAi's name for the day ("Blue Bay and the wild south coast"), or null if it sent none. */
+  title: string | null;
+  /** Card text for the day's stops; a stop may have none. */
+  notes: PlannerStopNote[];
 }
 
 /** One day of a proposed multi-day split (single-day mode). The client renders it as a card the
@@ -224,6 +292,10 @@ export interface PlannerTurnResult {
   /** Single-day mode: a multi-day split ZilAi is OFFERING (tours laid out one per day). Null unless
    *  it called propose_trip_days this turn. Accepting it is the visitor's tap, never ours. */
   proposedTrip: ProposedTrip | null;
+  /** Single-day mode: ZilAi's name for the committed day, or null. */
+  title: string | null;
+  /** Single-day mode: card text for the committed stops. */
+  notes: PlannerStopNote[];
 }
 
 const EMPTY_RESULT: Omit<PlannerTurnResult, 'reply'> = {
@@ -234,6 +306,8 @@ const EMPTY_RESULT: Omit<PlannerTurnResult, 'reply'> = {
   days: [],
   recommendations: [],
   proposedTrip: null,
+  title: null,
+  notes: [],
 };
 
 /** Availability lookups are DB RPCs fanned out per date — bound the whole turn, not just one call. */
@@ -259,13 +333,58 @@ function boundPlaceIds(requested: string[]): { placeIds: string[]; ignoredOverLi
   };
 }
 
+/** A model-written line made safe to print on a card: markdown emphasis and stray whitespace
+ *  removed, cut to length. Null when nothing is left. Clamped here, never in the tool schema. */
+function cardText(value: string | null | undefined, max: number): string | null {
+  const text = (value ?? '').replace(/\*+/g, '').replace(/\s+/g, ' ').trim();
+  return text ? text.slice(0, max) : null;
+}
+
+type RawNote = { placeId: string; why?: string | null; tip?: string | null };
+
+/** Keep only notes for stops that actually made it into the day (one per stop, last wins). */
+function stopNotes(raw: RawNote[] | null | undefined, places: PlannerPlace[]): PlannerStopNote[] {
+  const kept = new Set(places.map((p) => p.id));
+  const byId = new Map<string, PlannerStopNote>();
+  for (const n of raw ?? []) {
+    if (!kept.has(n.placeId)) continue;
+    const why = cardText(n.why, 280);
+    const tip = cardText(n.tip, 140);
+    if (why || tip) byId.set(n.placeId, { placeId: n.placeId, why, tip });
+  }
+  return [...byId.values()];
+}
+
+/**
+ * Put back any hearted stop the model left out of a commit. `existing` is the day as the visitor
+ * has it; a hearted stop missing from `requested` is re-inserted at its old position (so the day
+ * keeps its shape), unless it is in `elsewhere` — placed on another day by the same call.
+ */
+function keepPinned(
+  requested: string[],
+  existing: PlannerPlace[],
+  pinned: ReadonlySet<string>,
+  elsewhere: ReadonlySet<string> = new Set(),
+): { placeIds: string[]; restored: string[] } {
+  if (pinned.size === 0) return { placeIds: requested, restored: [] };
+  const placeIds = [...requested];
+  const restored: string[] = [];
+  existing.forEach((p, index) => {
+    if (!pinned.has(p.id) || placeIds.includes(p.id) || elsewhere.has(p.id)) return;
+    placeIds.splice(Math.min(index, placeIds.length), 0, p.id);
+    restored.push(p.name);
+  });
+  return { placeIds, restored };
+}
+
 export async function runPlannerTurn(
   ctx: ServiceContext,
   input: PlannerTurnInput,
   // Injectable so the agent loop can be tested with a scripted model; defaults to the real Gemini.
-  modelOverride?: LanguageModelV1 | null,
+  modelOverride?: LanguageModel | null,
 ): Promise<PlannerTurnResult> {
-  const model = modelOverride ?? plannerModel(ctx);
+  const model = modelOverride ?? visitorModel(ctx);
+  const providerOptions = visitorModelOptions();
   if (!model) {
     return {
       reply:
@@ -276,7 +395,10 @@ export async function runPlannerTurn(
 
   const apiKey = mapsKey();
   const trip = input.trip;
+  const pinned: ReadonlySet<string> = new Set(input.pinnedIds ?? []);
   let committed: ResolvedItinerary | null = null;
+  let committedTitle: string | null = null;
+  let committedNotes: PlannerStopNote[] = [];
   // Single-day mode: a multi-day split ZilAi is offering. Held, not applied — creating the trip is
   // the visitor's tap on the card.
   let proposed: ProposedTrip | null = null;
@@ -310,7 +432,7 @@ export async function runPlannerTurn(
     // on set_trip_plan — a constraint in the parameters is a 500, the same constraint in execute is a
     // fact the model can act on. Nulls are laundered back to undefined here, at the boundary, so
     // PlacesSearchArgs stays undefined-only.
-    parameters: z.object({
+    inputSchema: z.object({
       query: z.string().nullish(),
       category: z
         .string()
@@ -348,7 +470,7 @@ export async function runPlannerTurn(
     // sit on `dates` bought nothing it wasn't already getting: execute dedupes, drops any date outside
     // the trip, and stops at MAX_AVAILABILITY_DATES_PER_TURN — so an over-long list costs the same
     // whether it is refused or trimmed, and refusing it costs the visitor the whole turn.
-    parameters: z.object({
+    inputSchema: z.object({
       dates: z
         .array(z.string())
         .nullish()
@@ -448,7 +570,7 @@ export async function runPlannerTurn(
     search_our_activities: searchOurActivitiesTool,
     set_itinerary: tool({
       description:
-        'Commit the chosen day as an ordered list of place ids. Returns the real total drive time, any unknown ids, ids rejected as too far from the day, and ids dropped over the 6-stop cap.',
+        'Commit the chosen day as an ordered list of place ids. Returns the real driving time between the stops, any unknown ids, ids rejected as too far from the day, and ids dropped over the 6-stop cap.',
       // No bounds of any kind here — not `.min(1)`, and (since 2026-08-08) not `.max(MAX_STOPS)`
       // either. A bound in the PARAMETERS fails the SDK's argument validation BEFORE execute runs,
       // and AI_InvalidToolArgumentsError escapes as an unhandled 500 — the visitor sees the planner
@@ -460,8 +582,24 @@ export async function runPlannerTurn(
       // The cap itself is not lost — it moves one layer in, where it was always enforced anyway:
       // filterItinerary caps the day at MAX_STOPS and names what it dropped, which this tool already
       // reports as droppedOverCap and its own description already promises.
-      parameters: z.object({ placeIds: z.array(z.string()) }),
-      execute: async ({ placeIds: requested }) => {
+      inputSchema: z.object({
+        placeIds: z.array(z.string()),
+        title: z.string().nullish().describe('A short name for the day — no date'),
+        notes: z
+          .array(
+            z.object({
+              placeId: z.string(),
+              why: z.string().nullish().describe('One or two sentences: what the stop is like'),
+              tip: z.string().nullish().describe('One short line: when or for whom it is best'),
+            }),
+          )
+          .nullish()
+          .describe('Card text, one entry per stop'),
+      }),
+      execute: async ({ placeIds: asked, title, notes }) => {
+        // Hearted stops the model left out go back in BEFORE the cap is applied, so the cap trims
+        // an unhearted stop rather than one the visitor asked to keep.
+        const { placeIds: requested, restored } = keepPinned(asked, input.itinerary ?? [], pinned);
         const { placeIds, ignoredOverLimit } = boundPlaceIds(requested);
         if (placeIds.length === 0) {
           // Deliberately does NOT commit: an empty list would otherwise wipe a day the visitor has
@@ -481,13 +619,24 @@ export async function runPlannerTurn(
           input.itinerary ?? [],
         );
         committed = resolved;
+        committedTitle = cardText(title, 80);
+        committedNotes = stopNotes(notes, resolved.places);
         return {
           stops: resolved.places.map((p) => p.name),
           unknownIds: resolved.unknownIds,
           rejectedFarRegion: resolved.rejectedFarRegion.map((p) => p.name),
           droppedOverCap: resolved.droppedOverCap.map((p) => p.name),
           ...(ignoredOverLimit.length ? { ignoredOverLimit } : {}),
-          totalDriveMinutes: resolved.route.totalMinutes,
+          ...(restored.length
+            ? {
+                keptHearted: restored,
+                note: 'The visitor hearted those stops, so they were kept in the day. Do not say you removed them.',
+              }
+            : {}),
+          // Stop to stop only: the server does not know the pick-up, and the visitor's plan adds
+          // that leg and the way back. Named for what it is so the model cannot pass it off as the
+          // whole day's driving — it once told a visitor "25 minutes" beside a plan showing 3h 20.
+          driveMinutesBetweenStops: resolved.route.totalMinutes,
           estimate: resolved.route.estimate,
         };
       },
@@ -504,7 +653,7 @@ export async function runPlannerTurn(
       // `"activitySlug": null` for "no tour that day" as readily as it omits the key. That exact slip,
       // on that exact field name, is what 500'd set_trip_plan on 2026-08-08 (error_logs). A day with no
       // tour is the COMMON case for this tool, so it would have been the common failure.
-      parameters: z.object({
+      inputSchema: z.object({
         days: z.array(
           z.object({
             date: z.string().describe('YYYY-MM-DD, one calendar day of their stay'),
@@ -594,7 +743,7 @@ export async function runPlannerTurn(
     search_our_activities: searchOurActivitiesTool,
     set_trip_plan: tool({
       description:
-        "Commit the plan for one or more trip days (only the days you are creating or changing). Each day: its date, the ordered place ids (lunch included), an optional dinnerPlaceId, and an optional activitySlug from search_our_activities. Returns each day's real drive time and any unknown/rejected/dropped ids.",
+        "Commit the plan for one or more trip days (only the days you are creating or changing). Each day: its date, the ordered place ids (lunch included), an optional dinnerPlaceId, and an optional activitySlug from search_our_activities. Returns each day's real driving time between its stops and any unknown/rejected/dropped ids.",
       // Deliberately unbounded and null-tolerant, for the same reason as set_itinerary above: every
       // constraint expressed HERE turns a model slip into an unhandled 500, while the same constraint
       // expressed in execute becomes a fact the model can act on. Specifically:
@@ -606,13 +755,24 @@ export async function runPlannerTurn(
       //    the real bound is validDates: a date outside the trip is reported as unknownDates before
       //    anything billed runs, so a model sending fifty days still costs at most the trip's length.
       //  - no `.max(MAX_STOPS)` on placeIds — capped by filterItinerary and reported as droppedOverCap.
-      parameters: z.object({
+      inputSchema: z.object({
         days: z.array(
           z.object({
             date: z.string().describe('One of the trip dates, YYYY-MM-DD'),
             placeIds: z.array(z.string()),
             dinnerPlaceId: z.string().nullish(),
             activitySlug: z.string().nullish(),
+            title: z.string().nullish().describe('A short name for the day — no date'),
+            notes: z
+              .array(
+                z.object({
+                  placeId: z.string(),
+                  why: z.string().nullish().describe('One or two sentences: what the stop is like'),
+                  tip: z.string().nullish().describe('One short line: when or for whom it is best'),
+                }),
+              )
+              .nullish()
+              .describe('Card text, one entry per stop'),
           }),
         ),
       }),
@@ -638,13 +798,23 @@ export async function runPlannerTurn(
         // route calls for one day's plan. After this, the loop runs at most once per trip date.
         const byDate = new Map<string, (typeof days)[number]>();
         for (const day of days) byDate.set(day.date, day);
+        // Every stop this call places anywhere — a hearted stop the model moved to another day is
+        // not "missing" from its old one.
+        const placedThisCall = new Set([...byDate.values()].flatMap((d) => d.placeIds));
 
         for (const day of byDate.values()) {
           if (!validDates.has(day.date)) {
             unknownDates.push(day.date);
             continue;
           }
-          const { placeIds, ignoredOverLimit } = boundPlaceIds(day.placeIds);
+          const elsewhere = new Set([...placedThisCall].filter((id) => !day.placeIds.includes(id)));
+          const { placeIds: requested, restored } = keepPinned(
+            day.placeIds,
+            existingByDate.get(day.date) ?? [],
+            pinned,
+            elsewhere,
+          );
+          const { placeIds, ignoredOverLimit } = boundPlaceIds(requested);
           const resolved = await resolveItinerary(
             placeIds,
             discovered,
@@ -676,6 +846,8 @@ export async function runPlannerTurn(
             route: resolved.route,
             rejectedFarRegion: resolved.rejectedFarRegion.map((p) => p.name),
             droppedOverCap: resolved.droppedOverCap.map((p) => p.name),
+            title: cardText(day.title, 80),
+            notes: stopNotes(day.notes, dinner ? [...resolved.places, dinner] : resolved.places),
           });
           perDay.push({
             date: day.date,
@@ -684,11 +856,12 @@ export async function runPlannerTurn(
             rejectedFarRegion: resolved.rejectedFarRegion.map((p) => p.name),
             droppedOverCap: resolved.droppedOverCap.map((p) => p.name),
             ...(ignoredOverLimit.length ? { ignoredOverLimit } : {}),
-            totalDriveMinutes: resolved.route.totalMinutes,
+            driveMinutesBetweenStops: resolved.route.totalMinutes,
             dinner: dinner?.name ?? null,
             ...(dinner === null && day.dinnerPlaceId ? { unknownDinnerId: day.dinnerPlaceId } : {}),
             activitySlug,
             ...(activityNote ? { activityNote } : {}),
+            ...(restored.length ? { keptHearted: restored } : {}),
           });
         }
         return { days: perDay, ...(unknownDates.length ? { unknownDates } : {}) };
@@ -697,14 +870,15 @@ export async function runPlannerTurn(
   };
 
   const system = trip
-    ? RANGE_SYSTEM_PROMPT + currentTripContext(trip)
-    : SYSTEM_PROMPT + currentDayContext(input.itinerary ?? []);
+    ? RANGE_SYSTEM_PROMPT + currentTripContext(trip, pinned)
+    : SYSTEM_PROMPT + currentDayContext(input.itinerary ?? [], pinned);
   const tools = trip ? rangeTools : singleDayTools;
 
   let reply: string;
   try {
     const result = await generateText({
       model,
+      providerOptions,
       system,
       messages: input.messages,
       tools,
@@ -712,8 +886,12 @@ export async function runPlannerTurn(
       // this bounds the billed fan-out per turn. Single-day: search → commit → reply, so 4 leaves
       // headroom for one retry. Range mode plans up to 7 days (region searches + Food searches + our
       // activities + commit + a retry), so it gets a higher — still hard — cap.
-      maxSteps: trip ? 12 : 4,
+      stopWhen: stepCountIs(trip ? 12 : 4),
     });
+    // A tool that threw while running (Places down, an availability RPC failing) is a real fault.
+    // The SDK would let the model apologise over it; re-raise it so it reaches error_logs instead.
+    const fault = toolExecutionFault(result.steps);
+    if (fault !== undefined) throw fault;
     reply = result.text;
 
     // ── the plan has to reach the map ──
@@ -727,6 +905,7 @@ export async function runPlannerTurn(
       try {
         const repair = await generateText({
           model,
+          providerOptions,
           system,
           messages: [
             ...input.messages,
@@ -737,7 +916,7 @@ export async function runPlannerTurn(
             },
           ],
           tools,
-          maxSteps: 3,
+          stopWhen: stepCountIs(3),
         });
         // Only adopt the repair's words if it actually committed — otherwise the visitor would get a
         // second helping of the same prose with the map still empty.
@@ -747,20 +926,22 @@ export async function runPlannerTurn(
       }
     }
   } catch (err) {
-    // Last line of defence for the whole malformed-tool-call class. Every KNOWN slip is absorbed by
-    // the tool schemas above, which is where it belongs — the model is told what it got wrong and
-    // fixes it on the next step. This catch exists because that list is only as complete as the
-    // slips seen so far: a shape nobody has thought of yet is still validated by the SDK, still
-    // throws out of generateText, and would still reach the visitor as a broken planner.
+    // Last line of defence for the malformed-tool-call class. Since AI SDK v5 the loop absorbs these
+    // itself (the model is shown the error and retries), so this catch should now never fire for
+    // them — it stays because that is a property of a dependency, not of this code.
     //
     // Scoped to exactly the two errors that mean "the MODEL sent something malformed". A Gemini
     // outage, a quota refusal or a Places failure is a real fault and must keep propagating to
-    // apiHandler — it belongs in error_logs, where a graceful reply would hide it. The repair turn
-    // above has its own catch-all, so nothing from that best-effort call reaches here.
-    if (!InvalidToolArgumentsError.isInstance(err) && !NoSuchToolError.isInstance(err)) throw err;
-    reply =
-      "Sorry — I lost my thread there. Could you say that again? Everything you've planned so far is safe.";
+    // apiHandler — it belongs in error_logs, where a graceful reply would hide it (tool failures are
+    // re-raised above for exactly that reason). The repair turn has its own catch-all, so nothing
+    // from that best-effort call reaches here.
+    if (!InvalidToolInputError.isInstance(err) && !NoSuchToolError.isInstance(err)) throw err;
+    reply = LOST_THREAD_REPLY;
   }
+  // Under AI SDK v5 a malformed tool call no longer throws: the model is shown the error and tries
+  // again, and a model that keeps fumbling simply runs out of steps with nothing said. An empty
+  // bubble is worse than an honest one — and whatever it committed before the fumble still stands.
+  if (!reply.trim()) reply = LOST_THREAD_REPLY;
 
   const itinerary = committed as ResolvedItinerary | null;
   const days = [...committedDays.values()].sort((a, b) => a.date.localeCompare(b.date));
@@ -776,5 +957,7 @@ export async function runPlannerTurn(
     days,
     recommendations,
     proposedTrip: proposed as ProposedTrip | null,
+    title: itinerary ? committedTitle : null,
+    notes: itinerary ? committedNotes : [],
   };
 }

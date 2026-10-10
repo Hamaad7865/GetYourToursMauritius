@@ -76,9 +76,16 @@ const ServerEnvSchema = z.object({
 
   AI_PROVIDER: z.enum(['google', 'workersai', 'anthropic', 'openai']).default('google'),
   GOOGLE_GENERATIVE_AI_API_KEY: z.string().min(1).optional(),
-  // Gemini model id for the AI Road Trip Planner co-pilot. Override when Google retires a model
-  // (e.g. gemini-1.5-flash was removed); defaults to a current Flash model.
+  // Gemini model id behind the back-office AI features (the admin assistant, quote extraction,
+  // the SEO fix). Defaults to Gemini 3.1 Pro (src/lib/ai/google.ts); set this to change tier or
+  // when Google retires a model. Any Gemini 3 model needs AI SDK v5+: v4 drops the thought
+  // signatures their tool calls must carry back.
   GOOGLE_GENERATIVE_AI_MODEL: z.string().min(1).optional(),
+  // The model for the VISITOR-facing calls — ZilAi's planning turns and its place insights — where a
+  // person is watching a spinner. Defaults to Gemini 3.8 Flash, run at low thinking (see
+  // `visitorModel` in services/planner-agent.ts). The back-office features above keep the model
+  // set by GOOGLE_GENERATIVE_AI_MODEL: nobody is waiting on those the same way.
+  GOOGLE_GENERATIVE_AI_FAST_MODEL: z.string().min(1).optional(),
   OPENAI_API_KEY: z.string().min(1).optional(),
   ANTHROPIC_API_KEY: z.string().min(1).optional(),
   CLOUDFLARE_ACCOUNT_ID: z.string().min(1).optional(),

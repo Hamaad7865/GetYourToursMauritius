@@ -15,7 +15,8 @@ import type { MegaMenuId } from './MegaMenu';
 /**
  * GetYourGuide-style primary nav row: an "Explore Mauritius" label, the two menus GetYourGuide's bar
  * has ("Places to see", "Things to do" — each opens a full-width panel under the header), then the
- * site's own six links. Every item carries a teal underline that grows from its centre outward on
+ * site's own five links. (The sixth, the AI planner, is now the "Plan with AI" button at the top right
+ * of the header — see PlanWithAiButton.) Every item carries a teal underline that grows from its centre outward on
  * hover/focus. "Activities" keeps its small hover list of categories; the rest are plain links.
  */
 
@@ -28,7 +29,6 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { label: 'About Us', href: '/about' },
   { label: 'Activities', href: '/activities', menu: 'categories' },
-  { label: 'AI Trip Planner', href: '/ai-road-trip-planner' },
   { label: 'Rent', href: '/rent' },
   { label: 'Airport Transfers', href: '/airport-transfers' },
   { label: 'Contact us', href: '/contact' },

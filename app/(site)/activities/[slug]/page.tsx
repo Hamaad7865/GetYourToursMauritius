@@ -50,6 +50,7 @@ import { productJsonLd, faqPageJsonLd } from '@/lib/seo/jsonld';
 import { SITE } from '@/lib/seo/site';
 import type { TourDetail, TourSummary } from '@/lib/validation/tours';
 import { IconStar } from '@/components/ui/icons';
+import { CustomizeTourButton } from '@/components/planner/assistant/CustomizeTourButton';
 
 export const runtime = 'edge';
 
@@ -314,6 +315,12 @@ export default async function ActivityDetailPage({
                 {activity.images.length > 0 && (
                   <Gallery images={activity.images} title={activity.title} />
                 )}
+                {/* A private sightseeing tour can be made the visitor's own: this opens ZilAi on
+                    this page with the tour's stops loaded. Directly under the photos so it is seen
+                    on arrival — and offered again beside the itinerary it changes. */}
+                {activity.pricingMode === 'vehicle' && !isInquiryOnly && (
+                  <CustomizeTourButton slug={activity.slug} className="mb-6" />
+                )}
                 {activity.summary && (
                   <p className="m-0 mb-6 text-[15px] leading-relaxed text-ink/80">
                     {activity.summary}
@@ -350,48 +357,7 @@ export default async function ActivityDetailPage({
                   <section className="mt-8 border-t border-ink/10 pt-7">
                     <SectionTitle>{t('Itinerary')}</SectionTitle>
                     {activity.pricingMode === 'vehicle' && (
-                      <Link
-                        href={`/ai-road-trip-planner?fromTour=${encodeURIComponent(activity.slug)}`}
-                        className="group mb-5 flex items-center gap-3.5 rounded-2xl border border-teal/25 bg-gradient-to-r from-teal/[0.07] to-transparent px-4 py-3.5 transition hover:border-teal/50 hover:from-teal/[0.12]"
-                      >
-                        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-coral">
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-                            <path
-                              d="M12 3l2.3 4.7L19.5 8l-3.7 3.6.9 5.1L12 14.5 7.3 16.7l.9-5.1L4.5 8l5.2-.3L12 3Z"
-                              fill="#fff"
-                            />
-                          </svg>
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="flex items-center gap-2">
-                            <b className="text-[15px] text-ink">{t('Customize your own tour')}</b>
-                            <span className="rounded-full bg-coral/15 px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-coral">
-                              {t('AI Planner')}
-                            </span>
-                          </span>
-                          <span className="mt-0.5 block text-[13px] leading-snug text-ink/70">
-                            {t(
-                              'Send these stops to the AI Trip Planner — add, drop or reorder them, then get a live quote.',
-                            )}
-                          </span>
-                        </span>
-                        <svg
-                          width="20"
-                          height="20"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          aria-hidden
-                          className="shrink-0 text-teal transition-transform group-hover:translate-x-0.5"
-                        >
-                          <path
-                            d="M5 12h14M13 6l6 6-6 6"
-                            stroke="currentColor"
-                            strokeWidth={2}
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      </Link>
+                      <CustomizeTourButton slug={activity.slug} className="mb-5" />
                     )}
                     {itinerary.some((s) => (s.options?.length ?? 0) > 0) ? (
                       <ItineraryBuilder

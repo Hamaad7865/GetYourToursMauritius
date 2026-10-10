@@ -1,7 +1,7 @@
 import { generateObject } from 'ai';
 import { z } from 'zod';
 import type { ServiceContext } from './context';
-import { plannerModel } from './planner-agent';
+import { visitorModel, visitorModelOptions } from './planner-agent';
 
 /**
  * AI Insights for the planner — a Gemini-generated local take on the day's places: one punchy insight
@@ -37,11 +37,12 @@ export async function generatePlaceInsights(
   ctx: ServiceContext,
   places: PlaceInsightInput[],
 ): Promise<PlaceInsights | null> {
-  const model = plannerModel(ctx);
+  const model = visitorModel(ctx);
   if (!model || places.length === 0) return null;
   try {
     const { object } = await generateObject({
       model,
+      providerOptions: visitorModelOptions(),
       schema: SCHEMA,
       prompt:
         'You are a friendly Mauritius local guide. For each place below, give ONE punchy, genuinely useful insight ' +

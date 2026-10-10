@@ -17,16 +17,33 @@ import { PlaceHint } from './PlaceHint';
 export function RichText({
   text,
   preview,
+  onName,
 }: {
   text: string;
   /** Resolve an emphasised name to a preview card, or null when we don't know the place. */
   preview?: (name: string) => PlacePreview | null;
+  /** Makes an emphasised name a button when it returns a handler — e.g. "show this stop's card".
+   *  Wins over `preview`: a name can be a link or a hover card, not both. */
+  onName?: (name: string) => (() => void) | null;
 }) {
   const blocks = useMemo(() => parseRichText(text), [text]);
 
   const spans = (parts: RichSpan[], key: string) =>
     parts.map((span, i) => {
       if (!span.bold) return <Fragment key={`${key}-${i}`}>{span.text}</Fragment>;
+      const go = onName?.(span.text) ?? null;
+      if (go) {
+        return (
+          <button
+            key={`${key}-${i}`}
+            type="button"
+            onClick={go}
+            className="cursor-pointer rounded-[3px] font-bold text-ink underline decoration-teal/50 decoration-[1.5px] underline-offset-[3px] transition-colors hover:text-teal-dark hover:decoration-teal"
+          >
+            {span.text}
+          </button>
+        );
+      }
       const hit = preview?.(span.text) ?? null;
       return hit ? (
         <PlaceHint key={`${key}-${i}`} label={span.text} preview={hit} />

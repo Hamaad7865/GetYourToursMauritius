@@ -12,19 +12,19 @@ without them — the schema alone won't tell you that.
 
 ## The service map
 
-| Service                           | What it does here                                                           | Breaks how                                                        |
-| --------------------------------- | --------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| **Supabase**                      | Database, auth, file storage. All business logic (43 `api_*` SQL functions) | API 500s; in dev it silently serves fake seed data instead        |
-| **Cloudflare Pages**              | Hosts the web app on the edge. Deploys from `main`                          | Missing `nodejs_compat` → every page 500s on a green build        |
-| **Cloudflare Worker `gytm-cron`** | The scheduler. Pages has no cron                                            | **Email stops and the calendar empties.** Silent                  |
-| **Peach Payments**                | Card checkout (embedded widget; charges **MUR**, ledger stays EUR)          | Fails closed on production rather than serving a fake provider    |
-| **open.er-api.com**               | EUR→MUR rate for the charge pin (maintenance cron → `fx_rates`)             | Keeps last-known-good row; pin falls back to the 53.00 floor      |
-| **Resend**                        | All transactional email                                                     | Outbox rows go `failed` and stay visible — never silently dropped |
-| **Google Maps Platform**          | Maps, geocoding, Routes, Places                                             | Degrades gracefully to keyless map links                          |
-| **Google Route Optimization**     | Auto-orders planner stops (service account, not a key)                      | Nothing — returns `null`, planner keeps the chosen order          |
-| **Google Gemini**                 | AI road-trip planner co-pilot                                               | Falls back to a stub provider                                     |
-| **Telegram**                      | Owner booking alerts (the live chat channel)                                | Alert row fails loudly and retries                                |
-| **Meta WhatsApp Cloud API**       | Inbound webhook live; owner alerts pending setup                            | Endpoint answers 503 until configured                             |
+| Service                           | What it does here                                                               | Breaks how                                                        |
+| --------------------------------- | ------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| **Supabase**                      | Database, auth, file storage. All business logic (43 `api_*` SQL functions)     | API 500s; in dev it silently serves fake seed data instead        |
+| **Cloudflare Pages**              | Hosts the web app on the edge. Deploys from `main`                              | Missing `nodejs_compat` → every page 500s on a green build        |
+| **Cloudflare Worker `gytm-cron`** | The scheduler. Pages has no cron                                                | **Email stops and the calendar empties.** Silent                  |
+| **Peach Payments**                | Card checkout (embedded widget; charges **MUR**, ledger stays EUR)              | Fails closed on production rather than serving a fake provider    |
+| **open.er-api.com**               | EUR→MUR rate for the charge pin (maintenance cron → `fx_rates`)                 | Keeps last-known-good row; pin falls back to the 53.00 floor      |
+| **Resend**                        | All transactional email                                                         | Outbox rows go `failed` and stay visible — never silently dropped |
+| **Google Maps Platform**          | Maps, geocoding, Routes, Places                                                 | Degrades gracefully to keyless map links                          |
+| **Google Route Optimization**     | Auto-orders planner stops (service account, not a key)                          | Nothing — returns `null`, planner keeps the chosen order          |
+| **Google Gemini**                 | ZilAi (the site-wide planning assistant), admin assistant, email→quote, SEO fix | Falls back to a stub provider                                     |
+| **Telegram**                      | Owner booking alerts (the live chat channel)                                    | Alert row fails loudly and retries                                |
+| **Meta WhatsApp Cloud API**       | Inbound webhook live; owner alerts pending setup                                | Endpoint answers 503 until configured                             |
 
 ---
 
@@ -133,8 +133,8 @@ See [`whatsapp-setup-runbook.md`](../whatsapp-setup-runbook.md) for the full Wha
 | `GOOGLE_SERVICE_ACCOUNT_JSON`     | Route Optimization (full SA JSON, one line) | Stop order left as chosen                      |
 | `GOOGLE_CLOUD_PROJECT`            | Overrides the SA's project id               | Uses `project_id` from the JSON                |
 | `AI_PROVIDER`                     | Provider select                             | Defaults to `google`                           |
-| `GOOGLE_GENERATIVE_AI_API_KEY`    | Gemini co-pilot                             | Stub provider                                  |
-| `GOOGLE_GENERATIVE_AI_MODEL`      | Model override                              | `gemini-2.5-flash`                             |
+| `GOOGLE_GENERATIVE_AI_API_KEY`    | Every AI feature (see below)                | Stub provider                                  |
+| `GOOGLE_GENERATIVE_AI_MODEL`      | Model override                              | `gemini-3.1-pro-preview`                       |
 
 > The browser Maps key needs the **Maps JavaScript API**, not the Embed API — the code loads
 > `libraries=places,marker,routes` and drives the Geocoder. An Embed-only key produces a broken map.
@@ -259,3 +259,38 @@ limit 20;
 That query is the fastest way to find a half-configured alert channel — it is exactly how the owner's
 Telegram alerts were found to have never been configured in production, while email alerts for the same
 bookings were going out fine.
+
+## The AI model, and ZilAi
+
+**Two models, split by who is waiting.** Both are built in `src/lib/services/planner-agent.ts`:
+
+| Function         | Used by                                   | Default                          | Variable                          |
+| ---------------- | ----------------------------------------- | -------------------------------- | --------------------------------- |
+| `visitorModel()` | ZilAi's planning turns, place insights    | `gemini-3.8-flash`, low thinking | `GOOGLE_GENERATIVE_AI_FAST_MODEL` |
+| `plannerModel()` | Admin assistant, email→quote, the SEO fix | `gemini-3.1-pro-preview`         | `GOOGLE_GENERATIVE_AI_MODEL`      |
+
+A visitor is watching a spinner, so ZilAi runs on the fast pair. **The speed is the pair, not the
+model**: on the same test loop Pro took 17.7 s, Pro at low thinking 12.8 s, Flash 19.1 s and Flash at
+low thinking 5.8 s — Flash left to think freely was slower than Pro. `visitorModelOptions()` carries
+the low-thinking setting and must be passed wherever `visitorModel()` is used.
+
+Two things to know before touching either variable:
+
+- **Any Gemini 3 model needs AI SDK v5 or later** (`ai@^5`, `@ai-sdk/google@^2`). Gemini 3 tool calls
+  carry a "thought signature" that must be sent back on the next step; SDK v4 drops it and the second
+  tool step fails with `400 Function call is missing a thought_signature`. A scripted-model test
+  cannot see this — only a real call can.
+- **Pro is slow for a chat.** A real planning turn on it took 25–45 seconds, which is why ZilAi was
+  moved off it. The assistant still shows a working state while a turn runs.
+
+Under SDK v5 a failed tool no longer throws out of `generateText`: the error is handed to the model,
+which will happily write a polite reply over a real outage. `src/lib/ai/tool-faults.ts` re-raises a
+tool that threw while running, so it still reaches `error_logs`; a malformed call from the model is
+left for the model to correct.
+
+**ZilAi is site-wide.** The "Plan with AI" pill in the header opens it as a modal sheet from the left
+on any public page; once it commits a plan, a results canvas (day cards beside the map) fills the
+rest of the screen. `ZilAiProvider` in `app/(site)/layout.tsx` is all a page pays for — the assistant
+itself (`src/components/planner/assistant/`) is fetched on first open and is never in page HTML. Its
+state lives in `usePlannerSession`. `/ai-road-trip-planner` is its landing page and where shared
+plan links (`?stops=`, `?from&to&dN…`, `?fromTour=`) restore.
