@@ -152,20 +152,24 @@ export function SearchBar({ variant = 'hero' }: { variant?: Variant }) {
     total === 1 ? t('{n} traveller', { n: total }) : t('{n} travellers', { n: total });
 
   const compact = variant === 'compact';
-  const segClass = `flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full font-medium hover:bg-cream ${
-    compact ? 'px-2.5 py-1 text-[12.5px]' : 'px-3 py-2 text-[14px]'
+  // The hero field sits on a light ground with nothing else on the page competing with it, so its
+  // segments are hover-tinted (a white hover would vanish against the white pill).
+  const segClass = `flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full font-medium ${
+    compact
+      ? 'px-2.5 py-1 text-[12.5px] hover:bg-cream'
+      : 'px-4 py-3 text-[15px] hover:bg-teal-tint'
   }`;
 
   return (
     <div
       ref={rootRef}
-      className={`relative z-30 text-left ${compact ? 'w-full' : 'mx-auto mt-5 max-w-3xl'}`}
+      className={`relative z-30 text-left ${compact ? 'w-full' : 'mx-auto max-w-[860px]'}`}
     >
       <div
         className={`flex flex-col bg-white sm:flex-row sm:items-center ${
           compact
             ? 'gap-1 rounded-2xl border border-ink/15 p-1.5 shadow-sm sm:rounded-full'
-            : 'gap-2 rounded-2xl p-3 shadow-[0_24px_60px_-24px_rgba(0,0,0,0.5)] sm:gap-1 sm:rounded-full sm:p-2'
+            : 'gap-2 rounded-2xl p-3 shadow-[0_1px_2px_rgba(10,46,54,0.08),0_22px_48px_-22px_rgba(10,46,54,0.38)] transition-shadow duration-200 focus-within:shadow-[0_0_0_3px_rgba(14,140,146,0.35),0_22px_48px_-22px_rgba(10,46,54,0.38)] sm:gap-1 sm:rounded-full sm:p-2 sm:pl-4'
         }`}
       >
         <div className="flex min-w-0 flex-1 items-center gap-2">
@@ -185,7 +189,7 @@ export function SearchBar({ variant = 'hero' }: { variant?: Variant }) {
             placeholder={t('Search places or activities')}
             aria-label={t('Search places or activities')}
             className={`min-w-0 flex-1 bg-transparent text-ink outline-none placeholder:text-ink-muted ${
-              compact ? 'text-[13px]' : 'text-[15px]'
+              compact ? 'text-[13px]' : 'text-[17px] placeholder:font-medium'
             }`}
           />
         </div>
@@ -216,8 +220,10 @@ export function SearchBar({ variant = 'hero' }: { variant?: Variant }) {
           <button
             type="button"
             onClick={submit}
-            className={`shrink-0 rounded-full bg-teal font-bold text-white transition hover:bg-teal-dark ${
-              compact ? 'px-4 py-1.5 text-[13px]' : 'px-6 py-3 text-[15px]'
+            className={`shrink-0 rounded-full font-bold text-white transition ${
+              compact
+                ? 'bg-teal px-4 py-1.5 text-[13px] hover:bg-teal-dark'
+                : 'bg-teal-dark px-8 py-[15px] text-[17px] hover:bg-ink'
             }`}
           >
             {t('Search')}

@@ -11,6 +11,7 @@ import { SearchBar } from './SearchBar';
 import { MainNav } from './MainNav';
 import { MobileMenu } from './MobileMenu';
 import { MobileSearch } from './MobileSearch';
+import { HERO_SEARCH_ID } from './home/anchors';
 import { NotificationsList } from '@/components/site/NotificationsList';
 import {
   IconArrowRight,
@@ -27,22 +28,17 @@ import {
 } from '@/components/ui/icons';
 
 /** Shared icon-over-label styling for the navbar actions. The `group relative` lets each
- *  action carry the centre-out coral underline (see <Underline/>). */
-function navItemClass(light: boolean, extra = ''): string {
-  return `group relative flex flex-col items-center gap-0.5 rounded-lg px-2 py-1 text-[11px] font-semibold ${
-    light ? 'text-white' : 'text-ink'
-  } ${extra}`;
+ *  action carry the centre-out teal underline (see <Underline/>). */
+function navItemClass(extra = ''): string {
+  return `group relative flex flex-col items-center gap-0.5 rounded-lg px-2 py-1 text-[11px] font-semibold text-ink ${extra}`;
 }
 
-/** Underline that grows from the centre outward on hover. White over the photo hero,
- *  teal on the solid bar (a white line would be invisible there). */
-function Underline({ light = false }: { light?: boolean }) {
+/** Underline that grows from the centre outward on hover. */
+function Underline() {
   return (
     <span
       aria-hidden
-      className={`pointer-events-none absolute -bottom-0.5 left-1/2 h-[2px] w-0 -translate-x-1/2 rounded-full transition-[width] duration-300 ease-out group-hover:w-full ${
-        light ? 'bg-white' : 'bg-teal'
-      }`}
+      className="pointer-events-none absolute -bottom-0.5 left-1/2 h-[2px] w-0 -translate-x-1/2 rounded-full bg-teal transition-[width] duration-300 ease-out group-hover:w-full"
     />
   );
 }
@@ -50,7 +46,7 @@ function Underline({ light = false }: { light?: boolean }) {
 /** Profile navbar item — opens a dropdown. Signed out it offers sign-in; signed in it shows the
  *  account links plus an inline "Updates" inbox (the old standalone bell folded in here) and a
  *  Settings entry. The button carries the unread badge so notifications are still visible at a glance. */
-function ProfileMenu({ overHero }: { overHero: boolean }) {
+function ProfileMenu() {
   const { user, profile, loading, openAuth, signOut } = useAuth();
   const { notes, unread, markAllRead } = useInbox();
   const t = useT();
@@ -97,7 +93,7 @@ function ProfileMenu({ overHero }: { overHero: boolean }) {
         onClick={() => setOpen((o) => !o)}
         aria-label={t('Profile')}
         aria-expanded={open}
-        className={navItemClass(overHero)}
+        className={navItemClass()}
       >
         <span className="relative">
           <IconUser width={20} height={20} />
@@ -111,7 +107,7 @@ function ProfileMenu({ overHero }: { overHero: boolean }) {
           )}
         </span>
         <span className="hidden max-w-[6rem] truncate lg:block">{label}</span>
-        <Underline light={overHero} />
+        <Underline />
       </button>
 
       {open && (
@@ -191,7 +187,7 @@ function ProfileMenu({ overHero }: { overHero: boolean }) {
 }
 
 /** Cart navbar item with a live count badge when items are in the cart. */
-function CartAction({ overHero }: { overHero: boolean }) {
+function CartAction() {
   const { count } = useCart();
   const t = useT();
   // Pop the icon when an item is ADDED (count rises) — but never on the initial load settle, where
@@ -221,7 +217,7 @@ function CartAction({ overHero }: { overHero: boolean }) {
             : t('Cart, {n} items', { n: count })
           : t('Cart')
       }
-      className={navItemClass(overHero, 'relative flex')}
+      className={navItemClass('relative flex')}
     >
       <span key={popKey} className={`relative ${popKey ? 'gyt-cart-add' : ''}`}>
         <IconCart width={20} height={20} />
@@ -235,13 +231,13 @@ function CartAction({ overHero }: { overHero: boolean }) {
         )}
       </span>
       <span className="hidden lg:block">{t('Cart')}</span>
-      <Underline light={overHero} />
+      <Underline />
     </Link>
   );
 }
 
 /** Bookings navbar item — only appears once signed in, mirroring GetYourGuide. */
-function BookingsAction({ overHero }: { overHero: boolean }) {
+function BookingsAction() {
   const { user } = useAuth();
   const t = useT();
   if (!user) return null;
@@ -249,28 +245,27 @@ function BookingsAction({ overHero }: { overHero: boolean }) {
     <HeaderAction
       label={t('Bookings')}
       href="/account/bookings"
-      light={overHero}
       icon={<IconBookings width={20} height={20} />}
     />
   );
 }
 
 /** Language + currency navbar item — opens the picker modal. */
-function PrefsButton({ overHero }: { overHero: boolean }) {
+function PrefsButton() {
   const { language, currency, openPrefs } = usePreferences();
   const t = useT();
   return (
     <button
       type="button"
       onClick={() => openPrefs('language')}
-      className={navItemClass(overHero)}
+      className={navItemClass()}
       aria-label={t('Language and currency')}
     >
       <IconGlobe width={20} height={20} />
       <span className="hidden lg:block">
         {language.toUpperCase()}/{currency} {CURRENCY_LABELS[currency].symbol}
       </span>
-      <Underline light={overHero} />
+      <Underline />
     </button>
   );
 }
@@ -280,68 +275,102 @@ function HeaderAction({
   label,
   href = '/account',
   className = '',
-  light = false,
 }: {
   icon: React.ReactNode;
   label: string;
   href?: string;
   className?: string;
-  light?: boolean;
 }) {
   return (
-    <Link href={href} className={navItemClass(light, className)}>
+    <Link href={href} className={navItemClass(className)}>
       {icon}
       <span className="hidden lg:block">{label}</span>
-      <Underline light={light} />
+      <Underline />
     </Link>
   );
 }
 
 /**
- * GetYourGuide-style sticky header. On the home page (`heroMode`) it overlays the
- * hero transparently at the top, then on scroll becomes a solid white bar with the
- * secondary nav row hidden and the search docked in. Elsewhere it's a plain white bar.
+ * GetYourGuide-style header: a white bar with the search docked in and the primary nav row beneath.
+ *
+ * On the homepage (`searchDocksOnScroll`) the hero owns the search, so the header starts without
+ * one — clear over the hero's pale ground — and takes its compact copy only once the hero's field
+ * has scrolled under it, dropping the nav row at the same moment to stay one line tall. That keeps
+ * a single search field on screen at any time, on phones as well as desktop.
  *
  * Navbar actions mirror GetYourGuide: Wishlist · Cart · language/currency · Profile.
  */
 export function GygHeader({
-  heroMode = false,
   sticky = true,
   showSearch = true,
+  searchDocksOnScroll = false,
 }: {
-  heroMode?: boolean;
   /** Stick to the top on scroll. Detail pages pass false. */
   sticky?: boolean;
-  /** Show the docked search field in the navbar (non-hero pages). */
+  /** Show the docked search field in the navbar. */
   showSearch?: boolean;
+  /** Homepage: the hero carries the search until it scrolls away, then the header takes over. */
+  searchDocksOnScroll?: boolean;
 }) {
   const t = useT();
-  // Non-hero pages render the solid bar immediately; hero starts transparent.
-  const [solid, setSolid] = useState(!heroMode);
+  // Off the homepage the search is always docked and the bar always solid.
+  const [docked, setDocked] = useState(!searchDocksOnScroll);
+  const [scrolled, setScrolled] = useState(!searchDocksOnScroll);
+  const headerRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
-    if (!heroMode) return;
-    const onScroll = () => setSolid(window.scrollY > 40);
+    if (!searchDocksOnScroll) return;
+    const onScroll = () => setScrolled(window.scrollY > 8);
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, [heroMode]);
 
-  const overHero = heroMode && !solid;
-  const showNav = !heroMode || !solid;
-  // The search lives in the navbar always (the hero body no longer carries it).
-  const searchShown = heroMode ? true : showSearch;
-  const position = heroMode ? 'fixed inset-x-0 top-0' : sticky ? 'sticky top-0' : 'relative';
-  const bg = overHero ? 'bg-transparent' : 'bg-white shadow-[0_1px_8px_-2px_rgba(10,46,54,0.12)]';
+    // Dock when the hero's field has gone under the header, not merely off the top of the window.
+    // The negative top margin is the height of the header's logo row — what the header shrinks to
+    // once docked — and NOT its full undocked height: docking drops the nav row, so a threshold
+    // taken from the taller bar would uncover the bottom of the hero's field again and show two
+    // search fields at once. Read once, so docking can't feed back into the threshold.
+    const field = document.getElementById(HERO_SEARCH_ID);
+    const logoRow = headerRef.current?.firstElementChild;
+    const headerHeight = logoRow instanceof HTMLElement ? logoRow.offsetHeight : 76;
+    const observer =
+      field && typeof IntersectionObserver !== 'undefined'
+        ? new IntersectionObserver(([entry]) => setDocked(!!entry && !entry.isIntersecting), {
+            rootMargin: `-${headerHeight}px 0px 0px 0px`,
+          })
+        : null;
+    if (field && observer) observer.observe(field);
+    else setDocked(true);
+
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      observer?.disconnect();
+    };
+  }, [searchDocksOnScroll]);
+
+  const position = searchDocksOnScroll
+    ? 'fixed inset-x-0 top-0'
+    : sticky
+      ? 'sticky top-0'
+      : 'relative';
+  const bg = scrolled ? 'bg-white shadow-[0_1px_8px_-2px_rgba(10,46,54,0.12)]' : 'bg-transparent';
 
   return (
-    <header className={`${position} z-50 ${bg} transition-colors duration-300`}>
-      <div className={overHero ? '' : 'border-b border-ink/[0.08]'}>
+    <header
+      ref={headerRef}
+      className={`${position} z-50 ${bg} transition-[background-color,box-shadow] duration-300`}
+    >
+      <div className={`border-b ${scrolled ? 'border-ink/[0.08]' : 'border-transparent'}`}>
         <div className="mx-auto flex max-w-shell items-center gap-4 px-6 py-2.5">
-          <Logo tone={overHero ? 'dark' : 'light'} />
+          <Logo tone="light" />
           <div className="hidden min-w-0 flex-1 justify-center px-2 sm:flex">
-            {searchShown && (
-              <div className="w-full max-w-[560px]">
+            {showSearch && (
+              <div
+                // `inert` while hidden: an invisible field must not sit in the tab order.
+                inert={!docked}
+                className={`w-full max-w-[560px] transition-[opacity,transform] duration-300 ease-out ${
+                  docked ? 'opacity-100' : 'pointer-events-none -translate-y-1 opacity-0'
+                }`}
+              >
                 <SearchBar variant="compact" />
               </div>
             )}
@@ -350,33 +379,34 @@ export function GygHeader({
             <HeaderAction
               label={t('Wishlist')}
               href="/wishlist"
-              light={overHero}
               icon={<IconHeart width={20} height={20} />}
             />
-            <CartAction overHero={overHero} />
+            <CartAction />
             {/* Bookings/currency/profile have no room on a phone — they live in the hamburger menu.
                 Notifications used to be a standalone bell here; they now live inside the profile menu
                 ("Updates"), with the unread badge surfaced on the profile button. */}
             <div className="hidden items-center gap-1 sm:flex">
-              <BookingsAction overHero={overHero} />
-              <PrefsButton overHero={overHero} />
-              <ProfileMenu overHero={overHero} />
+              <BookingsAction />
+              <PrefsButton />
+              <ProfileMenu />
             </div>
-            <MobileMenu light={overHero} />
+            <MobileMenu />
           </nav>
         </div>
 
-        {/* Phones: a sticky search bar pinned under the logo row (opens the full-screen search sheet). */}
-        {searchShown && (
+        {/* Phones: a search bar pinned under the logo row (opens the full-screen search sheet). On the
+            homepage it only appears once the hero's own field is out of view. */}
+        {showSearch && docked && (
           <div className="mx-auto max-w-shell px-6 pb-3 sm:hidden">
             <MobileSearch />
           </div>
         )}
       </div>
 
-      {showNav && (
-        <div className={`hidden md:block ${overHero ? '' : 'border-b border-ink/[0.06]'}`}>
-          <MainNav light={overHero} />
+      {/* The nav row gives its line back to the search once that docks. */}
+      {(!searchDocksOnScroll || !docked) && (
+        <div className={`hidden md:block ${scrolled ? 'border-b border-ink/[0.06]' : ''}`}>
+          <MainNav light={false} />
         </div>
       )}
     </header>

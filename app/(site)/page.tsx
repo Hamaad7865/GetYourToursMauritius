@@ -1,11 +1,14 @@
 import type { Metadata } from 'next';
 import { overrideMetadata } from '@/lib/seo/override';
 import { GygHeader } from '@/components/gyg/GygHeader';
-import { GygHero } from '@/components/gyg/GygHero';
-import { HomeShowcase } from '@/components/gyg/HomeShowcase';
 import { HomeShowcaseProvider } from '@/components/gyg/HomeShowcaseContext';
+import { HomeHero } from '@/components/gyg/home/HomeHero';
+import { ContinuePlanning } from '@/components/gyg/home/ContinuePlanning';
+import { ContinuePlanningReserve } from '@/components/gyg/home/ContinuePlanningReserve';
+import { HomePlaces, HomePlacesCredits } from '@/components/gyg/home/HomePlaces';
+import { HomeRails } from '@/components/gyg/home/HomeRails';
+import { WhyDirect } from '@/components/gyg/home/WhyDirect';
 import { SiteFooter } from '@/components/site/SiteFooter';
-import { TrustStrip } from '@/components/site/TrustStrip';
 import { FeaturedReviews } from '@/components/site/FeaturedReviews';
 import { PopularSearches } from '@/components/site/PopularSearches';
 import { publicServiceContext } from '@/lib/http/context';
@@ -54,25 +57,41 @@ async function getActivities(): Promise<TourSummary[]> {
       page: 1,
       pageSize: 100,
     });
-    return items;
+    // The homepage's cards only ever draw one photo each, but a summary carries the tour's whole
+    // gallery (up to 20). Dropping the rest keeps them out of the HTML sent to every visitor.
+    return items.map((a) => ({ ...a, images: a.heroImage ? [] : a.images.slice(0, 1) }));
   } catch (error) {
     console.error('[home] catalogue fetch failed', error);
     return [];
   }
 }
 
+/**
+ * The homepage, in GetYourGuide's order: header, a hero that is just a line and a search field,
+ * then what the visitor is most likely to want next.
+ *
+ * It has two states, and the server only ever renders the first. A first-time visitor gets the place
+ * tiles straight under the hero. A returning one gets "Continue planning your trip" above them —
+ * resolved in the browser from what they viewed, saved or left in their cart, because this page is
+ * edge-cached and identical for everyone (see ContinuePlanning).
+ */
 export default async function HomePage() {
   const activities = await getActivities();
 
   return (
-    <HomeShowcaseProvider>
-      <GygHeader heroMode />
-      <GygHero />
-      <TrustStrip />
+    <HomeShowcaseProvider activities={activities}>
+      <GygHeader searchDocksOnScroll />
       <main className="bg-white pb-14">
-        <HomeShowcase activities={activities} />
+        <HomeHero />
+        <ContinuePlanning />
+        {/* Must directly follow the rail it reserves space for. */}
+        <ContinuePlanningReserve />
+        <HomePlaces />
+        <HomeRails />
+        <WhyDirect />
         <FeaturedReviews />
         <PopularSearches />
+        <HomePlacesCredits />
       </main>
       <SiteFooter />
     </HomeShowcaseProvider>

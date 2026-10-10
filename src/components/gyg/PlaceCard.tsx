@@ -6,20 +6,10 @@ import { WishHeart } from './WishHeart';
 import { Price } from '@/components/site/Price';
 import { useT } from '@/components/site/PreferencesProvider';
 import { activityRating } from '@/lib/content/activity-reviews';
-import { VEHICLE_BANDS } from '@/lib/services/pricing';
+import { durationLabel, priceUnit } from '@/lib/catalogue/price-unit';
 import { IconCalendar, IconStar } from '@/components/ui/icons';
 
 /* eslint-disable @next/next/no-img-element -- CF Pages serves images unoptimized. */
-
-type T = (key: string, vars?: Record<string, string | number>) => string;
-
-function durationLabel(minutes: number | null, t: T): string | null {
-  if (minutes == null) return null;
-  if (minutes < 60) return t('{n} min', { n: minutes });
-  const h = minutes / 60;
-  const rounded = Number.isInteger(h) ? h : Math.round(h * 10) / 10;
-  return rounded === 1 ? t('{n} hour', { n: rounded }) : t('{n} hours', { n: rounded });
-}
 
 /**
  * Activity card, recoloured to the Belle Mare brand. Every card shows a single photo (the
@@ -51,28 +41,7 @@ export function PlaceCard({
   // only appears on the detail page). The Top-rated badge stays keyed on the tour's OWN rating, so the
   // fallback never badges a card that hasn't earned it.
   const rating = activityRating(activity);
-  // Price unit follows what staff set. A TRANSFER reads "per vehicle" (a transfer genuinely prices per
-  // vehicle, capacity varies). A vehicle-priced SIGHTSEEING tour reads "per group up to 4 people" — the
-  // "From" price is the entry Sedan (VEHICLE_BANDS[0], up to 4), which is clearer to customers than "per
-  // vehicle"; bigger parties auto-price up to the next vehicle on the detail page. per-group reads "per
-  // group up to N people"; otherwise per person.
-  const groupSize = activity.fromPriceMaxGuests;
-  const unit =
-    // A private-only activity's from-price is the flat charter base — "per person" would misstate a
-    // price that covers up to N guests (fromPriceIncluded is only set for that case).
-    activity.fromPriceIncluded != null
-      ? t('up to {n} people', { n: activity.fromPriceIncluded })
-      : activity.type === 'transport'
-        ? t('per vehicle')
-        : activity.pricingMode === 'vehicle'
-          ? t('per group up to {n} people', { n: VEHICLE_BANDS[0]!.max })
-          : activity.pricingMode === 'per_group'
-            ? // Always read as a group price; only append "up to N" when the size is known. Falling back
-              // to "per person" for a per_group tour (missing maxGuests) misrepresents the price.
-              groupSize && groupSize > 1
-              ? t('per group up to {n} people', { n: groupSize })
-              : t('per group')
-            : t('per person');
+  const unit = priceUnit(activity, t);
   const duration = durationLabel(activity.durationMinutes, t);
   // No pickup claim for regular activities: the summary payload has no pickupAvailable field, and
   // asserting it fabricated a promise the detail page may contradict ("Meeting point").

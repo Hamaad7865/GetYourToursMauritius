@@ -36,21 +36,38 @@ const MAX_PER_GROUP = 16;
  * Mobile search: a tappable bar in the header (phones) that opens a full-screen "Where to?" sheet —
  * Belle Mare suggestions, a date, and travellers, then Search. Desktop keeps the inline SearchBar.
  */
-export function MobileSearch() {
+export function MobileSearch({ size = 'bar' }: { size?: 'bar' | 'hero' }) {
   const [open, setOpen] = useState(false);
   const t = useT();
+  const hero = size === 'hero';
 
   return (
     <>
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex w-full items-center gap-2.5 rounded-full border border-ink/10 bg-white px-4 py-2.5 text-left shadow-[0_8px_22px_-12px_rgba(10,46,54,0.5)] active:scale-[0.99] sm:hidden"
+        className={`flex w-full items-center rounded-full bg-white text-left active:scale-[0.99] sm:hidden ${
+          hero
+            ? 'gap-3 py-2 pl-5 pr-2 shadow-[0_1px_2px_rgba(10,46,54,0.08),0_18px_40px_-20px_rgba(10,46,54,0.4)]'
+            : 'gap-2.5 border border-ink/10 px-4 py-2.5 shadow-[0_8px_22px_-12px_rgba(10,46,54,0.5)]'
+        }`}
       >
-        <IconSearch width={19} height={19} className="text-teal" />
-        <span className="text-[14.5px] font-semibold text-ink-muted">
+        <IconSearch width={hero ? 21 : 19} height={hero ? 21 : 19} className="shrink-0 text-teal" />
+        <span
+          className={`min-w-0 flex-1 truncate font-semibold text-ink-muted ${
+            hero ? 'text-[16px]' : 'text-[14.5px]'
+          }`}
+        >
           {t('Search tours & activities')}
         </span>
+        {hero && (
+          <span
+            aria-hidden
+            className="shrink-0 rounded-full bg-teal-dark px-5 py-3 text-[15px] font-bold text-white"
+          >
+            {t('Search')}
+          </span>
+        )}
       </button>
       {open && <SearchSheet onClose={() => setOpen(false)} />}
     </>

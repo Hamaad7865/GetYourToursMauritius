@@ -2840,4 +2840,35 @@ export const fr: Record<string, string> = {
   'Or open this link:': 'Ou ouvrez ce lien :',
   'Something to change? Reply to this email, or contact us at {emailLink} or {phone}.':
     'Une modification ? Répondez à cet e-mail ou contactez-nous à {emailLink} ou au {phone}.',
+
+  // Homepage (GetYourGuide structure): hero, "Continue planning", place tiles, tabbed rails, why direct.
+  'Mauritius tours, booked direct.': 'Excursions à l’île Maurice, en direct.',
+  'Catamaran cruises, dolphin swims, island day tours and airport taxis from a licensed local operator in Belle Mare.':
+    'Croisières en catamaran, nage avec les dauphins, excursions à la journée et taxis aéroport, par un opérateur local agréé à Belle Mare.',
+  '{avg} from {total} reviews': '{avg} sur {total} avis',
+  'Continue planning your trip': 'Reprenez l’organisation de votre voyage',
+  'Clear viewed': 'Effacer l’historique',
+  'In your cart': 'Dans votre panier',
+  'In your cart · {date}': 'Dans votre panier · {date}',
+  'Things to do wherever you’re staying': 'Des activités où que vous logiez',
+  '{place}, Mauritius': '{place}, île Maurice',
+  'East coast lagoon': 'Lagon de la côte est',
+  'South-west coast': 'Côte sud-ouest',
+  'South-west highlands': 'Hauteurs du sud-ouest',
+  'North-west coast': 'Côte nord-ouest',
+  'The capital': 'La capitale',
+  'Place photos via Wikimedia Commons:': 'Photos des lieux via Wikimedia Commons :',
+  'For you': 'Pour vous',
+  'See all {category}': 'Tout voir : {category}',
+  'See all activities': 'Voir toutes les activités',
+  'Licensed and registered': 'Agréé et enregistré',
+  'Book and pay online': 'Réservez et payez en ligne',
+  'Mauritius business registration {brn}': 'Numéro d’enregistrement mauricien {brn}',
+  'No commission stops': 'Aucun arrêt à commission',
+  'Transparent fixed pricing': 'Des prix fixes et transparents',
+  'Since the early 2000s': 'Depuis le début des années 2000',
+  'A local Mauritian operator, based in Belle Mare':
+    'Un opérateur local mauricien, installé à Belle Mare',
+  'Belle Mare Tours is the operator, not a marketplace. The price you see is ours, with no reseller markup.':
+    'Belle Mare Tours est l’opérateur, pas une place de marché. Le prix affiché est le nôtre, sans marge de revendeur.',
 };
