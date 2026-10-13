@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/site/LocaleLink';
 import { ReviewCard } from '@/components/site/ReviewCard';
 import { RevealGroup } from '@/components/site/RevealGroup';
 import { reviewStats, transferReviews } from '@/lib/content/reviews';

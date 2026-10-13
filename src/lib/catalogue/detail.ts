@@ -17,8 +17,21 @@ export interface Crumb {
   href: string;
 }
 
+/**
+ * The private catamaran charters sit in the mixed "Private Cruises" category (catamarans, speedboats
+ * and dolphin trips together), so their category crumb led to a filtered listing — and they were the
+ * only catamaran tours with no link to /mauritius-catamaran-cruise, the page that lists them. Matched
+ * on the slug, as that page does: it does not change with the language.
+ */
+function isPrivateCatamaran(activity: { category: string; slug?: string }): boolean {
+  return activity.category === 'Private Cruises' && /catamaran/i.test(activity.slug ?? '');
+}
+
 /** Breadcrumb links (Home → section → category). The page renders the title separately. */
-export function breadcrumbTrail(activity: Pick<TourDetail, 'type' | 'category'>): Crumb[] {
+export function breadcrumbTrail(
+  activity: Pick<TourDetail, 'type' | 'category'> & { slug?: string },
+): Crumb[] {
+  const category = isPrivateCatamaran(activity) ? 'Catamaran cruises' : activity.category;
   return [
     { label: 'Home', href: '/' },
     {
@@ -27,7 +40,7 @@ export function breadcrumbTrail(activity: Pick<TourDetail, 'type' | 'category'>)
     },
     // The category's landing page where it has one (see category-hubs.ts) — every catamaran tour's
     // breadcrumb then links /mauritius-catamaran-cruise rather than a filter of /activities.
-    { label: activity.category, href: categoryHref(activity.category) },
+    { label: category, href: categoryHref(category) },
   ];
 }
 

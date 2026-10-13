@@ -117,6 +117,43 @@ cookie gytm_lang  →  getLocale() / useT()  →  ServiceContext.locale  →  ap
 
 ---
 
+## Links between pages
+
+French lives at `/fr/…` (middleware rewrite — see `middleware.ts` and `src/lib/i18n/routing.ts`). The
+rewrite only works on the way **in**: a component that renders `<Link href="/activities/seaplane">`
+renders exactly that on a French page too, and the visitor's first click drops them into English.
+
+That is what the whole site did until 2026-10-13. A crawl that day found all 42 tour cards on
+`/fr/activities` pointing at English tour pages, 81% of in-content links on French pages pointing at
+English URLs, and **154 of 236 French pages with no internal link from anywhere** — reachable only
+through the sitemap, while earning about a third of the site's search clicks.
+
+**The rule: public pages and components import `Link` from `@/components/site/LocaleLink`, never
+from `next/link`.** Write the href the English way; `LocaleLink` reads the page's language and runs
+the href through `localiseHref()`. `tests/unit/locale-link-usage.test.ts` fails the build if a public
+file imports `next/link` directly.
+
+`localiseHref` (in `routing.ts`, with its own tests) decides what gets a prefix, in one place:
+
+- English pages get their hrefs back unchanged — byte for byte.
+- An href that already starts with `/fr` is left as written, so a language switch stays a switch.
+- External links, `mailto:`, `tel:` and `#anchors` pass through.
+- No prefix for sections with no French URL of their own — `/cart`, `/checkout`, `/wishlist`,
+  `/account`, `/bookings`, `/quotes`, `/auth`, `/admin`, `/api` (the `UNLOCALISED_PREFIXES` list) —
+  nor for the English-only legal pages, nor for files.
+- The list is what is **excluded**: a new content page is bilingual by default.
+
+Navigation that does not go through a link (`router.push`, a form action) is not covered — build
+those hrefs with `localiseHref(language, …)` yourself.
+
+Two related fixes shipped with it: category names are admin-managed and reach the menus through
+`t(variable)`, which the coverage scan cannot see — add a row to `messages.ts` when the owner adds a
+category, or its label stays English on `/fr`; and tour cards now carry the tour's title as link
+**text** (`ActivityCard`, `PlaceCard`) instead of an empty overlay with an `aria-label`, which Google
+does not read as anchor text.
+
+---
+
 ## Catalogue copy
 
 Tour titles, summaries, descriptions, highlights, inclusions/exclusions and SEO title/description live

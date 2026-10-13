@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import Link from 'next/link';
+import Link from '@/components/site/LocaleLink';
 import { useRouter } from 'next/navigation';
 import { Price } from '@/components/site/Price';
 import { useT } from '@/components/site/PreferencesProvider';

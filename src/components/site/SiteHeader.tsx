@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/site/LocaleLink';
 import { Logo } from './Logo';
 import { CATEGORIES } from '@/lib/seo/site';
 import { IconChevron, IconSearch } from '@/components/ui/icons';

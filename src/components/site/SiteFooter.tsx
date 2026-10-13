@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/site/LocaleLink';
 import { Logo } from './Logo';
 import { SITE, whatsappUrl } from '@/lib/seo/site';
 import { IconChat, IconMail } from '@/components/ui/icons';

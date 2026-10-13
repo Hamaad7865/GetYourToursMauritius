@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import Link from 'next/link';
+import Link from '@/components/site/LocaleLink';
 import { usePreferences, useT } from '@/components/site/PreferencesProvider';
 import { useCategories } from '@/lib/categories/useCategories';
 import { categoryHref } from '@/lib/catalogue/category-hubs';

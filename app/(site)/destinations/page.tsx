@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { overrideMetadata } from '@/lib/seo/override';
-import Link from 'next/link';
+import Link from '@/components/site/LocaleLink';
 import { InfoPage } from '@/components/site/InfoPage';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { areas, AREA_REGION_ORDER, localisedArea, type Area } from '@/lib/content/areas';

@@ -1,11 +1,14 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import Link from '@/components/site/LocaleLink';
 import { notFound } from 'next/navigation';
 import { InfoPage, EnquireRow } from '@/components/site/InfoPage';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { renderBlocks } from '@/components/content/RichText';
 import { formatPostDate, POST_META_FR } from '@/lib/content/blog';
 import { loadPost, loadRelatedPosts } from '@/lib/content/blog-live';
+import { POST_HUBS, toursForPost } from '@/lib/content/tour-links';
+import { activitiesBySlug } from '@/lib/seo/landing';
+import { ActivityGrid } from '@/components/catalogue/ActivityGrid';
 import { articleJsonLd, breadcrumbListJsonLd, faqPageJsonLd } from '@/lib/seo/jsonld';
 import { SITE, OG_IMAGE } from '@/lib/seo/site';
 import { fitSnippet } from '@/lib/seo/snippet';
@@ -59,6 +62,8 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   const p = await loadPost(slug, locale);
   if (!p) notFound();
   const related = await loadRelatedPosts(p.slug, 3, locale);
+  const tours = await activitiesBySlug(toursForPost(p.slug));
+  const hub = POST_HUBS[p.slug];
   const t = await getT();
 
   return (
@@ -147,6 +152,28 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
             </section>
           )}
         </article>
+
+        {/* The tours this guide is about (see tour-links.ts), and the landing page that sells them.
+            Guides are where most of the site's search visitors arrive; without this they had no way
+            from the article to a tour except the header. Inline French: two labels. */}
+        {tours.length > 0 && (
+          <section className="mt-12 border-t border-ink/10 pt-8">
+            <h2 className="text-[20px] font-extrabold tracking-tight text-ink">
+              {locale === 'fr' ? 'Réservez l’expérience' : 'Book the experience'}
+            </h2>
+            {hub && (
+              <p className="mt-2 text-[15px] leading-snug text-ink/75">
+                {locale === 'fr' ? 'Tout voir : ' : 'See them all: '}
+                <Link href={hub.href} className="font-semibold text-teal-dark hover:underline">
+                  {hub.label[locale]}
+                </Link>
+              </p>
+            )}
+            <div className="mt-5">
+              <ActivityGrid activities={tours} />
+            </div>
+          </section>
+        )}
 
         {related.length > 0 && (
           <section className="mt-12 border-t border-ink/10 pt-8">

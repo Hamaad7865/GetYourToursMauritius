@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { overrideMetadata } from '@/lib/seo/override';
-import Link from 'next/link';
+import Link from '@/components/site/LocaleLink';
 import { InfoPage, EnquireRow } from '@/components/site/InfoPage';
 import { LegalArticle, LegalSection, P, Faq, FaqItem } from '@/components/site/Legal';
 import { SITE } from '@/lib/seo/site';

@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/site/LocaleLink';
 import type { PlannerPlace } from '@/lib/validation/planner';
 import { attractionPath, attractionImage, categoryMeta } from '@/lib/content/attractions';
 import { AttractionImage } from './AttractionImage';

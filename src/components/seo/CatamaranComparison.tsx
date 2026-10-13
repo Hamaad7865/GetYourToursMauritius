@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/site/LocaleLink';
 import type { TourSummary } from '@/lib/validation/tours';
 import type { Locale } from '@/lib/i18n/config';
 import { durationLabel } from '@/lib/catalogue/detail';

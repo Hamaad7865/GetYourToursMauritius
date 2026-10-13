@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
+import Link from '@/components/site/LocaleLink';
 import type { TourSummary } from '@/lib/validation/tours';
 import { useWishlist } from '@/lib/wishlist/useWishlist';
 import { useT } from '@/components/site/PreferencesProvider';

@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/site/LocaleLink';
 import { topReviews, reviewStats } from '@/lib/content/reviews';
 import { getT } from '@/lib/i18n/server';
 import { ReviewCard } from './ReviewCard';

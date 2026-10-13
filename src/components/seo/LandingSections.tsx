@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import Link from 'next/link';
+import Link from '@/components/site/LocaleLink';
 import type { TourSummary } from '@/lib/validation/tours';
 import { ActivityGrid } from '@/components/catalogue/ActivityGrid';
 

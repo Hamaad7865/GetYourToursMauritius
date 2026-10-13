@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { overrideMetadata } from '@/lib/seo/override';
 import type { ReactNode } from 'react';
-import Link from 'next/link';
+import Link from '@/components/site/LocaleLink';
 import { InfoPage, EnquireRow } from '@/components/site/InfoPage';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { articleJsonLd, breadcrumbListJsonLd, faqPageJsonLd } from '@/lib/seo/jsonld';

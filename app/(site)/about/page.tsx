@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { overrideMetadata } from '@/lib/seo/override';
 import type { CSSProperties, ReactNode } from 'react';
-import Link from 'next/link';
+import Link from '@/components/site/LocaleLink';
 import { Bricolage_Grotesque, Hanken_Grotesk } from 'next/font/google';
 import { GygHeader } from '@/components/gyg/GygHeader';
 import { SiteFooter } from '@/components/site/SiteFooter';

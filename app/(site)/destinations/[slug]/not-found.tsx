@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/site/LocaleLink';
 import { InfoPage } from '@/components/site/InfoPage';
 import { getT } from '@/lib/i18n/server';
 

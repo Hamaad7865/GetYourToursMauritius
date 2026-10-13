@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
+import Link from '@/components/site/LocaleLink';
 import type { PlannerPlace } from '@/lib/validation/planner';
 import type { StopNote } from '@/lib/planner/chat-history';
 import type { BmtActivity } from '@/lib/planner/our-activities';

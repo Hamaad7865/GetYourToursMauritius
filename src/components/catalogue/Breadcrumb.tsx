@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/site/LocaleLink';
 import type { Crumb } from '@/lib/catalogue/detail';
 import { getT } from '@/lib/i18n/server';
 
@@ -13,7 +13,7 @@ export async function Breadcrumb({ trail, current }: { trail: Crumb[]; current: 
       {trail.map((crumb) => (
         <span key={crumb.href} className="flex items-center gap-2">
           <Link href={crumb.href} className="text-ink-muted hover:text-teal">
-            {crumb.label}
+            {t(crumb.label)}
           </Link>
           <span aria-hidden className="text-ink/25">
             /

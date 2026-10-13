@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
+import Link from '@/components/site/LocaleLink';
 import type { BmtActivity } from '@/lib/planner/our-activities';
 import { fmtDur } from './planner-constants';
 import { useT } from '@/components/site/PreferencesProvider';

@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/site/LocaleLink';
 import { getT, getLocale } from '@/lib/i18n/server';
 import { localePath } from '@/lib/i18n/routing';
 

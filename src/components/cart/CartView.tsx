@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
+import Link from '@/components/site/LocaleLink';
 import { useCart, itemTotal, lineCap, type CartItem } from '@/lib/cart/useCart';
 import { useBottomBarOffset } from '@/lib/ui/useBottomBarOffset';
 import { checkoutHref } from '@/lib/cart/checkout-href';

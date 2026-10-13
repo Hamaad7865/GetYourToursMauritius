@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import Link from '@/components/site/LocaleLink';
 import type { TourSummary } from '@/lib/validation/tours';
 import { WishHeart } from './WishHeart';
 import { Price } from '@/components/site/Price';
@@ -94,7 +94,14 @@ export function PlaceCard({
             compact ? 'text-[14px]' : 'min-h-[44px] text-[15px]'
           }`}
         >
-          {activity.title}
+          {/* The card's one link, stretched over the card by its ::after (under the z-10 heart).
+              The title is the link text so the tour is linked with words — see ActivityCard. */}
+          <Link
+            href={`/activities/${activity.slug}`}
+            className="after:absolute after:inset-0 after:z-0 after:content-['']"
+          >
+            {activity.title}
+          </Link>
         </TitleTag>
         {meta && !compact && <div className="mt-1.5 text-[12.5px] text-ink-muted">{meta}</div>}
         {activity.minAdvanceDays > 1 && !compact && (
@@ -123,13 +130,6 @@ export function PlaceCard({
           </span>
         </div>
       </div>
-
-      {/* Stretched link to detail — above the content, below the heart control. */}
-      <Link
-        href={`/activities/${activity.slug}`}
-        aria-label={activity.title}
-        className="absolute inset-0 z-0"
-      />
     </div>
   );
 }

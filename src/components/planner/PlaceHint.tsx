@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import Link from 'next/link';
+import Link from '@/components/site/LocaleLink';
 import type { PlacePreview } from '@/lib/planner/place-lookup';
 import { useT } from '@/components/site/PreferencesProvider';
 

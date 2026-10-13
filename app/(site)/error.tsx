@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import Link from 'next/link';
+import Link from '@/components/site/LocaleLink';
 import { reportClientError } from '@/lib/client-error-report';
 import { reloadOnceForStaleChunks } from '@/lib/stale-chunk-reload';
 import { useT } from '@/components/site/PreferencesProvider';

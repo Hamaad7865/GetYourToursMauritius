@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import Link from 'next/link';
+import Link from '@/components/site/LocaleLink';
 import { useBooking } from './BookingProvider';
 import { usePreferences, useT } from '@/components/site/PreferencesProvider';
 import { formatLocaleDate } from '@/lib/i18n/format';

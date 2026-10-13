@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import Link from '@/components/site/LocaleLink';
 import { useT } from '@/components/site/PreferencesProvider';
 
 /**

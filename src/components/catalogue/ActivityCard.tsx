@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import Link from '@/components/site/LocaleLink';
 import type { TourSummary } from '@/lib/validation/tours';
 import { durationLabel } from '@/lib/catalogue/detail';
 import { IconCalendar, IconPin, IconStar } from '@/components/ui/icons';
@@ -57,7 +57,16 @@ export function ActivityCard({
           </div>
         )}
         <h3 className="m-0 line-clamp-2 text-base font-bold leading-snug text-ink">
-          {activity.title}
+          {/* The card's one link: its ::after is stretched over the whole card, under the heart and
+              the category chip (z-10) so those stay clickable. The title is the link TEXT on purpose.
+              This used to be an empty overlay labelled with aria-label, which Google does not read
+              as anchor text — so every tour card on the site linked its tour with no words at all. */}
+          <Link
+            href={`/activities/${activity.slug}${travellersQs ? `?${travellersQs}` : ''}`}
+            className="after:absolute after:inset-0 after:z-0 after:content-['']"
+          >
+            {activity.title}
+          </Link>
         </h3>
         {duration && <div className="mt-2 text-[13px] text-ink-muted">{duration}</div>}
         {activity.minAdvanceDays > 1 && (
@@ -92,13 +101,6 @@ export function ActivityCard({
           </span>
         </div>
       </div>
-
-      {/* Stretched link to detail — below the heart + category chip so they stay clickable. */}
-      <Link
-        href={`/activities/${activity.slug}${travellersQs ? `?${travellersQs}` : ''}`}
-        aria-label={activity.title}
-        className="absolute inset-0 z-0"
-      />
     </div>
   );
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
+import Link from '@/components/site/LocaleLink';
 import { Logo } from '@/components/site/Logo';
 import { useDialog } from '@/lib/a11y/useDialog';
 import { useZilAiOptional } from '@/components/planner/assistant/ZilAiProvider';

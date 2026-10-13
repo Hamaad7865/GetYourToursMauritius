@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import Link from 'next/link';
+import Link from '@/components/site/LocaleLink';
 import {
   CONSENT_DENIED,
   CONSENT_GRANTED,

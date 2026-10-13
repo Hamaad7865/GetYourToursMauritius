@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
-import Link from 'next/link';
+import Link from '@/components/site/LocaleLink';
 import { usePathname } from 'next/navigation';
 import { useCategories } from '@/lib/categories/useCategories';
 import { usePreferences, useT } from '@/components/site/PreferencesProvider';
@@ -95,6 +95,7 @@ function NavLabel({
 function CategoriesMenu() {
   const categories = useCategories();
   const { language } = usePreferences();
+  const t = useT();
   return (
     <div className="invisible absolute left-0 top-full z-50 w-64 -translate-y-1 rounded-2xl border border-ink/10 bg-white p-2 opacity-0 shadow-[0_30px_60px_-25px_rgba(10,46,54,0.45)] transition group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100">
       {categories.map((category) => (
@@ -103,7 +104,8 @@ function CategoriesMenu() {
           href={localePath(language, categoryHref(category.name))}
           className="block rounded-lg px-3 py-2 text-sm font-medium text-ink hover:bg-cream hover:text-teal"
         >
-          {category.name}
+          {/* Category names are managed in the database; t() translates the ones it knows. */}
+          {t(category.name)}
         </Link>
       ))}
     </div>

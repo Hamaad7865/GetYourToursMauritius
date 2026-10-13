@@ -2026,6 +2026,20 @@ export const fr: Record<string, string> = {
   'Sea walks & diving': 'Balades sous-marines et plongée',
   Parasailing: 'Parachute ascensionnel',
   'Sightseeing tours': 'Excursions touristiques',
+  // The live `categories` rows (admin-managed names), shown in the header menus and on tour cards.
+  // Looked up through t(variable), which the coverage scan cannot see — add a row here when the
+  // owner adds a category, or its label stays English on /fr.
+  'Taxi Sightseeing tours': 'Excursions touristiques en taxi',
+  'Speedboat Tours': 'Excursions en speedboat',
+  'Sea & water activities': 'Activités nautiques',
+  'Hiking & Land Adventures': 'Randonnées et aventures terrestres',
+  'Private Cruises': 'Croisières privées',
+  'Air Activity': 'Activités aériennes',
+
+  // Airport-transfers hub — the plain-link hotel directory under the map.
+  'Airport transfers by hotel': 'Transferts aéroport par hôtel',
+  'Fixed prices from SSR Airport to each hotel below. Open a hotel for its fare, the drive time and what is included.':
+    'Prix fixes depuis l’aéroport SSR vers chacun des hôtels ci-dessous. Ouvrez un hôtel pour voir son tarif, la durée du trajet et ce qui est inclus.',
 
   // Task 10 batch A — HotelToHotelQuote.tsx (point-to-point transfer console)
   To: 'Vers',

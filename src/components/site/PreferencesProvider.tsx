@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   CCY_COOKIE,
+  DEFAULT_LOCALE,
   LANG_COOKIE,
   PREF_MAX_AGE,
   type Currency,
@@ -160,6 +161,14 @@ export function usePreferences(): PreferencesValue {
   const ctx = useContext(PreferencesContext);
   if (!ctx) throw new Error('usePreferences must be used within <PreferencesProvider>.');
   return ctx;
+}
+
+/**
+ * The current language, or English where no provider is mounted (the router-level 404 and the
+ * root error boundary) — `usePreferences()` throws there, and a link must never take a page down.
+ */
+export function useLanguage(): Locale {
+  return useContext(PreferencesContext)?.language ?? DEFAULT_LOCALE;
 }
 
 /** Convenience: the translate function bound to the current language. */

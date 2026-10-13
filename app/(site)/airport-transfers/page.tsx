@@ -20,6 +20,8 @@ import { HotelMap } from '@/components/transfers/HotelMap';
 import { loadAirportFares } from '@/lib/transfers/from-price';
 import { TransferModeSwitch } from '@/components/transfers/TransferModeSwitch';
 import { TransferReviews } from '@/components/transfers/TransferReviews';
+import Link from '@/components/site/LocaleLink';
+import { transfers, TRANSFER_REGION_ORDER } from '@/lib/content/transfers';
 import {
   AIRPORT_FARE_DEFAULT,
   AIRPORT_RETURN_DISCOUNT_PCT_DEFAULT,
@@ -451,6 +453,13 @@ export default async function AirportTransfersPage() {
   // The four cardinal directions + "Central" are translatable region words (existing keys shared with
   // the region/coast labels elsewhere); the rest of this list is place names, left untranslated.
   const REGION_WORDS = new Set(['North', 'East', 'South', 'West', 'Central']);
+  // Every listed hotel, coast by coast, for the plain-link directory under the map.
+  const hotelsByRegion = TRANSFER_REGION_ORDER.map((region) => ({
+    region,
+    hotels: transfers
+      .filter((h) => h.region === region)
+      .sort((a, b) => a.hotelName.localeCompare(b.hotelName)),
+  })).filter((group) => group.hotels.length > 0);
 
   const breadcrumb = breadcrumbListJsonLd([
     { name: 'Home', path: '/' },
@@ -831,6 +840,57 @@ export default async function AirportTransfersPage() {
                 >
                   {REGION_WORDS.has(c) ? t(c) : c}
                 </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Every hotel page as a plain link. The search box and the map above reach them only
+              through JavaScript, so until this list the hotel pages had no link from their own hub
+              in either language (crawl, 2026-10-13) — they were found through the sitemap alone.
+              No data-reveal: a directory should not wait on a scroll observer to be visible. */}
+          <div className="mt-[clamp(30px,4vw,44px)]">
+            <h3
+              className="m-0 mb-2 font-bold"
+              style={{
+                ...displayFont,
+                fontSize: 'clamp(20px,2.2vw,26px)',
+                letterSpacing: '-0.01em',
+              }}
+            >
+              {t('Airport transfers by hotel')}
+            </h3>
+            <p
+              className="m-0 mb-6 max-w-[620px]"
+              style={{ fontSize: 15, lineHeight: 1.55, color: INK_BODY }}
+            >
+              {t(
+                'Fixed prices from SSR Airport to each hotel below. Open a hotel for its fare, the drive time and what is included.',
+              )}
+            </p>
+            <div className="grid grid-cols-1 gap-x-8 gap-y-7 sm:grid-cols-2 lg:grid-cols-4">
+              {hotelsByRegion.map(({ region, hotels }) => (
+                <div key={region}>
+                  <div
+                    className="mb-2.5 text-[13px] font-bold uppercase tracking-[0.14em]"
+                    style={{ color: INK_SOFT }}
+                  >
+                    {t(region)}
+                  </div>
+                  <ul className="m-0 flex list-none flex-col gap-2 p-0">
+                    {hotels.map((h) => (
+                      <li key={h.slug} className="text-[14.5px] leading-snug">
+                        <Link
+                          href={h.path}
+                          className="font-semibold hover:underline"
+                          style={{ color: TEAL_DARK }}
+                        >
+                          {h.hotelName}
+                        </Link>
+                        <span style={{ color: INK_FAINT }}> · {h.area}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               ))}
             </div>
           </div>

@@ -1,6 +1,6 @@
 import { cache } from 'react';
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import Link from '@/components/site/LocaleLink';
 import { notFound, redirect } from 'next/navigation';
 import { GygHeader } from '@/components/gyg/GygHeader';
 import { Rail } from '@/components/gyg/Rail';
@@ -203,7 +203,8 @@ export default async function ActivityDetailPage({
             {trail.map((c) => (
               <span key={c.href} className="flex items-center gap-2">
                 <Link href={localePath(locale, c.href)} className="hover:text-teal">
-                  {c.label}
+                  {/* "Home", "Activities" and the category are English keys; t() knows them. */}
+                  {t(c.label)}
                 </Link>
                 <span className="text-ink/25">/</span>
               </span>

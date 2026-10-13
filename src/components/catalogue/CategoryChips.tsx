@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import Link from '@/components/site/LocaleLink';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useT } from '@/components/site/PreferencesProvider';
 import { useCategories } from '@/lib/categories/useCategories';

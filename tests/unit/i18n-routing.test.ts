@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   LOCALE_PREFIX,
+  hasLocalisedUrl,
   isEnglishOnly,
   localeAlternates,
+  localiseHref,
   localePath,
   splitLocalePath,
 } from '@/lib/i18n/routing';
@@ -156,5 +158,122 @@ describe('LOCALE_PREFIX', () => {
   it('keeps English at the root so existing URLs never move', () => {
     expect(LOCALE_PREFIX.en).toBe('');
     expect(LOCALE_PREFIX.fr).toBe('/fr');
+  });
+});
+
+/**
+ * `localiseHref` is what every public link runs through (src/components/site/LocaleLink.tsx). Before
+ * it, a French page's links pointed at English URLs: 154 of 236 French pages had no internal link at
+ * all (crawl, 2026-10-13). English output must stay byte-identical — that is every existing URL.
+ */
+describe('localiseHref', () => {
+  it('returns English hrefs untouched, whatever they are', () => {
+    for (const href of ['/', '/activities/seaplane', '/activities/', '/cart', '/fr/blog', '#top']) {
+      expect(localiseHref('en', href)).toBe(href);
+    }
+  });
+
+  it('prefixes a page link on a French page', () => {
+    expect(localiseHref('fr', '/activities/seaplane')).toBe('/fr/activities/seaplane');
+    expect(localiseHref('fr', '/rent')).toBe('/fr/rent');
+    expect(localiseHref('fr', '/airport-transfers/lux-belle-mare')).toBe(
+      '/fr/airport-transfers/lux-belle-mare',
+    );
+  });
+
+  it('sends the home link to /fr with no trailing slash', () => {
+    expect(localiseHref('fr', '/')).toBe('/fr');
+  });
+
+  // '/fr/?q=1' is 308-redirected by Next to '/fr?q=1' — a redirect on every search from the header.
+  it('keeps the query and the hash, and puts the prefix before them', () => {
+    expect(localiseHref('fr', '/?q=dolphin')).toBe('/fr?q=dolphin');
+    expect(localiseHref('fr', '/activities?category=Air%20Activity')).toBe(
+      '/fr/activities?category=Air%20Activity',
+    );
+    expect(localiseHref('fr', '/belle-mare#hotels')).toBe('/fr/belle-mare#hotels');
+    expect(localiseHref('fr', '/activities/seaplane?adults=2#reviews')).toBe(
+      '/fr/activities/seaplane?adults=2#reviews',
+    );
+  });
+
+  it('leaves an href that already names a locale exactly as written', () => {
+    expect(localiseHref('fr', '/fr/activities')).toBe('/fr/activities');
+    expect(localiseHref('fr', '/fr')).toBe('/fr');
+  });
+
+  it('never touches a link that is not a page on this site', () => {
+    for (const href of [
+      'https://wa.me/23057290907',
+      '//cdn.example.com/x.js',
+      'mailto:info@bellemaretours.com',
+      'tel:+23057290907',
+      '#faq',
+      'activities',
+      '',
+    ]) {
+      expect(localiseHref('fr', href)).toBe(href);
+    }
+  });
+
+  it('leaves the booking funnel, the account and the back office at their one URL', () => {
+    for (const href of [
+      '/cart',
+      '/checkout',
+      '/checkout?hold=abc',
+      '/wishlist',
+      '/account',
+      '/account/bookings',
+      '/bookings/BMT123',
+      '/quotes/Q1',
+      '/auth/callback',
+      '/admin',
+      '/admin/seo',
+      '/api/img?u=x',
+    ]) {
+      expect(localiseHref('fr', href)).toBe(href);
+    }
+  });
+
+  it('does not mistake a longer path for an excluded section', () => {
+    expect(localiseHref('fr', '/cartography')).toBe('/fr/cartography');
+    expect(localiseHref('fr', '/accounting-tips')).toBe('/fr/accounting-tips');
+  });
+
+  it('keeps the English-only legal pages on their English URL', () => {
+    for (const href of ['/terms', '/privacy', '/refunds']) {
+      expect(localiseHref('fr', href)).toBe(href);
+    }
+    // The cookie policy IS translated.
+    expect(localiseHref('fr', '/cookies')).toBe('/fr/cookies');
+  });
+
+  it('does not prefix a file', () => {
+    expect(localiseHref('fr', '/sitemap.xml')).toBe('/sitemap.xml');
+    expect(localiseHref('fr', '/pricelists/quad.pdf')).toBe('/pricelists/quad.pdf');
+  });
+});
+
+describe('hasLocalisedUrl', () => {
+  it('agrees with the pages the sitemap publishes in both languages', () => {
+    for (const path of [
+      '/',
+      '/activities',
+      '/activities/north-tour',
+      '/attractions/le-morne-brabant',
+      '/blog/ile-aux-cerfs-guide',
+      '/destinations/grand-baie',
+      '/airport-transfers',
+      '/mauritius-catamaran-cruise',
+      '/rent',
+      '/about',
+      '/contact',
+      '/help',
+      '/reviews',
+      '/cookies',
+      '/ai-road-trip-planner',
+    ]) {
+      expect(hasLocalisedUrl(path), path).toBe(true);
+    }
   });
 });

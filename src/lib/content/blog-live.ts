@@ -76,16 +76,36 @@ export async function loadPost(slug: string, locale: Locale = 'en'): Promise<Pos
   return seed ? localisedPost(seed, locale) : null;
 }
 
-/** Other posts to link under an article: the hand-picked ones first (RELATED_POSTS), then the newest. */
+/**
+ * Other posts to link under an article: the hand-picked ones first (RELATED_POSTS), then the posts
+ * that follow this one in date order, wrapping round.
+ *
+ * The fill used to be "the newest posts", which meant every article without picks linked the same
+ * three. On 2026-10-13 that was 36 articles all pointing at a post published four days earlier —
+ * which promptly outranked the catamaran page it was written to support — and at two posts written
+ * in French, shown under English articles. Walking on from the current post gives every article
+ * its own three and every post a share of the links.
+ *
+ * Only the code-authored posts are used as fill: they have a translation, so the link is in the
+ * reader's language. A post written in /admin/blog has one language and no way to say which, so it
+ * appears here only when RELATED_POSTS names it.
+ */
 export async function loadRelatedPosts(
   slug: string,
   n = 3,
   locale: Locale = 'en',
 ): Promise<Post[]> {
-  const others = (await loadPosts(locale)).filter((p) => p.slug !== slug);
+  const all = await loadPosts(locale);
+  const others = all.filter((p) => p.slug !== slug);
   const picked = (RELATED_POSTS[slug] ?? [])
     .map((s) => others.find((p) => p.slug === s))
     .filter((p): p is Post => p !== undefined);
-  const rest = others.filter((p) => !picked.includes(p));
-  return [...picked, ...rest].slice(0, n);
+
+  const seedSlugs = new Set(genPosts.map((p) => p.slug));
+  const at = all.findIndex((p) => p.slug === slug);
+  const following = at === -1 ? all : [...all.slice(at + 1), ...all.slice(0, at)];
+  const fill = following.filter(
+    (p) => p.slug !== slug && seedSlugs.has(p.slug) && !picked.includes(p),
+  );
+  return [...picked, ...fill].slice(0, n);
 }

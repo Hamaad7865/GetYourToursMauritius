@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
+import Link from '@/components/site/LocaleLink';
 import { Logo } from '@/components/site/Logo';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { usePreferences, CURRENCY_LABELS, useT } from '@/components/site/PreferencesProvider';

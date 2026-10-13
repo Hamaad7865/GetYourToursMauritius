@@ -1,9 +1,10 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import Link from '@/components/site/LocaleLink';
 import { notFound } from 'next/navigation';
 import { InfoPage, EnquireRow } from '@/components/site/InfoPage';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { AttractionCard } from '@/components/attractions/AttractionCard';
+import { ActivityGrid } from '@/components/catalogue/ActivityGrid';
 import { LocationMap } from '@/components/maps/LocationMap';
 import { getPlace, loadPlaces } from '@/lib/catalogue/places';
 import {
@@ -22,6 +23,8 @@ import {
 } from '@/lib/content/attractions';
 import { getPost, localisedPost } from '@/lib/content/blog';
 import { getArea, areaLinkLabel } from '@/lib/content/areas';
+import { ATTRACTION_TOURS } from '@/lib/content/tour-links';
+import { activitiesBySlug } from '@/lib/seo/landing';
 import { attractionJsonLd, breadcrumbListJsonLd, faqPageJsonLd } from '@/lib/seo/jsonld';
 import { overrideMetadata } from '@/lib/seo/override';
 import { SITE } from '@/lib/seo/site';
@@ -94,6 +97,7 @@ export default async function AttractionDetailPage({
   const guidePost = deeper?.guide ? getPost(deeper.guide) : null;
   const guide = guidePost ? localisedPost(guidePost, locale) : null;
   const area = deeper?.area ? getArea(deeper.area) : null;
+  const tours = await activitiesBySlug(ATTRACTION_TOURS[place.id] ?? []);
 
   const aboutParas = extra?.body ?? [
     locale === 'fr'
@@ -227,6 +231,22 @@ export default async function AttractionDetailPage({
             </ul>
           )}
         </section>
+
+        {/* The tours that go here (see tour-links.ts). Cards, high on the page: this is where a
+            reader who has just learned about the place can book the trip to it — and the only link
+            from this page to a specific tour. Inline French, as the section below does. */}
+        {tours.length > 0 && (
+          <section className="mt-9 border-t border-ink/10 pt-8">
+            <h2 className="text-[22px] font-extrabold tracking-tight text-ink">
+              {locale === 'fr'
+                ? `${place.name} : les excursions à réserver`
+                : `${place.name}: tours you can book`}
+            </h2>
+            <div className="mt-5">
+              <ActivityGrid activities={tours} />
+            </div>
+          </section>
+        )}
 
         {/* Go deeper — the long-form guide, the area guide and, where one of our catamaran cruises
             calls, the catamaran page (see ATTRACTION_LINKS). Inline French rather than t() keys: a

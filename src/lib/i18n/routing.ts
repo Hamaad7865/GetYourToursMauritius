@@ -74,6 +74,58 @@ export function isEnglishOnly(path: string): boolean {
 }
 
 /**
+ * Sections that have no French URL of their own: the booking funnel, the signed-in area and the back
+ * office. They render in the visitor's language from the cookie, at one URL. Everything else public
+ * is published in both languages (see app/sitemap.ts), so the list is what is EXCLUDED — a new
+ * content page is bilingual by default instead of silently staying English-linked.
+ */
+const UNLOCALISED_PREFIXES: readonly string[] = [
+  '/api',
+  '/admin',
+  '/account',
+  '/auth',
+  '/checkout',
+  '/cart',
+  '/wishlist',
+  '/bookings',
+  '/quotes',
+  '/_next',
+];
+
+/** Whether a bare (unprefixed) route is published under /fr as well. */
+export function hasLocalisedUrl(path: string): boolean {
+  const { path: bare } = splitLocalePath(path);
+  if (isEnglishOnly(bare)) return false;
+  // A file (a PDF, an image, the sitemap), not a page.
+  if (/\.[a-z0-9]+$/i.test(bare)) return false;
+  return !UNLOCALISED_PREFIXES.some((p) => bare === p || bare.startsWith(`${p}/`));
+}
+
+/**
+ * The href an internal link should carry on a page rendered in `locale`.
+ *
+ * Until this existed almost every link on a French page pointed at the English URL: the middleware
+ * rewrites /fr/… on the way IN, but nothing put the prefix back on the way out. A crawl on
+ * 2026-10-13 found 154 of 236 French pages with no internal link from anywhere — they were reachable
+ * only through the sitemap, and a French visitor was dropped into English by their first click.
+ *
+ * Deliberately narrow: English pages get their hrefs back byte-for-byte, an href that already names
+ * a locale is left as written (a language switch must stay a language switch), and anything that is
+ * not a root-relative page path — external, mailto:, tel:, `#anchor` — passes straight through. The
+ * query and hash are held aside so `/?q=1` becomes `/fr?q=1`, not `/fr/?q=1` (which Next 308s).
+ */
+export function localiseHref(locale: Locale, href: string): string {
+  if (!LOCALE_PREFIX[locale]) return href;
+  if (!href.startsWith('/') || href.startsWith('//')) return href;
+  const cut = href.search(/[?#]/);
+  const path = cut === -1 ? href : href.slice(0, cut);
+  const rest = cut === -1 ? '' : href.slice(cut);
+  if (splitLocalePath(path).locale !== DEFAULT_LOCALE) return href;
+  if (!hasLocalisedUrl(path)) return href;
+  return `${localePath(locale, path)}${rest}`;
+}
+
+/**
  * `metadata.alternates` for a public page: the canonical for the URL actually being rendered, plus
  * the full hreflang set.
  *

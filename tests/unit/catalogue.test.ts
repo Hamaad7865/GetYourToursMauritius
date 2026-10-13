@@ -142,6 +142,27 @@ describe('durationLabel', () => {
 });
 
 describe('breadcrumbTrail', () => {
+  it('files a private catamaran charter under the catamaran page, not the mixed filter', () => {
+    const trail = breadcrumbTrail({
+      type: 'activity',
+      category: 'Private Cruises',
+      slug: 'private-full-day-catamaran-ile-aux-cerfs',
+    });
+    expect(trail[2]).toEqual({ label: 'Catamaran cruises', href: '/mauritius-catamaran-cruise' });
+  });
+
+  it('leaves the other private cruises on their filtered listing', () => {
+    const trail = breadcrumbTrail({
+      type: 'activity',
+      category: 'Private Cruises',
+      slug: 'private-luxury-speedboat-5-island',
+    });
+    expect(trail[2]).toEqual({
+      label: 'Private Cruises',
+      href: '/activities?category=Private%20Cruises',
+    });
+  });
+
   it('routes activities and transport to the right section', () => {
     expect(breadcrumbTrail({ type: 'activity', category: 'Catamaran cruises' })[1]).toEqual({
       label: 'Activities',

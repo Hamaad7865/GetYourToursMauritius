@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
+import Link from '@/components/site/LocaleLink';
 import { useGoogleMaps, MAP_ID } from '@/lib/maps/useGoogleMaps';
 import {
   pinElement,

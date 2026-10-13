@@ -41,6 +41,29 @@ export async function featuredActivities(
   return [];
 }
 
+/**
+ * The published tours among `slugs`, in the order given, capped at `limit`.
+ *
+ * For the hand-listed pairings in src/lib/content/tour-links.ts: a slug the catalogue no longer has
+ * (unpublished, renamed) drops out, so a guide page can never render a dead tour link. Never throws —
+ * a catalogue hiccup yields [] and the page simply shows no tour cards.
+ */
+export async function activitiesBySlug(
+  slugs: readonly string[],
+  limit = 3,
+): Promise<TourSummary[]> {
+  if (slugs.length === 0) return [];
+  try {
+    const ctx = publicServiceContext(await getLocale());
+    const { items } = await searchActivities(ctx, { page: 1, pageSize: 100 });
+    const bySlug = new Map(items.map((a) => [a.slug, a]));
+    return slugs.flatMap((slug) => bySlug.get(slug) ?? []).slice(0, limit);
+  } catch (error) {
+    console.error('[landing] tours-by-slug fetch failed', error);
+    return [];
+  }
+}
+
 export interface ActivityGroup {
   title: string;
   intro: string;

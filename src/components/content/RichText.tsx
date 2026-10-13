@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import Link from 'next/link';
+import Link from '@/components/site/LocaleLink';
 import { parseBlocks, type Block, type InlineToken } from '@/lib/content/richtext';
 import { IconExternalLink } from '@/components/ui/icons';
 
