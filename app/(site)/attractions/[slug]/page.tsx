@@ -25,6 +25,8 @@ import { getPost, localisedPost } from '@/lib/content/blog';
 import { getArea, areaLinkLabel } from '@/lib/content/areas';
 import { ATTRACTION_TOURS } from '@/lib/content/tour-links';
 import { activitiesBySlug } from '@/lib/seo/landing';
+import { responsiveImage } from '@/lib/images/resize';
+import { ARTICLE_HERO } from '@/lib/images/presets';
 import { attractionJsonLd, breadcrumbListJsonLd, faqPageJsonLd } from '@/lib/seo/jsonld';
 import { overrideMetadata } from '@/lib/seo/override';
 import { SITE } from '@/lib/seo/site';
@@ -80,7 +82,12 @@ export default async function AttractionDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const rawPlace = await getPlace(slug);
+  // Together, not one after the other: each is a round trip to the database. The place id is the
+  // URL slug, so the tours for it can be asked for before the place itself has come back.
+  const [rawPlace, tours] = await Promise.all([
+    getPlace(slug),
+    activitiesBySlug(ATTRACTION_TOURS[slug] ?? []),
+  ]);
   if (!rawPlace) notFound();
 
   const t = await getT();
@@ -97,7 +104,6 @@ export default async function AttractionDetailPage({
   const guidePost = deeper?.guide ? getPost(deeper.guide) : null;
   const guide = guidePost ? localisedPost(guidePost, locale) : null;
   const area = deeper?.area ? getArea(deeper.area) : null;
-  const tours = await activitiesBySlug(ATTRACTION_TOURS[place.id] ?? []);
 
   const aboutParas = extra?.body ?? [
     locale === 'fr'
@@ -169,7 +175,7 @@ export default async function AttractionDetailPage({
           <figure className="mb-8 overflow-hidden rounded-2xl border border-ink/10">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={attractionImageSrc(img.url)}
+              {...responsiveImage(attractionImageSrc(img.url), ARTICLE_HERO)}
               alt={`${place.name} — ${t(place.category)} in ${place.region} Mauritius`}
               className="aspect-[16/9] w-full object-cover"
             />

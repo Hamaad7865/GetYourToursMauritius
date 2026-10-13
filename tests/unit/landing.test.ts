@@ -9,7 +9,8 @@ vi.mock('@/lib/http/context', () => ({ publicServiceContext: () => ({}) }));
 // need a Next.js request context.
 vi.mock('@/lib/i18n/server', () => ({ getLocale: async () => 'en' }));
 
-const { featuredActivities, belleMareActivityGroups } = await import('@/lib/seo/landing');
+const { featuredActivities, belleMareActivityGroups, activitiesBySlug, __resetCatalogueMemory } =
+  await import('@/lib/seo/landing');
 
 const item = (slug: string) => ({ slug });
 
@@ -127,5 +128,62 @@ describe('belleMareActivityGroups', () => {
     const groups = await belleMareActivityGroups();
     const allIds = groups.flatMap((g) => g.activities.map((a) => a.id));
     expect(allIds).toEqual(['dual-1']); // appears exactly once, not twice across groups
+  });
+});
+
+/* Guide pages → tour cards. `activitiesBySlug` runs on ~230 pages; its first version fetched the
+ * whole catalogue on every render and made those pages ~0.5 s slower (measured on production the
+ * day it shipped). It now remembers the catalogue for a few minutes. */
+describe('activitiesBySlug', () => {
+  beforeEach(() => __resetCatalogueMemory());
+
+  it('returns the published tours among the slugs, in the order asked, capped at the limit', async () => {
+    searchActivities.mockResolvedValue({
+      items: [item('seaplane'), item('helicotour'), item('hiking-le-morne'), item('north-tour')],
+      total: 4,
+    });
+    const out = await activitiesBySlug(['hiking-le-morne', 'gone-tour', 'seaplane', 'helicotour']);
+    expect(out.map((a) => a.slug)).toEqual(['hiking-le-morne', 'seaplane', 'helicotour']);
+    expect((await activitiesBySlug(['north-tour', 'seaplane'], 1)).map((a) => a.slug)).toEqual([
+      'north-tour',
+    ]);
+  });
+
+  it('does not touch the database for a page with no tours', async () => {
+    expect(await activitiesBySlug([])).toEqual([]);
+    expect(searchActivities).not.toHaveBeenCalled();
+  });
+
+  it('asks the database once, then answers from memory', async () => {
+    searchActivities.mockResolvedValue({ items: [item('seaplane')], total: 1 });
+    await activitiesBySlug(['seaplane']);
+    await activitiesBySlug(['seaplane']);
+    await activitiesBySlug(['north-tour']);
+    expect(searchActivities).toHaveBeenCalledTimes(1);
+  });
+
+  it('asks again once the memory is five minutes old', async () => {
+    vi.useFakeTimers();
+    try {
+      searchActivities.mockResolvedValue({ items: [item('seaplane')], total: 1 });
+      await activitiesBySlug(['seaplane']);
+      vi.advanceTimersByTime(4 * 60_000);
+      await activitiesBySlug(['seaplane']);
+      expect(searchActivities).toHaveBeenCalledTimes(1);
+      vi.advanceTimersByTime(2 * 60_000);
+      await activitiesBySlug(['seaplane']);
+      expect(searchActivities).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('shows no cards when the catalogue is down, and does not remember the failure', async () => {
+    const quiet = vi.spyOn(console, 'error').mockImplementation(() => {});
+    searchActivities.mockRejectedValueOnce(new Error('db down'));
+    expect(await activitiesBySlug(['seaplane'])).toEqual([]);
+    searchActivities.mockResolvedValue({ items: [item('seaplane')], total: 1 });
+    expect((await activitiesBySlug(['seaplane'])).map((a) => a.slug)).toEqual(['seaplane']);
+    quiet.mockRestore();
   });
 });

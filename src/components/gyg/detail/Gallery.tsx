@@ -5,6 +5,8 @@ import type { TourImage } from '@/lib/validation/tours';
 import { IconChevronLeft, IconChevronRight, IconX } from '@/components/ui/icons';
 import { useT } from '@/components/site/PreferencesProvider';
 import { useDialog } from '@/lib/a11y/useDialog';
+import { responsiveImage } from '@/lib/images/resize';
+import { GALLERY_LEAD, GALLERY_TILE } from '@/lib/images/presets';
 
 /* eslint-disable @next/next/no-img-element -- CF Pages serves images unoptimized. */
 
@@ -32,7 +34,7 @@ function Tile({
       className={`group relative h-full w-full overflow-hidden ${rounded}`}
     >
       <img
-        src={image.url}
+        {...responsiveImage(image.url, priority ? GALLERY_LEAD : GALLERY_TILE)}
         alt={image.alt ?? `${title} — photo ${position}`}
         loading={priority ? 'eager' : 'lazy'}
         fetchPriority={priority ? 'high' : undefined}

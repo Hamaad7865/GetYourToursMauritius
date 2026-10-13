@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import Link from '@/components/site/LocaleLink';
 import { parseBlocks, type Block, type InlineToken } from '@/lib/content/richtext';
 import { IconExternalLink } from '@/components/ui/icons';
+import { SITE } from '@/lib/seo/site';
 
 /*
  * Renders the markdown-lite token tree from `@/lib/content/richtext` into React. Used in two places
@@ -11,6 +12,15 @@ import { IconExternalLink } from '@/components/ui/icons';
  */
 
 const LINK_CLS = 'font-semibold text-teal underline underline-offset-2 hover:text-teal-dark';
+
+/** A full address of this site cut down to its path (with or without www); anything else as it was. */
+export function ownPath(href: string): string {
+  for (const origin of [SITE.url, SITE.url.replace('://', '://www.')]) {
+    if (href === origin) return '/';
+    if (href.startsWith(`${origin}/`)) return href.slice(origin.length);
+  }
+  return href;
+}
 
 function renderInline(tokens: InlineToken[]): ReactNode[] {
   return tokens.map((tok, i) => {
@@ -32,7 +42,10 @@ function renderInline(tokens: InlineToken[]): ReactNode[] {
       case 'link': {
         const inner = renderInline(tok.children);
         // Internal paths keep client-side navigation via next/link; external URLs are plain anchors.
-        const external = !tok.href.startsWith('/');
+        // A link typed in /admin as a full address of this site ("https://bellemaretours.com/…") is
+        // internal too: left as written it opened the English page from a French article.
+        const href = ownPath(tok.href);
+        const external = !href.startsWith('/');
         const newTabProps = tok.newTab
           ? { target: '_blank', rel: 'noopener noreferrer' as const }
           : {};
@@ -43,12 +56,12 @@ function renderInline(tokens: InlineToken[]): ReactNode[] {
           </>
         ) : null;
         return external ? (
-          <a key={i} href={tok.href} className={LINK_CLS} {...newTabProps}>
+          <a key={i} href={href} className={LINK_CLS} {...newTabProps}>
             {inner}
             {flag}
           </a>
         ) : (
-          <Link key={i} href={tok.href} className={LINK_CLS} {...newTabProps}>
+          <Link key={i} href={href} className={LINK_CLS} {...newTabProps}>
             {inner}
             {flag}
           </Link>

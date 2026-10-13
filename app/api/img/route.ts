@@ -1,8 +1,19 @@
 import { apiHandler } from '@/lib/http/handler';
+import { isOwnPublicPhoto } from '@/lib/images/resize';
 
 export const runtime = 'edge';
 
-/** Only these hosts may be proxied — a strict allowlist so this can't be used as an open proxy. */
+/**
+ * Only these may be proxied — a strict allowlist so this can't be used as an open proxy: Wikimedia
+ * (the attraction photos), and PUBLIC files in this site's own Supabase project.
+ *
+ * The second is here for Cloudflare, not for browsers. Cloudflare Image Transformations will only
+ * resize a source on our own zone, and Supabase is not on it (403, error 9401) — so a tour photo is
+ * handed to Cloudflare as `/api/img?u=<photo>` and comes back a fifth of the size. The test is
+ * `isOwnPublicPhoto`, shared with src/lib/images/resize.ts: that module must never build an address
+ * this route would refuse. It matches one exact host and the public storage path only, so it cannot
+ * reach a private bucket, the REST API or anyone else's project.
+ */
 const ALLOWED_HOSTS = new Set(['upload.wikimedia.org']);
 
 // A descriptive UA: Wikimedia rate-limits/blocks anonymous hotlinkers, which is exactly why the browser
@@ -29,9 +40,11 @@ export const GET = apiHandler(async (req) => {
   } catch {
     return new Response('Invalid url', { status: 400 });
   }
-  if (target.protocol !== 'https:' || !ALLOWED_HOSTS.has(target.hostname)) {
-    return new Response('Host not allowed', { status: 400 });
-  }
+  const allowed =
+    target.protocol === 'https:' &&
+    (ALLOWED_HOSTS.has(target.hostname) ||
+      isOwnPublicPhoto(target.toString(), process.env.NEXT_PUBLIC_SUPABASE_URL));
+  if (!allowed) return new Response('Host not allowed', { status: 400 });
 
   let res: Response | null = null;
   for (let attempt = 0; attempt < 3; attempt += 1) {
@@ -45,8 +58,9 @@ export const GET = apiHandler(async (req) => {
     status: 200,
     headers: {
       'Content-Type': res.headers.get('content-type') ?? 'image/jpeg',
-      // Immutable: the underlying Wikimedia thumbnail at this URL never changes. Cache hard at the edge
-      // (s-maxage) + browser (max-age) so users effectively never wait on Wikimedia.
+      // Immutable: the underlying Wikimedia thumbnail at this URL never changes, and an uploaded
+      // photo's path carries its upload timestamp, so a replaced photo is a new URL. Cache hard at
+      // the edge (s-maxage) + browser (max-age) so users effectively never wait on the origin.
       'Cache-Control': 'public, max-age=86400, s-maxage=31536000, immutable',
     },
   });

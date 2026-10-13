@@ -1,6 +1,8 @@
 'use client';
 
 import Link from '@/components/site/LocaleLink';
+import { responsiveImage } from '@/lib/images/resize';
+import { PHOTO_CARD } from '@/lib/images/presets';
 import type { TourSummary } from '@/lib/validation/tours';
 import { WishHeart } from './WishHeart';
 import { Price } from '@/components/site/Price';
@@ -59,7 +61,7 @@ export function PlaceCard({
         {/* Only the image scales on hover — the card and text never move. */}
         {image ? (
           <img
-            src={image.url}
+            {...responsiveImage(image.url, PHOTO_CARD)}
             alt={image.alt ?? activity.title}
             loading="lazy"
             className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"

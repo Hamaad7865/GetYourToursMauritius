@@ -59,10 +59,14 @@ export async function generateMetadata({
 export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const locale = await getLocale();
-  const p = await loadPost(slug, locale);
+  // Together, not one after the other: each is a round trip to the database, and none of the three
+  // needs another's answer (a post's slug is the URL slug).
+  const [p, related, tours] = await Promise.all([
+    loadPost(slug, locale),
+    loadRelatedPosts(slug, 3, locale),
+    activitiesBySlug(toursForPost(slug)),
+  ]);
   if (!p) notFound();
-  const related = await loadRelatedPosts(p.slug, 3, locale);
-  const tours = await activitiesBySlug(toursForPost(p.slug));
   const hub = POST_HUBS[p.slug];
   const t = await getT();
 

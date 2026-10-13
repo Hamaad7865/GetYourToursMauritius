@@ -2,6 +2,7 @@ import { publicServiceContext } from '@/lib/http/context';
 import { searchActivities } from '@/lib/services/activities';
 import { getLocale } from '@/lib/i18n/server';
 import type { SearchToursQuery, TourSummary } from '@/lib/validation/tours';
+import type { Locale } from '@/lib/i18n/config';
 
 /**
  * Featured bookable activities for an SEO landing page.
@@ -42,11 +43,47 @@ export async function featuredActivities(
 }
 
 /**
+ * The catalogue as cards, remembered for a few minutes per isolate and per language.
+ *
+ * `activitiesBySlug` runs on ~230 guide pages (every blog post, half the attraction pages), and its
+ * first version asked the database for the whole catalogue on every one of those renders: measured
+ * on production the day it shipped, an attraction page with tour cards answered in ~0.82 s against
+ * ~0.32 s for one without. The catalogue is the same for every visitor and changes a few times a
+ * week, so the answer is kept here instead.
+ *
+ * It stores the resolved rows, never the in-flight promise: on Cloudflare a promise created by one
+ * request must not be awaited by another. A failed fetch is not remembered. The cost of the memory
+ * is that a tour unpublished in /admin can keep its card on a guide page for up to five minutes —
+ * the tour pages themselves are not cached and answer the truth immediately.
+ */
+const CATALOGUE_TTL_MS = 5 * 60_000;
+const catalogueMemory = new Map<Locale, { at: number; items: TourSummary[] }>();
+
+async function catalogueCards(locale: Locale): Promise<TourSummary[]> {
+  const remembered = catalogueMemory.get(locale);
+  if (remembered && Date.now() - remembered.at < CATALOGUE_TTL_MS) return remembered.items;
+  const { items } = await searchActivities(publicServiceContext(locale), {
+    page: 1,
+    pageSize: 100,
+  });
+  catalogueMemory.set(locale, { at: Date.now(), items });
+  return items;
+}
+
+/** Test seam: forget the remembered catalogue. */
+export function __resetCatalogueMemory(): void {
+  catalogueMemory.clear();
+}
+
+/**
  * The published tours among `slugs`, in the order given, capped at `limit`.
  *
  * For the hand-listed pairings in src/lib/content/tour-links.ts: a slug the catalogue no longer has
  * (unpublished, renamed) drops out, so a guide page can never render a dead tour link. Never throws —
  * a catalogue hiccup yields [] and the page simply shows no tour cards.
+ *
+ * Call it alongside the page's other reads (`Promise.all`), not after them: each read is a round
+ * trip to the database, and a guide page that waits for them one by one is slower for every one.
  */
 export async function activitiesBySlug(
   slugs: readonly string[],
@@ -54,8 +91,7 @@ export async function activitiesBySlug(
 ): Promise<TourSummary[]> {
   if (slugs.length === 0) return [];
   try {
-    const ctx = publicServiceContext(await getLocale());
-    const { items } = await searchActivities(ctx, { page: 1, pageSize: 100 });
+    const items = await catalogueCards(await getLocale());
     const bySlug = new Map(items.map((a) => [a.slug, a]));
     return slugs.flatMap((slug) => bySlug.get(slug) ?? []).slice(0, limit);
   } catch (error) {

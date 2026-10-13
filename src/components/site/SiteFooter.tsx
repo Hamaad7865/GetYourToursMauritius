@@ -94,7 +94,7 @@ export async function SiteFooter() {
         <div className="flex flex-wrap items-start justify-between gap-8">
           <div className="max-w-md">
             <div className="mb-4">
-              <Logo tone="dark" />
+              <Logo tone="dark" lazy />
             </div>
             <p className="m-0 text-sm leading-relaxed text-cream/70">
               {t('{name} is the official booking platform of', { name: SITE.name })}{' '}

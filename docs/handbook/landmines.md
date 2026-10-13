@@ -281,6 +281,38 @@ adds it.
 And leave `/activities/:slug*` uncached (so admin publish/unpublish is immediate) and `/checkout` at
 `no-store` (it mints a booking hold; a stale re-execution could duplicate a booking).
 
+### Photos are resized by Cloudflare, through our own image proxy
+
+`images.unoptimized` is on (Cloudflare Pages runs no Next optimizer), so for a long time every card
+and every tour page downloaded the uploaded original — 668 KB for one tour's lead photo.
+
+Since 2026-10-13 an `<img>` built with `responsiveImage()` (`src/lib/images/resize.ts`) asks for
+`/cdn-cgi/image/width=…,format=auto/api/img?u=<photo>` instead. Three things to know before you
+touch it:
+
+- **The proxy is load-bearing.** Cloudflare only resizes a source on our own zone; a direct Supabase
+  URL answers `403` (error 9401). `/api/img` puts the photo on the zone. Its allowlist and the URL
+  builder share one test (`isOwnPublicPhoto`) — loosen one without the other and photos break.
+- **It is on only in a production build on a real domain.** `next dev`, `*.pages.dev` and localhost
+  have no `/cdn-cgi/image`, so there the markup is the plain original URL.
+  `NEXT_PUBLIC_IMAGE_RESIZING=0` (a repository variable, then a new build) is the kill switch.
+- **The free plan stops at 5,000 distinct (photo, width) pairs a month.** Use the presets in
+  `src/lib/images/presets.ts` rather than inventing widths. When a resize fails for any reason, the
+  inline script from `fallback.ts` (first thing in `<body>`) puts the original back — don't remove
+  it, and give a component with its own `onError` the same patience (`AttractionImage` ignores the
+  first error for that reason).
+
+### Read the database once per page, and in parallel
+
+Each `rpc()` from the edge is a round trip to the database — roughly 300–500 ms from Mauritius. A
+page that awaits three reads one after another is a second slower than one that awaits them together.
+
+This bit on 2026-10-13: tour cards were added to ~230 guide pages with a catalogue read **after** the
+page's other reads, and those pages went from ~0.32 s to ~0.82 s to first byte. Use `Promise.all` for
+reads that don't depend on each other, and reuse `activitiesBySlug()` (`src/lib/seo/landing.ts`),
+which remembers the catalogue for five minutes per isolate, instead of calling `searchActivities`
+again from a guide page.
+
 ### Don't import Next or React inside `src/lib/services/**`
 
 ESLint blocks it. The services layer is deliberately framework-agnostic and must receive its database

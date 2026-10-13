@@ -27,6 +27,7 @@ export function Logo({
   href = '/',
   className = 'h-14 w-auto sm:h-16',
   label = 'Belle Mare Tours — home',
+  lazy = false,
 }: {
   tone?: 'light' | 'dark';
   /** Where the logo links. Defaults to the public home; the back office passes `/admin`. */
@@ -35,6 +36,9 @@ export function Logo({
   className?: string;
   /** Accessible label for the link. */
   label?: string;
+  /** For a logo below the fold (the footer). An eager <img> is preloaded by React at the top of
+   *  the document — the footer's logo was being fetched ahead of each page's main photo. */
+  lazy?: boolean;
 }) {
   return (
     <Link href={href} className="flex shrink-0 items-center no-underline" aria-label={label}>
@@ -43,6 +47,7 @@ export function Logo({
         alt="Belle Mare Tours"
         width={280}
         height={160}
+        loading={lazy ? 'lazy' : undefined}
         className={className}
       />
     </Link>
