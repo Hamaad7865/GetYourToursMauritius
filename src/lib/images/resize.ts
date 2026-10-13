@@ -36,8 +36,13 @@ export const IMAGE_QUALITY = 80;
 /** Our image proxy (app/api/img/route.ts). */
 const PROXY = '/api/img?u=';
 
-/** Formats a transform would damage (animation, vectors) or that are not photos at all. */
-const NOT_RASTER = /\.(svg|gif|mp4|webm|mov|m4v|ogv|pdf)$/i;
+/**
+ * Formats a transform would damage (animation, vectors), that are not photos at all, or that
+ * Cloudflare cannot READ: it writes AVIF but does not accept it as a source — an .avif original
+ * answers 415 (error 9520), seen on two catalogue photos the day this shipped. Those are already
+ * small, so they are simply served as they are.
+ */
+const NOT_RASTER = /\.(svg|gif|avif|mp4|webm|mov|m4v|ogv|pdf)$/i;
 
 function hostOf(url: string | null | undefined): string | null {
   if (!url) return null;

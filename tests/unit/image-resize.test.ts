@@ -130,8 +130,9 @@ describe('resizeSource', () => {
     }
   });
 
-  it('refuses files a transform would damage or cannot read: svg, gif, video, pdf', () => {
-    for (const ext of ['svg', 'gif', 'mp4', 'webm', 'mov', 'pdf']) {
+  // .avif: Cloudflare writes it but cannot read it as a source (415, error 9520 on production).
+  it('refuses files a transform would damage or cannot read: svg, gif, avif, video, pdf', () => {
+    for (const ext of ['svg', 'gif', 'avif', 'AVIF', 'mp4', 'webm', 'mov', 'pdf']) {
       const file = `${PROJECT}/storage/v1/object/public/activity-images/a/b.${ext}`;
       expect(resizeSource(file, PROJECT), ext).toBeNull();
       expect(resizeSource(`/api/img?u=${encodeURIComponent(file)}`, PROJECT), ext).toBeNull();
