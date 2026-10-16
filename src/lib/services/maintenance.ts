@@ -130,6 +130,20 @@ export async function purgeErrorLogs(ctx: ServiceContext): Promise<PurgeErrorLog
   return purgeResultSchema.parse(data);
 }
 
+/** Pay-page funnel rows (20261017000000) are kept long enough to compare a whole high season against
+ *  the autumn baseline. */
+const CHECKOUT_FUNNEL_RETENTION_DAYS = 120;
+
+/** Prune `checkout_funnel_events` — same two bounds as {@link purgeErrorLogs}. Pure housekeeping. */
+export async function purgeCheckoutFunnelEvents(
+  ctx: ServiceContext,
+): Promise<PurgeErrorLogsResult> {
+  const data = await callRpc(ctx, 'api_purge_checkout_funnel_events', {
+    days: CHECKOUT_FUNNEL_RETENTION_DAYS,
+  });
+  return purgeResultSchema.parse(data);
+}
+
 const fxStatusSchema = z.object({
   rate: z.coerce.number().nullish(),
   ageHours: z.coerce.number().nullish(),

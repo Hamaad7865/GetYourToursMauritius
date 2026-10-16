@@ -52,7 +52,7 @@ import {
   paymentLinkSchema as pickupPaymentLinkSchema,
   syncPaymentInputSchema,
 } from '@/lib/validation/booking';
-import { clientErrorReportSchema } from '@/lib/validation/telemetry';
+import { checkoutFunnelEventSchema, clientErrorReportSchema } from '@/lib/validation/telemetry';
 import { seoAiFixRequestSchema, seoAiFixResponseSchema } from '@/lib/validation/seo-ai-fix';
 import {
   wishlistAddResultSchema,
@@ -632,6 +632,20 @@ export const apiPaths: ZodOpenApiPathsObject = {
       responses: {
         '201': okJson(paymentLinkSchema, 'Checkout link'),
         '404': errorResponse('Booking not found'),
+      },
+    },
+  },
+  '/payments/funnel': {
+    post: {
+      operationId: 'reportCheckoutFunnelEvent',
+      summary:
+        'Record a pay-page funnel event keyed by checkout id (telemetry; unauthenticated, per-IP rate limited)',
+      tags: ['Payments'],
+      requestBody: jsonBody(checkoutFunnelEventSchema),
+      responses: {
+        '202': okJson(z.object({ received: z.boolean() }), 'Event accepted'),
+        '400': errorResponse('Invalid request'),
+        '429': errorResponse('Too many events'),
       },
     },
   },

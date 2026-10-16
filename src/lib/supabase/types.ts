@@ -1063,6 +1063,33 @@ type ErrorLogsInsert = {
   context?: Json | null;
 };
 
+/** 20261017000000 — pay-page funnel events, keyed by Peach checkout id. Written only through
+ *  api_log_checkout_event (service_role); no IP, email or raw user agent. */
+type CheckoutFunnelEventsRow = {
+  id: string;
+  created_at: string;
+  checkout_id: string;
+  event:
+    | 'widget_ready'
+    | 'first_input'
+    | 'completed'
+    | 'cancelled'
+    | 'expired'
+    | 'load_failed'
+    | 'page_hidden'
+    | 'page_shown';
+  ms_since_mount: number | null;
+  device: 'mobile' | 'tablet' | 'desktop' | 'unknown';
+  browser: string;
+  in_app: boolean;
+};
+type CheckoutFunnelEventsInsert = Omit<CheckoutFunnelEventsRow, 'id' | 'created_at' | 'in_app' | 'ms_since_mount'> & {
+  id?: string;
+  created_at?: string;
+  in_app?: boolean;
+  ms_since_mount?: number | null;
+};
+
 /** 20260922000000 — the admin-editable "Chat on WhatsApp" number. Singleton row (id is always true);
  *  null whatsapp_number means "fall back to SITE.phone". Public read, staff update. */
 type BusinessSettingsRow = {
@@ -1233,6 +1260,7 @@ export interface Database {
         ActivityContentDefaultsInsert
       >;
       error_logs: TableDef<ErrorLogsRow, ErrorLogsInsert>;
+      checkout_funnel_events: TableDef<CheckoutFunnelEventsRow, CheckoutFunnelEventsInsert>;
       business_settings: TableDef<BusinessSettingsRow, BusinessSettingsInsert>;
       document_clients: TableDef<DocumentClientsRow, DocumentClientsInsert>;
       documents: TableDef<DocumentsRow, DocumentsInsert>;

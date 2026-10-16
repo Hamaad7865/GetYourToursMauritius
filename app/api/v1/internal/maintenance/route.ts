@@ -13,6 +13,7 @@ import {
   applyFundedPickups,
   refreshFxRate,
   purgeErrorLogs,
+  purgeCheckoutFunnelEvents,
 } from '@/lib/services/maintenance';
 import { recordError, describeThrown } from '@/lib/error-log';
 
@@ -164,6 +165,15 @@ export const POST = apiHandler(async (req) => {
   } catch (err) {
     await log('error log purge', err);
   }
+  // Same footing as the error-log purge: housekeeping, outside the pass/fail verdict.
+  let funnelEventsPurged:
+    | Awaited<ReturnType<typeof purgeCheckoutFunnelEvents>>
+    | { errored: true } = { errored: true };
+  try {
+    funnelEventsPurged = await purgeCheckoutFunnelEvents(ctx);
+  } catch (err) {
+    await log('checkout funnel purge', err);
+  }
 
   // HONEST STATUS (review item 7): every job above ran regardless (each isolated in its own
   // try/catch), but a failed one used to be reported inside a 200 — the cron Worker treats any 2xx
@@ -208,6 +218,7 @@ export const POST = apiHandler(async (req) => {
         fundedPickupsApplied,
         fx,
         errorLogsPurged,
+        funnelEventsPurged,
         erroredJobs,
       },
     );
@@ -221,6 +232,7 @@ export const POST = apiHandler(async (req) => {
     fundedPickupsApplied,
     fx,
     errorLogsPurged,
+    funnelEventsPurged,
   });
 });
 

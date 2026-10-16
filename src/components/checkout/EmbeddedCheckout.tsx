@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { sendFunnelEvent } from '@/lib/checkout/funnel-beacon';
 import { useT } from '@/components/site/PreferencesProvider';
 import { getBrowserSupabase } from '@/lib/supabase/browser';
 import { SYNC_RETRY_ATTEMPTS, nextDelayMs } from '@/lib/checkout/confirm-poll';
@@ -110,6 +111,43 @@ export function EmbeddedCheckout({
     if (formReady) clearPayHandoff();
   }, [formReady]);
 
+  // Pay-page funnel (checkout_funnel_events): when the shopper got the form, whether they ever typed
+  // in it, and when they left. The ledger can't tell any of this apart — Peach reports every idle
+  // session as "probably cancelled" ~30 minutes later. Keyed by the checkout id; no personal data.
+  const mountedAt = useRef(0);
+  const funnel = useRef<(event: Parameters<typeof sendFunnelEvent>[1]) => void>(() => {});
+  useEffect(() => {
+    mountedAt.current = performance.now();
+    const sent = new Set<string>();
+    funnel.current = (event) => {
+      // widget_ready/first_input/load_failed are once-per-page; the hide/show pair repeats.
+      if (event !== 'page_hidden' && event !== 'page_shown') {
+        if (sent.has(event)) return;
+        sent.add(event);
+      }
+      sendFunnelEvent(checkoutId, event, performance.now() - mountedAt.current);
+    };
+    // Focus moving into the card form — "tried" vs "looked and left". Captured on the document so it
+    // works whether Peach renders inline or in an iframe (an iframe receiving focus fires focusin on
+    // the iframe element itself).
+    const onFocusIn = (e: FocusEvent) => {
+      const form = document.getElementById('payment-form');
+      if (form && e.target instanceof Node && form.contains(e.target))
+        funnel.current('first_input');
+    };
+    const onVisibility = () =>
+      funnel.current(document.visibilityState === 'hidden' ? 'page_hidden' : 'page_shown');
+    document.addEventListener('focusin', onFocusIn, true);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      document.removeEventListener('focusin', onFocusIn, true);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [checkoutId]);
+  useEffect(() => {
+    if (formReady) funnel.current('widget_ready');
+  }, [formReady]);
+
   useEffect(() => {
     if (initiated.current) return;
     initiated.current = true;
@@ -129,6 +167,7 @@ export function EmbeddedCheckout({
       if (settled || cancelled) return;
       settled = true;
       if (watchdog) clearTimeout(watchdog);
+      funnel.current('load_failed');
       setError(msg);
     };
     const armWatchdog = () => {
@@ -240,6 +279,7 @@ export function EmbeddedCheckout({
           options: { paymentMethods: { include: ['CARD'] } },
           events: {
             onCompleted: () => {
+              funnel.current('completed');
               void confirmThenReturn();
             },
             // Not a silent bounce to the booking page any more: the customer is told the payment
@@ -249,13 +289,17 @@ export function EmbeddedCheckout({
             // which mints a fresh session (a cancelled one is dead at Peach — see landmines.md).
             onCancelled: () => {
               if (cancelled) return;
+              funnel.current('cancelled');
               setError(
                 t(
                   'Your payment wasn’t completed. If your bank declined it, it may need you to approve a payment in Mauritian rupees (MUR) — or try another card.',
                 ),
               );
             },
-            onExpired: () => setError(t('This payment session expired. Please start again.')),
+            onExpired: () => {
+              funnel.current('expired');
+              setError(t('This payment session expired. Please start again.'));
+            },
           },
         });
         instance.render('#payment-form');

@@ -17,3 +17,27 @@ export const clientErrorReportSchema = z.object({
   ua: z.string().max(300).optional(),
 });
 export type ClientErrorReportInput = z.infer<typeof clientErrorReportSchema>;
+
+/** The pay-page funnel steps the browser reports (see 20261017000000_checkout_funnel_events.sql). */
+export const CHECKOUT_FUNNEL_EVENTS = [
+  'widget_ready',
+  'first_input',
+  'completed',
+  'cancelled',
+  'expired',
+  'load_failed',
+  'page_hidden',
+  'page_shown',
+] as const;
+
+/**
+ * One pay-page funnel event POSTed to /api/v1/payments/funnel (usually by navigator.sendBeacon). No
+ * personal data: the checkout id joins to the booking server-side, and the device is derived from the
+ * request's own User-Agent header by the route, never sent by the client.
+ */
+export const checkoutFunnelEventSchema = z.object({
+  checkoutId: z.string().min(1).max(64),
+  event: z.enum(CHECKOUT_FUNNEL_EVENTS),
+  msSinceMount: z.number().int().min(0).max(86_400_000).optional(),
+});
+export type CheckoutFunnelEventInput = z.infer<typeof checkoutFunnelEventSchema>;
