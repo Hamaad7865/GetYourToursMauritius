@@ -171,14 +171,14 @@ export const HANDWRITTEN_POSTS: (PostContent & { datePublished: string; dateModi
             '**The northern islands:** a catamaran day from Grand Baie to Île Plate and Île Gabriel, past Coin de Mire, [from €55 per person](/activities/catamaran-cruise-3-northern-island-adventure).',
             '**Sunset catamaran:** two hours sailing out of Grand Baie as the sun goes down, [from €65 per person](/activities/catamaran-sunset-cruise).',
             '**The seaplane over the underwater waterfall:** the view of Le Morne most people only see in photos, [from €205 per person](/activities/seaplane).',
-            '**Sightseeing by private car:** the [south tour](/activities/south-tour-mauritius) to Chamarel, Black River Gorges and Grand Bassin, or the [north tour](/activities/north-tour) to Port Louis and Pamplemousses, each from €70 for the car with a driver. On a showery day, go inland in the morning and keep the afternoon for the coast.',
+            '**Sightseeing by private car:** the [south tour](/activities/south-tour-mauritius) to Chamarel, Black River Gorges and Grand Bassin, or the [north tour](/activities/north-tour) to Port Louis and Pamplemousses, each from €90 for the car with a driver. On a showery day, go inland in the morning and keep the afternoon for the coast.',
           ],
         },
         {
           heading: 'Arriving in December',
           paragraphs: [
             'The airport is in the south-east, near Mahébourg. Belle Mare is about 50 minutes away by road and Grand Baie about 75. In late December many flights land at once and the taxi queue can be long, so a driver who meets you in arrivals takes the stress out of a holiday landing.',
-            'Our [airport transfers](/airport-transfers) start from €36 per car, at a fixed price agreed when you book. Traffic around Port Louis, Grand Baie and the busy beaches is at its heaviest over the festive fortnight, so allow extra time on departure day.',
+            'Our [airport transfers](/airport-transfers) start from €40 per car, at a fixed price agreed when you book. Traffic around Port Louis, Grand Baie and the busy beaches is at its heaviest over the festive fortnight, so allow extra time on departure day.',
           ],
         },
         {
@@ -273,13 +273,13 @@ export const HANDWRITTEN_POSTS: (PostContent & { datePublished: string; dateModi
             '**The 5-island day on the east coast:** a speedboat from Trou d’Eau Douce to the waterfall, the coral gardens and five islands, with a barbecue lunch on Île aux Cerfs, [from €80 per person](/activities/the-blue-cruise-ile-aux-cerfs-5-islands-visit).',
             '**The seaplane over the underwater waterfall:** clear November skies give the best view of the illusion off Le Morne, [from €205 per person](/activities/seaplane).',
             '**Hiking before the heat:** November mornings are still cool enough for [Le Morne](/activities/hiking-le-morne) or [Tamarind Falls](/activities/hiking-at-the-tamarind-falls-7-cascade), each from €50 per person with a guide. By January the climbs get hot and the trails muddy.',
-            '**Sightseeing by private car:** the [south tour](/activities/south-tour-mauritius) to Chamarel, Black River Gorges and Grand Bassin, from €70 for the car with a driver.',
+            '**Sightseeing by private car:** the [south tour](/activities/south-tour-mauritius) to Chamarel, Black River Gorges and Grand Bassin, from €90 for the car with a driver.',
           ],
         },
         {
           heading: 'Arriving in November',
           paragraphs: [
-            'The airport is in the south-east, near Mahébourg. Belle Mare is about 50 minutes away by road and Grand Baie about 75. Our [airport transfers](/airport-transfers) start from €36 per car, at a fixed price agreed when you book.',
+            'The airport is in the south-east, near Mahébourg. Belle Mare is about 50 minutes away by road and Grand Baie about 75. Our [airport transfers](/airport-transfers) start from €40 per car, at a fixed price agreed when you book.',
             'Travelling later, over Christmas or New Year? Read our guide to [Mauritius in December](/blog/mauritius-in-december) for the festive dates and when to book.',
           ],
         },
@@ -461,14 +461,14 @@ export const HANDWRITTEN_POSTS_FR: Record<string, PostTranslation> = {
           '**Les îles du nord :** une journée en catamaran depuis Grand Baie vers l’île Plate et l’îlot Gabriel, en passant par le Coin de Mire, [à partir de 55 € par personne](/fr/activities/catamaran-cruise-3-northern-island-adventure).',
           '**Catamaran au coucher du soleil :** deux heures de navigation au départ de Grand Baie à l’heure où le soleil se couche, [à partir de 65 € par personne](/fr/activities/catamaran-sunset-cruise).',
           '**L’hydravion au-dessus de la cascade sous-marine :** la vue sur Le Morne que la plupart des gens ne connaissent qu’en photo, [à partir de 205 € par personne](/fr/activities/seaplane).',
-          '**Visites en voiture privée :** le [circuit sud](/fr/activities/south-tour-mauritius) vers Chamarel, les gorges de Rivière Noire et Grand Bassin, ou le [circuit nord](/fr/activities/north-tour) vers Port-Louis et Pamplemousses, chacun à partir de 70 € la voiture avec chauffeur. Un jour d’averses, partez dans les terres le matin et gardez l’après-midi pour la côte.',
+          '**Visites en voiture privée :** le [circuit sud](/fr/activities/south-tour-mauritius) vers Chamarel, les gorges de Rivière Noire et Grand Bassin, ou le [circuit nord](/fr/activities/north-tour) vers Port-Louis et Pamplemousses, chacun à partir de 90 € la voiture avec chauffeur. Un jour d’averses, partez dans les terres le matin et gardez l’après-midi pour la côte.',
         ],
       },
       {
         heading: 'Arriver en décembre',
         paragraphs: [
           'L’aéroport se trouve dans le sud-est, près de Mahébourg. Belle Mare est à environ 50 minutes de route et Grand Baie à environ 75. Fin décembre, beaucoup de vols atterrissent en même temps et la file des taxis peut être longue : un chauffeur qui vous attend à l’arrivée enlève le stress d’un atterrissage en pleines fêtes.',
-          'Nos [transferts aéroport](/fr/airport-transfers) commencent à 36 € par voiture, à un prix fixe convenu à la réservation. La circulation autour de Port-Louis, de Grand Baie et des plages les plus fréquentées est à son maximum pendant la quinzaine des fêtes : prévoyez de la marge le jour du départ.',
+          'Nos [transferts aéroport](/fr/airport-transfers) commencent à 40 € par voiture, à un prix fixe convenu à la réservation. La circulation autour de Port-Louis, de Grand Baie et des plages les plus fréquentées est à son maximum pendant la quinzaine des fêtes : prévoyez de la marge le jour du départ.',
         ],
       },
       {
@@ -553,13 +553,13 @@ export const HANDWRITTEN_POSTS_FR: Record<string, PostTranslation> = {
           '**La journée des 5 îles sur la côte est :** en bateau rapide depuis Trou d’Eau Douce, la cascade, les jardins de corail et cinq îles, avec un déjeuner barbecue à l’île aux Cerfs, [à partir de 80 € par personne](/fr/activities/the-blue-cruise-ile-aux-cerfs-5-islands-visit).',
           '**L’hydravion au-dessus de la cascade sous-marine :** le ciel dégagé de novembre offre la meilleure vue sur l’illusion au large du Morne, [à partir de 205 € par personne](/fr/activities/seaplane).',
           '**Randonner avant la chaleur :** les matinées de novembre sont encore assez fraîches pour [le Morne](/fr/activities/hiking-le-morne) ou [les Tamarind Falls](/fr/activities/hiking-at-the-tamarind-falls-7-cascade), chacune à partir de 50 € par personne avec un guide. En janvier, les montées deviennent chaudes et les sentiers boueux.',
-          '**Visites en voiture privée :** le [circuit sud](/fr/activities/south-tour-mauritius) vers Chamarel, les gorges de Rivière Noire et Grand Bassin, à partir de 70 € la voiture avec chauffeur.',
+          '**Visites en voiture privée :** le [circuit sud](/fr/activities/south-tour-mauritius) vers Chamarel, les gorges de Rivière Noire et Grand Bassin, à partir de 90 € la voiture avec chauffeur.',
         ],
       },
       {
         heading: 'Arriver en novembre',
         paragraphs: [
-          'L’aéroport se trouve dans le sud-est, près de Mahébourg. Belle Mare est à environ 50 minutes de route et Grand Baie à environ 75. Nos [transferts aéroport](/fr/airport-transfers) commencent à 36 € par voiture, à un prix fixe convenu à la réservation.',
+          'L’aéroport se trouve dans le sud-est, près de Mahébourg. Belle Mare est à environ 50 minutes de route et Grand Baie à environ 75. Nos [transferts aéroport](/fr/airport-transfers) commencent à 40 € par voiture, à un prix fixe convenu à la réservation.',
           'Vous partez plus tard, pour Noël ou le Nouvel An ? Lisez notre guide de [l’île Maurice en décembre](/fr/blog/mauritius-in-december) pour les dates des fêtes et le bon moment pour réserver.',
         ],
       },

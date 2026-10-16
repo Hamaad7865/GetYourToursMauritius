@@ -149,7 +149,8 @@ describe('tourAuditPages — mirrors the tour page fallbacks', () => {
 
   it('brands the fallback title and points at the tour editor', () => {
     const [out] = tourAuditPages([row], 'Belle Mare Tours', 'site desc');
-    expect(out!.title).toBe('North Tour | Belle Mare Tours');
+    // Same rule as the live page (activityMetaTitle): the place is added when the name lacks it.
+    expect(out!.title).toBe('North Tour, Mauritius | Belle Mare Tours');
     expect(out!.path).toBe('/activities/north-tour');
     expect(out!.editorPath).toBe('/admin/activities');
     expect(out!.overridable).toBe(false);

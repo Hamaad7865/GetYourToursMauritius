@@ -6,6 +6,7 @@ import { rateLimit } from '@/lib/http/rate-limit';
 import { buildServiceContext } from '@/lib/http/context';
 import { createServiceRoleClient } from '@/lib/supabase/admin';
 import { SITE } from '@/lib/seo/site';
+import { activityMetaTitle } from '@/lib/seo/activity-meta';
 import { BRAND_SUFFIX } from '@/lib/seo/page-registry';
 import { buildSeoPageGroups, buildAuditPages } from '@/lib/seo/page-groups';
 import { loadPosts } from '@/lib/content/blog-live';
@@ -87,9 +88,8 @@ export const POST = apiHandler(async (req) => {
           path: `/activities/${slug}`,
           label: title,
           group: 'Tours',
-          // Mirrors tourAuditPages: seoTitle ?? "<title> | <operator>".
-          title: ((r.seo_title as string | null)?.trim() ||
-            `${title} | ${SITE.operator}`) as string,
+          // Mirrors tourAuditPages: the live page's title rule (activityMetaTitle).
+          title: activityMetaTitle({ slug, title, seoTitle: r.seo_title as string | null }),
           description: ((r.seo_description as string | null)?.trim() ||
             (r.summary as string | null)?.trim() ||
             (r.description as string | null)?.trim() ||

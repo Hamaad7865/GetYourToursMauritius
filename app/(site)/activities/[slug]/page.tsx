@@ -34,6 +34,7 @@ import { applyDefaults } from '@/lib/catalogue/content-defaults';
 import { loadContentDefaults } from '@/lib/services/content-defaults';
 import { Faq } from '@/components/catalogue/Faq';
 import { SiteFooter } from '@/components/site/SiteFooter';
+import { activityMetaDescription, activityMetaTitle } from '@/lib/seo/activity-meta';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { getLocale, getT } from '@/lib/i18n/server';
 import { localeAlternates, localePath } from '@/lib/i18n/routing';
@@ -94,12 +95,13 @@ export async function generateMetadata({
   // coalesces French over English per field) — nothing to localise here beyond the OG locale tag.
   const activity = await loadActivity(slug);
   if (!activity) return { title: 'Activity not found' };
-  const title = activity.seoTitle ?? `${activity.title} | ${SITE.operator}`;
-  const description =
-    activity.seoDescription ?? activity.summary ?? activity.description ?? SITE.description;
+  const locale = await getLocale();
+  // An /admin search title wins, then a hand-written one, then the cleaned tour name; the description
+  // adds the live from-price and pickup (see activity-meta.ts).
+  const title = activityMetaTitle(activity, locale);
+  const description = activityMetaDescription(activity, locale);
   const canonical = `/activities/${activity.slug}`;
   const image = activity.heroImage?.url;
-  const locale = await getLocale();
   return {
     // `absolute` so the root template doesn't append a SECOND brand (the title already ends in the
     // operator) — that double-brand was pushing tour keywords past SERP truncation.

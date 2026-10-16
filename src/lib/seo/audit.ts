@@ -1,4 +1,5 @@
 import { TITLE_BUDGET, DESC_BUDGET, TITLE_MIN, DESC_MIN } from '@/lib/seo/budgets';
+import { activityMetaTitle } from '@/lib/seo/activity-meta';
 
 /**
  * The self-audit behind the SEO health panel.
@@ -203,7 +204,8 @@ export function summarize(pages: AuditPage[], issues: SeoIssue[]): AuditSummary 
 
 /**
  * Tour pages as audit rows. Mirrors generateMetadata in app/(site)/activities/[slug]/page.tsx:
- * title = seoTitle ?? "<title> | <operator>", description = seoDescription ?? summary ?? description.
+ * the title comes from activityMetaTitle (English); the description is seoDescription ?? summary ??
+ * description — the live page also appends the from-price and pickup line, which these rows lack.
  */
 export function tourAuditPages(
   rows: Array<{
@@ -221,7 +223,7 @@ export function tourAuditPages(
     path: `/activities/${r.slug}`,
     label: r.title,
     group: 'Tours',
-    title: r.seoTitle?.trim() || `${r.title} | ${operator}`,
+    title: activityMetaTitle(r),
     description:
       r.seoDescription?.trim() || r.summary?.trim() || r.description?.trim() || siteDescription,
     editorPath: '/admin/activities',
