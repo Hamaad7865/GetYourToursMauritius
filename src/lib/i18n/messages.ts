@@ -2748,6 +2748,31 @@ export const fr: Record<string, string> = {
     'Bonne nouvelle — votre réservation {ref} est confirmée (total {total}).',
   'Your airport-transfer e-voucher (show this to your driver) is in your booking:':
     'Votre e-bon de transfert aéroport (à montrer à votre chauffeur) se trouve dans votre réservation :',
+  'Your {activity} booking wasn’t completed':
+    'Votre réservation pour {activity} n’a pas été finalisée',
+  'Hi {name}, your booking for {activity} on {date} wasn’t completed, so nothing was charged and the place wasn’t kept for you.':
+    'Bonjour {name}, votre réservation pour {activity} le {date} n’a pas été finalisée : rien n’a été débité et la place ne vous a pas été réservée.',
+  'Hi {name}, your booking for {activity} wasn’t completed, so nothing was charged and the place wasn’t kept for you.':
+    'Bonjour {name}, votre réservation pour {activity} n’a pas été finalisée : rien n’a été débité et la place ne vous a pas été réservée.',
+  'If you’d still like to go, you can book it again in a minute:':
+    'Si vous souhaitez toujours y aller, vous pouvez réserver à nouveau en une minute :',
+  'Book {activity} again': 'Réserver à nouveau {activity}',
+  'Card trouble? Your card is charged in Mauritian rupees (MUR), and some banks ask you to approve that in their app. If it still won’t go through, just reply to this email and we’ll help you book.':
+    'Un souci de carte ? Votre carte est débitée en roupies mauriciennes (MUR), et certaines banques demandent de l’approuver dans leur application. Si le paiement ne passe toujours pas, répondez simplement à cet e-mail et nous vous aiderons à réserver.',
+  'You’re getting this one-time email because you started a booking on our website. We won’t send another about it.':
+    'Vous recevez cet e-mail unique parce que vous avez commencé une réservation sur notre site. Nous ne vous en enverrons pas d’autre à ce sujet.',
+  'Don’t want reminders like this?': 'Vous ne souhaitez pas recevoir ce type de rappel ?',
+  'Stop them': 'Les arrêter',
+  'Stop booking reminders': 'Arrêter les rappels de réservation',
+  'Email preferences': 'Préférences e-mail',
+  'We send at most one email when an online booking isn’t completed. Stop them here and we won’t send any more.':
+    'Nous envoyons au maximum un e-mail lorsqu’une réservation en ligne n’est pas finalisée. Arrêtez-les ici et nous n’en enverrons plus.',
+  'Done — we won’t send you booking reminders like this again.':
+    'C’est fait — nous ne vous enverrons plus ce type de rappel de réservation.',
+  'This link is no longer valid. If you keep getting these emails, reply to one and we’ll stop them.':
+    'Ce lien n’est plus valide. Si vous continuez à recevoir ces e-mails, répondez à l’un d’eux et nous les arrêterons.',
+  'Something went wrong. Please try again in a moment.':
+    'Un problème est survenu. Veuillez réessayer dans un instant.',
   'How was your {activity}?': 'Comment s’est passé votre {activity} ?',
   "Hi {name}, thanks for touring with us. If you have a minute, we'd love to hear how it went — it helps other travellers find us too.":
     'Bonjour {name}, merci d’avoir voyagé avec nous. Si vous avez une minute, nous aimerions savoir comment cela s’est passé — cela aide aussi d’autres voyageurs à nous trouver.',

@@ -72,6 +72,16 @@ export async function enqueueReviewInvites(ctx: ServiceContext): Promise<number>
 }
 
 /**
+ * Queue the one checkout-recovery email (20261017000100) for shoppers whose web checkout expired
+ * unpaid 2–24 hours ago. Every eligibility rule — switched-off flag, no money moved, one per person,
+ * opt-outs, staff excluded — lives in the SQL. Returns how many were queued.
+ */
+export async function enqueueCheckoutRecovery(ctx: ServiceContext): Promise<number> {
+  const data = await callRpc(ctx, 'api_enqueue_checkout_recovery', {});
+  return z.coerce.number().int().parse(data);
+}
+
+/**
  * Chase the bookings taken as "pickup to be arranged" that still have no address: the guest at 48h
  * and again at 24h before departure, the owner at 24h. Idempotency keys carry the threshold, so each
  * booking is chased at most once per window and never once a pickup exists.

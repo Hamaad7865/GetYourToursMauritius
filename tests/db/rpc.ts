@@ -66,6 +66,8 @@ const ALLOWED = new Set([
   'api_purge_error_logs',
   'api_log_checkout_event',
   'api_purge_checkout_funnel_events',
+  'api_enqueue_checkout_recovery',
+  'api_checkout_recovery_opt_out',
   'api_convert_quote',
   'api_save_card',
   'api_list_saved_cards',

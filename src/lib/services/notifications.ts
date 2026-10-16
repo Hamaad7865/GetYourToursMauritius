@@ -16,6 +16,9 @@ import {
 } from '@/lib/email/booking-confirmation';
 import { renderChangeAppliedNotice } from '@/lib/email/booking-change';
 import { renderReviewRequestEmail } from '@/lib/email/review-request';
+import { renderCheckoutRecoveryEmail } from '@/lib/email/checkout-recovery';
+import { localiseHref } from '@/lib/i18n/routing';
+import { isLocale } from '@/lib/i18n/config';
 import { renderPickupConfirmedEmail, renderPickupReminderEmail } from '@/lib/email/pickup';
 import {
   renderInstallmentReminderEmail,
@@ -402,6 +405,31 @@ function enrichReviewRequest(message: NotificationMessage): void {
 }
 
 /**
+ * The one checkout-recovery email (20261017000100). Payload-only and synchronous, like
+ * enrichReviewRequest: api_enqueue_checkout_recovery embedded the activity, first slot, locale and the
+ * opt-out token. "Book again" goes to the activity page — a fresh hold and checkout — and never to
+ * anything carrying the expired booking's ref.
+ */
+function enrichCheckoutRecovery(message: NotificationMessage): void {
+  const p = message.payload;
+  const str = (v: unknown): string | null => (typeof v === 'string' && v ? v : null);
+  const locale = isLocale(str(p.locale)) ? (str(p.locale) as 'en' | 'fr') : 'en';
+  const slug = str(p.activitySlug) ?? '';
+  const path = slug === 'airport-transfer' ? '/airport-transfers' : `/activities/${slug}`;
+  const email = renderCheckoutRecoveryEmail({
+    customerName: str(p.customerName) ?? 'there',
+    activityTitle: str(p.activityTitle) ?? 'your trip',
+    startsAt: str(p.startsAt),
+    bookAgainUrl: `${SITE.url}${localiseHref(locale, path)}`,
+    stopUrl: `${SITE.url}/reminders/stop?t=${encodeURIComponent(str(p.token) ?? '')}`,
+    locale,
+  });
+  message.subject = email.subject;
+  message.html = email.html;
+  message.text = email.text;
+}
+
+/**
  * Website-enquiry alert (the ContactFloat form, the /contact form, the activity InquiryWidget — every
  * `leads` insert). Payload-only and synchronous, like enrichReviewRequest: the insert trigger already
  * embedded the name, contact, message, page and activity title, so there is no DB round-trip and no
@@ -606,6 +634,8 @@ export async function drainNotifications(
         enrichOwnerDateChanged(message);
       } else if (message.template === 'review_request') {
         enrichReviewRequest(message);
+      } else if (message.template === 'checkout_recovery') {
+        enrichCheckoutRecovery(message);
       } else if (message.template === 'owner_new_lead') {
         enrichOwnerNewLead(message);
       } else if (

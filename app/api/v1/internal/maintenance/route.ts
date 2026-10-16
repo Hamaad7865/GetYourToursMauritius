@@ -9,6 +9,7 @@ import {
   materializeAvailability,
   reconcilePaymentsPending,
   enqueueReviewInvites,
+  enqueueCheckoutRecovery,
   enqueuePickupReminders,
   applyFundedPickups,
   refreshFxRate,
@@ -128,6 +129,15 @@ export const POST = apiHandler(async (req) => {
     await log('review invites sweep', err);
   }
 
+  // 4b) The one checkout-recovery email for an unpaid web checkout that expired 2–24h ago. Off until
+  //     the owner sets business_settings.checkout_recovery_enabled_at; every rule is in the SQL.
+  let checkoutRecoveryQueued: number | { errored: true } = { errored: true };
+  try {
+    checkoutRecoveryQueued = await enqueueCheckoutRecovery(ctx);
+  } catch (err) {
+    await log('checkout recovery sweep', err);
+  }
+
   // 5) Chase a still-missing pickup at 48h / 24h before departure. Not money-critical either, so
   //    position doesn't matter — but it IS customer-affecting (a guest nobody can collect), so a
   //    failure counts towards the red verdict below alongside the other sweeps.
@@ -201,6 +211,7 @@ export const POST = apiHandler(async (req) => {
     ...(failedJob(result) ? ['bookingMaintenance'] : []),
     ...(failedJob(slotsCreated) ? ['availability'] : []),
     ...(failedJob(reviewInvitesCreated) ? ['reviewInvites'] : []),
+    ...(failedJob(checkoutRecoveryQueued) ? ['checkoutRecovery'] : []),
     ...(failedJob(pickupRemindersEnqueued) ? ['pickupReminders'] : []),
     ...(failedJob(fundedPickupsApplied) ? ['fundedPickups'] : []),
   ];
@@ -214,6 +225,7 @@ export const POST = apiHandler(async (req) => {
         slotsCreated,
         payments,
         reviewInvitesCreated,
+        checkoutRecoveryQueued,
         pickupRemindersEnqueued,
         fundedPickupsApplied,
         fx,
@@ -228,6 +240,7 @@ export const POST = apiHandler(async (req) => {
     slotsCreated,
     payments,
     reviewInvitesCreated,
+    checkoutRecoveryQueued,
     pickupRemindersEnqueued,
     fundedPickupsApplied,
     fx,

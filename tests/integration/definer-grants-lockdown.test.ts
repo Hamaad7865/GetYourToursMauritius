@@ -31,6 +31,12 @@ const LOCKED = [
   // DELETES, which would let anyone erase the record of what they just broke.
   'api_log_error(jsonb)',
   'api_purge_error_logs(jsonb)',
+  // Checkout funnel + recovery email (20261017000000/000100). The funnel writer is fed by an
+  // unauthenticated route, the enqueue sends customer email, the opt-out writes the suppression list.
+  'api_log_checkout_event(jsonb)',
+  'api_purge_checkout_funnel_events(jsonb)',
+  'api_enqueue_checkout_recovery(jsonb)',
+  'api_checkout_recovery_opt_out(jsonb)',
   // Mints a PAYABLE booking from a quote id alone (20260909000000) — no in-function caller guard, so
   // an open grant would let any caller mint bookings (and enumerate quotes by probing ids).
   'api_convert_quote(jsonb)',

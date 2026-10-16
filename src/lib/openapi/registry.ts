@@ -53,6 +53,7 @@ import {
   syncPaymentInputSchema,
 } from '@/lib/validation/booking';
 import { checkoutFunnelEventSchema, clientErrorReportSchema } from '@/lib/validation/telemetry';
+import { checkoutRecoveryOptOutSchema } from '@/lib/validation/checkout-recovery';
 import { seoAiFixRequestSchema, seoAiFixResponseSchema } from '@/lib/validation/seo-ai-fix';
 import {
   wishlistAddResultSchema,
@@ -1215,6 +1216,20 @@ export const apiPaths: ZodOpenApiPathsObject = {
         ),
         '429': errorResponse('Too many requests'),
         '500': errorResponse('Site URL is not configured'),
+      },
+    },
+  },
+  '/checkout-reminders/opt-out': {
+    post: {
+      operationId: 'optOutOfCheckoutReminders',
+      summary:
+        'Stop checkout-recovery emails for the address behind an emailed token (per-IP rate limited)',
+      tags: ['Account'],
+      requestBody: jsonBody(checkoutRecoveryOptOutSchema),
+      responses: {
+        '200': okJson(z.object({ stopped: z.boolean() }), 'Whether the token matched an email'),
+        '400': errorResponse('Invalid request'),
+        '429': errorResponse('Too many requests'),
       },
     },
   },

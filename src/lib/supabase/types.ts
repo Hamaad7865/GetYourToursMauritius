@@ -1090,15 +1090,41 @@ type CheckoutFunnelEventsInsert = Omit<CheckoutFunnelEventsRow, 'id' | 'created_
   ms_since_mount?: number | null;
 };
 
+/** 20261017000100 — who got the one checkout-recovery email (holds the opt-out token). */
+type CheckoutRecoveryEmailsRow = {
+  id: string;
+  booking_id: string;
+  email_lc: string;
+  token: string;
+  created_at: string;
+};
+type CheckoutRecoveryEmailsInsert = {
+  id?: string;
+  booking_id: string;
+  email_lc: string;
+  token: string;
+  created_at?: string;
+};
+/** 20261017000100 — opt-out list, keyed by lower-cased address and email kind. */
+type EmailSuppressionsRow = { email_lc: string; kind: 'checkout_recovery'; created_at: string };
+type EmailSuppressionsInsert = {
+  email_lc: string;
+  kind: 'checkout_recovery';
+  created_at?: string;
+};
+
 /** 20260922000000 — the admin-editable "Chat on WhatsApp" number. Singleton row (id is always true);
  *  null whatsapp_number means "fall back to SITE.phone". Public read, staff update. */
 type BusinessSettingsRow = {
   id: boolean;
   whatsapp_number: string | null;
+  /** 20261017000100 — NULL = checkout-recovery emails off; else only checkouts after this qualify. */
+  checkout_recovery_enabled_at: string | null;
   updated_at: string;
   updated_by: string | null;
 };
 type BusinessSettingsInsert = {
+  checkout_recovery_enabled_at?: string | null;
   id?: boolean;
   whatsapp_number?: string | null;
   updated_at?: string;
@@ -1261,6 +1287,8 @@ export interface Database {
       >;
       error_logs: TableDef<ErrorLogsRow, ErrorLogsInsert>;
       checkout_funnel_events: TableDef<CheckoutFunnelEventsRow, CheckoutFunnelEventsInsert>;
+      checkout_recovery_emails: TableDef<CheckoutRecoveryEmailsRow, CheckoutRecoveryEmailsInsert>;
+      email_suppressions: TableDef<EmailSuppressionsRow, EmailSuppressionsInsert>;
       business_settings: TableDef<BusinessSettingsRow, BusinessSettingsInsert>;
       document_clients: TableDef<DocumentClientsRow, DocumentClientsInsert>;
       documents: TableDef<DocumentsRow, DocumentsInsert>;
