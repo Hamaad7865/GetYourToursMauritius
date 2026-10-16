@@ -13,10 +13,20 @@ const {
   fundedPickups,
   fxRefresh,
   purgeErrors,
+  checkoutRecovery,
+  purgeFunnel,
 } = vi.hoisted(() => {
   const calls: string[] = [];
   return {
     calls,
+    checkoutRecovery: vi.fn(async () => {
+      calls.push('checkoutRecovery');
+      return 0;
+    }),
+    purgeFunnel: vi.fn(async () => {
+      calls.push('purgeFunnel');
+      return { deleted: 0, aged: 0, overflow: 0 };
+    }),
     purgeErrors: vi.fn(async () => {
       calls.push('purgeErrors');
       return { deleted: 0, aged: 0, overflow: 0 };
@@ -66,6 +76,8 @@ vi.mock('@/lib/services/maintenance', () => ({
   applyFundedPickups: fundedPickups,
   refreshFxRate: fxRefresh,
   purgeErrorLogs: purgeErrors,
+  enqueueCheckoutRecovery: checkoutRecovery,
+  purgeCheckoutFunnelEvents: purgeFunnel,
 }));
 vi.mock('@/lib/http/context', () => ({ serviceRoleServiceContext: () => ({}) }));
 vi.mock('@/lib/config/env', () => ({ getServerEnv: () => ({ INTERNAL_TASK_SECRET: 'secret' }) }));
