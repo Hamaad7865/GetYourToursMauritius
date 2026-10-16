@@ -58,8 +58,9 @@ declare global {
  * Mounts the Peach Payments embedded checkout widget. The server has already created the checkout
  * (we receive its `checkoutId`); here we load Peach's checkout.js and render the card form inline.
  *
- * The booking is confirmed ONLY by the verified webhook, never here — on completion (or cancel) we
- * just send the customer to their booking page, which reflects the real payment state.
+ * The booking is confirmed ONLY by the verified webhook, never here — on completion we just send the
+ * customer to their booking page, which reflects the real payment state. On cancel we stay here and
+ * offer a retry.
  */
 export function EmbeddedCheckout({
   scriptUrl,
@@ -241,7 +242,19 @@ export function EmbeddedCheckout({
             onCompleted: () => {
               void confirmThenReturn();
             },
-            onCancelled: () => router.replace(returnUrl),
+            // Not a silent bounce to the booking page any more: the customer is told the payment
+            // didn't go through and gets a one-tap retry. A refused card reaches us ONLY as a
+            // "cancelled" (the decline code lives in Peach's dashboard), so the hint covers the
+            // commonest refusal for a foreign card charged in rupees. "Try again" goes to retryUrl,
+            // which mints a fresh session (a cancelled one is dead at Peach — see landmines.md).
+            onCancelled: () => {
+              if (cancelled) return;
+              setError(
+                t(
+                  'Your payment wasn’t completed. If your bank declined it, it may need you to approve a payment in Mauritian rupees (MUR) — or try another card.',
+                ),
+              );
+            },
             onExpired: () => setError(t('This payment session expired. Please start again.')),
           },
         });

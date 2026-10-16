@@ -866,6 +866,8 @@ export const fr: Record<string, string> = {
   'Signed in as {email}.': 'Connecté en tant que {email}.',
   Pay: 'Payer',
   'Continue to payment': 'Continuer vers le paiement',
+  'Charged in Mauritian rupees (MUR) — exact amount on the next screen.':
+    'Débité en roupies mauriciennes (MUR) — montant exact à l’écran suivant.',
   'Your card is charged in Mauritian rupees (MUR). The exact amount is shown on the next screen.':
     'Votre carte est débitée en roupies mauriciennes (MUR). Le montant exact est affiché sur l’écran suivant.',
   'Your card will be charged {amount} — the {eur} total converted at today’s rate.':
@@ -891,6 +893,8 @@ export const fr: Record<string, string> = {
     'Nous n’avons pas pu joindre le prestataire de paiement. Veuillez réessayer.',
   'The payment form is taking too long to load. Please try again.':
     'Le formulaire de paiement met trop de temps à se charger. Veuillez réessayer.',
+  'Your payment wasn’t completed. If your bank declined it, it may need you to approve a payment in Mauritian rupees (MUR) — or try another card.':
+    'Votre paiement n’a pas abouti. Si votre banque l’a refusé, elle vous demande peut-être d’approuver un paiement en roupies mauriciennes (MUR) — ou essayez une autre carte.',
   'This payment session expired. Please start again.':
     'Cette session de paiement a expiré. Veuillez recommencer.',
   'Order summary': 'Récapitulatif de la commande',

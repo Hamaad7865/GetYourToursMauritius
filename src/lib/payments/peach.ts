@@ -108,18 +108,39 @@ const PEACH_SLOW_MS = 3_000;
  *  (which carry checkout ids). */
 async function fetchPeach(url: string, init: RequestInit, op: string): Promise<Response> {
   const controller = new AbortController();
+  // The deadline covers the BODY as well as the headers. It used to be cleared as soon as the headers
+  // arrived, so a body that stalled mid-stream hung the worker until Cloudflare answered 524 (~100s) —
+  // and the shared in-flight OAuth promise made every later payment on that isolate wait on the same
+  // corpse (production 2026-09-17 and 2026-10-06: one customer, four 524s in a row). So the body is
+  // read here, inside the timer, and callers get an already-buffered Response.
+  const aborted = new Promise<never>((_, reject) => {
+    controller.signal.addEventListener('abort', () =>
+      reject(new DOMException('Peach request timed out', 'AbortError')),
+    );
+  });
+  aborted.catch(() => {}); // only observed through the races below
   const timer = setTimeout(() => controller.abort(), PEACH_TIMEOUT_MS);
   const startedAt = Date.now();
   try {
-    const res = await fetch(url, { ...init, signal: controller.signal });
+    const res = await Promise.race([fetch(url, { ...init, signal: controller.signal }), aborted]);
+    const body = await Promise.race([res.arrayBuffer(), aborted]);
     const ms = Date.now() - startedAt;
     const fields = { op, ms, status: res.status };
     if (ms >= PEACH_SLOW_MS) log.warn('peach_call_slow', fields);
     else log.info('peach_call', fields);
-    return res;
+    // The body is already DECODED here, so the wire framing headers no longer describe it — carrying
+    // a stale content-encoding/length onto the rebuilt Response could make the runtime re-decode it.
+    const headers = new Headers(res.headers);
+    for (const h of ['content-encoding', 'content-length', 'transfer-encoding']) headers.delete(h);
+    return new Response(body.byteLength > 0 ? body : null, {
+      status: res.status,
+      statusText: res.statusText,
+      headers,
+    });
   } catch (error) {
     const ms = Date.now() - startedAt;
-    const timedOut = error instanceof Error && error.name === 'AbortError';
+    const timedOut =
+      controller.signal.aborted || (error instanceof Error && error.name === 'AbortError');
     log.error('peach_call_failed', { op, ms, timedOut, timeoutMs: PEACH_TIMEOUT_MS });
     throw new ProviderError(
       timedOut

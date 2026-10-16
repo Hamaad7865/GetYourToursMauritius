@@ -394,6 +394,50 @@ describe('PeachPaymentProvider.prewarm', () => {
   });
 });
 
+/**
+ * Production 2026-09-17 and 2026-10-06: POST /api/v1/payments ran ~100s until Cloudflare answered 524,
+ * four times in a row for one customer — although every Peach call has a 12s timeout. The timer was
+ * cleared the moment the response HEADERS arrived, so a body that stalled mid-stream (and the shared
+ * in-flight OAuth promise waiting on it) hung the worker for good. The deadline must cover the body.
+ */
+describe('PeachPaymentProvider — the timeout covers the response body', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+    vi.resetModules();
+  });
+
+  it('fails with a timeout when Peach sends headers but never finishes the body', async () => {
+    vi.resetModules();
+    const { PeachPaymentProvider: FreshPeach } = await import('@/lib/payments/peach');
+    vi.useFakeTimers();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          // Headers now, body never: the stream is never closed.
+          new Response(new ReadableStream({ start() {} }), {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          }),
+      ),
+    );
+
+    const provider = new FreshPeach(CONFIG);
+    const pending = provider.createCheckout({
+      bookingRef: 'BMT-HANG',
+      amount: 10,
+      currency: 'MUR',
+      customerEmail: 'a@b.com',
+      description: 'x',
+      returnUrl: 'https://site.example.com/bookings/BMT-HANG',
+    });
+    const assertion = expect(pending).rejects.toThrow(/timed out/);
+    await vi.advanceTimersByTimeAsync(13_000);
+    await assertion;
+  });
+});
+
 describe('PeachPaymentProvider.getCheckoutStatus', () => {
   afterEach(() => {
     vi.unstubAllGlobals();

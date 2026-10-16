@@ -2280,6 +2280,14 @@ export function Checkout() {
             )}
           </button>
         )}
+        {/* The desktop column says this under its Pay button; on a phone that line sits in the
+            scrolled step content, often off-screen when the sticky button is tapped — so the
+            currency the card is charged in is stated right here, next to the EUR price. */}
+        {step === 3 && displayTotalNum != null && (
+          <p className="mt-1.5 text-center text-[12px] text-ink-muted">
+            {t('Charged in Mauritian rupees (MUR) — exact amount on the next screen.')}
+          </p>
+        )}
       </div>
       {/* Covers the whole checkout while the pay round-trip runs: it reports what is happening across
           a wait that can run to double digits of seconds, and it blocks the second click that wait
