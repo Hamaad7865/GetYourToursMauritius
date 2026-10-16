@@ -83,9 +83,10 @@ export interface CreatePaymentLinkInput {
  * only from the DB (api_create_payment reads the booking total); the model/client
  * never supplies it. Confirmation happens later via the verified webhook.
  *
- * THE CHARGE IS PINNED IN SQL, NOT COMPUTED HERE: api_create_payment converts the EUR total to whole
- * MUR rupees at the server-controlled fx_rates rate ONCE per payment row (first-write-wins) and hands
- * the figure back as chargedAmountMinor/chargedCurrency. This function charges exactly that figure —
+ * THE CHARGE IS PINNED IN SQL, NOT COMPUTED HERE: api_create_payment pins the charge ONCE per payment
+ * row (first-write-wins) in the currency of the admin switch — the EUR total exactly, or converted to
+ * whole MUR rupees at the owner-set rate — and hands the figure back as
+ * chargedAmountMinor/chargedCurrency. This function charges exactly that figure —
  * every re-minted session for a payment charges the identical amount, the pay page displays it, and
  * reconcile measures the settlement against it. Do NOT reintroduce a conversion here: a per-session
  * figure at a moved rate would drift from the pinned expectation and quarantine real payments.
@@ -187,16 +188,17 @@ export async function createPaymentLink(
     }
   }
 
-  // Charge EXACTLY what the DB pinned (MUR since 2026-07-30 — the live Peach account has no EUR
-  // facility). The pinned figure is what every session for this payment charges, what the pay page
+  // Charge EXACTLY what the DB pinned (MUR from 2026-07-30; MUR or EUR per the admin switch since
+  // 2026-10-17). The pinned figure is what every session for this payment charges, what the pay page
   // displays, and what reconcile measures the settlement against — three things that must be one
   // number. The EUR fallback exists only for a legacy pre-cutover row whose pin the migration
   // deliberately left (a settled/terminal booking); a payable legacy row was un-pinned by the
   // cutover fix and re-pins in MUR on this very call.
   const chargeCurrency = payment.chargedCurrency ?? 'EUR';
   const chargeMinor = payment.chargedAmountMinor ?? payment.amountMinor;
-  // chargeMinor is whole rupees (a multiple of 100), so /100 is exact and peach.ts's `.toFixed(2)`
-  // round-trips byte-identically against what api_create_payment recorded. No float crosses the
+  // chargeMinor is whole rupees (a multiple of 100) or whole euro cents, so /100 has at most two
+  // decimals and peach.ts's `.toFixed(2)` round-trips byte-identically against what
+  // api_create_payment recorded. No float crosses the
   // provider boundary with sub-cent precision.
   const chargeAmount = chargeMinor / 100;
   // One-click reuse: surface the signed-in user's saved cards. Their tokens are fetched under the

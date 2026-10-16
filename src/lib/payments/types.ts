@@ -4,8 +4,9 @@
  * depend on a real account.
  *
  * TWO CURRENCIES, ONE LEDGER: prices and the ledger are EUR (the contractual price), but the CARD
- * is charged in MUR — the live Peach account has no EUR facility (2026-07-30). The MUR figure is
- * pinned once per payment row inside `api_create_payment` (server-controlled rate, whole rupees) and
+ * is charged in MUR or EUR, per the owner's switch in /admin (MUR-only 2026-07-30 → 2026-10-17, when
+ * Peach enabled EUR). The charge is pinned once per payment row inside `api_create_payment`
+ * (owner-set rate, whole rupees — or the EUR total exactly) and
  * recorded as `payments.charged_amount_minor`/`charged_currency`: the EXPECTED SETTLEMENT that
  * reconcile measures provider events against — not receipt decoration. The service charges exactly
  * the pinned figure; nothing outside SQL ever converts currency.
@@ -28,7 +29,7 @@ export interface CreateCheckoutInput {
   /** Amount to charge, in `currency`'s major units — the PINNED charge figure handed back by
    *  api_create_payment, never a figure computed here. */
   amount: number;
-  /** ISO-4217 currency to charge in — the pinned charge currency (MUR; EUR only on legacy rows). */
+  /** ISO-4217 currency to charge in — the pinned charge currency (MUR or EUR, per the admin switch). */
   currency: string;
   customerEmail: string;
   description: string;

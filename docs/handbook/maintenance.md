@@ -177,7 +177,7 @@ Most of it is automatic. Know which is which, because everything automatic here 
 | Seat holds              | Expire after 30 minutes                       | ✅ **and not cron-dependent** — capacity is a predicate |
 | `notification_outbox`   | Drained every 2 minutes                       | ✅ cron. Nothing is lost if it stops — it queues        |
 | Availability            | Rolled forward 185 days                       | ✅ cron. **Stops silently if the cron dies**            |
-| EUR→MUR rate            | Refreshed on a timer                          | ✅ cron                                                 |
+| EUR→MUR rate            | Typed in by the owner (admin Dashboard)       | ❌ manual — review it when the rupee moves              |
 | Bookings, payments      | Never deleted                                 | ❌ by design — this is the financial record             |
 | Cloudflare Workers Logs | 7-day retention, 100% sampling on `gytm-cron` | ✅ platform                                             |
 | GDPR erasure            | Anonymise-with-retention, on request          | ❌ manual — see the GDPR flow in `/admin`               |

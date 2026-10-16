@@ -8,6 +8,7 @@ import { getBrowserSupabase } from '@/lib/supabase/browser';
 import { SYNC_RETRY_ATTEMPTS, nextDelayMs } from '@/lib/checkout/confirm-poll';
 import { PayProgress } from './PayProgress';
 import { clearPayHandoff, readPayHandoff } from '@/lib/checkout/pay-progress';
+import type { ChargeCurrency } from '@/lib/settings/charge-currency';
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
@@ -69,6 +70,7 @@ export function EmbeddedCheckout({
   checkoutId,
   returnUrl,
   retryUrl,
+  chargeCurrency,
 }: {
   scriptUrl: string;
   entityId: string;
@@ -83,6 +85,9 @@ export function EmbeddedCheckout({
    * guest, and tests/unit/pay-retry-url.test.ts scans this file to keep it that way.
    */
   retryUrl: string;
+  /** The currency cards are charged in (the admin switch). Only picks the decline hint: a refusal
+   *  worth explaining is a foreign card meeting a rupee charge, which an EUR charge cannot cause. */
+  chargeCurrency: ChargeCurrency;
 }) {
   const router = useRouter();
   const t = useT();
@@ -284,16 +289,21 @@ export function EmbeddedCheckout({
             },
             // Not a silent bounce to the booking page any more: the customer is told the payment
             // didn't go through and gets a one-tap retry. A refused card reaches us ONLY as a
-            // "cancelled" (the decline code lives in Peach's dashboard), so the hint covers the
-            // commonest refusal for a foreign card charged in rupees. "Try again" goes to retryUrl,
-            // which mints a fresh session (a cancelled one is dead at Peach — see landmines.md).
+            // "cancelled" (the decline code lives in Peach's dashboard), so when cards are charged
+            // in rupees the hint covers the commonest refusal: a foreign card meeting a MUR charge.
+            // "Try again" goes to retryUrl, which mints a fresh session (a cancelled one is dead at
+            // Peach — see landmines.md).
             onCancelled: () => {
               if (cancelled) return;
               funnel.current('cancelled');
               setError(
-                t(
-                  'Your payment wasn’t completed. If your bank declined it, it may need you to approve a payment in Mauritian rupees (MUR) — or try another card.',
-                ),
+                chargeCurrency === 'MUR'
+                  ? t(
+                      'Your payment wasn’t completed. If your bank declined it, it may need you to approve a payment in Mauritian rupees (MUR) — or try another card.',
+                    )
+                  : t(
+                      'Your payment wasn’t completed. If your bank declined it, try again or use another card.',
+                    ),
               );
             },
             onExpired: () => {
@@ -350,7 +360,7 @@ export function EmbeddedCheckout({
       if (watchdog) clearTimeout(watchdog);
       runCleanups();
     };
-  }, [scriptUrl, entityId, checkoutId, returnUrl, router, t]);
+  }, [scriptUrl, entityId, checkoutId, returnUrl, router, t, chargeCurrency]);
 
   if (error) {
     return (

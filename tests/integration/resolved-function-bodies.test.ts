@@ -133,6 +133,28 @@ const CONTRACTS: ResolvedContract[] = [
       'the first booking row is the DEPOSIT charge; losing the coalesce/nullif either bills a quote ' +
       'guest the full price at the deposit step or bills a depositless customer booking its default 0',
   },
+  // The owner's MUR/EUR switch (20261017120000). A re-definition from the pre-switch body would put
+  // back `charged_currency = 'MUR'` from fx_rates: the admin toggle would still save, the checkout
+  // would still tell the customer "charged in euros", and every card would quietly be charged rupees.
+  {
+    fn: 'create_payment',
+    must: 'pins the charge in the currency read from business_settings',
+    code: /\bselect\s+bs\.charge_currency\s+into\s+v_ccy\s+from\s+business_settings\b[\s\S]*?\bcharged_currency\s*=\s*v_ccy\b/,
+    why:
+      'without it the admin switch is cosmetic — the pin hard-codes MUR, so a customer told they pay ' +
+      'in euros is charged rupees',
+  },
+  // One booking, one charge currency. api_booking_receipt sums the booking + balance rows'
+  // charged_amount_minor under ONE currency label; a re-definition that drops this lets a MUR deposit
+  // and an EUR balance (paid either side of a flip) add up to a figure in no currency on the invoice.
+  {
+    fn: 'create_payment',
+    must: 'follows the currency of money already taken on the booking',
+    code: /\bselect\s+coalesce\s*\(\s*pay\.charged_currency\s*,\s*pay\.currency\s*\)\s+into\s+v_ccy\b[\s\S]*?\bpay\.paid_minor\s*>\s*0\b/,
+    why:
+      'a deposit in one currency and a balance in the other sum to a meaningless "charged to card" ' +
+      'figure on the VAT invoice, and the add-on folds silently drop the off-currency rows',
+  },
   // The quote-booking owner match (20260909000000, section 6d). Its absence is INVISIBLE at every
   // level a test usually looks: the booking is minted, it is payable, it confirms, the guest is
   // emailed their invoice — and only the person who paid can never see it again, because

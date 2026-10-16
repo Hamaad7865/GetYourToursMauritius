@@ -175,23 +175,14 @@ export async function SiteFooter() {
         </div>
 
         <div className="mt-12 border-t border-cream/10 pt-6 text-xs text-cream/50">
-          {t('© {year} {legalName}. {street}, {region}, Mauritius · BRN {brn} · VAT {vat} ·', {
+          {t('© {year} {legalName}. {street}, {region}, Mauritius · BRN {brn} · VAT {vat}', {
             year: new Date().getFullYear(),
             legalName: SITE.legalName,
             street: SITE.street,
             region: SITE.region,
             brn: SITE.brn,
             vat: SITE.vat,
-          })}{' '}
-          {/* Required attribution for the EUR→MUR charge-rate feed (open tier ToS). */}
-          <a
-            href="https://www.exchangerate-api.com"
-            rel="noopener noreferrer"
-            target="_blank"
-            className="underline-offset-2 hover:text-cream/80 hover:underline"
-          >
-            Rates by Exchange Rate API
-          </a>
+          })}
         </div>
       </div>
     </footer>

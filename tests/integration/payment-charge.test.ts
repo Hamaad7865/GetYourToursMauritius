@@ -12,10 +12,12 @@ import { createBooking } from '@/lib/services/bookings';
 import { createPaymentLink } from '@/lib/services/payments';
 
 /**
- * The card is charged in MUR while the ledger stays EUR (2026-07-30 — the live Peach account has no
- * EUR facility). The MUR figure is PINNED once per payment row inside api_create_payment, in SQL,
- * from the server-controlled fx_rates table, in WHOLE RUPEES; createPaymentLink charges exactly the
- * pinned figure. These tests prove the three load-bearing properties of that pin:
+ * The ledger stays EUR while the card is charged in the currency the owner switched to in /admin
+ * (business_settings.charge_currency — MUR, the default, or EUR since 2026-10-17). The charge is
+ * PINNED once per payment row inside create_payment, in SQL: a MUR charge is the EUR total at the
+ * owner-set business_settings.eur_mur_rate in WHOLE RUPEES, an EUR charge is the EUR total exactly;
+ * createPaymentLink charges exactly the pinned figure. These tests prove the load-bearing properties
+ * of that pin:
  *
  *   1. the pin itself: €110 at 53.98 → charged_amount_minor = 593800 (5938 whole rupees),
  *      charged_currency = 'MUR', charged_fx_rate persisted — while the EUR ledger row
@@ -32,16 +34,21 @@ const catalogue = catalogueSchema.parse(
 
 const USER = 'b8b8b8b8-b8b8-b8b8-b8b8-b8b8b8b8b8b8';
 
-/** Set the EUR→MUR rate as the maintenance cron would (owner context, direct table write). */
-async function setRate(db: TestDb, rate: number): Promise<void> {
+/** Set the EUR→MUR rate as the admin card does (owner context, direct row write); null = never set. */
+async function setRate(db: TestDb, rate: number | null): Promise<void> {
   await db.asOwner();
   await db.pg.query(
-    `insert into fx_rates (base, quote, rate, source, fetched_at)
-     values ('EUR', 'MUR', $1, 'test', now())
-     on conflict (base, quote) do update
-       set rate = excluded.rate, source = excluded.source, fetched_at = now()`,
+    `update business_settings set eur_mur_rate = $1, eur_mur_rate_updated_at = now() where id = true`,
     [rate],
   );
+}
+
+/** Flip the admin switch (owner context, direct row write). */
+async function setChargeCurrency(db: TestDb, currency: 'MUR' | 'EUR'): Promise<void> {
+  await db.asOwner();
+  await db.pg.query(`update business_settings set charge_currency = $1 where id = true`, [
+    currency,
+  ]);
 }
 
 describe('api_create_payment pins the MUR charge; createPaymentLink charges exactly it', () => {
@@ -130,7 +137,7 @@ describe('api_create_payment pins the MUR charge; createPaymentLink charges exac
     expect(Number(row.charged_amount_minor)).toBe(593800);
     expect(Number(row.charged_amount_minor) % 100).toBe(0); // WHOLE rupees, always
     expect(Number(row.charged_fx_rate)).toBeCloseTo(53.98, 6);
-    expect(row.charged_fx_source).toBe('test');
+    expect(row.charged_fx_source).toBe('admin');
     // The EUR ledger — untouched by the currency change.
     expect(row.amount_minor).toBe(11000);
     expect(row.currency).toBe('EUR');
@@ -204,13 +211,12 @@ describe('api_create_payment pins the MUR charge; createPaymentLink charges exac
     await db.as({ sub: USER, role: 'authenticated' });
   });
 
-  it('falls back to the in-SQL floor (53.00) when the stored rate is implausible', async () => {
-    // An inverted upstream payload (MUR→EUR ≈ 0.0185) somehow reaches the table: the pin must refuse
-    // it — 0.0185 would bill MUR 1.85 for the whole booking and, because settled == charged, CONFIRM
-    // it. The write path (api_upsert_fx_rate) rejects it too; this proves the READ-side belt.
-    await db.asOwner();
-    // api_upsert_fx_rate would refuse this, so write directly — simulating a corrupted row.
-    await db.pg.query(`update fx_rates set rate = 0.0185 where base = 'EUR' and quote = 'MUR'`);
+  it('falls back to the in-SQL floor (53.00) when no rate has been set', async () => {
+    // A never-set rate (NULL) takes the same read-side belt that refuses an implausible one — an
+    // inverted 0.0185 would bill MUR 1.85 for the whole booking and, because settled == charged,
+    // CONFIRM it. The column CHECK refuses such a value on write (business-settings.test.ts), so NULL
+    // is the reachable way into this branch.
+    await setRate(db, null);
     await db.as({ sub: USER, role: 'authenticated' });
 
     const booking = await createBooking(
@@ -244,6 +250,164 @@ describe('api_create_payment pins the MUR charge; createPaymentLink charges exac
     await setRate(db, 53.98);
     await db.as({ sub: USER, role: 'authenticated' });
   });
+
+  it('switched to EUR, charges the EUR ledger amount to the cent — no conversion, no rounding', async () => {
+    await setChargeCurrency(db, 'EUR');
+    await db.as({ sub: USER, role: 'authenticated' });
+
+    const booking = await createBooking(
+      { ...ctx, db: pgliteServiceRoleRpc(db.pg) },
+      {
+        occurrenceId,
+        party: { 'Private group': 2 },
+        customer: { name: 'Euro Tester', email: 'euro@example.com' },
+        idempotencyKey: 'eur-book-1',
+      },
+    );
+    const link = await createPaymentLink(
+      ctx,
+      { bookingRef: booking.ref, returnUrl: 'https://example.com/r', idempotencyKey: 'eur-pay' },
+      { ...ctx, db: pgliteServiceRoleRpc(db.pg) },
+    );
+
+    expect(link.chargeCurrency).toBe('EUR');
+    expect(link.chargeAmountMinor).toBe(11000);
+    await db.asOwner();
+    const row = (
+      await db.pg.query<{
+        amount_minor: number;
+        charged_amount_minor: number | null;
+        charged_currency: string | null;
+        charged_fx_rate: string | number | null;
+        charged_fx_source: string | null;
+      }>(
+        `select p.amount_minor, p.charged_amount_minor, p.charged_currency, p.charged_fx_rate,
+                p.charged_fx_source
+         from payments p join bookings b on b.id = p.booking_id where b.ref = $1`,
+        [booking.ref],
+      )
+    ).rows[0]!;
+    expect(row.charged_currency).toBe('EUR');
+    expect(Number(row.charged_amount_minor)).toBe(row.amount_minor);
+    expect(Number(row.charged_fx_rate)).toBe(1);
+    expect(row.charged_fx_source).toBe('same-currency');
+
+    // Sent == recorded, in EUR.
+    const status = await stub.getCheckoutStatus(link.sessionId);
+    expect(status.amountMinor).toBe(11000);
+    expect(status.currency).toBe('EUR');
+
+    await setChargeCurrency(db, 'MUR');
+    await db.as({ sub: USER, role: 'authenticated' });
+  });
+
+  it('flipping the switch never re-pins a payment row that is already pinned', async () => {
+    // A session minted under the old pin stays completable at Peach for ~30 minutes; re-pinning its
+    // row would make that settlement a currency_mismatch quarantine. So the switch reaches NEW pins.
+    const booking = await createBooking(
+      { ...ctx, db: pgliteServiceRoleRpc(db.pg) },
+      {
+        occurrenceId,
+        party: { 'Private group': 2 },
+        customer: { name: 'Flip Tester', email: 'flip@example.com' },
+        idempotencyKey: 'flip-book-1',
+      },
+    );
+    const first = await createPaymentLink(
+      ctx,
+      { bookingRef: booking.ref, returnUrl: 'https://example.com/r', idempotencyKey: 'flip-pay' },
+      { ...ctx, db: pgliteServiceRoleRpc(db.pg) },
+    );
+    expect(first.chargeCurrency).toBe('MUR');
+
+    await db.asOwner();
+    const paymentId = (
+      await db.pg.query<{ id: string }>(
+        `select p.id from payments p join bookings b on b.id = p.booking_id where b.ref = $1`,
+        [booking.ref],
+      )
+    ).rows[0]!.id;
+    await db.as({ role: 'service_role' });
+    await db.pg.query(`select api_clear_payment_checkout($1::jsonb)`, [
+      JSON.stringify({ paymentId, checkoutId: first.sessionId }),
+    ]);
+    await setChargeCurrency(db, 'EUR');
+    await db.as({ sub: USER, role: 'authenticated' });
+
+    const second = await createPaymentLink(
+      ctx,
+      { bookingRef: booking.ref, returnUrl: 'https://example.com/r', idempotencyKey: 'flip-pay' },
+      { ...ctx, db: pgliteServiceRoleRpc(db.pg) },
+    );
+    expect(second.chargeCurrency).toBe('MUR');
+    expect(second.chargeAmountMinor).toBe(593800);
+
+    await setChargeCurrency(db, 'MUR');
+    await db.as({ sub: USER, role: 'authenticated' });
+  });
+
+  it('a booking that already took money in MUR is charged the rest in MUR after the switch flips', async () => {
+    // One booking, one charge currency: api_booking_receipt sums the booking + balance rows into ONE
+    // charged figure under ONE currency label, so a MUR deposit + EUR balance would print money in no
+    // currency on the VAT invoice.
+    const booking = await createBooking(
+      { ...ctx, db: pgliteServiceRoleRpc(db.pg) },
+      {
+        occurrenceId,
+        party: { 'Private group': 2 },
+        customer: { name: 'Deposit Tester', email: 'deposit@example.com' },
+        idempotencyKey: 'sticky-book-1',
+      },
+    );
+    // A €50 deposit on the €110 booking (a quote booking carries one; set it directly here).
+    await db.asOwner();
+    await db.pg.query(`update bookings set deposit_minor = 5000 where ref = $1`, [booking.ref]);
+    await db.as({ sub: USER, role: 'authenticated' });
+
+    const deposit = await createPaymentLink(
+      ctx,
+      { bookingRef: booking.ref, returnUrl: 'https://example.com/r', idempotencyKey: 'sticky-dep' },
+      { ...ctx, db: pgliteServiceRoleRpc(db.pg) },
+    );
+    expect(deposit.chargeCurrency).toBe('MUR');
+    expect(deposit.chargeAmountMinor).toBe(269900); // 5000 * 53.98/100 = 2699 whole rupees
+
+    // Settle the deposit through the ledger: confirms the booking, leaves €60 owed.
+    await db.asOwner();
+    const depositId = (
+      await db.pg.query<{ id: string }>(
+        `select p.id from payments p join bookings b on b.id = p.booking_id
+         where b.ref = $1 and p.purpose = 'booking'`,
+        [booking.ref],
+      )
+    ).rows[0]!.id;
+    await db.as({ role: 'service_role' });
+    await db.pg.query(`select append_payment_event($1, 'paid', $2, 5000, now(), '{}'::jsonb)`, [
+      depositId,
+      `${booking.ref}-dep-evt`,
+    ]);
+
+    // The owner switches to EUR — then the guest pays the balance.
+    await setChargeCurrency(db, 'EUR');
+    await db.as({ sub: USER, role: 'authenticated' });
+    const balance = (
+      await db.pg.query<{ data: { chargedCurrency: string; chargedAmountMinor: number } }>(
+        `select api_create_payment($1::jsonb) as data`,
+        [
+          JSON.stringify({
+            bookingRef: booking.ref,
+            idempotencyKey: 'sticky-bal',
+            purpose: 'balance',
+          }),
+        ],
+      )
+    ).rows[0]!.data;
+    expect(balance.chargedCurrency).toBe('MUR');
+    expect(Number(balance.chargedAmountMinor)).toBe(323900); // 6000 * 53.98/100 = 3238.8 → 3239
+
+    await setChargeCurrency(db, 'MUR');
+    await db.as({ sub: USER, role: 'authenticated' });
+  });
 });
 
 /**
@@ -267,11 +431,7 @@ describe('api_record_payment_charge authorization + record-once now protect the 
     await db.pg.query(`insert into auth.users (id) values ($1)`, [ATTACKER]);
     await db.pg.query(`insert into profiles (id, role) values ($1, 'customer')`, [OWNER]);
     await db.pg.query(`insert into profiles (id, role) values ($1, 'customer')`, [ATTACKER]);
-    await db.pg.query(
-      `insert into fx_rates (base, quote, rate, source, fetched_at)
-       values ('EUR', 'MUR', 53.98, 'test', now())
-       on conflict (base, quote) do update set rate = excluded.rate`,
-    );
+    await db.pg.query(`update business_settings set eur_mur_rate = 53.98 where id = true`);
 
     const { rows } = await db.pg.query<{ id: string }>(
       `select so.id from session_occurrences so

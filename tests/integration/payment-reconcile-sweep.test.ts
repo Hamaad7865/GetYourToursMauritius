@@ -297,6 +297,39 @@ describe('reconcilePaymentsPending: server-side sweep confirms paid stuck bookin
     });
   });
 
+  it('charged in EUR (the admin switch), a settlement one euro short QUARANTINES; the exact cent confirms', async () => {
+    // The MUR slack is 100 minor units = MUR 1.00. Applied to an EUR charge the same 100 minor units
+    // are a whole euro, so a settlement €0.99 short used to credit in full. EUR gets a single cent.
+    await db.asOwner();
+    await db.pg.query(`update business_settings set charge_currency = 'EUR' where id = true`);
+    const short = await seedPending('eur-short', null);
+    const exact = await seedPending('eur-exact', null);
+    await db.asOwner();
+    await db.pg.query(`update business_settings set charge_currency = 'MUR' where id = true`);
+
+    await db.as({ sub: 'service', role: 'service_role' });
+    const admin = makeSupabaseShim(db.pg) as unknown as SupabaseClient<Database>;
+    const shortResult = await reconcilePaymentEvent(admin, {
+      outcome: 'paid',
+      bookingRef: short.ref,
+      providerReference: 'peach_eur_short',
+      amountMinor: 9901, // €99.01 against the €100.00 pinned charge
+      currency: 'EUR',
+      raw: {},
+    });
+    expect(shortResult.outcome).toBe('quarantined:short_settlement');
+
+    const exactResult = await reconcilePaymentEvent(admin, {
+      outcome: 'paid',
+      bookingRef: exact.ref,
+      providerReference: 'peach_eur_exact',
+      amountMinor: 10000,
+      currency: 'EUR',
+      raw: {},
+    });
+    expect(exactResult.confirmed).toBe(true);
+  });
+
   it('QUARANTINES a settled event missing its amount — never credited as the full total', async () => {
     // The old behaviour credited an amount-less 'paid' event as the FULL booking total, turning a
     // malformed provider payload into a full-value settlement. Now: no ledger write at all.

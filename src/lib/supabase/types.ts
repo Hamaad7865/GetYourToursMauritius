@@ -1114,10 +1114,15 @@ type EmailSuppressionsInsert = {
 };
 
 /** 20260922000000 — the admin-editable "Chat on WhatsApp" number. Singleton row (id is always true);
- *  null whatsapp_number means "fall back to SITE.phone". Public read, staff update. */
+ *  null whatsapp_number means "fall back to SITE.phone". Public read, staff update.
+ *  20261017120000 — charge_currency (what customer cards are charged in) + the owner-set EUR→MUR
+ *  rate (CHECK 40..70; null = never set, the pin uses its 53.00 floor). Read by create_payment. */
 type BusinessSettingsRow = {
   id: boolean;
   whatsapp_number: string | null;
+  charge_currency: 'MUR' | 'EUR';
+  eur_mur_rate: number | null;
+  eur_mur_rate_updated_at: string | null;
   /** 20261017000100 — NULL = checkout-recovery emails off; else only checkouts after this qualify. */
   checkout_recovery_enabled_at: string | null;
   updated_at: string;
@@ -1127,6 +1132,9 @@ type BusinessSettingsInsert = {
   checkout_recovery_enabled_at?: string | null;
   id?: boolean;
   whatsapp_number?: string | null;
+  charge_currency?: 'MUR' | 'EUR';
+  eur_mur_rate?: number | null;
+  eur_mur_rate_updated_at?: string | null;
   updated_at?: string;
   updated_by?: string | null;
 };

@@ -12,11 +12,17 @@ export interface ReconcileResult {
 }
 
 /**
- * Fixed slack in CHARGE-currency minor units — MUR 1.00 (~EUR 0.019). NEVER a percentage: 0.5% of a
- * large MUR charge is real money. Absorbs a provider re-quantisation, nothing more. The charge is
- * minted in WHOLE RUPEES (api_create_payment), so in practice there is nothing to absorb.
+ * Fixed slack in CHARGE-currency minor units. NEVER a percentage: 0.5% of a large charge is real money.
+ * Absorbs a provider re-quantisation, nothing more.
+ *
+ * Per currency, because one minor unit is not one amount of money: MUR 1.00 is ~EUR 0.019, but the same
+ * 100 minor units in EUR is a whole euro — a settlement €0.99 short would have credited in full. A MUR
+ * charge is minted in WHOLE RUPEES and an EUR one to the exact cent (create_payment), so in practice
+ * neither has anything to absorb; EUR keeps a single cent against a float-parsed amount.
  */
-const CHARGE_TOLERANCE_MINOR = 100;
+export function chargeToleranceMinor(currency: string): number {
+  return currency.toUpperCase() === 'MUR' ? 100 : 1;
+}
 
 /**
  * Append a VERIFIED provider payment event to the event-sourced ledger via `append_payment_event`,
@@ -25,8 +31,8 @@ const CHARGE_TOLERANCE_MINOR = 100;
  * /payments/sync poll and the reconcile cron, so confirmation behaves identically however the signal
  * arrives. Idempotent at the ledger (duplicate provider events are ignored).
  *
- * TWO CURRENCIES, ONE LEDGER (since 2026-07-30): the card is CHARGED in MUR (the live Peach account
- * has no EUR facility) while the ledger stays EUR. `payments.charged_amount_minor` /
+ * TWO CURRENCIES, ONE LEDGER (since 2026-07-30): the card is CHARGED in MUR or EUR — the owner's
+ * switch in /admin since 2026-10-17 — while the ledger always stays EUR. `payments.charged_amount_minor` /
  * `charged_currency` — pinned once per payment row inside api_create_payment — are the EXPECTED
  * SETTLEMENT this function measures provider events against. The provider's MUR amount must NEVER
  * reach append_payment_event, which sums payment_events.amount_minor against payments.amount_minor
@@ -45,7 +51,7 @@ const CHARGE_TOLERANCE_MINOR = 100;
  *     ledger currency for EUR-era rows) — an amount in the wrong currency credited at face value
  *     mis-settles the ledger. A cross-currency event with NO charge record quarantines too: the rate
  *     that produced it is unknown, so it cannot be converted. Never guess.
- *   - a 'paid' amount short of the expected charge (beyond CHARGE_TOLERANCE_MINOR) — never a partial
+ *   - a 'paid' amount short of the expected charge (beyond chargeToleranceMinor) — never a partial
  *     credit: a partial write burns the (payment_id, provider_event_id) dedup slot for good, drops
  *     the booking out of api_pending_payment_checkouts, and leaves payments.status='pending' so the
  *     expiry sweep would release the seat with the money taken.
@@ -179,6 +185,7 @@ export async function reconcilePaymentEvent(
   const ledgerCurrency = payment.currency.toUpperCase();
   const expectedCurrency = (payment.charged_currency ?? payment.currency).toUpperCase();
   const expectedMinor = payment.charged_amount_minor ?? payment.amount_minor;
+  const toleranceMinor = chargeToleranceMinor(expectedCurrency);
   const paidMinor = payment.paid_minor ?? 0;
   const refundedMinor = payment.refunded_minor ?? 0;
 
@@ -197,8 +204,7 @@ export async function reconcilePaymentEvent(
               ? 'currency_mismatch'
               : !(expectedMinor > 0)
                 ? 'no_charge_expectation'
-                : event.outcome === 'paid' &&
-                    event.amountMinor < expectedMinor - CHARGE_TOLERANCE_MINOR
+                : event.outcome === 'paid' && event.amountMinor < expectedMinor - toleranceMinor
                   ? 'short_settlement'
                   : null;
     if (reason) {
@@ -243,7 +249,7 @@ export async function reconcilePaymentEvent(
     const outstanding = Math.max(paidMinor - refundedMinor, 0);
     const base = paidMinor > 0 ? paidMinor : payment.amount_minor;
     amountMinor =
-      event.amountMinor! >= expectedMinor - CHARGE_TOLERANCE_MINOR
+      event.amountMinor! >= expectedMinor - toleranceMinor
         ? // Full reversal: credit the OUTSTANDING amount — the same formulation api_mark_refunded
           // uses — which is guaranteed to satisfy `v_refunded >= v_paid` and flip the state to
           // 'refunded'.

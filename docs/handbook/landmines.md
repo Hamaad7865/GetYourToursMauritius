@@ -46,13 +46,15 @@ retries.
 
 ### Never ledger the provider's raw settlement figure — the card and the ledger speak different currencies
 
-Since 2026-07-30 the card is charged in **MUR** (the live Peach account has no EUR facility) while the
-ledger stays **EUR**. `append_payment_event` sums `payment_events.amount_minor` against
+Since 2026-07-30 the card has been charged in **MUR** — and since 2026-10-17 in MUR **or EUR**, per the
+owner's switch in `/admin` (`business_settings.charge_currency`, rate in `eur_mur_rate`) — while the
+ledger always stays **EUR**. `append_payment_event` sums `payment_events.amount_minor` against
 `payments.amount_minor` with zero currency awareness, so crediting Peach's raw MUR figure would mark a
 booking paid **~54× over** — and an amount-less or short payload credited at face value is the same bug
 in the other direction. `reconcile.ts` therefore measures every settled event against the **pinned
 expected settlement** (`payments.charged_amount_minor` / `charged_currency`, written once inside
-`api_create_payment`): an exact match (±MUR 1.00) credits the **full EUR total**; anything else —
+`create_payment`): an exact match (±MUR 1.00, or ±€0.01 for an EUR charge — never one slack for both,
+100 minor units is a whole euro) credits the **full EUR total**; anything else —
 short, wrong currency, missing amount/reference, cross-currency with no charge record — **quarantines**
 with no ledger write and flags `settlement_review_at`, which also blocks the expiry sweep from
 releasing a booking whose money may be real. Don't "simplify" this back to crediting

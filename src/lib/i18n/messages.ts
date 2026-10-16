@@ -876,6 +876,8 @@ export const fr: Record<string, string> = {
     'Votre carte sera débitée de {amount} au taux du jour.',
   'You’re paying a {deposit} deposit now — {amount} at today’s rate. The {balance} balance is due later.':
     'Vous payez maintenant un acompte de {deposit} — {amount} au taux du jour. Le solde de {balance} sera à régler plus tard.',
+  'You’re paying a {deposit} deposit now. The {balance} balance is due later.':
+    'Vous payez maintenant un acompte de {deposit}. Le solde de {balance} sera à régler plus tard.',
   'Your card will be charged in Mauritian rupees (MUR) at today’s rate.':
     'Votre carte sera débitée en roupies mauriciennes (MUR) au taux du jour.',
   'Your bank may apply its own conversion.': 'Votre banque peut appliquer sa propre conversion.',
@@ -895,6 +897,8 @@ export const fr: Record<string, string> = {
     'Le formulaire de paiement met trop de temps à se charger. Veuillez réessayer.',
   'Your payment wasn’t completed. If your bank declined it, it may need you to approve a payment in Mauritian rupees (MUR) — or try another card.':
     'Votre paiement n’a pas abouti. Si votre banque l’a refusé, elle vous demande peut-être d’approuver un paiement en roupies mauriciennes (MUR) — ou essayez une autre carte.',
+  'Your payment wasn’t completed. If your bank declined it, try again or use another card.':
+    'Votre paiement n’a pas abouti. Si votre banque l’a refusé, réessayez ou utilisez une autre carte.',
   'This payment session expired. Please start again.':
     'Cette session de paiement a expiré. Veuillez recommencer.',
   'Order summary': 'Récapitulatif de la commande',
@@ -2320,8 +2324,8 @@ export const fr: Record<string, string> = {
   'browse all activities': 'parcourir toutes les activités',
   'to get started.': 'pour commencer.',
   'What payment methods can I use?': 'Quels moyens de paiement puis-je utiliser ?',
-  'You pay securely by card at checkout. Prices are shown in euro (EUR); your card is charged the equivalent in Mauritian rupees (MUR) at the rate applied at checkout — the exact amount is shown before you enter your card details. Your card details go straight to our payment provider — we never see or store them.':
-    'Vous payez en toute sécurité par carte au moment du paiement. Les prix sont affichés en euros (EUR) ; votre carte est débitée de l’équivalent en roupies mauriciennes (MUR) au taux appliqué lors du paiement — le montant exact s’affiche avant la saisie de vos coordonnées bancaires. Vos coordonnées bancaires vont directement à notre prestataire de paiement — nous ne les voyons ni ne les conservons jamais.',
+  'You pay securely by card at checkout. Prices are shown in euro (EUR). Your card is charged in euro, or — when the payment screen says so — the equivalent in Mauritian rupees (MUR) at the rate applied at checkout; the exact amount is shown before you enter your card details. Your card details go straight to our payment provider — we never see or store them.':
+    'Vous payez en toute sécurité par carte au moment du paiement. Les prix sont affichés en euros (EUR). Votre carte est débitée en euros ou — lorsque l’écran de paiement l’indique — de l’équivalent en roupies mauriciennes (MUR) au taux appliqué lors du paiement ; le montant exact s’affiche avant la saisie de vos coordonnées bancaires. Vos coordonnées bancaires vont directement à notre prestataire de paiement — nous ne les voyons ni ne les conservons jamais.',
   'When am I charged?': 'Quand suis-je débité ?',
   "Payment is taken at the time of booking to confirm your place. If a payment fails or a place sells out before your booking is confirmed, you're not charged.":
     'Le paiement est prélevé au moment de la réservation pour confirmer votre place. En cas d’échec du paiement ou si les places sont épuisées avant la confirmation de votre réservation, vous n’êtes pas débité.',
@@ -2625,8 +2629,8 @@ export const fr: Record<string, string> = {
   'Popular on Belle Mare Tours': 'Populaire sur Belle Mare Tours',
   'Jump straight to the experiences Mauritius is known for — all bookable direct with the operator, with door-to-door pickup and no reseller markup.':
     'Accédez directement aux expériences qui font la réputation de Maurice — toutes réservables en direct avec l’opérateur, avec prise en charge porte-à-porte et sans majoration de revendeur.',
-  '© {year} {legalName}. {street}, {region}, Mauritius · BRN {brn} · VAT {vat} ·':
-    '© {year} {legalName}. {street}, {region}, Maurice · BRN {brn} · TVA {vat} ·',
+  '© {year} {legalName}. {street}, {region}, Mauritius · BRN {brn} · VAT {vat}':
+    '© {year} {legalName}. {street}, {region}, Maurice · BRN {brn} · TVA {vat}',
   'Mauritius airport transfer tips & guides':
     'Conseils et guides pour les transferts aéroport à Maurice',
   'Read all guides →': 'Voir tous les guides →',

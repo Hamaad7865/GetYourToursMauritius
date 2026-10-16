@@ -9,6 +9,7 @@ import { getPeachWidgetConfig } from '@/lib/payments';
 import { safeReturnPath } from '@/lib/checkout/return-path';
 import { isQuotePagePath } from '@/lib/quotes/link-cookie';
 import { getT } from '@/lib/i18n/server';
+import { getChargeCurrency } from '@/lib/settings/charge-currency';
 
 export const runtime = 'edge';
 
@@ -39,7 +40,7 @@ export default async function PayPage({
   const { ref } = await params;
   const { cid, return: requestedReturn } = await searchParams;
   const widget = getPeachWidgetConfig();
-  const t = await getT();
+  const [t, chargeCurrency] = await Promise.all([getT(), getChargeCurrency()]);
   const returnUrl = safeReturnPath(requestedReturn, `/bookings/${ref}`);
   // WHERE "TRY AGAIN" GOES when the widget never came up — somewhere the customer can actually MINT
   // A FRESH CHECKOUT, which is not the same place for both kinds of customer:
@@ -67,10 +68,11 @@ export default async function PayPage({
           <h1 className="font-display text-2xl font-semibold text-ink">
             {t('Complete your payment')}
           </h1>
-          {/* The card is charged in MUR (the EUR price converted at the server-pinned rate). This is
-              the screen where the card number is typed, so the charge is disclosed HERE — exact
-              figure when the minting page handed it over, currency-only otherwise. */}
-          <ChargeNotice bookingRef={ref} />
+          {/* When the card is charged in MUR (the EUR price converted at the server-pinned rate) this
+              is the screen where the card number is typed, so the charge is disclosed HERE — exact
+              figure when the minting page handed it over, currency-only otherwise. An EUR charge
+              matches the price, so only a part-payment (a deposit) is explained. */}
+          <ChargeNotice bookingRef={ref} chargeCurrency={chargeCurrency} />
 
           <div className="mt-6">
             {cid && widget ? (
@@ -83,6 +85,7 @@ export default async function PayPage({
                 // when `?return=` arrived, and re-deriving one from the other (`${returnUrl}/pay`)
                 // is what once sent a quote guest to /quotes/{ref}/pay — not a route. See above.
                 retryUrl={retryUrl}
+                chargeCurrency={chargeCurrency}
               />
             ) : (
               // No `cid` — a returning customer reached this page via the email link / a new tab, so no

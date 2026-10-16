@@ -46,7 +46,7 @@ export default async function HelpPage() {
             </FaqItem>
             <FaqItem q={t('What payment methods can I use?')}>
               {t(
-                'You pay securely by card at checkout. Prices are shown in euro (EUR); your card is charged the equivalent in Mauritian rupees (MUR) at the rate applied at checkout — the exact amount is shown before you enter your card details. Your card details go straight to our payment provider — we never see or store them.',
+                'You pay securely by card at checkout. Prices are shown in euro (EUR). Your card is charged in euro, or — when the payment screen says so — the equivalent in Mauritian rupees (MUR) at the rate applied at checkout; the exact amount is shown before you enter your card details. Your card details go straight to our payment provider — we never see or store them.',
               )}
             </FaqItem>
             <FaqItem q={t('When am I charged?')}>

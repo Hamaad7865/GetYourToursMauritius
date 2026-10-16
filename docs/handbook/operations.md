@@ -39,6 +39,8 @@ All of this is in `/admin`:
 | Blog posts                                   | **Blog**                                                                                               |
 | Redirect an old URL to a new one             | **Redirects**                                                                                          |
 | Approve or reject a customer review          | **Reviews**                                                                                            |
+| Charge cards in rupees or in euros           | **Dashboard** → **Card payments**                                                                      |
+| The euro → rupee rate rupee charges use      | **Dashboard** → **Card payments** (1 EUR = … MUR; must be between 40 and 70)                           |
 
 Prices are typed in euros and take effect immediately — the server prices every new quote from those
 rows.
@@ -59,6 +61,16 @@ are its charters per day and its max group size (the same one its pricing uses).
 tours keep one number — bookings (vehicles) per day — because the vehicle brackets already decide the
 guests. Tours from before this change behave exactly as they did (shown as 1 trip × the old number)
 until you edit the two numbers.
+
+**Card payments** is the switch for what a customer's card is actually charged. Prices are always
+shown in euros. Set to **Rupees (MUR)**, the card is charged the euro price × your rate, rounded to
+whole rupees, and the checkout tells the customer so. Set to **Euros (EUR)**, the card is charged
+exactly the euro price. Since 2026-10-17 you type the rate in yourself — nothing updates it any more,
+so change it when the rupee moves (the card shows when you last did). Before switching the live site
+to euros for the first time, make one small real payment in euros to prove Peach's euro setup works:
+if it doesn't, every checkout fails. Three things don't follow the switch, on purpose: a payment a
+customer has already opened keeps its currency and amount; a booking that already paid part (a
+deposit) pays the rest in the same currency; and a rate change only affects payments started after it.
 
 > **A note for developers reading this:** because all of the above is in the database, **do not hardcode
 > it in the code.** If you do, the owner's edit is silently ignored.
@@ -260,9 +272,11 @@ It's a small Cloudflare Worker, **separate from the website**, that does these j
 3. Releases abandoned bookings
 4. **Keeps the booking calendar filled ~6 months ahead**
 5. Queues review-request emails for recently completed trips
-6. Refreshes the EUR→MUR rate cards are charged at
-7. Deletes error-log rows older than 30 days (housekeeping — a failure here alone does not turn the
+6. Deletes error-log rows older than 30 days (housekeeping — a failure here alone does not turn the
    job red, because no customer is affected by it)
+
+(It no longer refreshes the EUR→MUR rate: since 2026-10-17 you set it in **Dashboard** → **Card
+payments**.)
 
 **If it stops, the website keeps working perfectly.** Pages load, tours display, customers can browse.
 Nothing looks wrong. But no email goes out, and the calendar quietly runs down.

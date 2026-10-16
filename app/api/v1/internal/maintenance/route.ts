@@ -12,7 +12,6 @@ import {
   enqueueCheckoutRecovery,
   enqueuePickupReminders,
   applyFundedPickups,
-  refreshFxRate,
   purgeErrorLogs,
   purgeCheckoutFunnelEvents,
 } from '@/lib/services/maintenance';
@@ -56,16 +55,6 @@ export const POST = apiHandler(async (req) => {
       context: { step },
     });
   };
-
-  // 0) Refresh the server-controlled EUR→MUR charge rate (api_create_payment pins charges from it).
-  //    Off the checkout critical path by design; tolerant of upstream failures while the stored rate
-  //    is recent, loud (fails the run) once it goes stale beyond the alarm window.
-  let fx: Awaited<ReturnType<typeof refreshFxRate>> | { errored: true } = { errored: true };
-  try {
-    fx = await refreshFxRate(ctx);
-  } catch (err) {
-    await log('fx rate refresh', err);
-  }
 
   // 1) Webhook-less safety net: re-query the provider for stuck `payment_pending` bookings and confirm
   //    the ones that paid (idempotent via append_payment_event) — FIRST, so the next step can't expire them.
@@ -206,7 +195,6 @@ export const POST = apiHandler(async (req) => {
       ? (payments as { errored: number }).errored
       : 0;
   const erroredJobs = [
-    ...(failedJob(fx) ? ['fxRate'] : []),
     ...(failedJob(payments) || paymentsErroredCount > 0 ? ['payments'] : []),
     ...(failedJob(result) ? ['bookingMaintenance'] : []),
     ...(failedJob(slotsCreated) ? ['availability'] : []),
@@ -228,7 +216,6 @@ export const POST = apiHandler(async (req) => {
         checkoutRecoveryQueued,
         pickupRemindersEnqueued,
         fundedPickupsApplied,
-        fx,
         errorLogsPurged,
         funnelEventsPurged,
         erroredJobs,
@@ -243,7 +230,6 @@ export const POST = apiHandler(async (req) => {
     checkoutRecoveryQueued,
     pickupRemindersEnqueued,
     fundedPickupsApplied,
-    fx,
     errorLogsPurged,
     funnelEventsPurged,
   });

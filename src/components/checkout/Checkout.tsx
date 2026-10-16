@@ -35,6 +35,7 @@ import {
   type PayStage,
 } from '@/lib/checkout/pay-progress';
 import { saveChargeHandoff } from '@/lib/checkout/charge-handoff';
+import type { ChargeCurrency } from '@/lib/settings/charge-currency';
 import {
   detailsHash,
   isBookingPayable,
@@ -120,8 +121,12 @@ function Spinner({ label }: { label: string }) {
  * GetYourGuide-style 3-step checkout: (1) confirm transport/pickup, (2) contact — sign in
  * or create an account if needed, (3) payment. The selection arrives via query params from
  * the booking widget; the booking + payment are created at the payment step (once signed in).
+ *
+ * `chargeCurrency` is the admin switch (read server-side by the page). It only decides whether the
+ * "charged in Mauritian rupees" lines show — prices here are EUR either way, and the charge itself is
+ * pinned server-side.
  */
-export function Checkout() {
+export function Checkout({ chargeCurrency }: { chargeCurrency: ChargeCurrency }) {
   const params = useSearchParams();
   const { user, profile, session, openAuth } = useAuth();
   const t = useT();
@@ -1306,7 +1311,7 @@ export function Checkout() {
         // The navigation destroys this page, so the ring's position is handed to the pay page rather
         // than lost — the customer sees ONE bar continuing, not a second one restarting at zero.
         savePayHandoff(SESSION_COMPLETE_PERCENT, Date.now());
-        // Hand over the server-pinned card charge (MUR) so the pay page can disclose the exact
+        // Hand over the server-pinned card charge (MUR or EUR) so the pay page can disclose the exact
         // figure next to the card form. Display-only; the server charges its pinned amount
         // regardless.
         if (typeof link.chargeAmountMinor === 'number' && link.chargeCurrency) {
@@ -2120,7 +2125,7 @@ export function Checkout() {
                   t('Continue to payment')
                 )}
               </button>
-              {displayTotalNum != null && (
+              {displayTotalNum != null && chargeCurrency === 'MUR' && (
                 <p className="mt-2 text-[12px] text-ink-muted">
                   {t(
                     'Your card is charged in Mauritian rupees (MUR). The exact amount is shown on the next screen.',
@@ -2282,8 +2287,9 @@ export function Checkout() {
         )}
         {/* The desktop column says this under its Pay button; on a phone that line sits in the
             scrolled step content, often off-screen when the sticky button is tapped — so the
-            currency the card is charged in is stated right here, next to the EUR price. */}
-        {step === 3 && displayTotalNum != null && (
+            currency the card is charged in is stated right here, next to the EUR price. Only when
+            it is rupees: an EUR charge matches the price shown, so there is nothing to explain. */}
+        {step === 3 && displayTotalNum != null && chargeCurrency === 'MUR' && (
           <p className="mt-1.5 text-center text-[12px] text-ink-muted">
             {t('Charged in Mauritian rupees (MUR) — exact amount on the next screen.')}
           </p>

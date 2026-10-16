@@ -11,7 +11,6 @@ const {
   pickupReminders,
   installmentReminders,
   fundedPickups,
-  fxRefresh,
   purgeErrors,
   checkoutRecovery,
   purgeFunnel,
@@ -59,10 +58,6 @@ const {
       calls.push('fundedPickups');
       return 0;
     }),
-    fxRefresh: vi.fn(async () => {
-      calls.push('fx');
-      return { refreshed: true, rate: 53.98, ageHours: 0 };
-    }),
   };
 });
 
@@ -74,7 +69,6 @@ vi.mock('@/lib/services/maintenance', () => ({
   enqueuePickupReminders: pickupReminders,
   enqueueInstallmentReminders: installmentReminders,
   applyFundedPickups: fundedPickups,
-  refreshFxRate: fxRefresh,
   purgeErrorLogs: purgeErrors,
   enqueueCheckoutRecovery: checkoutRecovery,
   purgeCheckoutFunnelEvents: purgeFunnel,
@@ -99,12 +93,7 @@ beforeEach(() => {
   pickupReminders.mockClear();
   installmentReminders.mockClear();
   fundedPickups.mockClear();
-  fxRefresh.mockClear();
   purgeErrors.mockClear();
-  fxRefresh.mockImplementation(async () => {
-    calls.push('fx');
-    return { refreshed: true, rate: 53.98, ageHours: 0 };
-  });
 });
 
 describe('maintenance route ordering (money-safety)', () => {
@@ -138,7 +127,7 @@ describe('maintenance route ordering (money-safety)', () => {
     expect(calls).not.toContain('expire');
     // …while isolation is preserved for everything that cannot lose money by running.
     expect(calls).toContain('materialize');
-    expect(calls).toContain('fx');
+    expect(calls).toContain('reviewInvites');
 
     // The failure is not buried inside a 200 (review item 7): the cron Worker treats any 2xx as
     // success, so a persistently broken sweep looked healthy on the dashboard forever. A 503 makes
