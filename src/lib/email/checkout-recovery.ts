@@ -59,7 +59,7 @@ export function renderCheckoutRecoveryEmail(input: CheckoutRecoveryInput): Rende
   const again = t('If you’d still like to go, you can book it again in a minute:');
   const cta = t('Book {activity} again', { activity: input.activityTitle });
   const cardHelp = t(
-    'Card trouble? Your card is charged in Mauritian rupees (MUR), and some banks ask you to approve that in their app. If it still won’t go through, just reply to this email and we’ll help you book.',
+    'Card trouble? Some banks ask you to approve a payment to Mauritius in their app first. If it still won’t go through, just reply to this email and we’ll help you book.',
   );
   const why = t(
     'You’re getting this one-time email because you started a booking on our website. We won’t send another about it.',

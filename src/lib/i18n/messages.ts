@@ -2757,8 +2757,8 @@ export const fr: Record<string, string> = {
   'If you’d still like to go, you can book it again in a minute:':
     'Si vous souhaitez toujours y aller, vous pouvez réserver à nouveau en une minute :',
   'Book {activity} again': 'Réserver à nouveau {activity}',
-  'Card trouble? Your card is charged in Mauritian rupees (MUR), and some banks ask you to approve that in their app. If it still won’t go through, just reply to this email and we’ll help you book.':
-    'Un souci de carte ? Votre carte est débitée en roupies mauriciennes (MUR), et certaines banques demandent de l’approuver dans leur application. Si le paiement ne passe toujours pas, répondez simplement à cet e-mail et nous vous aiderons à réserver.',
+  'Card trouble? Some banks ask you to approve a payment to Mauritius in their app first. If it still won’t go through, just reply to this email and we’ll help you book.':
+    'Un souci de carte ? Certaines banques demandent d’abord d’approuver un paiement vers Maurice dans leur application. Si le paiement ne passe toujours pas, répondez simplement à cet e-mail et nous vous aiderons à réserver.',
   'You’re getting this one-time email because you started a booking on our website. We won’t send another about it.':
     'Vous recevez cet e-mail unique parce que vous avez commencé une réservation sur notre site. Nous ne vous en enverrons pas d’autre à ce sujet.',
   'Don’t want reminders like this?': 'Vous ne souhaitez pas recevoir ce type de rappel ?',

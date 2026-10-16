@@ -17,7 +17,9 @@ describe('renderCheckoutRecoveryEmail', () => {
     expect(email.text).toContain('Sunday 20 December');
     expect(email.html).toContain('href="https://bellemaretours.com/activities/ile-aux-cerfs"');
     expect(email.html).toContain('/reminders/stop?t=abc');
-    expect(email.text).toContain('Mauritian rupees (MUR)');
+    expect(email.text).toContain('approve a payment to Mauritius');
+    // Currency-neutral on purpose: the admin can switch charging between MUR and EUR.
+    expect(email.text).not.toMatch(/MUR|rupees/);
   });
 
   it('renders in French for a French booking', () => {
