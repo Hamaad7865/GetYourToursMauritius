@@ -50,6 +50,7 @@ export async function generateMetadata({
       url: `${SITE.url}${localePath(locale, p.path)}`,
       locale: locale === 'fr' ? 'fr_FR' : 'en_GB',
       publishedTime: p.datePublished,
+      ...(p.dateModified ? { modifiedTime: p.dateModified } : {}),
       // The post's own cover photo beats the site-wide default on social shares.
       images: p.heroImageUrl ? [{ url: p.heroImageUrl }] : [OG_IMAGE],
     },
@@ -78,6 +79,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           description: p.metaDescription,
           path: p.path,
           datePublished: p.datePublished,
+          dateModified: p.dateModified,
           image: p.heroImageUrl,
         })}
       />
@@ -94,10 +96,17 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         eyebrow={t('Mauritius travel blog · {mins} min read', { mins: p.readMins })}
         title={p.title}
         intro={p.excerpt}
-        meta={t('Published {date} by {operator}', {
-          date: formatPostDate(p.datePublished),
-          operator: SITE.operator,
-        })}
+        meta={
+          p.dateModified
+            ? t('Updated {date} by {operator}', {
+                date: formatPostDate(p.dateModified, locale),
+                operator: SITE.operator,
+              })
+            : t('Published {date} by {operator}', {
+                date: formatPostDate(p.datePublished, locale),
+                operator: SITE.operator,
+              })
+        }
         heroImage={p.heroImageUrl ?? undefined}
       >
         {/* Breadcrumb */}

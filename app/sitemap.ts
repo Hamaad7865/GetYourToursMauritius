@@ -80,7 +80,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const blogRoutes: MetadataRoute.Sitemap = (await loadPosts()).flatMap((p) =>
     bilingual(p.path, {
-      lastModified: p.datePublished,
+      lastModified: p.dateModified ?? p.datePublished,
       changeFrequency: 'monthly',
       priority: 0.6,
     }),

@@ -2532,6 +2532,7 @@ export const fr: Record<string, string> = {
   'See them your way': 'Découvrez-les à votre façon',
   'Mauritius travel blog · {mins} min read': 'Blog voyage Maurice · {mins} min de lecture',
   'Published {date} by {operator}': 'Publié le {date} par {operator}',
+  'Updated {date} by {operator}': 'Mis à jour le {date} par {operator}',
   Blog: 'Blog',
   'Keep reading': 'Poursuivre la lecture',
   '{mins} min read': '{mins} min de lecture',

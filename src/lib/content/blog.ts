@@ -27,6 +27,8 @@ export interface PostContent {
 export interface Post extends PostContent {
   path: string;
   datePublished: string; // YYYY-MM-DD
+  /** Set only when the article was really rewritten — never bumped just to look fresh. */
+  dateModified?: string; // YYYY-MM-DD
 }
 
 /**
@@ -45,7 +47,8 @@ export type PostTranslation = Partial<Pick<PostContent, 'title' | 'excerpt' | 's
 
 /** A post in the visitor's language, falling back to English per field. */
 export function localisedPost(post: Post, locale: Locale): Post {
-  return localiseContent(post, POSTS_FR[post.slug] ?? HANDWRITTEN_POSTS_FR[post.slug], locale);
+  // Hand-written first: a hand-written post can take over a generated slug, and its own French wins.
+  return localiseContent(post, HANDWRITTEN_POSTS_FR[post.slug] ?? POSTS_FR[post.slug], locale);
 }
 
 export function blogPath(slug: string): string {
@@ -96,10 +99,7 @@ export const POST_META_OVERRIDES: Record<
   'mauritius-markets-guide': {
     metaTitle: 'Mauritius Markets: Port Louis, Flacq & Where to Shop',
   },
-  // "mauritius in december", "mauritius december weather" — demand peaks Oct–Nov as trips are booked.
-  'mauritius-in-december': {
-    metaTitle: 'Mauritius in December: Weather, Prices & What to Do',
-  },
+  // `mauritius-in-december` moved to blog-handwritten.ts on 2026-10-17 and carries its own title.
 };
 
 /**
@@ -114,10 +114,17 @@ export const POST_META_FR: Record<
   Partial<Pick<PostContent, 'metaTitle' | 'metaDescription'>>
 > = {
   // "ile maurice en decembre" — 383 impressions in September at #26, and rising into the season.
+  // "meteo ile maurice decembre" peaks in November (#6 in France on 17 Oct 2026).
   'mauritius-in-december': {
-    metaTitle: 'Île Maurice en décembre : météo, prix et que faire',
+    metaTitle: 'Île Maurice en décembre 2026 : météo, prix et que faire',
     metaDescription:
-      'Partir à l’île Maurice en décembre : été austral, mer à 27–28 °C, ambiance des fêtes, affluence et prix. Conseils pratiques d’un opérateur local.',
+      'L’île Maurice en décembre 2026 : météo d’été, cyclones, dates des fêtes, prix des excursions et quand réserver. Conseils d’un opérateur local.',
+  },
+  // "ile maurice en novembre" (590/month in France), "meteo ile maurice novembre" (480).
+  'mauritius-in-november': {
+    metaTitle: 'Île Maurice en novembre 2026 : météo, mer et que faire',
+    metaDescription:
+      'L’île Maurice en novembre 2026 : météo du début de l’été, température de la mer, pluie, fêtes et prix des excursions. Conseils d’un opérateur local.',
   },
   'snorkeling-in-mauritius': { metaTitle: 'Snorkeling à l’île Maurice : les meilleurs spots' },
   'sunset-spots-mauritius': {
@@ -136,14 +143,20 @@ export const POST_META_FR: Record<
  * readers — and link weight — to the post they are most likely to want next. Anything not listed
  * falls back to the most recent posts.
  *
- * SEASONAL until 2026-12-31: the trip-planning posts lead with `mauritius-in-december` while December
- * demand peaks. Put them back to a year-round pick in January.
+ * SEASONAL until 2026-12-31: the trip-planning posts lead with `mauritius-in-december` (and the
+ * month guide links to the November one) while demand for both peaks. Put them back to a year-round
+ * pick in January.
  */
 export const RELATED_POSTS: Record<string, string[]> = {
   'best-time-to-visit-mauritius': [
     'mauritius-in-december',
+    'mauritius-in-november',
     'mauritius-entry-requirements',
-    'money-in-mauritius',
+  ],
+  'mauritius-in-november': [
+    'mauritius-in-december',
+    'best-time-to-visit-mauritius',
+    'swimming-with-dolphins-mauritius',
   ],
   'mauritius-entry-requirements': [
     'mauritius-in-december',
@@ -156,9 +169,9 @@ export const RELATED_POSTS: Record<string, string[]> = {
     'getting-around-mauritius',
   ],
   'mauritius-in-december': [
+    'mauritius-in-november',
     'best-time-to-visit-mauritius',
     'ile-aux-cerfs-guide',
-    'getting-around-mauritius',
   ],
   // The catamaran cluster: the private-vs-shared comparison sits between the route guide and the
   // Île aux Cerfs guide, so each of the three points at the other two.
@@ -184,6 +197,11 @@ export const RELATED_POSTS: Record<string, string[]> = {
   'chamarel-guide': ['black-river-gorges-guide', 'grand-bassin-guide', 'tamarind-falls-guide'],
 };
 
+// A generated post can be taken over by a hand-written one of the same slug (it keeps its URL). It is
+// dropped AFTER the dates are stamped, because a generated post's date comes from its index: removing
+// it before would move every later post's date by five days.
+const handwrittenSlugs = new Set(HANDWRITTEN_POSTS.map((p) => p.slug));
+
 const generatedPosts: Post[] = POSTS_RAW.map((p, i) => ({
   ...p,
   ...POST_META_OVERRIDES[p.slug],
@@ -194,7 +212,7 @@ const generatedPosts: Post[] = POSTS_RAW.map((p, i) => ({
   heroImageUrl: p.heroImageUrl ?? BLOG_HERO[p.slug] ?? null,
   path: blogPath(p.slug),
   datePublished: dateForIndex(i),
-}));
+})).filter((p) => !handwrittenSlugs.has(p.slug));
 
 /** Hand-written posts (blog-handwritten.ts) carry their own real publish date and hero. */
 export const posts: Post[] = [
@@ -210,9 +228,25 @@ export function relatedPosts(slug: string, n = 3): Post[] {
   return posts.filter((p) => p.slug !== slug).slice(0, n);
 }
 
-/** Human date like "17 June 2026". */
-export function formatPostDate(iso: string): string {
+const MONTHS_FR = [
+  'janvier',
+  'février',
+  'mars',
+  'avril',
+  'mai',
+  'juin',
+  'juillet',
+  'août',
+  'septembre',
+  'octobre',
+  'novembre',
+  'décembre',
+];
+
+/** Human date like "17 June 2026" (French: "17 juin 2026", "1er juin 2026"). */
+export function formatPostDate(iso: string, locale: Locale = 'en'): string {
   const [y, m, d] = iso.split('-').map(Number);
+  if (locale === 'fr') return `${d === 1 ? '1er' : d} ${MONTHS_FR[(m ?? 1) - 1]} ${y}`;
   const months = [
     'January',
     'February',

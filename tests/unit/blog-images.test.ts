@@ -63,6 +63,19 @@ describe('JSON-LD images are absolute', () => {
     expect(article(null)).not.toHaveProperty('image');
   });
 
+  it('reports a real rewrite as dateModified, else the publish date', () => {
+    expect(article(null).dateModified).toBe('2026-01-01');
+    const rewritten = articleJsonLd({
+      title: 'T',
+      description: 'D',
+      path: '/blog/x',
+      datePublished: '2026-01-01',
+      dateModified: '2026-10-17',
+    });
+    expect(rewritten.datePublished).toBe('2026-01-01');
+    expect(rewritten.dateModified).toBe('2026-10-17');
+  });
+
   it('absolutizes the attraction image too (same trap)', () => {
     const json = attractionJsonLd(
       {

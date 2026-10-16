@@ -266,6 +266,8 @@ export function articleJsonLd(opts: {
   description: string;
   path: string;
   datePublished: string;
+  /** When the article was really rewritten; defaults to the publish date. */
+  dateModified?: string;
   image?: string | null;
 }): Record<string, unknown> {
   const json: Record<string, unknown> = {
@@ -276,7 +278,7 @@ export function articleJsonLd(opts: {
     url: `${SITE.url}${opts.path}`,
     mainEntityOfPage: `${SITE.url}${opts.path}`,
     datePublished: opts.datePublished,
-    dateModified: opts.datePublished,
+    dateModified: opts.dateModified ?? opts.datePublished,
     author: { '@type': 'Organization', name: SITE.operator, url: SITE.url },
     publisher: {
       '@type': 'Organization',

@@ -110,6 +110,18 @@ export const ATTRACTION_TOURS: Readonly<Record<string, readonly string[]>> = {
 
 /** Blog post slug → the tours that post is about, best fit first. */
 export const POST_TOURS: Readonly<Record<string, readonly string[]>> = {
+  // December is a month for the water: the trips the guide recommends booking ahead.
+  'mauritius-in-december': [
+    'catamaran-cruise-ile-aux-cerfs',
+    'swimming-with-dolphins',
+    'the-blue-cruise-ile-aux-cerfs-5-islands-visit',
+  ],
+  // November: calm seas and cool mornings — a boat day, the dolphins and a hike.
+  'mauritius-in-november': [
+    'catamaran-cruise-ile-aux-cerfs',
+    'swimming-with-dolphins',
+    'hiking-le-morne',
+  ],
   'things-to-do-in-mauritius': [
     'catamaran-cruise-ile-aux-cerfs',
     'swimming-with-dolphins',

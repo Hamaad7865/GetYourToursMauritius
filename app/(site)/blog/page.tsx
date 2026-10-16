@@ -36,6 +36,7 @@ const DEFAULT_METADATA: Metadata = {
 };
 
 async function PostCard({ p }: { p: Post }) {
+  const locale = await getLocale();
   const t = await getT();
   return (
     <Link
@@ -52,7 +53,7 @@ async function PostCard({ p }: { p: Post }) {
         />
       )}
       <div className="text-[12px] font-semibold text-ink-muted">
-        {formatPostDate(p.datePublished)} · {t('{mins} min read', { mins: p.readMins })}
+        {formatPostDate(p.datePublished, locale)} · {t('{mins} min read', { mins: p.readMins })}
       </div>
       <h2 className="mt-2 text-[18px] font-extrabold leading-snug text-ink group-hover:text-teal">
         {p.title}

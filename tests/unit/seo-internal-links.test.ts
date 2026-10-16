@@ -11,7 +11,7 @@ vi.mock('@/lib/services/seo', () => ({
   getDbPost: vi.fn(async () => null),
 }));
 
-import { posts, POST_META_FR, POST_META_OVERRIDES, RELATED_POSTS } from '@/lib/content/blog';
+import { getPost, posts, POST_META_FR, RELATED_POSTS } from '@/lib/content/blog';
 import { loadRelatedPosts } from '@/lib/content/blog-live';
 import { ATTRACTION_LINKS } from '@/lib/content/attractions';
 import { areas } from '@/lib/content/areas';
@@ -60,9 +60,7 @@ describe('French search titles', () => {
   });
 
   it('retitle the December post in both languages', () => {
-    expect(POST_META_OVERRIDES['mauritius-in-december']?.metaTitle).toMatch(
-      /^Mauritius in December/,
-    );
+    expect(getPost('mauritius-in-december')?.metaTitle).toMatch(/^Mauritius in December/);
     expect(POST_META_FR['mauritius-in-december']?.metaTitle).toMatch(/^Île Maurice en décembre/);
   });
 });
