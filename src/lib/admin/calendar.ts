@@ -1,6 +1,7 @@
 import { getBrowserSupabase } from '@/lib/supabase/browser';
 import { rpcErrorText } from '@/lib/admin/rpc-error';
 import {
+  hotelPickupTime,
   mapTransfer,
   TRANSFER_SELECT,
   type AdminTransferDetails,
@@ -8,6 +9,7 @@ import {
   type PaymentState,
   type RawTransferFields,
 } from '@/lib/admin/bookings';
+import { fmtDateShort, fmtTime, mauDay, serviceWhen } from '@/lib/admin/format';
 
 /* Admin operations calendar. Staff RLS (occurrences_staff / bookings_staff / booking_items_staff)
  * grants full read on the departure sheet, so the month aggregate is the only thing that needs an
@@ -82,6 +84,8 @@ export interface DayBooking {
   supplements: Array<{ name: string; qty: number }>;
   customItinerary: Array<{ title: string; area?: string | null }> | null;
   transfer: AdminTransferDetails | null;
+  /** A hotel-to-hotel transfer's pickup time (see `hotelPickupTime`); null on everything else. */
+  pickupTime: string | null;
   /** The private staff note from the Bookings screen — read-only here. */
   staffNote: string | null;
   /** We called a departure off on this guest and they have not yet chosen a new date or a refund. */
@@ -458,6 +462,7 @@ export function mapDaySchedule(rows: RawDayRow[]): DayDeparture[] {
           .map((s) => ({ name: s.name, qty: s.qty })),
         customItinerary: b.custom_itinerary,
         transfer: mapTransfer(b),
+        pickupTime: hotelPickupTime(b),
         staffNote: b.notes,
         awaitingChoice: awaitingChoice(b.disruption),
         // Mirrors api_weather_cancel_occurrence's fan-out: confirmed + paid + not already mid-choice.
@@ -494,6 +499,49 @@ export function mapDaySchedule(rows: RawDayRow[]): DayDeparture[] {
     });
   }
   return out;
+}
+
+/** A party that is a transfer: an airport transfer, or a hotel-to-hotel one carrying its pickup time. */
+function isTransferParty(b: DayBooking): boolean {
+  return b.transfer != null || b.pickupTime != null;
+}
+
+/**
+ * A transfer party's pickup, for its row on the day sheet — the guest's own time, never the slot's
+ * placeholder noon (see `serviceWhen`). Prefixed with the date when the leg falls on another day: a
+ * departure-only transfer sits on the slot it was booked from, which can be days before its
+ * return_date. Null for a tour party, whose time the card header already carries.
+ */
+export function guestPickup(
+  booking: DayBooking,
+  departure: DayDeparture,
+): { label: string; time: string | null; otherDay: boolean } | null {
+  if (!isTransferParty(booking)) return null;
+  const when = serviceWhen({ ...booking, startsAt: departure.startsAt });
+  if (!when) return null;
+  const { time } = when;
+  const otherDay = when.day !== mauDay(departure.startsAt);
+  const date = fmtDateShort(when.at);
+  if (otherDay) return { label: time ? `${date}, ${time}` : date, time, otherDay };
+  return { label: time ?? 'No pickup time given', time, otherDay };
+}
+
+/**
+ * The time a departure card's header prints. A tour's is its occurrence time. A transfer card groups
+ * parties landing at different times on one noon day-slot, so it prints a pickup time only when every
+ * party is collected that day at the same time, and nothing otherwise — each guest row carries its
+ * own. Never the placeholder noon.
+ */
+export function departureHeaderTime(departure: DayDeparture): string | null {
+  if (!departure.bookings.some(isTransferParty)) return fmtTime(departure.startsAt);
+  const times = new Set(
+    departure.bookings.map((b) => {
+      const p = guestPickup(b, departure);
+      return p && !p.otherDay ? p.time : null;
+    }),
+  );
+  const [only] = times;
+  return times.size === 1 && only ? only : null;
 }
 
 /** How many guests calling this departure off would actually email — the fan-out inside

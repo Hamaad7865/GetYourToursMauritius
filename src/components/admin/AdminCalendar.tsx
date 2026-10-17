@@ -18,6 +18,8 @@ import {
   loadReturnLegsByDay,
   loadDaySchedule,
   customLineLabel,
+  departureHeaderTime,
+  guestPickup,
   loadMoveTargets,
   notifiableCount,
   rescheduleBookingAsStaff,
@@ -452,6 +454,9 @@ function DepartureCard({
   const gpt = departure.guestsPerTrip;
   const tripsPerDay = gpt ? Math.max(1, Math.round(departure.capacity / gpt)) : null;
   const tripsUsed = gpt ? Math.ceil(departure.pax / gpt) : null;
+  // A transfer's slot sits at a placeholder noon, so this is the guests' own pickup time — or nothing,
+  // when they differ (each guest row then carries its own).
+  const headerTime = departureHeaderTime(departure);
 
   const callOff = useCallback(async () => {
     setBusy(true);
@@ -475,7 +480,7 @@ function DepartureCard({
         <div>
           <p className="text-sm font-bold text-ink">{departure.activityTitle}</p>
           <p className="text-[12.5px] text-ink-muted">
-            {departure.optionName} · {fmtTime(departure.startsAt)} ·{' '}
+            {departure.optionName} · {headerTime && <>{headerTime} · </>}
             {gpt ? (
               <>
                 {tripsUsed} of {tripsPerDay} trip{tripsPerDay === 1 ? '' : 's'} · {departure.pax}{' '}
@@ -823,6 +828,8 @@ function GuestRow({
   const [open, setOpen] = useState(false);
   const [moving, setMoving] = useState(false);
   const panelId = `guest-${booking.id}`;
+  // A transfer party's own pickup time (the card's slot time is a placeholder noon for transfers).
+  const pickup = guestPickup(booking, departure);
 
   return (
     <div
@@ -845,6 +852,7 @@ function GuestRow({
         />
         <span className="min-w-0 flex-1">
           <span className="block truncate text-[12.5px] text-ink">
+            {pickup && <span className="font-bold text-teal-dark">{pickup.label} · </span>}
             <span className="font-bold">{booking.ref}</span> · {booking.customerName || 'Guest'} ·{' '}
             {booking.pax} pax
           </span>
@@ -871,6 +879,7 @@ function GuestRow({
               <Chip tone="amber">Pickup TBD</Chip>
             )}
             {booking.transfer && <Chip tone="ink">Airport transfer</Chip>}
+            {pickup?.otherDay && <Chip tone="amber">Pickup on another day</Chip>}
             {booking.awaitingChoice && <Chip tone="coral">Owes us an answer</Chip>}
             {booking.staffNote && <Chip tone="ink">Note</Chip>}
           </span>

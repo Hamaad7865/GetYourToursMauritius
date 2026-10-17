@@ -3,7 +3,9 @@ import {
   customLineDays,
   customLineLabel,
   customLinesByDay,
+  departureHeaderTime,
   describeRescheduleError,
+  guestPickup,
   mapDayCustomLines,
   mapDaySchedule,
   mapReturnLegs,
@@ -892,5 +894,83 @@ describe('describeRescheduleError', () => {
     const r = describeRescheduleError({ message: 'kaboom', code: 'P0001' });
     expect(r.windowBlocked).toBe(false);
     expect(r.message).toMatch(/could not move/i);
+  });
+});
+
+/* Every day-slot sits at a placeholder NOON, so the departure card printed "12:00" for every airport
+ * transfer whatever time the guest landed. The card and each guest row now carry the guest's own
+ * pickup time (see serviceWhen). */
+describe('transfer pickup times on the day sheet', () => {
+  const NOON = '2026-08-18T08:00:00Z'; // 12:00 Mauritius — the materialised slot time
+  const transferRow = (items: RawItem[]) =>
+    row(items, {
+      starts_at: NOON,
+      activity_options: { name: 'Standard car', activities: { title: 'Airport transfer' } },
+    });
+  const arrival = (id: string, time: string | null) =>
+    item({
+      quantity: 1,
+      pax: 2,
+      bookings: booking({ id, ref: `BMT-${id}`, trip_direction: 'arrival', arrival_time: time }),
+    });
+
+  it("shows a 16:00 landing as 16:00 on the card and the guest's row", () => {
+    const [dep] = mapDaySchedule([transferRow([arrival('b1', '16:00')])]);
+    expect(departureHeaderTime(dep!)).toBe('16:00');
+    expect(guestPickup(dep!.bookings[0]!, dep!)).toEqual({
+      label: '16:00',
+      time: '16:00',
+      otherDay: false,
+    });
+  });
+
+  it('prints no header time when the parties land at different times — never the noon', () => {
+    const [dep] = mapDaySchedule([transferRow([arrival('b1', '09:30'), arrival('b2', '16:00')])]);
+    expect(departureHeaderTime(dep!)).toBeNull();
+    expect(dep!.bookings.map((b) => guestPickup(b, dep!)?.label)).toEqual(['09:30', '16:00']);
+  });
+
+  it('says so when a transfer guest gave no time', () => {
+    const [dep] = mapDaySchedule([transferRow([arrival('b1', null)])]);
+    expect(departureHeaderTime(dep!)).toBeNull();
+    expect(guestPickup(dep!.bookings[0]!, dep!)?.label).toBe('No pickup time given');
+  });
+
+  it('flags a departure-only transfer whose leg is on another day, with its date', () => {
+    const [dep] = mapDaySchedule([
+      transferRow([
+        item({
+          quantity: 1,
+          pax: 2,
+          bookings: booking({
+            trip_direction: 'departure',
+            return_date: '2026-08-24',
+            return_time: '18:30',
+          }),
+        }),
+      ]),
+    ]);
+    expect(guestPickup(dep!.bookings[0]!, dep!)).toEqual({
+      label: '24 Aug, 18:30',
+      time: '18:30',
+      otherDay: true,
+    });
+    // Its time belongs to the 24th, so the 18th's card must not print it.
+    expect(departureHeaderTime(dep!)).toBeNull();
+  });
+
+  it("carries a hotel-to-hotel transfer's pickup time, which has no transfer block", () => {
+    const [dep] = mapDaySchedule([
+      transferRow([item({ bookings: booking({ trip_direction: null, arrival_time: '07:15' }) })]),
+    ]);
+    expect(dep!.bookings[0]).toMatchObject({ transfer: null, pickupTime: '07:15' });
+    expect(departureHeaderTime(dep!)).toBe('07:15');
+  });
+
+  it('keeps a tour card at its occurrence time, with no per-guest pickup', () => {
+    const [dep] = mapDaySchedule([row([item()])]); // 05:00Z = 09:00 Mauritius
+    expect(dep!.bookings[0]!.pickupTime).toBeNull();
+    expect(departureHeaderTime(dep!)).toBe('09:00');
+    expect(guestPickup(dep!.bookings[0]!, dep!)).toBeNull();
   });
 });

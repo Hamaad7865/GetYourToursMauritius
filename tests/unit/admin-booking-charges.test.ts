@@ -66,6 +66,7 @@ function booking(over: Partial<BookingRow> = {}): BookingRow {
     depositEur: 0,
     installments: [],
     transfer: null,
+    pickupTime: null,
     ...over,
   };
 }

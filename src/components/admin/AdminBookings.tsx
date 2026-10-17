@@ -31,6 +31,7 @@ import {
   fmtDateTime,
   fmtTime,
   mauDay,
+  serviceWhen,
   titleCase,
 } from '@/lib/admin/format';
 import {
@@ -50,6 +51,15 @@ function addDays(day: string, n: number): string {
   const d = new Date(`${day}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() + n);
   return d.toISOString().slice(0, 10);
+}
+
+/** The Date cell: when the guest is collected — a transfer's own pickup time, never its day-slot's
+ *  placeholder noon, and the day alone when the guest gave no time. See `serviceWhen`. */
+function ServiceWhenCell({ booking }: { booking: BookingRow }) {
+  const when = serviceWhen(booking);
+  if (!when) return <>—</>;
+  const day = fmtDateShort(when.at);
+  return <>{when.time ? `${day} · ${when.time}` : day}</>;
 }
 
 function Avatar({ name }: { name: string }) {
@@ -153,7 +163,7 @@ function exportCsv(rows: BookingRow[]): void {
       b.customerName,
       b.customerEmail,
       b.activityTitle,
-      fmtDate(b.startsAt),
+      fmtDate(serviceWhen(b)?.at ?? null),
       b.createdAt,
       b.guests,
       b.totalEur.toFixed(2),
@@ -249,7 +259,8 @@ export function AdminBookings() {
       if (pay !== 'all' && b.paymentState !== pay) return false;
       if (tour !== 'all' && b.activityTitle !== tour) return false;
       if (dateF !== 'all') {
-        const d = b.startsAt ? mauDay(b.startsAt) : null;
+        // The guest's real day — a departure-only transfer's slot can sit days before its return_date.
+        const d = serviceWhen(b)?.day ?? null;
         if (!d) return false;
         if (dateF === 'today' && d !== today) return false;
         if (dateF === 'next7' && !(d >= today && d <= addDays(today, 6))) return false;
@@ -273,7 +284,13 @@ export function AdminBookings() {
       else if (sortKey === 'total') [av, bv] = [a.totalEur, b.totalEur];
       else if (sortKey === 'ref') [av, bv] = [a.ref, b.ref];
       else if (sortKey === 'booked') [av, bv] = [a.createdAt, b.createdAt];
-      else [av, bv] = [a.startsAt ?? a.createdAt, b.startsAt ?? b.createdAt];
+      // By when the guest is collected (a transfer's slot is a placeholder noon). Parsed, not compared
+      // as strings: these mix +04:00 and +00:00 offsets.
+      else
+        [av, bv] = [
+          Date.parse(serviceWhen(a)?.at ?? a.createdAt),
+          Date.parse(serviceWhen(b)?.at ?? b.createdAt),
+        ];
       return av < bv ? -dir : av > bv ? dir : 0;
     });
   }, [rows, status, pay, tour, dateF, query, sortKey, sortDir]);
@@ -478,7 +495,7 @@ export function AdminBookings() {
                       <span className="block truncate">{b.activityTitle}</span>
                     </td>
                     <td className="whitespace-nowrap px-3 py-3 text-[13px] text-ink/70">
-                      {b.startsAt ? `${fmtDateShort(b.startsAt)} · ${fmtTime(b.startsAt)}` : '—'}
+                      <ServiceWhenCell booking={b} />
                     </td>
                     <td className="whitespace-nowrap px-3 py-3 text-[13px] text-ink/70">
                       {`${fmtDateShort(b.createdAt)} · ${fmtTime(b.createdAt)}`}
@@ -754,7 +771,13 @@ function BookingDrawer({
                         </p>
                         <p className="mt-0.5 flex items-center gap-1.5 text-[12.5px] text-ink/70">
                           <IconCalendar width={13} height={13} className="text-teal" />{' '}
-                          {fmtDate(it.startsAt)}
+                          {fmtDate(
+                            serviceWhen({
+                              startsAt: it.startsAt,
+                              transfer: booking.transfer,
+                              pickupTime: booking.pickupTime,
+                            })?.at ?? null,
+                          )}
                           <IconUsers width={13} height={13} className="ml-2 text-teal" />{' '}
                           {it.pax ?? it.quantity}
                         </p>

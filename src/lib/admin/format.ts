@@ -8,6 +8,9 @@
  * facts, and two screens quietly disagreeing about what time a departure leaves is exactly the class
  * of bug the constant offset was introduced to kill. */
 
+import { transferLegs } from '@/lib/transfers/leg-times';
+import type { AdminTransferDetails } from './bookings';
+
 export const TZ = 'Indian/Mauritius';
 
 const dateFmt = new Intl.DateTimeFormat('en-GB', {
@@ -71,4 +74,59 @@ export function titleCase(s: string): string {
 /** YYYY-MM-DD in Mauritius local time. */
 export function mauDay(iso: string | Date): string {
   return new Date(iso).toLocaleDateString('en-CA', { timeZone: TZ });
+}
+
+/** When a booking's guest is actually collected — see {@link serviceWhen}. */
+export interface ServiceWhen {
+  /** The Mauritius calendar day, YYYY-MM-DD. */
+  day: string;
+  /** The clock time to print, or null when the guest gave none — show the day alone, never a guess. */
+  time: string | null;
+  /** A sortable instant for `day` + `time` (noon when there is no time); compare with Date.parse. */
+  at: string;
+}
+
+/**
+ * When the guest is collected, for every back-office date/time cell.
+ *
+ * Every day-slot is materialised at a placeholder NOON (`materialize_availability`), so a transfer's
+ * occurrence clock reads 12:00 whatever time the guest lands. Its real pickup is what the guest typed:
+ * the first leg from {@link transferLegs} — so a departure-only trip is dated by its return_date, not the
+ * slot — or a hotel-to-hotel transfer's `pickupTime`. A transfer with no time captured gets its day
+ * alone. Everything else keeps the occurrence's own date and time. The admin twin of the invoice's
+ * Date line, so the back-office and the guest's documents agree on when the car comes.
+ */
+export function serviceWhen(b: {
+  startsAt: string | null;
+  transfer: Pick<
+    AdminTransferDetails,
+    'direction' | 'arrivalTime' | 'returnDate' | 'returnTime'
+  > | null;
+  pickupTime: string | null;
+}): ServiceWhen | null {
+  // The slot's MAURITIUS day — transferLegs reads the first 10 characters as the date, which on a raw
+  // UTC ISO is only right while every slot sits at noon.
+  const slotDay = b.startsAt ? mauDay(b.startsAt) : null;
+  const tr = b.transfer;
+  if (tr) {
+    const [leg] = transferLegs({
+      direction: tr.direction,
+      serviceDateIso: slotDay,
+      arrivalTime: tr.arrivalTime,
+      returnDate: tr.returnDate,
+      returnTime: tr.returnTime,
+    });
+    if (leg) return at(leg.pickupYmd, leg.pickupTime);
+    const day = tr.direction === 'departure' && tr.returnDate ? tr.returnDate : slotDay;
+    return day ? at(day, null) : null;
+  }
+  if (!b.startsAt || !slotDay) return null;
+  if (b.pickupTime) return at(slotDay, b.pickupTime);
+  return { day: slotDay, time: fmtTime(b.startsAt), at: b.startsAt };
+}
+
+function at(day: string, time: string | null): ServiceWhen {
+  const t = /^(\d{1,2}):(\d{2})/.exec(time ?? '');
+  const hhmm = t ? `${t[1]!.padStart(2, '0')}:${t[2]}` : '12:00';
+  return { day, time: time?.trim() || null, at: `${day}T${hhmm}:00+04:00` };
 }

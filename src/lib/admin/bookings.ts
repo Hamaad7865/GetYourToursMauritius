@@ -121,6 +121,8 @@ export interface BookingRow {
   }>;
   /** Airport-transfer details (null for non-transfer bookings) — shown in the admin drawer + voucher. */
   transfer: AdminTransferDetails | null;
+  /** A hotel-to-hotel transfer's pickup time — see {@link hotelPickupTime}. Null on everything else. */
+  pickupTime: string | null;
 }
 
 /** Airport-transfer fields surfaced to staff/driver in the admin booking drawer. */
@@ -183,6 +185,16 @@ export function mapTransfer(raw: RawTransferFields): AdminTransferDetails | null
     travellerGender: raw.traveller_gender ?? null,
     specialNotes: raw.special_notes ?? null,
   };
+}
+
+/** A hotel-to-hotel transfer's pickup time ("HH:MM"). It has no airport direction, so
+ *  {@link mapTransfer} builds no block for it, but api_book still stores the time the guest typed in
+ *  `arrival_time` (its only writer of a non-null value). Without this its day-slot's placeholder noon
+ *  is the only time staff would see. */
+export function hotelPickupTime(
+  raw: Pick<RawTransferFields, 'trip_direction' | 'arrival_time'>,
+): string | null {
+  return raw.trip_direction ? null : (raw.arrival_time ?? null);
 }
 
 export interface PaymentEventRow {
@@ -413,6 +425,7 @@ function mapBooking(raw: RawBooking): BookingRow {
       });
     })(),
     transfer: mapTransfer(raw),
+    pickupTime: hotelPickupTime(raw),
   };
 }
 
