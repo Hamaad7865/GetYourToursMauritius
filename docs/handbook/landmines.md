@@ -221,6 +221,8 @@ guest typed (`arrival_time`, `return_date` + `return_time`), and a departure-onl
 `return_date`, not the slot's date. Invoices printed "12:00 MUT" for a 16:00 landing
 (BMTA0D8CBF245973) until the Date line went through `formatServiceWhen()`
 (`src/lib/invoice/mauritius-time.ts`). Use it, or `transferLegs()`, wherever a booking's time is shown.
+The back-office has its own twin, `serviceWhen()` (`src/lib/admin/format.ts`), behind the bookings
+table and the calendar's transfer cards. Reuse one of the two; don't write a third.
 
 ---
 
