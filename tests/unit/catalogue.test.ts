@@ -225,6 +225,34 @@ describe('buildFaq', () => {
     const faqs = buildFaq(detail({ cancellationPolicy: null }));
     expect(faqs.some((f) => /cancellation policy/i.test(f.q))).toBe(false);
   });
+
+  it('keeps the instant-voucher, checkout and payment answers for a bookable activity', () => {
+    const faqs = buildFaq(detail({ pricingMode: 'per_person' }));
+    expect(faqs.find((f) => /confirmation/i.test(f.q))!.a).toMatch(/confirmed instantly/);
+    expect(faqs.find((f) => /pickup/i.test(f.q))!.a).toMatch(/at checkout/);
+    expect(faqs.some((f) => /pay securely online/i.test(f.q))).toBe(true);
+  });
+
+  // An inquiry-only page has no checkout: the FAQ (and so its FAQPage JSON-LD) must not claim one.
+  it('answers an inquiry-only activity with the enquiry flow, never checkout or an instant voucher', () => {
+    for (const pricingMode of ['per_person', 'vehicle'] as const) {
+      const faqs = buildFaq(detail({ pricingMode, extra: { inquiryOnly: true } }));
+      expect(faqs.find((f) => /confirmation/i.test(f.q))!.a).toBe(
+        'Send us your trip details and we’ll confirm availability and the final price directly, by WhatsApp or email.',
+      );
+      const pickup = faqs.find((f) => /pickup/i.test(f.q))!;
+      expect(pickup.a).toContain('Belle Mare public beach jetty. ');
+      const text = faqs.map((f) => `${f.q} ${f.a}`).join(' ');
+      expect(text).not.toMatch(/checkout|instantly|voucher|after booking|pay securely online/i);
+    }
+  });
+
+  it('localises the inquiry-only answers on /fr', () => {
+    const fr = (key: string, vars?: Record<string, string | number>) => translate('fr', key, vars);
+    const faqs = buildFaq(detail({ extra: { inquiryOnly: true } }), fr);
+    expect(faqs.find((f) => /confirmation/i.test(f.q))!.a).toMatch(/^Envoyez-nous/);
+    expect(faqs.find((f) => /prise en charge/i.test(f.q))!.a).toMatch(/^Oui — .*peuvent être/);
+  });
 });
 
 describe('ratingBreakdown', () => {

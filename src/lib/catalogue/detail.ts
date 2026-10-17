@@ -101,14 +101,30 @@ export function buildFaq(activity: TourDetail, t: Translate = english): Faq[] {
   if (activity.cancellationPolicy) {
     faqs.push({ q: t('What is the cancellation policy?'), a: t(activity.cancellationPolicy) });
   }
+  // An inquiry-only activity (extra.inquiryOnly) has no checkout, voucher or online payment — the
+  // InquiryWidget collects trip details and staff reply by WhatsApp or email. Its answers must say so:
+  // this list is also the page's FAQPage JSON-LD, and "confirmed instantly" there is false.
+  const inquiryOnly = activity.extra.inquiryOnly === true;
   faqs.push({
     q: t('How will I receive my confirmation?'),
-    a: t(
-      'Your booking is confirmed instantly and a voucher is emailed to you. Show it on the day — printed or on your phone.',
-    ),
+    a: inquiryOnly
+      ? t(
+          'Send us your trip details and we’ll confirm availability and the final price directly, by WhatsApp or email.',
+        )
+      : t(
+          'Your booking is confirmed instantly and a voucher is emailed to you. Show it on the day — printed or on your phone.',
+        ),
   });
   const meeting = activity.meetingPoint ? `${activity.meetingPoint}. ` : '';
-  if (activity.pickupAvailable) {
+  if (activity.pickupAvailable && inquiryOnly) {
+    faqs.push({
+      q: t('Is hotel pickup available?'),
+      a: t(
+        'Yes — hotel pickup and drop-off can be arranged. {meeting}Include your hotel in your trip details and we’ll confirm the pickup along with the final price.',
+        { meeting },
+      ),
+    });
+  } else if (activity.pickupAvailable) {
     // Sightseeing (flat per-vehicle price) includes transport; per-person / per-group price hotel
     // pickup as a region-based add-on at checkout — so don't answer a flat "yes, included" there.
     faqs.push(
@@ -139,13 +155,15 @@ export function buildFaq(activity: TourDetail, t: Translate = english): Faq[] {
       }),
     });
   }
-  faqs.push({
-    q: t('Can I pay securely online?'),
-    a: t(
-      'Yes. Payments are processed securely by Peach Payments — your card is encrypted and never stored by {operator}.',
-      { operator: SITE.operator },
-    ),
-  });
+  if (!inquiryOnly) {
+    faqs.push({
+      q: t('Can I pay securely online?'),
+      a: t(
+        'Yes. Payments are processed securely by Peach Payments — your card is encrypted and never stored by {operator}.',
+        { operator: SITE.operator },
+      ),
+    });
+  }
   return faqs;
 }
 

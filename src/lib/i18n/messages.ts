@@ -228,6 +228,11 @@ export const fr: Record<string, string> = {
   'Yes — hotel pickup and drop-off are available at an additional cost, calculated from your pickup area at checkout. {meeting}Add your pickup details after booking, up to 24 hours before you go.':
     'Oui — la prise en charge et le retour à l’hôtel sont possibles en supplément, calculé selon votre zone de prise en charge lors du paiement. {meeting}Indiquez votre lieu de prise en charge après la réservation, jusqu’à 24 heures avant le départ.',
   'This experience is guided in {languages}.': 'Cette expérience est guidée en {languages}.',
+  // …and their inquiry-only variants (extra.inquiryOnly: no checkout, staff confirm by WhatsApp/email).
+  'Send us your trip details and we’ll confirm availability and the final price directly, by WhatsApp or email.':
+    'Envoyez-nous les détails de votre voyage et nous confirmerons directement la disponibilité et le prix final, par WhatsApp ou par e-mail.',
+  'Yes — hotel pickup and drop-off can be arranged. {meeting}Include your hotel in your trip details and we’ll confirm the pickup along with the final price.':
+    'Oui — la prise en charge et le retour à l’hôtel peuvent être organisés. {meeting}Indiquez votre hôtel dans les détails de votre voyage et nous confirmerons la prise en charge avec le prix final.',
   ' and ': ' et ',
   'Private vs shared catamaran': 'Catamaran privé ou partagé',
   English: 'anglais',
