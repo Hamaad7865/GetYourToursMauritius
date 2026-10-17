@@ -39,8 +39,8 @@ All of this is in `/admin`:
 | Blog posts                                   | **Blog**                                                                                               |
 | Redirect an old URL to a new one             | **Redirects**                                                                                          |
 | Approve or reject a customer review          | **Reviews**                                                                                            |
-| Charge cards in rupees or in euros           | **Dashboard** → **Card payments**                                                                      |
-| The euro → rupee rate rupee charges use      | **Dashboard** → **Card payments** (1 EUR = … MUR; must be between 40 and 70)                           |
+| Charge cards in rupees or in euros           | **Pricing** → **Card payments**                                                                        |
+| The euro → rupee rate rupee charges use      | **Pricing** → **Card payments** (1 EUR = … MUR; must be between 40 and 70)                             |
 
 Prices are typed in euros and take effect immediately — the server prices every new quote from those
 rows.

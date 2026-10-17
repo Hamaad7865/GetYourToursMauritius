@@ -30,6 +30,7 @@ import {
   type HotelTransferFareInput,
 } from '@/lib/admin/vehicle-pricing';
 import { AdminHeading, AdminError, BTN_PRIMARY } from '@/components/admin/ui';
+import { PaymentCurrencyCard } from '@/components/admin/PaymentCurrencyCard';
 
 const BAND_LABEL: Record<ZoneBand, string> = {
   same: 'Same region (short drive)',
@@ -167,6 +168,11 @@ export function AdminVehiclePricing() {
       />
 
       {error && <AdminError>{error}</AdminError>}
+
+      {/* How customers' cards are charged — MUR/EUR + the owner-set rate. Loads and saves itself. */}
+      <div className="mb-[18px]">
+        <PaymentCurrencyCard />
+      </div>
 
       {/* Sightseeing tours */}
       <section className="mb-[18px] rounded-2xl border border-[#EAEEF0] bg-white p-5">
