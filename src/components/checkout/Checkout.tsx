@@ -689,11 +689,14 @@ export function Checkout({ chargeCurrency }: { chargeCurrency: ChargeCurrency })
     if (d.hotelNotListed != null) setHotelNotListed(d.hotelNotListed);
     if (d.hotelQuery != null) setHotelQuery(d.hotelQuery);
     if (d.flightNumber != null) setFlightNumber(d.flightNumber);
-    if (d.arrivalTime != null) setArrivalTime(d.arrivalTime);
+    // Times only when the draft actually holds one: the draft is keyed by occurrence, and a guest who
+    // taps "Change" and re-picks the same day + vehicle as another direction lands on the SAME
+    // occurrence — an empty saved time must not wipe the time the widget just prefilled.
+    if (d.arrivalTime) setArrivalTime(d.arrivalTime);
     // No arrivalDate: the first leg's date is the reserved day, read from the URL, never the draft.
     if (d.departureFlight != null) setDepartureFlight(d.departureFlight);
     if (d.departureDate != null) setReturnLegDate(d.departureDate);
-    if (d.returnTime != null) setReturnTime(d.returnTime);
+    if (d.returnTime) setReturnTime(d.returnTime);
     if (d.roomOrCabin != null) setRoomOrCabin(d.roomOrCabin);
     if (d.luggageDetails != null) setLuggageDetails(d.luggageDetails);
     if (d.childSeatWanted != null) setChildSeatWanted(d.childSeatWanted);
