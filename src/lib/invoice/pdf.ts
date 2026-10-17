@@ -1,6 +1,6 @@
 import { PDFDocument, StandardFonts, rgb, type PDFFont } from 'pdf-lib';
 import type { InvoiceModel } from './model';
-import { formatMauritiusDate, formatMauritiusDateTime } from './mauritius-time';
+import { formatMauritiusDate, formatServiceWhen } from './mauritius-time';
 import { translate } from '@/lib/i18n/translate';
 
 /**
@@ -239,8 +239,10 @@ export async function renderInvoicePdf(model: InvoiceModel): Promise<Uint8Array>
   y -= 13;
   text(fitText(trip.activityTitle || '', font, 10, CONTENT_RIGHT - MARGIN), { size: 10 });
   y -= 13;
-  if (trip.when) {
-    text(`${t('Date')}: ${formatMauritiusDateTime(trip.when)}`, { size: 10, color: MUTED });
+  // A transfer is dated by the guest's pickup time, never the noon day-slot (see formatServiceWhen).
+  const tripWhen = formatServiceWhen(trip);
+  if (tripWhen) {
+    text(`${t('Date')}: ${tripWhen}`, { size: 10, color: MUTED });
     y -= 13;
   }
   if (trip.pickup) {

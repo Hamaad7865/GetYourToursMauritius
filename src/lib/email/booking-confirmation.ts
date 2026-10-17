@@ -1,5 +1,5 @@
 import type { InvoiceModel } from '@/lib/invoice/model';
-import { formatMauritiusDate, formatMauritiusDateTime } from '@/lib/invoice/mauritius-time';
+import { formatMauritiusDate, formatServiceWhen } from '@/lib/invoice/mauritius-time';
 import { renderChangeSummaryFragment, type ChangeSummaryInput } from './change-summary';
 import { translate } from '@/lib/i18n/translate';
 import { SITE } from '@/lib/seo/site';
@@ -67,7 +67,8 @@ export function renderConfirmationEmail(
   const operator = model.business.legalName;
   const ref = model.booking.ref;
   const activity = model.booking.activityTitle;
-  const when = formatMauritiusDateTime(model.booking.when);
+  // A transfer is dated by the guest's pickup time, never the noon day-slot (see formatServiceWhen).
+  const when = formatServiceWhen(model.booking);
   const totalStr = money(model.currency, model.totalGrossEur);
   const totalHtml = escapeHtml(totalStr);
   // Cross-currency charge (MUR since 2026-07-30): state what the CARD actually paid, right under the

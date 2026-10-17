@@ -134,6 +134,31 @@ describe('renderConfirmationEmail', () => {
     expect(text).toContain(url);
   });
 
+  it('dates a transfer by the guest’s pickup time, not the noon day-slot (BMTA0D8CBF245973)', () => {
+    const model = buildInvoice(
+      {
+        ref: 'BMTA0D8CBF245973',
+        customerName: 'Ada',
+        customerEmail: 'ada@example.com',
+        currency: 'EUR',
+        totalEur: 70,
+        activityTitle: 'Airport Transfer',
+        when: '2026-10-07T08:00:00+00:00', // the materialised slot: 12:00 MUT
+        pickupLocation: 'SSR International Airport (arrivals)',
+        dropoffLocation: 'The St. Regis Mauritius Resort',
+        transfer: { direction: 'arrival', flightNumber: 'HM-49', arrivalTime: '16:00' },
+        items: [{ priceLabel: 'SUV', quantity: 1, pax: 2, subtotalEur: 70 }],
+      },
+      { chargedAmountMinor: 372900, chargedCurrency: 'MUR', paidAt: '2026-10-06T10:00:00Z' },
+      business,
+    );
+    const { html, text } = renderConfirmationEmail(model);
+    expect(html).toContain('2026-10-07 16:00 MUT');
+    expect(text).toContain('2026-10-07 16:00 MUT');
+    expect(html).not.toContain('12:00 MUT');
+    expect(text).not.toContain('12:00 MUT');
+  });
+
   it('shows no e-voucher link for a non-transfer booking (or when no bookingUrl is given)', () => {
     const { html } = renderConfirmationEmail(
       representativeModel(),

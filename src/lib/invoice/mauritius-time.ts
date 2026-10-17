@@ -12,6 +12,9 @@
  * `Date.now()`, no ambient timezone.
  */
 
+import { transferLegs } from '@/lib/transfers/leg-times';
+import type { TransferDetails } from './model';
+
 /** Mauritius is UTC+4 with no DST — a constant offset we can add directly. */
 const MAURITIUS_OFFSET_MS = 4 * 60 * 60 * 1000;
 
@@ -48,4 +51,41 @@ export function formatMauritiusDate(iso: string | null | undefined): string {
   const d = toMauritiusDate(iso);
   if (!d) return iso;
   return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
+}
+
+/**
+ * The booking's "Date" line on the invoice PDF + confirmation email: when the guest is collected.
+ *
+ * Every catalogue day-slot is materialised at a placeholder NOON (`materialize_availability`), so a
+ * transfer's occurrence clock time is meaningless — the real pickup is the time the guest typed. A
+ * transfer therefore prints its first leg from {@link transferLegs} (the same legs the e-voucher and
+ * the confirmation page show, so a departure-only trip is dated by its returnDate, not the slot), and
+ * the date ALONE when no time was captured — never the noon placeholder. A hotel-to-hotel transfer
+ * has no airport direction, so its pickup time arrives as `pickupTime`. Every other booking keeps the
+ * occurrence date-time.
+ */
+export function formatServiceWhen(booking: {
+  when: string | null | undefined;
+  transfer?: TransferDetails | null;
+  pickupTime?: string | null;
+}): string {
+  const tr = booking.transfer;
+  if (tr) {
+    const [leg] = transferLegs({
+      direction: tr.direction,
+      serviceDateIso: booking.when,
+      arrivalTime: tr.arrivalTime,
+      returnDate: tr.returnDate,
+      returnTime: tr.returnTime,
+    });
+    if (leg) return `${leg.pickupYmd} ${leg.pickupTime} MUT`;
+    return tr.direction === 'departure' && tr.returnDate
+      ? tr.returnDate
+      : formatMauritiusDate(booking.when);
+  }
+  if (booking.pickupTime) {
+    const ymd = formatMauritiusDate(booking.when);
+    return ymd ? `${ymd} ${booking.pickupTime} MUT` : '';
+  }
+  return formatMauritiusDateTime(booking.when);
 }

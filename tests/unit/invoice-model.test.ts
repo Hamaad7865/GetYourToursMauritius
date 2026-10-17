@@ -92,6 +92,7 @@ describe('buildInvoice', () => {
       pickup: null,
       dropoff: null,
       transfer: null,
+      pickupTime: null,
     });
   });
 

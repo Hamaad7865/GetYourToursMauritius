@@ -213,6 +213,15 @@ cannot reach the money RPCs.
 Not UTC. This has caused three separate off-by-one-day availability bugs. Copy the pattern from
 `20260718120000_availability_mauritius_tz.sql`.
 
+### A day-slot's clock time is a placeholder noon — never print it as a pickup time
+
+`materialize_availability` puts every day-slot at 12:00 Mauritius. The guest picks a date, not a time.
+So `session_occurrences.starts_at` tells you the date only. A transfer's real pickup time is what the
+guest typed (`arrival_time`, `return_date` + `return_time`), and a departure-only transfer's date is
+`return_date`, not the slot's date. Invoices printed "12:00 MUT" for a 16:00 landing
+(BMTA0D8CBF245973) until the Date line went through `formatServiceWhen()`
+(`src/lib/invoice/mauritius-time.ts`). Use it, or `transferLegs()`, wherever a booking's time is shown.
+
 ---
 
 ## Generated files

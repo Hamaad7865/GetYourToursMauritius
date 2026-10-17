@@ -140,6 +140,9 @@ export async function loadBookingForReceipt(
           specialNotes: r.specialNotes ?? null,
         }
       : null,
+    // A hotel-to-hotel transfer has no airport direction, but its pickup time still lives in
+    // arrival_time — carried so the document's Date line isn't the noon day-slot.
+    pickupTime: r.tripDirection ? null : (r.arrivalTime ?? null),
     items: r.items.map((i) => ({
       priceLabel: i.priceLabel,
       quantity: i.quantity,

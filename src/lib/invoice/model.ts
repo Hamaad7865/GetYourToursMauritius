@@ -88,6 +88,9 @@ export interface InvoiceBookingInput {
   /** Airport-transfer details — present only for transfer bookings; surfaced as a "Transfer details"
    *  block on the voucher/receipt so the driver has everything. All optional/nullable. */
   transfer?: TransferDetails | null;
+  /** A hotel-to-hotel transfer's pickup time (bookings.arrival_time, "HH:MM"). It has no airport
+   *  direction, so no `transfer` block — this is what dates its "Date" line instead of the noon slot. */
+  pickupTime?: string | null;
   items: InvoiceBookingItem[];
   /** The language the guest booked in (bookings.locale, Task 15). Normalized to a valid {@link Locale}
    *  in `buildInvoice` — an absent/unrecognised value falls back to English rather than throwing, since
@@ -166,6 +169,8 @@ export interface InvoiceModel {
     dropoff?: string | null;
     /** Airport-transfer details (null for non-transfer bookings) — shown as a "Transfer details" block. */
     transfer?: TransferDetails | null;
+    /** A hotel-to-hotel transfer's pickup time — see {@link InvoiceBookingInput.pickupTime}. */
+    pickupTime?: string | null;
   };
   lines: InvoiceLine[];
   subtotalNetEur: number;
@@ -334,6 +339,7 @@ export function buildInvoice(
       pickup: booking.pickupLocation ?? null,
       dropoff: booking.dropoffLocation ?? null,
       transfer: booking.transfer ?? null,
+      pickupTime: booking.pickupTime ?? null,
     },
     lines,
     subtotalNetEur,

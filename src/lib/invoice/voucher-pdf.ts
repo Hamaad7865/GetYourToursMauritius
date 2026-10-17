@@ -1,7 +1,7 @@
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from 'pdf-lib';
 import qrcode from 'qrcode-generator';
 import type { InvoiceModel } from './model';
-import { formatMauritiusDate, formatMauritiusDateTime } from './mauritius-time';
+import { formatMauritiusDate, formatServiceWhen } from './mauritius-time';
 import { toWinAnsi, fitText } from './pdf';
 import { transferLegs } from '@/lib/transfers/leg-times';
 import { translate } from '@/lib/i18n/translate';
@@ -374,9 +374,7 @@ export async function renderVoucherPdf(
   pdf.setTitle(`E-Voucher ${model.booking.ref}`);
   pdf.setAuthor(b.legalName);
   pdf.setSubject(
-    model.booking.when
-      ? `Transfer ${formatMauritiusDateTime(model.booking.when)}`
-      : 'Airport transfer',
+    model.booking.when ? `Transfer ${formatServiceWhen(model.booking)}` : 'Airport transfer',
   );
   pdf.setKeywords(['airport transfer', 'e-voucher', model.booking.ref]);
   pdf.setProducer('Belle Mare Tours');
