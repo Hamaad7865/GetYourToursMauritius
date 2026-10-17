@@ -20,6 +20,7 @@ import { parseTripParams, tripDates, tripToParams, type TripDayPlan } from '@/li
 import type { BmtActivity, BmtCandidate } from '@/lib/planner/our-activities';
 import { nominalDayKey, utcDayKey } from '@/lib/services/day-key';
 import { detectPickup, geolocationAlreadyGranted } from '@/lib/geo/detect-pickup';
+import { findBoost, frontLoadClosingStops } from './closing-order';
 import type { PlannerPlace } from '@/lib/validation/planner';
 import type { ChatMsg, Boost, TripProposal } from './types';
 import { buildPreviewIndex, findPreview, type PlacePreview } from '@/lib/planner/place-lookup';
@@ -142,6 +143,10 @@ export function usePlannerSession(onFocusPane: (pane: SessionPane) => void) {
   // Bumped to make the deep-link effect read the URL again (see `restoreFromUrl`).
   const [restoreNonce, setRestoreNonce] = useState(0);
   const lastOptimizedKey = useRef('');
+  /** Stops the visitor already answered an opening-hours nudge for ("Yes, reorder" or "Keep as is").
+   *  Never nudged again — otherwise moving one early-closing stop forward pushes another one late,
+   *  which re-nudges the first, forever. */
+  const handledBoostIds = useRef<Set<string>>(new Set());
   /** The plan this visit OPENED with (a shared link). A session that only looks at it has nothing new
    *  to remember — the link already carries the plan — so history stays a shelf of real work. */
   const openedPlan = useRef('');
@@ -256,13 +261,7 @@ export function usePlannerSession(onFocusPane: (pane: SessionPane) => void) {
       setBoost(null);
       return;
     }
-    let found: Boost | null = null;
-    stops.forEach((p, idx) => {
-      if (p.closesAt && idx >= 2 && (!found || p.closesAt < found.close)) {
-        found = { place: p.name, close: p.closesAt, id: p.id };
-      }
-    });
-    setBoost(found);
+    setBoost(findBoost(stops, handledBoostIds.current));
   }, [stops]);
 
   // ── auto-optimize: reorder the day to the shortest driving round trip (pickup → stops → pickup)
@@ -692,6 +691,7 @@ export function usePlannerSession(onFocusPane: (pane: SessionPane) => void) {
     setStopIds([]);
     setChat([]);
     setBoost(null);
+    handledBoostIds.current = new Set();
     setHasBuilt(false);
     setTyping(false);
     // "Start over" returns the day to a clean round trip — don't leave a stale drop-off behind.
@@ -797,14 +797,12 @@ export function usePlannerSession(onFocusPane: (pane: SessionPane) => void) {
 
   function applyBoost() {
     if (!boost) return;
-    setActiveStopIds((prev) => {
-      const i = prev.indexOf(boost.id);
-      if (i <= 0) return prev;
-      const a = [...prev];
-      const [m] = a.splice(i, 1);
-      a.splice(1, 0, m!);
-      return a;
-    });
+    const closeById = new Map(stops.flatMap((s) => (s.closesAt ? [[s.id, s.closesAt]] : [])));
+    for (const id of closeById.keys()) handledBoostIds.current.add(id);
+    handledBoostIds.current.add(boost.id);
+    setActiveStopIds((prev) =>
+      prev.indexOf(boost.id) <= 0 ? prev : frontLoadClosingStops(prev, closeById),
+    );
     setChat((c) => [
       ...c,
       {
@@ -893,6 +891,7 @@ export function usePlannerSession(onFocusPane: (pane: SessionPane) => void) {
       setDropoff(s.dropoff);
       setWantsDropoff(Boolean(s.dropoff));
       setBoost(null);
+      handledBoostIds.current = new Set();
       setTyping(false);
       setPinnedIds(new Set(s.pinnedIds ?? []));
       setNotes(new Map(Object.entries(s.notes ?? {})));
@@ -1476,7 +1475,10 @@ export function usePlannerSession(onFocusPane: (pane: SessionPane) => void) {
     regenerate,
     boost,
     applyBoost,
-    dismissBoost: () => setBoost(null),
+    dismissBoost: () => {
+      for (const s of stops) if (s.closesAt) handledBoostIds.current.add(s.id);
+      setBoost(null);
+    },
     appliedProposals,
     acceptProposal,
     previewByName,

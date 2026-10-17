@@ -243,7 +243,10 @@ export function ResultsCanvas({
                 />
 
                 {/* start */}
-                <li className="relative pb-1 pl-[52px]">
+                {/* z-20 while editing: the editor's entrance animation (`zilai-view`, fill-mode both)
+                    leaves a transform, i.e. its own stacking context, so the search dropdown's z-index
+                    is trapped inside it and the stop cards below painted over the list. */}
+                <li className={`relative pb-1 pl-[52px] ${editingPickup ? 'z-20' : ''}`}>
                   <span
                     aria-hidden
                     className="absolute left-[9px] top-0.5 grid h-8 w-8 place-items-center rounded-full bg-coral-dark text-[13px] font-extrabold text-white ring-4 ring-white"

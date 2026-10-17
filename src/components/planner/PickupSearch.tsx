@@ -130,9 +130,10 @@ export function PickupSearch({
         </span>
         <input
           ref={inputRef}
-          // Show the typed query only while there IS one; otherwise always show the current
-          // selection, so a programmatic focus can never make a chosen location look erased.
-          value={open && query ? query : (value?.name ?? '')}
+          // While the list is open the field holds ONLY what the visitor types — the current selection
+          // moves to the placeholder. (Showing it as the value meant typing landed inside it: "Belle
+          // MarFlic (our base)".) Closed, it shows the selection; a programmatic focus never opens it.
+          value={open ? query : (value?.name ?? '')}
           onChange={(e) => {
             setQuery(e.target.value);
             if (!open) setOpen(true);
