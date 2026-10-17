@@ -56,6 +56,15 @@ The row keeps its current tile design: square photo, title, "from €X" price, s
 tour without a photo is never shown. "See all" goes to `/activities`. Rules are checked in order and
 the first that fits wins.
 
+**Fixed footprint.** Swapping tiles must not change the row's height. Today it can: the title is
+`line-clamp-2` (one or two lines) and the price line is omitted when `fromPriceEur` is null, and on
+desktop the tallest tile sets the row height. So every tile reserves two title lines (`min-h` of two
+line-heights) and always renders its price line, reading "On request" when there is no price. The
+placeholder tiles use exactly that footprint.
+
+**Every heading must be true of every tile under it.** No row tops up with tours the heading does not
+describe; a row that cannot fill itself truthfully falls through instead.
+
 1. **Guides read** — heading "Picked from the guides you've read".
    - Tours recorded from the guides in `gytm:interest`, newest guide first, each guide's tours in the
      order its page shows them, duplicates removed.
@@ -66,8 +75,12 @@ the first that fits wins.
    - Tours in `freeTomorrow`, in `mostBooked` order, then any remaining ones in catalogue order.
    - Used only with at least 3 tours; otherwise fall through to rule 3.
 3. **Everyone else** (abroad, unknown location, crawlers) — heading "Most booked by our guests".
-   - Tours in `mostBooked` order; if fewer than six qualify, top up in catalogue order.
+   - Only tours in `mostBooked`, in that order, up to six. No top-up from the catalogue.
+   - Used only with at least 3 tours; otherwise rule 4.
    - This is what the server renders, so it is also what Google sees.
+4. **Fallback** — today's row, unchanged: `pickHomeTours()` (the sightseeing category in catalogue
+   order) under "Private day tours with your own driver". Used when rule 3 cannot fill, or when the
+   picks cannot be loaded at all.
 
 French headings (curly apostrophes, exact-match `messages.ts` keys): "Sélectionnés d’après les guides
 que vous avez lus", "Encore des places demain", "Les plus réservés par nos clients".
@@ -106,7 +119,8 @@ No table, column or enum change, so `types.ts` is untouched.
   (`s-maxage=60`, `stale-while-revalidate=120`). The answer is identical for every visitor.
   Registered in the OpenAPI registry.
 - The homepage server component calls `homePicks()` alongside `searchActivities()` and renders rule 3.
-  A failure there degrades to today's behaviour (catalogue order), never an error page.
+  If `homePicks()` fails, it renders rule 4 (today's private-tours row with its own heading), never
+  "Most booked" over unranked tours and never an error page.
 - `/api/planner/locality` gains `onIsland: boolean` (true only when Cloudflare says Mauritius;
   `unknown` → false). It stays `private, no-store` and still never returns the country. In
   `next dev` only, `?as=island` / `?as=abroad` on the request overrides it so the variants can be
@@ -123,10 +137,11 @@ No table, column or enum change, so `types.ts` is untouched.
   (`hub:<path>`). It records the slugs the page actually displays, after the published-only filter.
 - `chooseHomeRow(input)` in `src/lib/catalogue/home-row.ts` — pure, no React, no storage. Input:
   activities, interest, Continue-planning slugs, `onIsland`, picks. Output: `{ variant, heading, tours }`
-  with `variant` ∈ `guides | island | popular`. All three rules and thresholds live here.
-- `HomeTours` splits into the server shell (renders rule 3) and a client part that, after hydration,
-  fetches `/api/planner/locality` and `/api/v1/activities/picks` in parallel, calls `chooseHomeRow`,
-  and swaps the tiles if the variant is not `popular`.
+  with `variant` ∈ `guides | island | popular | private`. All four rules and thresholds live here, and
+  the server uses the same function (without interest or location) to pick rule 3 or 4.
+- `HomeTours` splits into the server shell (renders rule 3, or 4) and a client part that, after
+  hydration, fetches `/api/planner/locality` and `/api/v1/activities/picks` in parallel, calls
+  `chooseHomeRow`, and swaps the tiles only if the variant differs from the one the server rendered.
 - The on-island answer is kept in `sessionStorage['gytm:on-island']` for the rest of the visit.
 - A pre-paint inline script (a server component placed right after the row, as
   `ContinuePlanningReserve` is) marks the row when `gytm:interest` is non-empty or the session says
@@ -156,8 +171,11 @@ No table, column or enum change, so `types.ts` is untouched.
 
 ## Testing
 
-- Unit: `chooseHomeRow` — each rule, the 3-tour thresholds, top-up, dedupe, Continue-planning exclusion,
-  photo-less tours skipped, island ordering inside the guide row, the midnight `date` check.
+- Unit: `chooseHomeRow` — each rule, the 3-tour thresholds, no top-up under "Most booked", the rule-4
+  fallback, dedupe, Continue-planning exclusion, photo-less tours skipped, island ordering inside the
+  guide row, the midnight `date` check.
+- Unit/DOM: the row's height is identical across variants when titles take one or two lines and a
+  tile has no price.
 - Unit: `interest.ts` — cap, dedupe by topic, newest first, malformed storage, clear.
 - Unit: `<RecordInterest>` is rendered for a post with its own pairing and not for the fallback.
 - Unit: locality `onIsland` mapping (`MU` → true; other, `XX`, missing → false).
