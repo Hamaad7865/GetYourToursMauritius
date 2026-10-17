@@ -224,6 +224,13 @@ guest typed (`arrival_time`, `return_date` + `return_time`), and a departure-onl
 The back-office has its own twin, `serviceWhen()` (`src/lib/admin/format.ts`), behind the bookings
 table and the calendar's transfer cards. Reuse one of the two; don't write a third.
 
+The day-slot is also the **only** date the booking has for its first leg, so checkout must never edit
+it. The transfer widget picks the direction (arrival / departure / return) and reserves that leg's
+day; checkout shows the day read-only with a "Change" link back to the widget, and only offers the
+directions that keep it (`src/lib/transfers/direction.ts`). Before that, a guest could switch to
+Departure at checkout and type another day: BMT61C672F6CC1B6 and BMT128D90D2935B0 held 2026-10-09
+while the guest left on 2026-10-15.
+
 ---
 
 ## Generated files
