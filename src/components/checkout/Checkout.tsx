@@ -6,12 +6,22 @@ import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { Logo } from '@/components/site/Logo';
 import { Price } from '@/components/site/Price';
-import { useT, useMoney } from '@/components/site/PreferencesProvider';
+import { useLanguage, useT, useMoney } from '@/components/site/PreferencesProvider';
+import LocaleLink from '@/components/site/LocaleLink';
+import { formatLocaleDate } from '@/lib/i18n/format';
 import { PickupDropoffMap } from '@/components/maps/PickupDropoffMap';
 import { childSeatsCost, regionFromCoords, transportFare } from '@/lib/services/pricing';
 import { decodeParty } from '@/lib/services/party';
 import { nominalDayKey } from '@/lib/services/day-key';
 import { returnTimeBeforeArrival } from '@/lib/transfers/lead-time';
+import {
+  directionsSharingAnchor,
+  legDates,
+  parseTransferDirection,
+  reservedDay,
+  restoreDirection,
+  type TransferDirection,
+} from '@/lib/transfers/direction';
 import { useBottomBarOffset } from '@/lib/ui/useBottomBarOffset';
 import { transfers, type Transfer } from '@/lib/content/transfers';
 import { useGoogleMaps } from '@/lib/maps/useGoogleMaps';
@@ -114,6 +124,49 @@ function Spinner({ label }: { label: string }) {
       aria-label={label}
       className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-white/40 border-t-white"
     />
+  );
+}
+
+/**
+ * A transfer leg's date that the booking's day-slot is reserved on — shown, never edited here. The
+ * occurrence was picked (and held) by the widget, and checkout cannot move it: a date picker in this
+ * spot used to let the guest type another day while the booking stayed on the old one (the
+ * departure-only bug — see src/lib/transfers/direction.ts). "Change" goes back to the widget, which
+ * reserves the new day.
+ */
+function ReservedDay({
+  day,
+  label,
+  changeHref,
+}: {
+  day: string;
+  label: string;
+  changeHref: string;
+}) {
+  const t = useT();
+  const language = useLanguage();
+  const shown = day
+    ? formatLocaleDate(new Date(`${day}T00:00:00`), language, {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      })
+    : '';
+  return (
+    <div className="block text-[13px] font-semibold text-ink">
+      {label}
+      <div className="mt-1 flex items-center justify-between gap-2 rounded-xl border border-ink/10 bg-ink/[0.03] px-3 py-2.5 text-sm font-normal">
+        <span className={`min-w-0 truncate ${shown ? 'text-ink' : 'text-ink-muted'}`}>
+          {shown || t('Select a date')}
+        </span>
+        <LocaleLink
+          href={changeHref}
+          className="shrink-0 text-[12.5px] font-bold text-teal-dark hover:underline"
+        >
+          {t('Change')}
+        </LocaleLink>
+      </div>
+    </div>
   );
 }
 
@@ -410,15 +463,24 @@ export function Checkout({ chargeCurrency }: { chargeCurrency: ChargeCurrency })
   const [flightNumber, setFlightNumber] = useState('');
   // Arrival + return times are captured in the booking widget and carried here (pre-filled, editable).
   const [arrivalTime, setArrivalTime] = useState(() => (params.get('arr') ?? '').slice(0, 40));
-  const [arrivalDate, setArrivalDate] = useState(() => (params.get('arrDate') ?? '').slice(0, 40));
   const [departureFlight, setDepartureFlight] = useState('');
-  const [departureDate, setDepartureDate] = useState(() => (returnDateParam || '').slice(0, 40));
   const [returnTime, setReturnTime] = useState(() => (params.get('retTime') ?? '').slice(0, 40));
-  // Customer-facing trip DIRECTION (arrival/departure/return). Prefilled from the widget's one_way/return:
-  // a return stays return; a one-way defaults to "arrival" (the most common — airport → hotel). The server
-  // derives the priced trip_type (return = both legs − discount; arrival/departure = one leg).
-  const [tripDirection, setTripDirection] = useState<'arrival' | 'departure' | 'return'>(
-    tripTypeParam === 'return' ? 'return' : 'arrival',
+  // Customer-facing trip DIRECTION (arrival/departure/return), chosen in the widget — older URLs and
+  // cart lines carry only one_way/return, which parse to arrival/return. The server derives the priced
+  // trip_type (return = both legs − discount; arrival/departure = one leg).
+  const urlDirection = parseTransferDirection(params.get('tripDirection'), tripTypeParam);
+  // The day the widget RESERVED: this checkout's occurrence is that day, and the booking stores no
+  // other date for the first leg. It is shown read-only (ReservedDay) and checkout only offers the
+  // directions that keep it — see src/lib/transfers/direction.ts.
+  const slotDay = reservedDay({
+    direction: urlDirection,
+    arrDate: params.get('arrDate'),
+    retDate: returnDateParam,
+  });
+  const [tripDirection, setTripDirection] = useState<TransferDirection>(urlDirection);
+  // A return trip's SECOND leg — the one date the guest still edits here (it holds no slot of its own).
+  const [returnLegDate, setReturnLegDate] = useState(() =>
+    urlDirection === 'departure' ? '' : returnDateParam,
   );
   // Hotel / drop-off chosen from the transfer-hotel search. dropoffSlug sets the priced zone (server
   // re-derives it). "My hotel isn't listed" switches to a free-text name + area → the server prices Zone 1
@@ -437,6 +499,23 @@ export function Checkout({ chargeCurrency }: { chargeCurrency: ChargeCurrency })
   const [dropoffArea, setDropoffArea] = useState(widgetHotel?.area ?? '');
   const [hotelNotListed, setHotelNotListed] = useState(false);
   const [hotelQuery, setHotelQuery] = useState(dropoffParam || widgetHotel?.hotelName || '');
+  // Both legs' dates as shown and sent: the first leg is always the reserved day. A hotel-to-hotel
+  // transfer has no direction toggle, so its legs follow the URL's one_way/return.
+  const { arrivalDate, departureDate } = legDates({
+    direction: isAirport ? tripDirection : urlDirection,
+    reservedDay: slotDay,
+    returnLegDate,
+  });
+  // "Change" on a reserved date goes back to the widget that reserves a day, prefilled with what the
+  // guest chose (party, vehicle, direction, and their own hotel when it isn't the listed one). The
+  // hotel-to-hotel console lives on the transfers hub.
+  const transferChangeHref = (() => {
+    if (!isAirport || !dropoffSlugParam) return '/airport-transfers';
+    const q = new URLSearchParams({ party: String(qty), trip: tripDirection });
+    if (suv) q.set('suv', '1');
+    if (dropoffParam && dropoffParam !== widgetHotel?.hotelName) q.set('hotel', dropoffParam);
+    return `/airport-transfers/${encodeURIComponent(dropoffSlugParam)}?${q.toString()}`;
+  })();
   // Trip extras (all optional). roomOrCabin = hotel room / cruise cabin; luggageDetails = free text;
   // childSeat toggle + age (the age is the child-seat detail the operator needs to fit the right seat).
   const [roomOrCabin, setRoomOrCabin] = useState('');
@@ -601,7 +680,9 @@ export function Checkout({ chargeCurrency }: { chargeCurrency: ChargeCurrency })
     if (d.dropoffSame != null) setDropoffSame(d.dropoffSame);
     if (d.dropoffText != null) setDropoffText(d.dropoffText);
     if (d.dropoffCoords !== undefined) setDropoffCoords(d.dropoffCoords);
-    if (d.tripDirection != null) setTripDirection(d.tripDirection);
+    // Never across the reserved day: a draft from before the fix could say "departure" on a slot the
+    // widget reserved for an arrival.
+    if (d.tripDirection != null) setTripDirection(restoreDirection(d.tripDirection, urlDirection));
     if (d.dropoffSlug != null) setDropoffSlug(d.dropoffSlug);
     if (d.dropoffName != null) setDropoffName(d.dropoffName);
     if (d.dropoffArea != null) setDropoffArea(d.dropoffArea);
@@ -609,9 +690,9 @@ export function Checkout({ chargeCurrency }: { chargeCurrency: ChargeCurrency })
     if (d.hotelQuery != null) setHotelQuery(d.hotelQuery);
     if (d.flightNumber != null) setFlightNumber(d.flightNumber);
     if (d.arrivalTime != null) setArrivalTime(d.arrivalTime);
-    if (d.arrivalDate != null) setArrivalDate(d.arrivalDate);
+    // No arrivalDate: the first leg's date is the reserved day, read from the URL, never the draft.
     if (d.departureFlight != null) setDepartureFlight(d.departureFlight);
-    if (d.departureDate != null) setDepartureDate(d.departureDate);
+    if (d.departureDate != null) setReturnLegDate(d.departureDate);
     if (d.returnTime != null) setReturnTime(d.returnTime);
     if (d.roomOrCabin != null) setRoomOrCabin(d.roomOrCabin);
     if (d.luggageDetails != null) setLuggageDetails(d.luggageDetails);
@@ -628,7 +709,7 @@ export function Checkout({ chargeCurrency }: { chargeCurrency: ChargeCurrency })
     if (d.gender != null) setGender(d.gender);
     if (d.company != null) setCompany(d.company);
     if (d.specialNotes != null) setSpecialNotes(d.specialNotes);
-  }, [occ, applyStoredPhone]);
+  }, [occ, applyStoredPhone, urlDirection]);
 
   // Mirror the answers so the restore above has something to find. Gated on `hydrated` so the first
   // pass — which still holds the pre-restore values — cannot overwrite the draft it is about to read.
@@ -651,9 +732,8 @@ export function Checkout({ chargeCurrency }: { chargeCurrency: ChargeCurrency })
       hotelQuery,
       flightNumber,
       arrivalTime,
-      arrivalDate,
       departureFlight,
-      departureDate,
+      departureDate: returnLegDate,
       returnTime,
       roomOrCabin,
       luggageDetails,
@@ -685,9 +765,8 @@ export function Checkout({ chargeCurrency }: { chargeCurrency: ChargeCurrency })
     hotelQuery,
     flightNumber,
     arrivalTime,
-    arrivalDate,
     departureFlight,
-    departureDate,
+    returnLegDate,
     returnTime,
     roomOrCabin,
     luggageDetails,
@@ -1486,29 +1565,34 @@ export function Checkout({ chargeCurrency }: { chargeCurrency: ChargeCurrency })
                       aria-label={t('Trip type')}
                       className="mt-2 grid gap-2 sm:grid-cols-3"
                     >
+                      {/* Only the directions that keep the reserved day: switching to or from
+                          a departure would put the guest's travel day on a different leg than
+                          the slot. "Change" on the date goes back to the widget for that. */}
                       {(
                         [
                           ['arrival', t('Arrival'), t('Airport → hotel')],
                           ['departure', t('Departure'), t('Hotel → airport')],
                           ['return', t('Return'), t('Both ways')],
-                        ] as Array<['arrival' | 'departure' | 'return', string, string]>
-                      ).map(([value, lbl, sub]) => (
-                        <button
-                          key={value}
-                          type="button"
-                          role="radio"
-                          aria-checked={tripDirection === value}
-                          onClick={() => setTripDirection(value)}
-                          className={`rounded-xl border px-3 py-2.5 text-left transition ${
-                            tripDirection === value
-                              ? 'border-teal bg-teal/10'
-                              : 'border-ink/15 hover:border-ink/30'
-                          }`}
-                        >
-                          <span className="block text-[13.5px] font-bold text-ink">{lbl}</span>
-                          <span className="block text-[11.5px] text-ink-muted">{sub}</span>
-                        </button>
-                      ))}
+                        ] as Array<[TransferDirection, string, string]>
+                      )
+                        .filter(([value]) => directionsSharingAnchor(urlDirection).includes(value))
+                        .map(([value, lbl, sub]) => (
+                          <button
+                            key={value}
+                            type="button"
+                            role="radio"
+                            aria-checked={tripDirection === value}
+                            onClick={() => setTripDirection(value)}
+                            className={`rounded-xl border px-3 py-2.5 text-left transition ${
+                              tripDirection === value
+                                ? 'border-teal bg-teal/10'
+                                : 'border-ink/15 hover:border-ink/30'
+                            }`}
+                          >
+                            <span className="block text-[13.5px] font-bold text-ink">{lbl}</span>
+                            <span className="block text-[11.5px] text-ink-muted">{sub}</span>
+                          </button>
+                        ))}
                     </div>
                   </fieldset>
 
@@ -1624,16 +1708,11 @@ export function Checkout({ chargeCurrency }: { chargeCurrency: ChargeCurrency })
                           />
                         </label>
                         <div className="mt-2 grid grid-cols-2 gap-2">
-                          <label className="block text-[13px] font-semibold text-ink">
-                            {t('Arrival date')} <span className="text-coral-dark">*</span>
-                            <DatePicker
-                              value={arrivalDate}
-                              min={todayYmd}
-                              onChange={setArrivalDate}
-                              ariaLabel={t('Arrival date')}
-                              className="mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal focus:border-teal"
-                            />
-                          </label>
+                          <ReservedDay
+                            day={arrivalDate}
+                            label={t('Arrival date')}
+                            changeHref={transferChangeHref}
+                          />
                           <label className="block text-[13px] font-semibold text-ink">
                             {t('Arrival time (local)')} <span className="text-coral-dark">*</span>
                             <input
@@ -1654,16 +1733,24 @@ export function Checkout({ chargeCurrency }: { chargeCurrency: ChargeCurrency })
                           {t('Departure')}
                         </p>
                         <div className="mt-2 grid grid-cols-2 gap-2">
-                          <label className="block text-[13px] font-semibold text-ink">
-                            {t('Pickup date')} <span className="text-coral-dark">*</span>
-                            <DatePicker
-                              value={departureDate}
-                              min={arrivalDate || todayYmd}
-                              onChange={setDepartureDate}
-                              ariaLabel={t('Pickup date')}
-                              className="mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal focus:border-teal"
+                          {tripDirection === 'departure' ? (
+                            <ReservedDay
+                              day={departureDate}
+                              label={t('Pickup date')}
+                              changeHref={transferChangeHref}
                             />
-                          </label>
+                          ) : (
+                            <label className="block text-[13px] font-semibold text-ink">
+                              {t('Pickup date')} <span className="text-coral-dark">*</span>
+                              <DatePicker
+                                value={departureDate}
+                                min={arrivalDate || todayYmd}
+                                onChange={setReturnLegDate}
+                                ariaLabel={t('Pickup date')}
+                                className="mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal focus:border-teal"
+                              />
+                            </label>
+                          )}
                           <label className="block text-[13px] font-semibold text-ink">
                             {t('Pickup time')} <span className="text-coral-dark">*</span>
                             <input
@@ -1757,16 +1844,11 @@ export function Checkout({ chargeCurrency }: { chargeCurrency: ChargeCurrency })
                   <div className="mt-4 grid gap-4 sm:max-w-md">
                     {/* Pickup date + time */}
                     <div className="grid grid-cols-2 gap-2">
-                      <label className="block text-[13px] font-semibold text-ink">
-                        {t('Pickup date')} <span className="text-coral-dark">*</span>
-                        <DatePicker
-                          value={arrivalDate}
-                          min={todayYmd}
-                          onChange={setArrivalDate}
-                          ariaLabel={t('Pickup date')}
-                          className="mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal focus:border-teal"
-                        />
-                      </label>
+                      <ReservedDay
+                        day={arrivalDate}
+                        label={t('Pickup date')}
+                        changeHref={transferChangeHref}
+                      />
                       <label className="block text-[13px] font-semibold text-ink">
                         {t('Pickup time')}
                         <input
@@ -1786,7 +1868,7 @@ export function Checkout({ chargeCurrency }: { chargeCurrency: ChargeCurrency })
                           <DatePicker
                             value={departureDate}
                             min={arrivalDate || todayYmd}
-                            onChange={setDepartureDate}
+                            onChange={setReturnLegDate}
                             ariaLabel={t('Return date')}
                             className="mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal focus:border-teal"
                           />

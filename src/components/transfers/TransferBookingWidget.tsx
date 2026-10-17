@@ -15,9 +15,13 @@ import {
   airportZoneForSlug,
   centsToEur,
   type AirportFareByZone,
-  type TripType,
 } from '@/lib/services/pricing';
 import { pickVehicleSlot } from '@/lib/transfers/pick-vehicle-slot';
+import {
+  transferLegParams,
+  tripTypeForDirection,
+  type TransferDirection,
+} from '@/lib/transfers/direction';
 import {
   earliestBookableDay,
   returnBeforeArrival,
@@ -75,15 +79,18 @@ export function TransferBookingWidget({
   const params = useSearchParams();
   const destination = guestHotel ?? hotelName;
 
-  // Prefill from the landing-page quote calculator (?party=&suv=&trip=). The guest still confirms
-  // the exact hotel + date here; these only set the opening party/vehicle/trip so the quote they saw
-  // carries over. Clamped/validated so a hand-edited URL can't push the widget out of range.
+  // Prefill from the landing-page quote calculator (?party=&suv=&trip=) or checkout's "Change" link
+  // (which also sends trip=departure). The guest still confirms the exact hotel + date here; these
+  // only set the opening party/vehicle/direction so the quote they saw carries over. Clamped/validated
+  // so a hand-edited URL can't push the widget out of range.
   const prefillParty = (() => {
     const n = Number(params.get('party'));
     return Number.isFinite(n) && n >= 1 && n <= MAX_PARTY ? Math.floor(n) : 2;
   })();
   const prefillSuv = params.get('suv') === '1';
-  const prefillTrip: TripType = params.get('trip') === 'return' ? 'return' : 'one_way';
+  const prefillTrip = params.get('trip');
+  const prefillDirection: TransferDirection =
+    prefillTrip === 'return' ? 'return' : prefillTrip === 'departure' ? 'departure' : 'arrival';
 
   const today = useMemo(() => ymd(new Date()), []);
   // Minimum advance-booking floor (activities.min_advance_days). Default 1 = no same-day (earliest is
@@ -93,7 +100,12 @@ export function TransferBookingWidget({
   const [minAdvanceDays, setMinAdvanceDays] = useState(1);
   const [party, setParty] = useState(prefillParty);
   const [suv, setSuv] = useState(prefillSuv);
-  const [tripType, setTripType] = useState<TripType>(prefillTrip);
+  // Arrival (airport → hotel), departure (hotel → airport) or return. Chosen HERE, not at checkout,
+  // because it decides which day the booking's slot is reserved on — see src/lib/transfers/direction.ts.
+  const [direction, setDirection] = useState<TransferDirection>(prefillDirection);
+  const tripType = tripTypeForDirection(direction);
+  // The FIRST leg's date + time: the airport pickup for an arrival or a return, the hotel pickup for a
+  // departure. `date` is the day the availability lookup below reserves.
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [returnDate, setReturnDate] = useState('');
@@ -190,7 +202,11 @@ export function TransferBookingWidget({
   async function book() {
     setError(null);
     if (!date) {
-      setError(t('Please choose your arrival date.'));
+      setError(
+        direction === 'departure'
+          ? t('Please choose your pickup date.')
+          : t('Please choose your arrival date.'),
+      );
       return;
     }
     if (tripType === 'return' && !returnDate) {
@@ -215,6 +231,8 @@ export function TransferBookingWidget({
     }
     setBusy(true);
     try {
+      // The slot is reserved on the first leg's day — for a departure that is the hotel pickup, not an
+      // arrival the guest never makes. The booking has no other date: this occurrence IS its day.
       const avail = await fetch(
         `/api/v1/activities/${SLUG}/availability?from=${date}&to=${date}`,
       ).then((r) =>
@@ -269,9 +287,11 @@ export function TransferBookingWidget({
         year: 'numeric',
       });
       const transferTitle =
-        tripType === 'return'
+        direction === 'return'
           ? `Return airport transfer · ${destination}`
-          : `Airport transfer to ${destination}`;
+          : direction === 'departure'
+            ? `Airport transfer from ${destination}`
+            : `Airport transfer to ${destination}`;
 
       // The params that DEFINE this transfer, built once and used by both the direct /checkout push
       // and the mirrored cart line. They have to travel with the line: api_book decides a booking is
@@ -287,14 +307,11 @@ export function TransferBookingWidget({
         dropoffSlug: slug,
         dropoff: destination,
         region,
-        tripType,
+        // Direction + priced trip type + the chosen legs, so checkout's flight fields prefill (the
+        // customer confirms the exact hotel and flight numbers there). Checkout shows the reserved
+        // day read-only and offers only directions that keep it.
+        ...transferLegParams({ direction, date, time, returnDate, returnTime }),
       };
-      // Chosen legs, so checkout's flight fields prefill (the customer confirms the exact hotel and
-      // flight numbers there). tripDirection is derived from tripType by checkout.
-      if (date) transferParams.arrDate = date;
-      if (time) transferParams.arr = time;
-      if (tripType === 'return' && returnDate) transferParams.retDate = returnDate;
-      if (tripType === 'return' && returnTime) transferParams.retTime = returnTime;
       // Mirror the held transfer into the cart (same shape as Add-to-cart / the tour Book-now path), keyed
       // by occurrence, so leaving checkout keeps the held spot visible with its countdown. Checkout reads
       // gytm:cartline:{occ} on mount and upserts it as a held line; the cart's timer + reconcile + expiry
@@ -363,22 +380,23 @@ export function TransferBookingWidget({
         <span className="min-w-0 truncate font-semibold text-ink">{destination}</span>
       </div>
 
-      {/* Trip type */}
-      <div role="radiogroup" aria-label={t('Trip type')} className="mt-4 grid grid-cols-2 gap-2">
+      {/* Trip direction */}
+      <div role="radiogroup" aria-label={t('Trip type')} className="mt-4 grid grid-cols-3 gap-2">
         {(
           [
-            ['one_way', t('One-way')],
+            ['arrival', t('Arrival')],
+            ['departure', t('Departure')],
             ['return', t('Return')],
-          ] as Array<[TripType, string]>
+          ] as Array<[TransferDirection, string]>
         ).map(([value, lbl]) => (
           <button
             key={value}
             type="button"
             role="radio"
-            aria-checked={tripType === value}
-            onClick={() => setTripType(value)}
-            className={`rounded-xl border px-3 py-2 text-[13.5px] font-bold transition ${
-              tripType === value
+            aria-checked={direction === value}
+            onClick={() => setDirection(value)}
+            className={`rounded-xl border px-1 py-2 text-[13px] font-bold leading-tight transition ${
+              direction === value
                 ? 'border-teal bg-teal/10 text-teal-dark'
                 : 'border-ink/15 text-ink hover:border-ink/30'
             }`}
@@ -387,7 +405,7 @@ export function TransferBookingWidget({
           </button>
         ))}
       </div>
-      {tripType === 'return' && returnPct > 0 && (
+      {direction === 'return' && returnPct > 0 && (
         <p className="mt-2 text-[12px] font-medium text-teal-dark">
           {t('Save {pct}% when you book the return now.', { pct: String(returnPct) })}
         </p>
@@ -447,7 +465,8 @@ export function TransferBookingWidget({
         <div className="grid grid-cols-2 gap-3">
           <label className={`block text-[13px] font-semibold text-ink ${DATE_FIELD_WRAPPER}`}>
             <span className="flex items-center gap-1.5">
-              <IconCalendar width={15} height={15} className="text-teal" /> {t('Arrival date')}
+              <IconCalendar width={15} height={15} className="text-teal" />{' '}
+              {direction === 'departure' ? t('Pickup date') : t('Arrival date')}
             </span>
             <DatePicker
               value={date}
@@ -458,7 +477,8 @@ export function TransferBookingWidget({
           </label>
           <label className={`block text-[13px] font-semibold text-ink ${DATE_FIELD_WRAPPER}`}>
             <span className="flex items-center gap-1.5">
-              <IconClock width={15} height={15} className="text-teal" /> {t('Arrival time')}
+              <IconClock width={15} height={15} className="text-teal" />{' '}
+              {direction === 'departure' ? t('Pickup time') : t('Arrival time')}
             </span>
             <input
               type="time"
@@ -468,7 +488,7 @@ export function TransferBookingWidget({
             />
           </label>
         </div>
-        {tripType === 'return' && (
+        {direction === 'return' && (
           <div className="grid grid-cols-2 gap-3">
             <label className={`block text-[13px] font-semibold text-ink ${DATE_FIELD_WRAPPER}`}>
               <span className="flex items-center gap-1.5">
