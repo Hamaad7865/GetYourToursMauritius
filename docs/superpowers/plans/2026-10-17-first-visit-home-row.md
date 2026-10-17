@@ -17,6 +17,7 @@
 - End every commit message with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
 - **Do not push.** The owner wants this pushed only after the ~22 Oct homepage SEO re-measure (Task 10).
 - Windows: use the Bash tool (Git Bash) for the commands below; PowerShell breaks heredocs.
+- After each task's prettier step, re-run that task's tests before committing — prettier also reformats the TypeScript you just tested. (`openapi.json`, `supabase/catch-up.sql` and `supabase/setup.sql` are in `.prettierignore`; never format them.)
 
 ## File map
 
@@ -676,7 +677,7 @@ Expected: all PASS.
 - [ ] **Step 8: Commit**
 
 ```bash
-npx prettier --write src/lib/validation/home-picks.ts src/lib/services/home-picks.ts app/api/v1/activities/picks/route.ts src/lib/openapi/registry.ts tests/integration/home-picks-route.test.ts openapi.json
+npx prettier --write src/lib/validation/home-picks.ts src/lib/services/home-picks.ts app/api/v1/activities/picks/route.ts src/lib/openapi/registry.ts tests/integration/home-picks-route.test.ts
 git add src/lib/validation/home-picks.ts src/lib/services/home-picks.ts app/api/v1/activities/picks/route.ts src/lib/openapi/registry.ts openapi.json tests/integration/home-picks-route.test.ts
 git commit -F - <<'EOF'
 feat(api): GET /api/v1/activities/picks — the homepage's shared picks, edge-cached
@@ -2312,7 +2313,7 @@ Start the dev server with `preview_start` (`gytm-dev`), open `http://localhost:3
 2. `http://localhost:3000/?as=island`: "Still free tomorrow" when ≥ 3 dev tours have a free seat tomorrow; otherwise the default row (correct fall-through). Reload: `sessionStorage['gytm:on-island']` is `'1'`.
 3. Guide reader: open any attraction page that lists tours (e.g. `/attractions/ile-aux-cerfs`), then `/` — heading "Picked from the guides you’ve read" with that page's tours; no "Most booked" flash on reload (`data-personal` is gone after load; take a screenshot).
 4. "Clear" on the guides row: the row falls back and `localStorage['gytm:interest']` is gone.
-5. Height: with `javascript_tool`, read `document.getElementById('home-tours').getBoundingClientRect().height` in each variant at 1280 px wide and again after `resize_window` preset `mobile` (375 px). Expected: identical within each width.
+5. Height — force the worst cases rather than measuring whatever the dev data shows. With `javascript_tool`, list the catalogue (`await fetch('/api/v1/activities?pageSize=100').then((r) => r.json())`) and pick: the six tours with the SHORTEST titles; the six with the LONGEST titles; and a set of six that includes a tour with `fromPriceEur === null` (an inquiry-only air activity). For each set, write it as the only guide — `localStorage.setItem('gytm:interest', JSON.stringify([{ topic: 'post:test', slugs: SET }]))` — reload, and read `document.getElementById('home-tours').getBoundingClientRect().height`. Do all three at 1280 px, then again after `resize_window` preset `mobile` (375 px), and compare with the default row (`localStorage.removeItem('gytm:interest')`). Expected: one height per width, whatever the set. Remove `gytm:interest` when done.
 6. `/fr/`: French headings; `read_console_messages` with `onlyErrors`: no hydration or runtime errors.
 7. `resize_window` preset `desktop` when done.
 
