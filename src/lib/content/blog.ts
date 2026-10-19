@@ -100,6 +100,20 @@ export const POST_META_OVERRIDES: Record<
     metaTitle: 'Mauritius Markets: Port Louis, Flacq & Where to Shop',
   },
   // `mauritius-in-december` moved to blog-handwritten.ts on 2026-10-17 and carries its own title.
+  // Search Console 1–16 Oct 2026: page-one queries with no clicks at all.
+  // "black river gorges national park entry fee" — #5.7, 45 impressions, 0 clicks. The article
+  // answers it (entry is free) but the title only said "Hiking Guide".
+  'black-river-gorges-guide': {
+    metaTitle: 'Black River Gorges National Park: Free Entry & Trails',
+    metaDescription:
+      'Entry to Black River Gorges National Park is free. The best trails and viewpoints, both entrances, opening times and what to bring, from a local operator.',
+  },
+  // "is mauritius safe" — #8, 163 impressions, 0 clicks; "is mauritius safe for tourists" #9.7.
+  'is-mauritius-safe': {
+    metaTitle: 'Is Mauritius Safe for Tourists? An Honest Guide',
+    metaDescription:
+      'Mauritius is one of the safest islands in the Indian Ocean. What to watch for: sea currents, sun, taxis, petty theft and common scams.',
+  },
 };
 
 /**

@@ -60,7 +60,7 @@ export const SEO_PAGES: SeoPage[] = [
     label: 'Car & scooter rental',
     defaultTitle: 'Car & Scooter Rental in Belle Mare, Mauritius | Belle Mare Tours',
     defaultDescription:
-      'Self-drive car and scooter rental for guests staying in the Belle Mare area, Mauritius. Free local delivery, full insurance, unlimited mileage and 24/7 support.',
+      'Car and scooter rental in Belle Mare, Mauritius: free delivery to your hotel or Airbnb, full insurance, unlimited mileage and 24/7 local support.',
   },
   {
     path: '/mauritius-tours',
@@ -86,7 +86,7 @@ export const SEO_PAGES: SeoPage[] = [
   {
     path: '/mauritius-catamaran-cruise',
     label: 'Catamaran cruises',
-    defaultTitle: 'Mauritius Catamaran Cruise | Belle Mare Tours',
+    defaultTitle: 'Catamaran Mauritius: Cruises & Day Trips | Belle Mare Tours',
     defaultDescription:
       'Catamaran cruises in Mauritius booked direct — Île aux Cerfs, northern islands and west-coast sails with lunch and snorkelling.',
   },

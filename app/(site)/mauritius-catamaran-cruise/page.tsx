@@ -26,7 +26,9 @@ import { localePath } from '@/lib/i18n/routing';
 export const runtime = 'edge';
 
 const PATH = '/mauritius-catamaran-cruise';
-const TITLE = 'Catamaran Cruises & Tours in Mauritius | Belle Mare Tours';
+// Leads with the exact search ("catamaran mauritius"): Search Console showed Google ranking the
+// homepage for it at #2 and this page at #17, so the page has to say it first.
+const TITLE = 'Catamaran Mauritius: Cruises & Day Trips | Belle Mare Tours';
 const DESCRIPTION =
   'Catamaran cruises in Mauritius, booked direct: snorkelling, a barbecue lunch on board and Île aux Cerfs or the northern islets. Shared or private, fixed prices.';
 
@@ -184,7 +186,7 @@ export default async function MauritiusCatamaranCruisePage() {
 
       <InfoPage
         eyebrow={pageLabel}
-        title={t('Mauritius catamaran cruise')}
+        title={t('Catamaran Mauritius: cruises and day trips')}
         intro={t(
           'The signature Mauritius day out: a relaxed sail across the lagoon, snorkelling in clear water, a barbecue lunch on board and time on a beach or island — shared or fully private, booked direct.',
         )}

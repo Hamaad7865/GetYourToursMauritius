@@ -2409,7 +2409,7 @@ export const fr: Record<string, string> = {
   'See catamaran cruises': 'Voir les croisières en catamaran',
 
   // Task 10 batch B — app/(site)/mauritius-catamaran-cruise/page.tsx
-  'Mauritius catamaran cruise': 'Croisière en catamaran à Maurice',
+  'Catamaran Mauritius: cruises and day trips': 'Croisière en catamaran à Maurice',
   'The signature Mauritius day out: a relaxed sail across the lagoon, snorkelling in clear water, a barbecue lunch on board and time on a beach or island — shared or fully private, booked direct.':
     'La sortie emblématique de Maurice : une navigation tranquille sur le lagon, du snorkeling en eau claire, un déjeuner barbecue à bord et du temps sur une plage ou une île — en partagé ou en privatif complet, réservé en direct.',
   'Operated by {operator} · rated 4.8/5 from 1,000+ reviews · door-to-door pickup island-wide.':

@@ -14,7 +14,7 @@ const DEFAULT_METADATA: Metadata = {
   // absolute: the title already names the brand — stop the root "%s | Belle Mare Tours" template doubling it.
   title: { absolute: `Cancellations & refunds · ${SITE.operator}` },
   description:
-    'Free cancellation until 12:00 noon Mauritius time on the day before your activity. See exactly how cancellations, refunds and reschedules work with Belle Mare Tours.',
+    'Free cancellation until 12:00 noon Mauritius time the day before your activity. How cancellations, refunds and reschedules work with Belle Mare Tours.',
 };
 
 // generateMetadata rather than a static export: the canonical has to follow the rendered locale

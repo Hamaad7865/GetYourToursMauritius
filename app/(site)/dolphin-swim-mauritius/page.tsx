@@ -21,7 +21,7 @@ export const runtime = 'edge';
 const PATH = '/dolphin-swim-mauritius';
 const TITLE = 'Swim with Dolphins in Mauritius | Belle Mare Tours';
 const DESCRIPTION =
-  'Swim with wild dolphins in Mauritius: an early-morning boat trip to the calm west-coast bays off Tamarin and Black River to meet spinner and bottlenose dolphins. Responsible, small-boat tours booked direct — no reseller markup.';
+  'Swim with wild spinner and bottlenose dolphins off Tamarin and Black River: early-morning, small-boat tours on the calm west coast, booked direct.';
 
 const DEFAULT_METADATA: Metadata = {
   title: { absolute: TITLE },

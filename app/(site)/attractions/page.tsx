@@ -21,7 +21,7 @@ export const runtime = 'edge';
 
 const TITLE = 'Things to Do in Mauritius: Top Attractions & Places to Visit';
 const DESCRIPTION =
-  'A local guide to the best places to visit in Mauritius — beaches, waterfalls, viewpoints, nature parks and cultural sites, organised by region. Visit any of them with Belle Mare Tours: private day tours, sightseeing and airport taxi transfers, booked online with transparent pricing.';
+  'The best places to visit in Mauritius by region: beaches, waterfalls, viewpoints, nature parks and cultural sites, with private day tours to reach them.';
 
 const DEFAULT_METADATA: Metadata = {
   title: { absolute: TITLE },

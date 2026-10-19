@@ -13,7 +13,7 @@ const UPDATED = '21 July 2026';
 const DEFAULT_METADATA: Metadata = {
   // absolute: the title already names the brand — stop the root "%s | Belle Mare Tours" template doubling it.
   title: { absolute: `Privacy policy · ${SITE.operator}` },
-  description: `How ${SITE.legalName} collects, uses and protects your personal data when you book through ${SITE.name}, and the rights you have under Mauritius and EU data-protection law.`,
+  description: `How ${SITE.legalName} collects, uses and protects your personal data, and your rights under Mauritius and EU data-protection law.`,
 };
 
 // generateMetadata rather than a static export: the canonical has to follow the rendered locale

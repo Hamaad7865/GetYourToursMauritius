@@ -49,7 +49,7 @@ const BRAND = 'bellemaretours.com';
 const displayFont = { fontFamily: 'var(--font-about-display), sans-serif' } as const;
 
 const metaTitle = `About ${SITE.name} — the smart way to experience Mauritius`;
-const metaDescription = `${BRAND} is your trusted gateway to the beauty, culture and experiences of Mauritius. Curated excursions and private experiences, seamless airport and island transfers, car and scooter hire, and bespoke holiday planning — booked securely in one place.`;
+const metaDescription = `${BRAND} is a local Mauritius tour operator: excursions, private tours, airport transfers and car hire, booked securely in one place.`;
 
 const DEFAULT_METADATA: Metadata = {
   // absolute: metaTitle already names the brand — stop the root template appending a second one.

@@ -122,9 +122,36 @@ export const TRANSFER_REGION_ORDER: TransferRegion[] = [
  * live fare table now (see the note above), and a stale number in a <title> is the one place a wrong
  * price is hardest to notice — it goes straight into Google's snippet. */
 
+/**
+ * Resort names as guests say them, for the <title> only. With the full name ("Four Seasons Resort
+ * Mauritius at Anahita") the title ran to 90 characters and Google cut the price and the brand off
+ * every one of these pages. The page body, H1 and JSON-LD keep the full name.
+ */
+const SHORT_HOTEL_NAMES: Record<string, string> = {
+  'Four Seasons Resort Mauritius at Anahita': 'Four Seasons Anahita',
+  'Anahita Golf & Spa Resort': 'Anahita',
+  'Royal Palm Beachcomber Luxury': 'Royal Palm Beachcomber',
+  'The St. Regis Mauritius Resort': 'St. Regis Mauritius',
+  'The Westin Turtle Bay Resort & Spa': 'Westin Turtle Bay',
+  'Radisson Blu Azuri Resort & Spa': 'Radisson Blu Azuri',
+  'Mauricia Beachcomber Resort & Spa': 'Mauricia Beachcomber',
+  'Shandrani Beachcomber Resort & Spa': 'Shandrani Beachcomber',
+  'Outrigger Mauritius Beach Resort': 'Outrigger Mauritius',
+  'Hilton Mauritius Resort & Spa': 'Hilton Mauritius',
+  'Maradiva Villas Resort & Spa': 'Maradiva',
+  'Sands Suites Resort & Spa': 'Sands Suites',
+  'Pearle Beach Resort & Spa': 'Pearle Beach',
+  'Constance Belle Mare Plage': 'Belle Mare Plage',
+};
+
+export function shortHotelName(hotelName: string): string {
+  return SHORT_HOTEL_NAMES[hotelName] ?? hotelName;
+}
+
 export function transferMetaTitle(t: Transfer, fromPriceEur: number): string {
-  // Root template appends the site name — don't repeat the brand here.
-  return `Airport Transfer to ${t.hotelName} — from €${fromPriceEur}`;
+  // Root template appends the site name — don't repeat the brand here. The price comes before the
+  // brand, so a long name pushes the brand out of Google's snippet, never the price.
+  return `${shortHotelName(t.hotelName)} Airport Transfer from €${fromPriceEur}`;
 }
 
 /**
@@ -145,8 +172,8 @@ export function transferMetaFr(
 }
 
 export function transferMetaDescription(t: Transfer, fromPriceEur: number): string {
-  return `Private airport transfer from SSR Airport to ${t.hotelName}, ${t.area} (about ${t.durationMinFromAirport} min). Fixed price from €${fromPriceEur} per car, meet & greet, flight tracking and a free child seat. Book online with Belle Mare Tours.`.slice(
-    0,
-    320,
+  // Price first: the long version ran 200–230 characters and Google cut it before the fare.
+  return fitSnippet(
+    `Private SSR Airport transfer to ${t.hotelName}, ${t.area}: from €${fromPriceEur} per car, about ${t.durationMinFromAirport} min. Meet & greet, flight tracking, free child seat.`,
   );
 }

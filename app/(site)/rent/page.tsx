@@ -23,7 +23,7 @@ const DEFAULT_METADATA: Metadata = {
   // `absolute` so the root "%s | Belle Mare Tours" template doesn't double-brand the title.
   title: { absolute: 'Car & Scooter Rental in Belle Mare, Mauritius | Belle Mare Tours' },
   description:
-    'Self-drive car and scooter rental for guests staying in the Belle Mare area, Mauritius. Free delivery to your hotel or Airbnb in the Belle Mare vicinity, full insurance, unlimited mileage and 24/7 local support — from compact cars to family SUVs and scooters.',
+    'Car and scooter rental in Belle Mare, Mauritius: free delivery to your hotel or Airbnb, full insurance, unlimited mileage and 24/7 local support.',
   alternates: { canonical: '/rent' },
   keywords: [
     'Belle Mare rental',

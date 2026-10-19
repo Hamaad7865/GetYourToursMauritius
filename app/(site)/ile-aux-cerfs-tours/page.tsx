@@ -21,7 +21,7 @@ export const runtime = 'edge';
 const PATH = '/ile-aux-cerfs-tours';
 const TITLE = 'Île aux Cerfs Tours & Day Trips | Belle Mare Tours';
 const DESCRIPTION =
-  'Île aux Cerfs tours and day trips from Belle Mare: catamaran and speedboat cruises to the island’s lagoon and sandbars, the GRSE waterfall, beach barbecue and water sports. Book direct with a local operator — no reseller markup.';
+  'Île aux Cerfs day trips by catamaran or speedboat from Belle Mare: lagoon, sandbars, GRSE waterfall and beach barbecue. Book direct with a local operator.';
 
 const DEFAULT_METADATA: Metadata = {
   title: { absolute: TITLE },
