@@ -54,6 +54,16 @@ const TOUR_TITLES: Record<string, Partial<Record<Locale, string>>> = {
   'casela-world-of-adventures': {
     fr: 'Parc Casela, île Maurice : World of Adventures',
   },
+  // Search Console 19 Sep–16 Oct 2026: "mauritius north island tour" #8 and "north tour mauritius"
+  // #5.5 — the booking name ("North Tour – Port Louis, Pamplemousses & Cap Malheureux") is too long
+  // for "Mauritius" to be added, so the searched phrase never appeared.
+  'north-tour': {
+    en: 'North Tour Mauritius: Port Louis & Pamplemousses',
+  },
+  // "3 island tour mauritius" — 58 impressions at #7.8, no clicks. French twin left as is (5.7%).
+  'catamaran-cruise-3-northern-island-adventure': {
+    en: '3 Island Tour Mauritius: Northern Islands Catamaran',
+  },
   // "helicoptere ile maurice" — the French page's main search.
   helicotour: {
     fr: 'Tour en hélicoptère, île Maurice',
