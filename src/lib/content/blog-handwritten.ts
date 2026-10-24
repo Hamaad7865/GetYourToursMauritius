@@ -318,7 +318,7 @@ export const HANDWRITTEN_POSTS: (PostContent & { datePublished: string; dateModi
       // Written 2026-10-24 for "christmas in mauritius", "new years eve mauritius", "noël île Maurice"
       // and "réveillon île Maurice", which peak in December and had no page (Google showed the December
       // guide at #36). This post owns the festive days; the December guide keeps the month and links
-      // here. Do not say a trip runs on 25 Dec, 31 Dec or 1 Jan: no operator has confirmed those days.
+      // here. Do not say a trip runs on 25 Dec, 31 Dec or 1–2 Jan: no operator has confirmed those days.
       slug: 'christmas-and-new-year-in-mauritius',
       datePublished: '2026-10-24',
       title: 'Christmas and New Year in Mauritius 2026: What to Expect and How to Plan',
@@ -361,7 +361,7 @@ export const HANDWRITTEN_POSTS: (PostContent & { datePublished: string; dateModi
           heading: 'What is open over Christmas and New Year',
           paragraphs: [
             'On 25 December and 1 January, many shops, restaurants and offices close or open for short hours. Banks are closed on public holidays. Hotels and their restaurants stay open, and so do the beaches and the lagoons. If you plan to eat out, book a table ahead, especially on the 24th and the 31st.',
-            'Some of our trips run on the public holidays and some do not, depending on the boat crews and drivers. If you want a trip on 25 December, 31 December or 1 January, [message us](/contact) before you book and we will confirm the day for you. On the other days of the festive fortnight, trips run as usual and you can book them online.',
+            'Some of our trips run on the public holidays and some do not, depending on the boat crews and drivers. If you want a trip on 25 or 31 December, or on 1 or 2 January, [message us](/contact) before you book and we will confirm the day for you. On the other days of the festive fortnight, trips run as usual and you can book them online.',
             'Traffic is heaviest around Port Louis, Grand Baie and the popular beaches on the 24th, the 25th and the 31st. Allow extra time for any drive, and more for a run to the airport.',
           ],
         },
@@ -408,7 +408,7 @@ export const HANDWRITTEN_POSTS: (PostContent & { datePublished: string; dateModi
         },
         {
           q: 'Do tours run on Christmas Day and New Year’s Day?',
-          a: 'Some do and some do not, depending on the crews and drivers. Message us before booking a trip on 25 December, 31 December or 1 January and we will confirm the day. On the other festive days, trips run as usual.',
+          a: 'Some do and some do not, depending on the crews and drivers. Message us before booking a trip on 25 or 31 December, or on 1 or 2 January, and we will confirm the day. On the other festive days, trips run as usual.',
         },
         {
           q: 'What is the weather like at Christmas in Mauritius?',
@@ -944,7 +944,7 @@ export const HANDWRITTEN_POSTS_FR: Record<string, PostTranslation> = {
         heading: 'Ce qui est ouvert à Noël et au Nouvel An',
         paragraphs: [
           'Le 25 décembre et le 1er janvier, beaucoup de commerces, de restaurants et de bureaux ferment ou réduisent leurs horaires. Les banques sont fermées les jours fériés. Les hôtels et leurs restaurants restent ouverts, tout comme les plages et les lagons. Si vous comptez dîner dehors, réservez une table à l’avance, surtout le 24 et le 31.',
-          'Certaines de nos sorties ont lieu les jours fériés et d’autres non, selon les équipages et les chauffeurs. Si vous souhaitez une sortie le 25 décembre, le 31 décembre ou le 1er janvier, [écrivez-nous](/fr/contact) avant de réserver et nous vous confirmerons la date. Les autres jours de la quinzaine des fêtes, les sorties ont lieu normalement et se réservent en ligne.',
+          'Certaines de nos sorties ont lieu les jours fériés et d’autres non, selon les équipages et les chauffeurs. Si vous souhaitez une sortie le 25 ou le 31 décembre, ou le 1er ou le 2 janvier, [écrivez-nous](/fr/contact) avant de réserver et nous vous confirmerons la date. Les autres jours de la quinzaine des fêtes, les sorties ont lieu normalement et se réservent en ligne.',
           'La circulation est la plus dense autour de Port-Louis, de Grand Baie et des plages fréquentées les 24, 25 et 31. Prévoyez de la marge pour tout trajet, et davantage pour aller à l’aéroport.',
         ],
       },
@@ -991,7 +991,7 @@ export const HANDWRITTEN_POSTS_FR: Record<string, PostTranslation> = {
       },
       {
         q: 'Les excursions ont-elles lieu le jour de Noël et le jour de l’An ?',
-        a: 'Certaines oui, d’autres non, selon les équipages et les chauffeurs. Écrivez-nous avant de réserver une sortie le 25 décembre, le 31 décembre ou le 1er janvier et nous vous confirmerons la date. Les autres jours des fêtes, les sorties ont lieu normalement.',
+        a: 'Certaines oui, d’autres non, selon les équipages et les chauffeurs. Écrivez-nous avant de réserver une sortie le 25 ou le 31 décembre, ou le 1er ou le 2 janvier, et nous vous confirmerons la date. Les autres jours des fêtes, les sorties ont lieu normalement.',
       },
       {
         q: 'Quel temps fait-il à Noël à l’île Maurice ?',
