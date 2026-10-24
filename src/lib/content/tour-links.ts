@@ -122,6 +122,23 @@ export const POST_TOURS: Readonly<Record<string, readonly string[]>> = {
     'swimming-with-dolphins',
     'hiking-le-morne',
   ],
+  // The festive fortnight: a lagoon day, an evening for two, the city lights.
+  'christmas-and-new-year-in-mauritius': [
+    'catamaran-cruise-ile-aux-cerfs',
+    'catamaran-sunset-cruise',
+    'port-louis-city-tour',
+  ],
+  // January: the water in the morning, something for a showery day.
+  'mauritius-in-january': [
+    'catamaran-cruise-ile-aux-cerfs',
+    'blue-safari-submarine-subscooter',
+    'tea-tasting-tour',
+  ],
+  'things-to-do-in-mauritius-when-it-rains': [
+    'port-louis-city-tour',
+    'tea-tasting-tour',
+    'private-south-east-tour',
+  ],
   'things-to-do-in-mauritius': [
     'catamaran-cruise-ile-aux-cerfs',
     'swimming-with-dolphins',

@@ -140,6 +140,27 @@ export const POST_META_FR: Record<
     metaDescription:
       'L’île Maurice en novembre 2026 : météo du début de l’été, température de la mer, pluie, fêtes et prix des excursions. Conseils d’un opérateur local.',
   },
+  // "noel ile maurice", "reveillon ile maurice", "vacances noel ile maurice" (autocomplete, Oct 2026).
+  'christmas-and-new-year-in-mauritius': {
+    metaTitle: 'Noël et Nouvel An à l’île Maurice 2026 : le guide',
+    metaDescription:
+      'Noël et réveillon à l’île Maurice en 2026 : ce qui se passe les 24, 25 et 31 décembre, où voir les feux d’artifice, ce qui ferme et que réserver.',
+  },
+  // "ile maurice en janvier" — 192 impressions at #35 in Sep–Oct 2026 with no page of its own.
+  'mauritius-in-january': {
+    metaTitle: 'Île Maurice en janvier 2027 : météo, cyclones et que faire',
+    metaDescription:
+      'L’île Maurice en janvier 2027 : chaleur, pluie et cyclones, mer, Cavadee et Nouvel An, prix des excursions. Conseils d’un opérateur local.',
+  },
+  'things-to-do-in-mauritius-when-it-rains': {
+    metaTitle: 'Que faire à l’île Maurice quand il pleut ?',
+    metaDescription:
+      'Il pleut à l’île Maurice ? Filez sur la côte ouest, plus sèche, à Port-Louis, à une dégustation de thé ou de rhum, aux musées de Mahébourg ou en sous-marin.',
+  },
+  // "voyage famille ile maurice" (75 impressions at #43), "ile maurice en famille" (#36), "vacances à
+  // l'île maurice en famille" (#30): French families search "en famille", the title said "avec des
+  // enfants". The French Christmas school holidays (19 Dec–4 Jan) are when they travel.
+  'mauritius-with-kids': { metaTitle: 'Île Maurice en famille : activités et conseils de voyage' },
   'snorkeling-in-mauritius': { metaTitle: 'Snorkeling à l’île Maurice : les meilleurs spots' },
   'sunset-spots-mauritius': {
     metaTitle: 'Coucher de soleil à l’île Maurice : les plus beaux spots',
@@ -158,19 +179,47 @@ export const POST_META_FR: Record<
  * falls back to the most recent posts.
  *
  * SEASONAL until 2026-12-31: the trip-planning posts lead with `mauritius-in-december` (and the
- * month guide links to the November one) while demand for both peaks. Put them back to a year-round
- * pick in January.
+ * month guide links to the November one) while demand for both peaks. In January, move
+ * `best-time-to-visit-mauritius` and the December guide to `mauritius-in-january` and the rainy-day
+ * guide, and drop the Christmas post from every list; put the rest back to a year-round pick in
+ * February.
  */
 export const RELATED_POSTS: Record<string, string[]> = {
   'best-time-to-visit-mauritius': [
     'mauritius-in-december',
-    'mauritius-in-november',
-    'mauritius-entry-requirements',
+    'christmas-and-new-year-in-mauritius',
+    'mauritius-in-january',
   ],
   'mauritius-in-november': [
     'mauritius-in-december',
+    'christmas-and-new-year-in-mauritius',
     'best-time-to-visit-mauritius',
-    'swimming-with-dolphins-mauritius',
+  ],
+  // The festive cluster: the month, its holidays and the month after, each pointing at the others.
+  'christmas-and-new-year-in-mauritius': [
+    'mauritius-in-december',
+    'mauritius-in-january',
+    'private-vs-shared-catamaran-mauritius',
+  ],
+  'mauritius-in-january': [
+    'things-to-do-in-mauritius-when-it-rains',
+    'mauritius-cyclone-season',
+    'christmas-and-new-year-in-mauritius',
+  ],
+  'things-to-do-in-mauritius-when-it-rains': [
+    'mauritius-in-january',
+    'port-louis-things-to-do',
+    'mauritius-cyclone-season',
+  ],
+  'mauritius-cyclone-season': [
+    'things-to-do-in-mauritius-when-it-rains',
+    'mauritius-in-january',
+    'mauritius-in-december',
+  ],
+  'mauritius-with-kids': [
+    'christmas-and-new-year-in-mauritius',
+    'casela-nature-park-guide',
+    'things-to-do-in-mauritius-when-it-rains',
   ],
   'mauritius-entry-requirements': [
     'mauritius-in-december',
@@ -183,9 +232,9 @@ export const RELATED_POSTS: Record<string, string[]> = {
     'getting-around-mauritius',
   ],
   'mauritius-in-december': [
+    'christmas-and-new-year-in-mauritius',
+    'mauritius-in-january',
     'mauritius-in-november',
-    'best-time-to-visit-mauritius',
-    'ile-aux-cerfs-guide',
   ],
   // The catamaran cluster: the private-vs-shared comparison sits between the route guide and the
   // Île aux Cerfs guide, so each of the three points at the other two.
