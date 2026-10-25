@@ -71,6 +71,10 @@
 
 ### Task 1: The permission catalogue (TypeScript)
 
+> **Built, then hardened after review (f00059a3):** `buildAccess` takes no `base` input — it derives
+> `base` from `role` (`staff` → team, `seo` → content), nulls the team fields for every other role, and
+> ignores a malformed `permissions` value instead of throwing. Later tasks below call it without `base`.
+
 **Files:**
 
 - Create: `src/lib/admin/permissions.ts`
@@ -2312,16 +2316,15 @@ export async function loadCallerAccess(db: AccessClient, userId: string): Promis
 
   const team = await db
     .from('team_roles')
-    .select('name, base, permissions')
+    .select('name, permissions')
     .eq('id', teamRoleId)
     .maybeSingle();
   if (team.error) throw new Error(errorText(team.error, 'team role read failed'));
-  const t = team.data as { name?: unknown; base?: unknown; permissions?: unknown } | null;
+  const t = team.data as { name?: unknown; permissions?: unknown } | null;
   return buildAccess({
     role,
     teamRoleId,
     teamRoleName: typeof t?.name === 'string' ? t.name : null,
-    base: typeof t?.base === 'string' ? t.base : null,
     permissions: Array.isArray(t?.permissions)
       ? t.permissions.filter((k): k is string => typeof k === 'string')
       : [],
@@ -2675,14 +2678,12 @@ export async function loadMyAccess(): Promise<AdminAccess> {
     role?: string | null;
     teamRoleId?: string | null;
     teamRoleName?: string | null;
-    base?: string | null;
     permissions?: string[] | null;
   };
   return buildAccess({
     role: d.role ?? null,
     teamRoleId: d.teamRoleId ?? null,
     teamRoleName: d.teamRoleName ?? null,
-    base: d.base ?? null,
     permissions: d.permissions ?? [],
   });
 }
@@ -2801,14 +2802,12 @@ const reservations = buildAccess({
   role: 'staff',
   teamRoleId: 'r',
   teamRoleName: 'Reservations',
-  base: 'team',
   permissions: ['section.bookings', 'section.quotes', 'section.calendar'],
 });
 const writer = buildAccess({
   role: 'seo',
   teamRoleId: 'c',
   teamRoleName: 'Content',
-  base: 'content',
   permissions: CONTENT_PERMISSIONS,
 });
 
@@ -3169,7 +3168,7 @@ import { CONTENT_PERMISSIONS, buildAccess } from '@/lib/admin/permissions';
 
 Replace `navForRole('admin')` with `navFor(buildAccess({ role: 'admin' }))`, and
 `navForRole('seo')` with
-`navFor(buildAccess({ role: 'seo', base: 'content', permissions: CONTENT_PERMISSIONS }))`.
+`navFor(buildAccess({ role: 'seo', permissions: CONTENT_PERMISSIONS }))`.
 
 - [ ] **Step 8: Run tests, types and lint**
 
