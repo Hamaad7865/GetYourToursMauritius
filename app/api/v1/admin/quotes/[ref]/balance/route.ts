@@ -126,7 +126,7 @@ export const POST = apiHandler<RouteCtx>(async (req, { params }) => {
   const db = createServiceRoleClient() as unknown as BalanceClient;
   const access = await loadCallerAccess(db as unknown as AccessClient, user.id);
   if (!can(access, 'section.quotes')) {
-    throw new ForbiddenError('Staff only');
+    throw new ForbiddenError("Your role doesn't include Quotes — ask the owner.");
   }
 
   await parseJsonBody(req, bodySchema);

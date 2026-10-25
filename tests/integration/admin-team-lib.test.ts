@@ -72,4 +72,40 @@ describe('loadCallerAccess (server, service-role reads)', () => {
     expect((await access(BARE)).permissions.size).toBe(0);
     expect((await access('aa000000-0000-0000-0000-00000000ffff')).permissions.size).toBe(0);
   });
+
+  it('grants nothing when the team role base does not match the profile role', async () => {
+    // The database refuses to store this pairing, so build it with the profile guard switched off. The
+    // server must then agree with has_permission() / api_my_access(): a role counts only while its
+    // base matches (staff <-> team, seo <-> content).
+    const STAFF_ON_CONTENT = 'aa000000-0000-0000-0000-000000000005';
+    const SEO_ON_TEAM = 'aa000000-0000-0000-0000-000000000006';
+    await db.asOwner();
+    for (const [id, email] of [
+      [STAFF_ON_CONTENT, 'mismatch-staff@example.com'],
+      [SEO_ON_TEAM, 'mismatch-seo@example.com'],
+    ] as const) {
+      await db.pg.query(
+        `insert into auth.users (id, email, email_confirmed_at) values ($1, $2, now())`,
+        [id, email],
+      );
+      await db.pg.query(`insert into profiles (id, full_name, role) values ($1, $2, 'staff')`, [
+        id,
+        email.split('@')[0],
+      ]);
+    }
+    await seedTeamRole(db, STAFF_ON_CONTENT, ['section.blog'], 'content');
+    await seedTeamRole(db, SEO_ON_TEAM, ['section.quotes'], 'team');
+    await db.pg.query(`alter table profiles disable trigger profiles_role_guard`);
+    try {
+      await db.pg.query(`update profiles set role = 'staff' where id = $1`, [STAFF_ON_CONTENT]);
+      await db.pg.query(`update profiles set role = 'seo' where id = $1`, [SEO_ON_TEAM]);
+    } finally {
+      await db.pg.query(`alter table profiles enable trigger profiles_role_guard`);
+    }
+
+    expect((await access(STAFF_ON_CONTENT)).permissions.size).toBe(0);
+    const seoOnTeam = await access(SEO_ON_TEAM);
+    expect(seoOnTeam.permissions.size).toBe(0);
+    expect(can(seoOnTeam, 'section.quotes')).toBe(false);
+  });
 });

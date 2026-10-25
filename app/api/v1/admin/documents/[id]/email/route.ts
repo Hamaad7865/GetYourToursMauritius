@@ -42,9 +42,11 @@ function bytesToBase64(bytes: Uint8Array): string {
  * POST /api/v1/admin/documents/:id/email — email the document to its client, with the PDF attached.
  *
  * Staff with the Documents section — checked explicitly (`loadCallerAccess`, service-role read of the
- * caller's role), and RLS still scopes the read to staff (the read runs as the caller; the documents
- * table is is_staff()-only, so a non-staff caller 404s). Operator-initiated: the button in the editor is the only caller. The mail
- * goes out FROM the monitored info@ inbox so the client can just hit Reply.
+ * caller's role) before anything is read, so a caller without it gets a 403. RLS still scopes the
+ * read to staff as a second lock (the read runs as the caller; the documents table is
+ * is_staff()-only, so a row the caller cannot see 404s). Operator-initiated: the button in the
+ * editor is the only caller. The mail goes out FROM the monitored info@ inbox so the client can just
+ * hit Reply.
  */
 export const POST = apiHandler<RouteCtx>(async (req, { params }) => {
   const user = await requireUser(req);
@@ -52,7 +54,9 @@ export const POST = apiHandler<RouteCtx>(async (req, { params }) => {
     createServiceRoleClient() as unknown as AccessClient,
     user.id,
   );
-  if (!can(access, 'section.documents')) throw new ForbiddenError('Staff only');
+  if (!can(access, 'section.documents')) {
+    throw new ForbiddenError("Your role doesn't include Documents — ask the owner.");
+  }
   const { id } = await params;
 
   const supabase = createUserClient(getBearerToken(req));

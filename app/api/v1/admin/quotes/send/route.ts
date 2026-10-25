@@ -192,7 +192,7 @@ export const POST = apiHandler(async (req) => {
   const db = createServiceRoleClient() as unknown as SendClient;
   const access = await loadCallerAccess(db as unknown as AccessClient, user.id);
   if (!can(access, 'section.quotes')) {
-    throw new ForbiddenError('Staff only');
+    throw new ForbiddenError("Your role doesn't include Quotes — ask the owner.");
   }
 
   const { quoteId } = await parseJsonBody(req, bodySchema);

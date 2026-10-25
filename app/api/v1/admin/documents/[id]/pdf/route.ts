@@ -19,11 +19,12 @@ type RouteCtx = { params: Promise<{ id: string }> };
  * GET /api/v1/admin/documents/:id/pdf — the document's PDF (quote / invoice / proforma / receipt).
  *
  * Staff with the Documents section — checked explicitly (`loadCallerAccess`, service-role read of the
- * caller's role), and RLS still scopes the read to staff: the read runs as the CALLER (their bearer
- * token) and `documents_staff_all` only exposes the row to staff, so a non-staff or anonymous caller
- * gets no row and this 404s, never a document. The PDF is rendered on demand from the stored
- * row (never persisted), so it always reflects the current state; a draft (no `issuer_snapshot` yet)
- * falls back to the live business identity so the preview download works before the document is issued.
+ * caller's role) before anything is read, so a caller without it gets a 403. RLS still scopes the
+ * read to staff as a second lock: it runs as the CALLER (their bearer token) and `documents_staff_all`
+ * only exposes the row to staff, so a row the caller cannot see 404s. The PDF is rendered on demand
+ * from the stored row (never persisted), so it always reflects the current state; a draft (no
+ * `issuer_snapshot` yet) falls back to the live business identity so the preview download works
+ * before the document is issued.
  */
 export const GET = apiHandler<RouteCtx>(async (req, { params }) => {
   const user = await requireUser(req);
@@ -31,7 +32,9 @@ export const GET = apiHandler<RouteCtx>(async (req, { params }) => {
     createServiceRoleClient() as unknown as AccessClient,
     user.id,
   );
-  if (!can(access, 'section.documents')) throw new ForbiddenError('Staff only');
+  if (!can(access, 'section.documents')) {
+    throw new ForbiddenError("Your role doesn't include Documents — ask the owner.");
+  }
   const { id } = await params;
 
   const supabase = createUserClient(getBearerToken(req));

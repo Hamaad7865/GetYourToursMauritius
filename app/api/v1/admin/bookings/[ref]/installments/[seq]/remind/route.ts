@@ -75,7 +75,9 @@ export const POST = apiHandler<RouteCtx>(async (req, { params }) => {
   const user = await requireUser(req);
   const db = createServiceRoleClient() as unknown as RemindClient;
   const access = await loadCallerAccess(db as unknown as AccessClient, user.id);
-  if (!can(access, 'section.bookings')) throw new ForbiddenError('Staff only');
+  if (!can(access, 'section.bookings')) {
+    throw new ForbiddenError("Your role doesn't include Bookings — ask the owner.");
+  }
 
   await parseJsonBody(req, bodySchema);
 

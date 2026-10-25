@@ -5,6 +5,9 @@ import { jsonOk, jsonError } from '@/lib/http/envelope';
 import { rateLimit } from '@/lib/http/rate-limit';
 import { buildServiceContext } from '@/lib/http/context';
 import { createServiceRoleClient } from '@/lib/supabase/admin';
+import { can } from '@/lib/admin/permissions';
+import { loadCallerAccess, type AccessClient } from '@/lib/http/access';
+import { ForbiddenError } from '@/lib/services/errors';
 import { SITE } from '@/lib/seo/site';
 import { activityMetaTitle } from '@/lib/seo/activity-meta';
 import { BRAND_SUFFIX } from '@/lib/seo/page-registry';
@@ -18,9 +21,10 @@ export const runtime = 'edge';
 /**
  * POST /api/v1/seo/ai-fix — one-click Gemini rewrite of a Health-check issue.
  *
- * Content-editor only (staff/admin/seo — the 'seo' role IS admitted: titles and descriptions
- * carry no customer data, and this is exactly that hire's job). Rate-limited before the gate
- * because every call runs a model (max two generations per click, server-side).
+ * Needs the SEO section (`section.seo`, read by `loadCallerAccess`): a Content-only role holds it
+ * because titles and descriptions carry no customer data and this is exactly that hire's job.
+ * Rate-limited before the gate because every call runs a model (max two generations per click,
+ * server-side).
  *
  * The server NEVER writes: it returns a VERIFIED rewrite (or an unverified suggestion with the
  * reasons), and the browser persists it through the existing RLS-gated editor paths — the same
@@ -31,14 +35,9 @@ export const POST = apiHandler(async (req) => {
 
   const user = await requireUser(req);
   const admin = createServiceRoleClient();
-  const { data: profile, error: profileError } = await admin
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .maybeSingle();
-  if (profileError) throw new Error(profileError.message);
-  if (profile?.role !== 'admin' && profile?.role !== 'staff' && profile?.role !== 'seo') {
-    return jsonError(403, 'forbidden', 'Content editors only');
+  const access = await loadCallerAccess(admin as unknown as AccessClient, user.id);
+  if (!can(access, 'section.seo')) {
+    throw new ForbiddenError("Your role doesn't include SEO — ask the owner.");
   }
 
   const body = await parseJsonBody(req, seoAiFixRequestSchema);

@@ -25,7 +25,8 @@ function errorText(error: unknown, fallback: string): string {
  *
  * NEVER derive it from `requireUser(req).role` — that is the JWT's Postgres role selector
  * ('authenticated' for staff and customers alike), not the business role. Fails closed: no profile,
- * no team role or an unknown role all give no permissions.
+ * no team role, a team role whose base does not match the profile's role, or an unknown role all give
+ * no permissions.
  */
 export async function loadCallerAccess(db: AccessClient, userId: string): Promise<AdminAccess> {
   const profile = await db
@@ -41,11 +42,16 @@ export async function loadCallerAccess(db: AccessClient, userId: string): Promis
 
   const team = await db
     .from('team_roles')
-    .select('name, permissions')
+    .select('name, base, permissions')
     .eq('id', teamRoleId)
     .maybeSingle();
   if (team.error) throw new Error(errorText(team.error, 'team role read failed'));
-  const t = team.data as { name?: unknown; permissions?: unknown } | null;
+  const t = team.data as { name?: unknown; base?: unknown; permissions?: unknown } | null;
+  // A team role only counts while its base matches the profile's role (staff <-> team, seo <->
+  // content) — the same rule has_permission() and api_my_access() apply, so the server never grants
+  // what the database would refuse. The Owner ignores team roles altogether.
+  const expectedBase = role === 'staff' ? 'team' : role === 'seo' ? 'content' : null;
+  if (expectedBase && t?.base !== expectedBase) return buildAccess({ role });
   return buildAccess({
     role,
     teamRoleId,

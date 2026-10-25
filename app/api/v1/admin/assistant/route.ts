@@ -7,6 +7,7 @@ import { buildServiceContext } from '@/lib/http/context';
 import { createServiceRoleClient } from '@/lib/supabase/admin';
 import { can } from '@/lib/admin/permissions';
 import { loadCallerAccess, type AccessClient } from '@/lib/http/access';
+import { buildRecordLookups, type RefLookupClient } from '@/lib/http/assistant-lookups';
 import {
   runAdminAssistant,
   type AssistantDeparture,
@@ -52,28 +53,6 @@ export const runtime = 'edge';
  * Rate-limited before the gate because every call runs a model.
  */
 
-type Row = Record<string, unknown>;
-
-/**
- * The generated Database types lag the schema (no `quotes` table, older `bookings` columns), so the
- * ref lookups go through this narrow cast — the same move the send route makes with its SendClient.
- */
-interface RefLookupClient {
-  from(table: 'bookings' | 'quotes'): {
-    select(columns: string): {
-      eq(
-        column: 'ref',
-        value: string,
-      ): { maybeSingle(): PromiseLike<{ data: Row | null; error: unknown }> };
-    };
-  };
-}
-
-/** A minor-unit column as euros, tolerating null/undefined and non-numeric junk. */
-function eurOf(value: unknown): number | null {
-  return typeof value === 'number' && Number.isFinite(value) ? value / 100 : null;
-}
-
 /** The embedded-relation select, typed by hand exactly as quote-catalogue.ts types it. */
 interface OptionWithPrices {
   id: string;
@@ -109,7 +88,7 @@ export const POST = apiHandler(async (req) => {
   const sb = createServiceRoleClient();
   const access = await loadCallerAccess(sb as unknown as AccessClient, user.id);
   if (!can(access, 'section.assistant')) {
-    throw new ForbiddenError('Staff only');
+    throw new ForbiddenError("Your role doesn't include the AI assistant — ask the owner.");
   }
 
   const body = await parseJsonBody(req, adminAssistantRequestSchema);
@@ -340,36 +319,9 @@ export const POST = apiHandler(async (req) => {
       return { pickupRegion: pickup, activityRegion, roundTripEur: fareMinor / 100 };
     },
 
-    lookupBooking: async (ref) => {
-      const { data } = await (sb as unknown as RefLookupClient)
-        .from('bookings')
-        .select(
-          'ref, status, payment_state, customer_name, customer_email, currency, total_minor, deposit_minor, balance_due_minor, pickup_location, created_at',
-        )
-        .eq('ref', ref.trim().toUpperCase())
-        .maybeSingle();
-      if (!data) return null;
-      const { total_minor, deposit_minor, balance_due_minor, ...rest } = data;
-      return {
-        ...rest,
-        totalEur: eurOf(total_minor),
-        depositEur: eurOf(deposit_minor),
-        balanceDueEur: eurOf(balance_due_minor),
-      };
-    },
-
-    lookupQuote: async (ref) => {
-      const { data } = await (sb as unknown as RefLookupClient)
-        .from('quotes')
-        .select(
-          'ref, status, customer_name, customer_email, currency, total_minor, valid_until, deposit_bps, sent_at, converted_at, created_at',
-        )
-        .eq('ref', ref.trim().toUpperCase())
-        .maybeSingle();
-      if (!data) return null;
-      const { total_minor, ...rest } = data;
-      return { ...rest, totalEur: eurOf(total_minor) };
-    },
+    // Guest names, emails and amounts via the service-role client — so only for callers whose role holds
+    // Bookings / Quotes (see buildRecordLookups); anyone else gets the usual "not found".
+    ...buildRecordLookups(sb as unknown as RefLookupClient, access),
 
     rentalFleet: async () => {
       const fleet = await listRentalVehicles(ctx);
