@@ -53,14 +53,21 @@ describe('mutation RPC grants (has_function_privilege — real ACL state)', () =
     expect(await can('service_role', fn)).toBe(true);
   });
 
-  it.each(['api_create_payment(jsonb)'])(
-    'signed-in-only: %s — anon denied, authenticated + service_role allowed',
-    async (fn) => {
-      expect(await can('anon', fn)).toBe(false);
-      expect(await can('authenticated', fn)).toBe(true);
-      expect(await can('service_role', fn)).toBe(true);
-    },
-  );
+  it.each([
+    'api_create_payment(jsonb)',
+    'api_my_access(jsonb)',
+    'api_team_list(jsonb)',
+    'api_team_assign(jsonb)',
+    'api_team_remove(jsonb)',
+    // Revoked from public + anon and granted to authenticated by 20261025140000: the gate is inside the
+    // function (is_staff() and has_permission('money.refunds')), so a signed-in staff caller reaches it.
+    'api_mark_refunded(jsonb)',
+    'api_record_change_refund(jsonb)',
+  ])('signed-in-only: %s — anon denied, authenticated + service_role allowed', async (fn) => {
+    expect(await can('anon', fn)).toBe(false);
+    expect(await can('authenticated', fn)).toBe(true);
+    expect(await can('service_role', fn)).toBe(true);
+  });
 });
 
 describe('api_create_hold stamps created_by for the server-mediated (service-role) path', () => {

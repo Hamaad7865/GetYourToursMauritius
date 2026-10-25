@@ -68,6 +68,11 @@ const LOCKED = [
   // Returns the OPAQUE reusable card tokens for a user (20260913000000) — server-only, so the browser
   // never sees a token it could replay.
   'api_list_card_tokens(jsonb)',
+  // The admin-roles trigger functions (20261025140000). Trigger execution never checks EXECUTE, so the
+  // grant buys them nothing; listed so a later re-definition that re-opens them fails CI.
+  'enforce_team_role()',
+  'enforce_last_owner_delete()',
+  'enforce_money_columns()',
 ];
 
 describe('internal SECURITY DEFINER functions are locked to service_role', () => {

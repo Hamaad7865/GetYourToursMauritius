@@ -272,6 +272,21 @@ describe('team_roles', () => {
     expect(revoke).toBeLessThan(grant);
   });
 
+  it('catch-up.sql — what the reconciliation run executes — keeps the same revoke-before-grant order', () => {
+    // catch-up.sql carries a verbatim copy of the migration (catch-up-parity pins that), but this is the
+    // script the OWNER runs by hand against the live database, where Supabase's default table privileges
+    // DO exist. Pin the order on that text too, so a hand-edit of the mirrored block cannot reintroduce
+    // the TRUNCATE-capable default grants.
+    const sql = readFileSync(join(process.cwd(), 'supabase/catch-up.sql'), 'utf8');
+    const revoke = sql.indexOf('revoke all on team_roles from public, anon, authenticated;');
+    const grant = sql.indexOf(
+      'grant select, insert, update, delete on team_roles to authenticated;',
+    );
+    expect(revoke).toBeGreaterThan(-1);
+    expect(grant).toBeGreaterThan(-1);
+    expect(revoke).toBeLessThan(grant);
+  });
+
   it('the Owner reads every role', async () => {
     await db.asOwner();
     const all = (await db.pg.query<{ id: string }>(`select id from team_roles`)).rows.map(

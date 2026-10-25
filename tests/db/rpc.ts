@@ -74,6 +74,10 @@ const ALLOWED = new Set([
   'api_delete_saved_card',
   'api_list_card_tokens',
   'api_release_pending_booking',
+  'api_my_access',
+  'api_team_list',
+  'api_team_assign',
+  'api_team_remove',
 ]);
 
 /**

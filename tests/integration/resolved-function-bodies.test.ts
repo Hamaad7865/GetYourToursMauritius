@@ -42,7 +42,7 @@ import { createTestDb, type TestDb } from '../db/pglite';
  */
 
 interface ResolvedContract {
-  /** `proname` — these are all single-signature `(p jsonb)` RPCs. */
+  /** `proname` — single-signature functions (mostly `(p jsonb)` RPCs; one trigger function). */
   fn: string;
   /** Completes "…still ‹must›", for the test name. */
   must: string;

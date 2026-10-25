@@ -35,6 +35,7 @@ type ProfilesRow = {
   role: Database['public']['Enums']['user_role'];
   phone: string | null;
   date_of_birth: string | null;
+  team_role_id: string | null;
   created_at: string;
 };
 type ProfilesInsert = {
@@ -43,7 +44,28 @@ type ProfilesInsert = {
   role?: Database['public']['Enums']['user_role'];
   phone?: string | null;
   date_of_birth?: string | null;
+  team_role_id?: string | null;
   created_at?: string;
+};
+type TeamRolesRow = {
+  id: string;
+  name: string;
+  description: string | null;
+  base: 'team' | 'content';
+  permissions: string[];
+  created_at: string;
+  updated_at: string;
+  updated_by: string | null;
+};
+type TeamRolesInsert = {
+  id?: string;
+  name: string;
+  description?: string | null;
+  base: 'team' | 'content';
+  permissions?: string[];
+  created_at?: string;
+  updated_at?: string;
+  updated_by?: string | null;
 };
 
 type ActivitiesRow = {
@@ -1301,10 +1323,17 @@ export interface Database {
       document_clients: TableDef<DocumentClientsRow, DocumentClientsInsert>;
       documents: TableDef<DocumentsRow, DocumentsInsert>;
       document_counters: TableDef<DocumentCountersRow, DocumentCountersInsert>;
+      team_roles: TableDef<TeamRolesRow, TeamRolesInsert>;
     };
     Views: { [_ in never]: never };
     Functions: {
       is_staff: { Args: Record<string, never>; Returns: boolean };
+      is_admin: { Args: Record<string, never>; Returns: boolean };
+      has_permission: { Args: { p_key: string }; Returns: boolean };
+      api_my_access: { Args: { p: Json }; Returns: Json };
+      api_team_list: { Args: { p: Json }; Returns: Json };
+      api_team_assign: { Args: { p: Json }; Returns: Json };
+      api_team_remove: { Args: { p: Json }; Returns: Json };
       used_capacity: { Args: { p_occurrence_id: string }; Returns: number };
       create_hold: {
         Args: { p_occurrence_id: string; p_quantity: number; p_idempotency_key: string };
