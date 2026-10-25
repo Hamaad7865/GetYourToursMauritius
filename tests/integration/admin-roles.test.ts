@@ -1579,3 +1579,72 @@ describe('booking money columns', () => {
     expect(Number(forfeits.rows[0]!.n)).toBe(0);
   });
 });
+
+describe('the Content role backfill', () => {
+  let db: TestDb;
+  beforeAll(async () => {
+    db = await createTestDb();
+  });
+  afterAll(async () => db.close());
+
+  it('creates a content-base "Content" role holding the five content sections', async () => {
+    await db.asOwner();
+    const row = (
+      await db.pg.query<{ base: string; permissions: string[] }>(
+        `select base, permissions from team_roles where lower(name) = 'content'`,
+      )
+    ).rows[0];
+    expect(row?.base).toBe('content');
+    expect([...(row?.permissions ?? [])].sort()).toEqual([...CONTENT_PERMISSIONS].sort());
+  });
+
+  it('moves an unassigned seo account onto the Content role, idempotently, and touches no one else', async () => {
+    // createTestDb applies the migrations on an EMPTY database, so §7's UPDATE finds no seo profile
+    // there. Run the migration's own §7 text again over seeded people — read from the file, so the
+    // statements under test cannot drift from the ones that ship.
+    const migration = readFileSync(
+      join(process.cwd(), 'supabase/migrations/20261025140000_admin_roles.sql'),
+      'utf8',
+    );
+    const start = migration.indexOf('-- ── 7)');
+    expect(start).toBeGreaterThan(-1);
+    const next = migration.indexOf('\n-- ── ', start + 1);
+    const section7 = migration.slice(start, next === -1 ? undefined : next);
+
+    const SEO_OLD = '8a8a8a8a-8a8a-8a8a-8a8a-8a8a8a8a8a8a'; // today's seo account: no team role yet
+    await seedPeople(db, [
+      [OWNER, 'owner@example.com', 'admin'],
+      [SEO_OLD, 'seo-old@example.com', 'seo'],
+      [WORKER, 'worker@example.com', 'staff'],
+      [GUEST, 'guest@example.com', 'customer'],
+      [WRITER, 'writer@example.com', 'seo'],
+    ]);
+    // WRITER was already placed on a content role of its own: the backfill must leave it there.
+    const bespoke = await seedTeamRole(db, WRITER, ['section.blog'], 'content');
+
+    const content = (
+      await db.pg.query<{ id: string }>(`select id from team_roles where lower(name) = 'content'`)
+    ).rows[0]!.id;
+    const profileOf = async (id: string) =>
+      (
+        await db.pg.query<{ role: string; team_role_id: string | null }>(
+          `select role::text as role, team_role_id from profiles where id = $1`,
+          [id],
+        )
+      ).rows[0];
+
+    await db.asOwner();
+    await db.pg.exec(section7);
+    await db.pg.exec(section7); // a second run (catch-up.sql re-applies the file) changes nothing
+
+    expect(await profileOf(SEO_OLD)).toEqual({ role: 'seo', team_role_id: content });
+    expect(await profileOf(WRITER)).toEqual({ role: 'seo', team_role_id: bespoke });
+    expect(await profileOf(WORKER)).toEqual({ role: 'staff', team_role_id: null });
+    expect(await profileOf(GUEST)).toEqual({ role: 'customer', team_role_id: null });
+    expect(await profileOf(OWNER)).toEqual({ role: 'admin', team_role_id: null });
+    const roles = await db.pg.query(
+      `select 1 from team_roles where lower(btrim(name)) = 'content'`,
+    );
+    expect(roles.rows).toHaveLength(1);
+  });
+});

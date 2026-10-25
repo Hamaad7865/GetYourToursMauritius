@@ -909,3 +909,15 @@ begin
   return new;
 end;
 $$;
+
+-- ── 7) Backfill: the existing seo account(s) keep exactly what they had ─────────────────────────
+insert into team_roles (name, description, base, permissions)
+select 'Content',
+       'Tour pages, places, SEO, blog and redirects. Never sees guests or money.',
+       'content',
+       content_permission_catalogue()
+ where not exists (select 1 from team_roles where lower(btrim(name)) = 'content');
+
+update profiles
+   set team_role_id = (select id from team_roles where lower(btrim(name)) = 'content')
+ where role::text = 'seo' and team_role_id is null;
