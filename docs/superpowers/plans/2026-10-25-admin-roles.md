@@ -511,7 +511,11 @@ const PEOPLE: Array<[string, string, string]> = [
 async function seedPeople(db: TestDb, people = PEOPLE): Promise<void> {
   await db.asOwner();
   for (const [id, email, role] of people) {
-    await db.pg.query(`insert into auth.users (id, email) values ($1, $2)`, [id, email]);
+    // Confirmed: api_team_assign only matches a confirmed account by email.
+    await db.pg.query(
+      `insert into auth.users (id, email, email_confirmed_at) values ($1, $2, now())`,
+      [id, email],
+    );
     await db.pg.query(`insert into profiles (id, full_name, role) values ($1, $2, $3::user_role)`, [
       id,
       email.split('@')[0],
@@ -2223,7 +2227,11 @@ beforeAll(async () => {
     [WRITER, 'writer@example.com', 'seo'],
     [BARE, 'bare@example.com', 'staff'],
   ]) {
-    await db.pg.query(`insert into auth.users (id, email) values ($1, $2)`, [id, email]);
+    // Confirmed: api_team_assign only matches a confirmed account by email.
+    await db.pg.query(
+      `insert into auth.users (id, email, email_confirmed_at) values ($1, $2, now())`,
+      [id, email],
+    );
     await db.pg.query(`insert into profiles (id, full_name, role) values ($1, $2, $3::user_role)`, [
       id,
       email.split('@')[0],
@@ -2657,6 +2665,15 @@ const TEAM_ERRORS: Array<[string, string]> = [
   ['team_roles_name_key', 'A role with that name already exists.'],
   ['team_role_id_fkey', 'People still have this role. Move them to another role first.'],
   ['last_owner', 'There must always be at least one Owner. Make someone else Owner first.'],
+  [
+    'not_confirmed',
+    'That account hasn’t confirmed its email yet. Ask them to click the link in their sign-up email, then add them.',
+  ],
+  [
+    'ambiguous_email',
+    'More than one account uses that email, so it can’t be added by email. Ask the developer to sort it out.',
+  ],
+  ['invalid_request', 'Something was missing from that request — reload the page and try again.'],
   [
     'not_found',
     'No account with that email. Ask them to sign up on the website first, then add them.',
@@ -4390,7 +4407,9 @@ Signed in to the DEV site as an Owner test account:
 
 1. `/admin/roles` opens; "Content" is listed. Create "Reservations" (Team) with Bookings, Calendar,
    Quotes, Documents, Leads and **no** money switches.
-2. Team → Add a member: a DEV test account's email + Reservations.
+2. Team → Add a member: a DEV test account's email + Reservations. (The account must have confirmed
+   its email — adding an unconfirmed one shows the "hasn’t confirmed its email yet" message, which is
+   itself worth seeing once.)
 3. Sign in as that test account: the sidebar shows Dashboard, Bookings, Calendar, Quotes, Documents,
    Leads; the dashboard has no revenue card, no revenue chart, and the pending card shows a count;
    `/admin/reports` and `/admin/roles` show "No access"; Bookings has no "Export CSV"; a refundable
