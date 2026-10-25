@@ -918,6 +918,9 @@ select 'Content',
        content_permission_catalogue()
  where not exists (select 1 from team_roles where lower(btrim(name)) = 'content');
 
+-- Only a content-base role named Content qualifies: a hand-made team-base "Content" role would
+-- otherwise abort this whole transaction with team_role_mismatch; here the UPDATE is a no-op instead.
+-- If the built-in role is renamed or deleted, a rerun re-creates it (by design).
 update profiles
-   set team_role_id = (select id from team_roles where lower(btrim(name)) = 'content')
+   set team_role_id = (select id from team_roles where lower(btrim(name)) = 'content' and base = 'content')
  where role::text = 'seo' and team_role_id is null;

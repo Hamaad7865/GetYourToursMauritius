@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createTestDb, type TestDb } from '../db/pglite';
 import { seedOccurrence } from '../db/seed';
 import { seedTeamRole } from '../db/team';
@@ -1581,11 +1581,12 @@ describe('booking money columns', () => {
 });
 
 describe('the Content role backfill', () => {
+  // A fresh database per test: two of them delete the migration-created role and reseed the people.
   let db: TestDb;
-  beforeAll(async () => {
+  beforeEach(async () => {
     db = await createTestDb();
   });
-  afterAll(async () => db.close());
+  afterEach(async () => db.close());
 
   it('creates a content-base "Content" role holding the five content sections', async () => {
     await db.asOwner();
@@ -1598,10 +1599,12 @@ describe('the Content role backfill', () => {
     expect([...(row?.permissions ?? [])].sort()).toEqual([...CONTENT_PERMISSIONS].sort());
   });
 
-  it('moves an unassigned seo account onto the Content role, idempotently, and touches no one else', async () => {
-    // createTestDb applies the migrations on an EMPTY database, so §7's UPDATE finds no seo profile
-    // there. Run the migration's own §7 text again over seeded people — read from the file, so the
-    // statements under test cannot drift from the ones that ship.
+  /**
+   * The migration's own §7 text, read from the file so the statements under test cannot drift from
+   * the ones that ship. createTestDb applies the migrations on an EMPTY database, so §7's UPDATE
+   * finds no seo profile there; these tests run the text again over seeded people.
+   */
+  function section7(): string {
     const migration = readFileSync(
       join(process.cwd(), 'supabase/migrations/20261025140000_admin_roles.sql'),
       'utf8',
@@ -1609,9 +1612,21 @@ describe('the Content role backfill', () => {
     const start = migration.indexOf('-- ── 7)');
     expect(start).toBeGreaterThan(-1);
     const next = migration.indexOf('\n-- ── ', start + 1);
-    const section7 = migration.slice(start, next === -1 ? undefined : next);
+    return migration.slice(start, next === -1 ? undefined : next);
+  }
 
-    const SEO_OLD = '8a8a8a8a-8a8a-8a8a-8a8a-8a8a8a8a8a8a'; // today's seo account: no team role yet
+  const profileOf = async (id: string) =>
+    (
+      await db.pg.query<{ role: string; team_role_id: string | null }>(
+        `select role::text as role, team_role_id from profiles where id = $1`,
+        [id],
+      )
+    ).rows[0];
+
+  const SEO_OLD = '8a8a8a8a-8a8a-8a8a-8a8a-8a8a8a8a8a8a'; // today's seo account: no team role yet
+
+  it('moves an unassigned seo account onto the Content role, idempotently, and touches no one else', async () => {
+    const sql = section7();
     await seedPeople(db, [
       [OWNER, 'owner@example.com', 'admin'],
       [SEO_OLD, 'seo-old@example.com', 'seo'],
@@ -1622,29 +1637,48 @@ describe('the Content role backfill', () => {
     // WRITER was already placed on a content role of its own: the backfill must leave it there.
     const bespoke = await seedTeamRole(db, WRITER, ['section.blog'], 'content');
 
-    const content = (
-      await db.pg.query<{ id: string }>(`select id from team_roles where lower(name) = 'content'`)
-    ).rows[0]!.id;
-    const profileOf = async (id: string) =>
-      (
-        await db.pg.query<{ role: string; team_role_id: string | null }>(
-          `select role::text as role, team_role_id from profiles where id = $1`,
-          [id],
-        )
-      ).rows[0];
-
+    // Production's first run: the role does not exist yet, so the INSERT and the UPDATE run together.
+    // (The migration created it at setup and no member holds it, so it can go.)
     await db.asOwner();
-    await db.pg.exec(section7);
-    await db.pg.exec(section7); // a second run (catch-up.sql re-applies the file) changes nothing
+    await db.pg.query(`delete from team_roles where lower(btrim(name)) = 'content'`);
+    await db.pg.exec(sql);
+    await db.pg.exec(sql); // a second run (catch-up.sql re-applies the file) changes nothing
 
-    expect(await profileOf(SEO_OLD)).toEqual({ role: 'seo', team_role_id: content });
+    const content = (
+      await db.pg.query<{ id: string; base: string }>(
+        `select id, base from team_roles where lower(btrim(name)) = 'content'`,
+      )
+    ).rows;
+    expect(content).toHaveLength(1);
+    expect(content[0]!.base).toBe('content');
+    expect(await profileOf(SEO_OLD)).toEqual({ role: 'seo', team_role_id: content[0]!.id });
     expect(await profileOf(WRITER)).toEqual({ role: 'seo', team_role_id: bespoke });
     expect(await profileOf(WORKER)).toEqual({ role: 'staff', team_role_id: null });
     expect(await profileOf(GUEST)).toEqual({ role: 'customer', team_role_id: null });
     expect(await profileOf(OWNER)).toEqual({ role: 'admin', team_role_id: null });
-    const roles = await db.pg.query(
-      `select 1 from team_roles where lower(btrim(name)) = 'content'`,
+  });
+
+  it('leaves the seo account alone, without raising, when a team-base "Content" role already exists', async () => {
+    // A hand-made team-base role named Content must not abort the whole catch-up transaction with
+    // team_role_mismatch: the INSERT skips (the name is taken) and the UPDATE matches no role.
+    const sql = section7();
+    await seedPeople(db, [
+      [OWNER, 'owner@example.com', 'admin'],
+      [SEO_OLD, 'seo-old@example.com', 'seo'],
+    ]);
+    await db.asOwner();
+    await db.pg.query(`delete from team_roles where lower(btrim(name)) = 'content'`);
+    await db.pg.query(
+      `insert into team_roles (name, base, permissions) values ('Content', 'team', '{}')`,
     );
-    expect(roles.rows).toHaveLength(1);
+
+    expect(await failure(db.pg.exec(sql))).toBe('');
+    expect(await profileOf(SEO_OLD)).toEqual({ role: 'seo', team_role_id: null });
+    const roles = (
+      await db.pg.query<{ base: string }>(
+        `select base from team_roles where lower(btrim(name)) = 'content'`,
+      )
+    ).rows;
+    expect(roles).toEqual([{ base: 'team' }]);
   });
 });
