@@ -234,8 +234,14 @@ while the guest left on 2026-10-15.
 `api_book` backstops it server-side (`20261025120000_transfer_first_leg_date_guard.sql`): for an airport
 transfer, a departure's `returnDate` is required and must equal the slot's Mauritius day, and a return's
 must not precede it — otherwise `transfer_date_mismatch` (a 400 telling the guest to pick the date
-again). It guards **creation only**: `api_reschedule_booking` and `apply_booking_change` move the slot
-without touching `return_date`, so moving a departure-only booking still lets the two drift apart.
+again). Moving the booking keeps them together too (`20261025130000_reschedule_transfer_return_date.sql`):
+`api_reschedule_booking` **sets** a departure's `return_date` to the new slot's day (never shifts it by
+the delta — that is also how staff repair an old mismatched booking: move the slot to the real day),
+keeps a return's second leg, and refuses `transfer_return_before_arrival` when the move would put the
+arrival after it. Change-of-tour (`apply_booking_change`) has no such rule — it is safe only because
+`change_request_quote` refuses every vehicle-mode source, and every airport transfer is vehicle-mode.
+Relax that refusal and you must teach `apply_booking_change` the same `return_date` rule first
+(`reschedule-transfer-date.test.ts` goes red to remind you).
 
 ---
 

@@ -1005,6 +1005,13 @@ export function describeRescheduleError(err: unknown): RescheduleFailure {
     return { windowBlocked: false, message: 'That date is no longer open — pick another.' };
   if (/\binsufficient_capacity\b/.test(raw))
     return { windowBlocked: false, message: 'That date has no room left for the whole party.' };
+  // No admin screen edits a transfer's return leg, so say what the operator can do instead.
+  if (/\btransfer_return_before_arrival\b/.test(raw))
+    return {
+      windowBlocked: false,
+      message:
+        'That date is after this return transfer’s departure leg — arrange the new dates with the guest, or cancel and rebook.',
+    };
   if (/\bnot_reschedulable\b/.test(raw))
     return { windowBlocked: false, message: 'This booking can no longer be moved.' };
   if (/\b(occurrence_not_found|booking_not_found)\b/.test(raw))

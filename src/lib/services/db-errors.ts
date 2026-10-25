@@ -110,6 +110,13 @@ export function mapDbError(error: unknown): never {
   if (/\btarget_not_bookable\b/.test(message)) {
     throw new ConflictError('That date is no longer available — please pick another.');
   }
+  // A return transfer moved past its own departure leg (api_reschedule_booking): both legs have to
+  // move, and only we can change the second one.
+  if (/\btransfer_return_before_arrival\b/.test(message)) {
+    throw new ConflictError(
+      'That date is after your return transfer — please message us so we can move both legs.',
+    );
+  }
   // Late-pickup guards (api_request_pickup / api_create_payment's add-on branch) → friendly 409s.
   // Above the generic `forbidden` branch because first match wins.
   if (/\bpickup_not_allowed\b/.test(message)) {

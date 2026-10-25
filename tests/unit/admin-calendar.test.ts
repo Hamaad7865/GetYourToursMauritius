@@ -851,6 +851,13 @@ describe('describeRescheduleError', () => {
     expect(r.message).toMatch(/room|full|space/i);
   });
 
+  it('reads a return transfer moved past its departure leg as terminal, and says what to do', () => {
+    const r = describeRescheduleError(new Error('transfer_return_before_arrival'));
+    expect(r.windowBlocked).toBe(false);
+    expect(r.message).toMatch(/return transfer/i);
+    expect(r.message).toMatch(/cancel and rebook/i);
+  });
+
   it('reads a not_reschedulable booking as terminal', () => {
     const r = describeRescheduleError(new Error('not_reschedulable'));
     expect(r.windowBlocked).toBe(false);

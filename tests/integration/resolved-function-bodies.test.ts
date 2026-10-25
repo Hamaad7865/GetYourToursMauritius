@@ -338,6 +338,19 @@ const CONTRACTS: ResolvedContract[] = [
       'without it a stale or crafted checkout books a departure-only transfer on the widget’s day ' +
       'while the guest leaves on another — the driver is sent on the wrong date',
   },
+  // The same coupling on the MOVE path (20261025130000_reschedule_transfer_return_date). Pin the new
+  // slot day read in Mauritius time, the return refusal landing BEFORE booking_items is repointed, and
+  // a departure's return_date being SET to the new day (not shifted) in the bookings UPDATE. A
+  // re-definition from the 20261005000000 body drops all three and moving a departure leaves its
+  // pickup date on the old day.
+  {
+    fn: 'api_reschedule_booking',
+    must: 'keeps an airport transfer’s first-leg date on the slot it moves to',
+    code: /\bv_new_day\s*:=\s*\(\s*v_target\.starts_at\s+at\s+time\s+zone\s+'indian\/mauritius'\s*\)\s*::\s*date\b[\s\S]*?\bv_direction\s*=\s*'return'\s+and\s+v_booking\.return_date\s*<\s*v_new_day\s+then\s+raise\s+exception\s+'transfer_return_before_arrival'[\s\S]*?\bupdate\s+booking_items\s+set\s+session_occurrence_id\b[\s\S]*?\bupdate\s+bookings\s+set\b[^;]*?\breturn_date\s*=\s*case\s+when\s+v_direction\s*=\s*'departure'\s+then\s+v_new_day\b/,
+    why:
+      'moving a departure-only transfer leaves its hotel pickup on the old day while the slot sits on ' +
+      'the new one, and a return can be moved past its own departure leg',
+  },
 ];
 
 /**
