@@ -34,11 +34,16 @@ export interface RoleInput {
   permissions: readonly PermissionKey[];
 }
 
+/** A refusal rule: the database's code or constraint name, and the sentence the owner reads. */
+type ErrorRule = readonly [code: string, message: string];
+
 /**
  * Database refusals → sentences for the owner. A supabase-js error is a PLAIN OBJECT (not an Error), so
- * the raw message is matched here. Longer codes first: 'team_role_not_found' contains 'not_found'.
+ * the raw message is matched here. Each code matches as a whole identifier (word boundaries), so the
+ * bare 'forbidden' does not fire on 'forbidden_booking_status_transition'. Longer codes first anyway:
+ * 'team_role_not_found' contains 'not_found'. Constraint names are written in full.
  */
-const TEAM_ERRORS: Array<[string, string]> = [
+const TEAM_ERRORS: readonly ErrorRule[] = [
   ['team_role_not_found', 'That role no longer exists — reload the page.'],
   ['team_role_mismatch', 'That role doesn’t fit this account.'],
   [
@@ -50,7 +55,10 @@ const TEAM_ERRORS: Array<[string, string]> = [
     'A content-only role can only open Tours, Places, SEO, Blog and Redirects.',
   ],
   ['team_roles_name_key', 'A role with that name already exists.'],
-  ['team_role_id_fkey', 'People still have this role. Move them to another role first.'],
+  ['team_roles_name_check', 'A role name needs 1–60 characters.'],
+  ['team_roles_description_check', 'Keep the description under 300 characters.'],
+  ['team_roles_permissions_check', 'That permission isn’t recognised — reload the page.'],
+  ['profiles_team_role_id_fkey', 'People still have this role. Move them to another role first.'],
   ['last_owner', 'There must always be at least one Owner. Make someone else Owner first.'],
   [
     'not_confirmed',
@@ -66,20 +74,45 @@ const TEAM_ERRORS: Array<[string, string]> = [
     'No account with that email. Ask them to sign up on the website first, then add them.',
   ],
   ['forbidden', 'Only the owner can do that.'],
+  ['row-level security', 'Only the owner can do that.'],
 ];
 
-export function teamErrorMessage(raw: string, fallback: string): string {
-  return TEAM_ERRORS.find(([code]) => raw.includes(code))?.[1] ?? fallback;
+/** `not_found` when the caller named an account by id (not an email): the row went away. */
+const NO_SUCH_PERSON: readonly ErrorRule[] = [
+  ['not_found', 'That person no longer has an account — reload the page.'],
+];
+
+function mentions(raw: string, code: string): boolean {
+  const escaped = code.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`\\b${escaped}\\b`).test(raw);
 }
 
-function fail(error: { message?: string } | null, fallback: string): Error {
-  return new Error(teamErrorMessage(error?.message ?? '', fallback));
+/**
+ * `overrides` win over the shared table — for a call where a code means something narrower than the
+ * default sentence says.
+ */
+export function teamErrorMessage(
+  raw: string,
+  fallback: string,
+  overrides: readonly ErrorRule[] = [],
+): string {
+  const hit = [...overrides, ...TEAM_ERRORS].find(([code]) => mentions(raw, code));
+  return hit?.[1] ?? fallback;
+}
+
+/** A real Error with a friendly message; the raw database error rides along as `cause`. */
+function fail(
+  error: { message?: string } | null,
+  fallback: string,
+  overrides: readonly ErrorRule[] = [],
+): Error {
+  return new Error(teamErrorMessage(error?.message ?? '', fallback, overrides), { cause: error });
 }
 
 /** The signed-in person's access (api_my_access). */
 export async function loadMyAccess(): Promise<AdminAccess> {
   const { data, error } = await getBrowserSupabase().rpc('api_my_access', { p: {} });
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(error.message, { cause: error });
   const d = (data ?? {}) as {
     role?: string | null;
     teamRoleId?: string | null;
@@ -118,8 +151,15 @@ export async function saveRole(input: RoleInput): Promise<string> {
     permissions: [...input.permissions],
   };
   if (input.id) {
-    const { error } = await sb.from('team_roles').update(row).eq('id', input.id);
+    // RETURNING, because PostgREST answers "0 rows changed" (a deleted role, or RLS hiding it from a
+    // non-owner) with success and no error.
+    const { data, error } = await sb.from('team_roles').update(row).eq('id', input.id).select('id');
     if (error) throw fail(error, 'Could not save the role.');
+    if (!data || data.length === 0) {
+      throw new Error(
+        'That role no longer exists, or only the owner can change it — reload the page.',
+      );
+    }
     return input.id;
   }
   const { data, error } = await sb
@@ -132,8 +172,18 @@ export async function saveRole(input: RoleInput): Promise<string> {
 }
 
 export async function deleteRole(id: string): Promise<void> {
-  const { error } = await getBrowserSupabase().from('team_roles').delete().eq('id', id);
+  // RETURNING for the same reason as saveRole: a no-op delete is not an error to PostgREST.
+  const { data, error } = await getBrowserSupabase()
+    .from('team_roles')
+    .delete()
+    .eq('id', id)
+    .select('id');
   if (error) throw fail(error, 'Could not delete the role.');
+  if (!data || data.length === 0) {
+    throw new Error(
+      'That role no longer exists, or only the owner can delete it — reload the page.',
+    );
+  }
 }
 
 export async function loadTeam(): Promise<TeamMember[]> {
@@ -157,10 +207,14 @@ export async function assignMember(
   const { error } = await getBrowserSupabase().rpc('api_team_assign', {
     p: { ...who, teamRoleId: target },
   });
-  if (error) throw fail(error, 'Could not change their role.');
+  // `not_found` reads "no account with that email" only when an email was typed; by id it means the
+  // person's row went away.
+  if (error) {
+    throw fail(error, 'Could not change their role.', who.email ? [] : NO_SUCH_PERSON);
+  }
 }
 
 export async function removeMember(userId: string): Promise<void> {
   const { error } = await getBrowserSupabase().rpc('api_team_remove', { p: { userId } });
-  if (error) throw fail(error, 'Could not remove them.');
+  if (error) throw fail(error, 'Could not remove them.', NO_SUCH_PERSON);
 }

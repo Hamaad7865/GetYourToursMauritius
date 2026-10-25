@@ -181,4 +181,145 @@ describe('src/lib/admin/team.ts (the Roles screen’s calls)', () => {
     ).toMatch(/already exists/);
     expect(teamErrorMessage('something else', 'Could not save.')).toBe('Could not save.');
   });
+
+  // ── Refusals, no-op writes and error text ────────────────────────────────────────────────────────
+  // These build their own accounts and roles, so they never depend on what an earlier test did to BARE.
+  let nextAccount = 0;
+  /** A fresh confirmed customer account; leaves the session in the OWNER (superuser) context. */
+  const newAccount = async () => {
+    nextAccount += 1;
+    const id = `bb000000-0000-0000-0000-${String(nextAccount).padStart(12, '0')}`;
+    const email = `fresh${nextAccount}@example.com`;
+    await db.asOwner();
+    await db.pg.query(
+      `insert into auth.users (id, email, email_confirmed_at) values ($1, $2, now())`,
+      [id, email],
+    );
+    await db.pg.query(`insert into profiles (id, full_name, role) values ($1, $2, 'customer')`, [
+      id,
+      `fresh${nextAccount}`,
+    ]);
+    return { id, email };
+  };
+  const UNKNOWN_ID = 'bb000000-0000-0000-0000-00000000dead';
+  const newRole = (name: string, description = '') =>
+    saveRole({ id: null, name, description, base: 'team', permissions: [] });
+
+  it('loadMyAccess rejects for an anonymous caller', async () => {
+    await db.as(null);
+    await expect(loadMyAccess()).rejects.toThrow(/permission denied/);
+  });
+
+  it('refuses a duplicate role name (any case) in a sentence', async () => {
+    await asOwnerUser();
+    const id = await newRole('Dupes');
+    await expect(newRole('  dUPES ')).rejects.toThrow(/already exists/);
+    await deleteRole(id);
+  });
+
+  it('refuses to delete a role that still has people in it', async () => {
+    const person = await newAccount();
+    await asOwnerUser();
+    const id = await newRole('Held');
+    await assignMember({ userId: person.id }, id);
+    await expect(deleteRole(id)).rejects.toThrow(/still have this role/);
+    await removeMember(person.id);
+    await deleteRole(id);
+  });
+
+  it('only the owner can create a role', async () => {
+    await db.as({ sub: WORKER, role: 'authenticated' });
+    await expect(newRole('Sneaky')).rejects.toThrow(/Only the owner/);
+  });
+
+  it('reports an update that changed nothing instead of succeeding quietly', async () => {
+    // A non-owner: RLS hides the row from UPDATE, PostgREST answers 0 rows and no error.
+    await db.as({ sub: WORKER, role: 'authenticated' });
+    const own = (await loadMyAccess()).teamRoleId!;
+    await expect(
+      saveRole({ id: own, name: 'Hijacked', description: '', base: 'team', permissions: [] }),
+    ).rejects.toThrow(/no longer exists, or only the owner/);
+    await db.asOwner();
+    const { rows } = await db.pg.query<{ name: string }>(
+      `select name from team_roles where id = $1`,
+      [own],
+    );
+    expect(rows[0]!.name).not.toBe('Hijacked');
+
+    // The owner, on a role somebody else already deleted.
+    await asOwnerUser();
+    await expect(
+      saveRole({ id: UNKNOWN_ID, name: 'Ghost', description: '', base: 'team', permissions: [] }),
+    ).rejects.toThrow(/no longer exists, or only the owner/);
+  });
+
+  it('reports a delete that removed nothing', async () => {
+    await asOwnerUser();
+    await expect(deleteRole(UNKNOWN_ID)).rejects.toThrow(/no longer exists, or only the owner/);
+    await db.as({ sub: WORKER, role: 'authenticated' });
+    const own = (await loadMyAccess()).teamRoleId!;
+    await expect(deleteRole(own)).rejects.toThrow(/no longer exists, or only the owner/);
+  });
+
+  it('says "no longer has an account" when the account was named by id', async () => {
+    await asOwnerUser();
+    await expect(removeMember(UNKNOWN_ID)).rejects.toThrow(/no longer has an account/);
+    await expect(assignMember({ userId: UNKNOWN_ID }, 'owner')).rejects.toThrow(
+      /no longer has an account/,
+    );
+    // …while typing an email nobody has still points them at the website sign-up.
+    await expect(assignMember({ email: 'nobody@example.com' }, 'owner')).rejects.toThrow(
+      /sign up on the website first/,
+    );
+  });
+
+  it('refuses an account that has not confirmed its email', async () => {
+    const person = await newAccount();
+    await db.pg.query(`update auth.users set email_confirmed_at = null where id = $1`, [person.id]);
+    await asOwnerUser();
+    await expect(assignMember({ email: person.email }, 'owner')).rejects.toThrow(
+      /hasn’t confirmed its email/,
+    );
+  });
+
+  it('stores an empty description as null', async () => {
+    await asOwnerUser();
+    const id = await newRole('Blank', '   ');
+    const role = (await loadRoles()).find((r) => r.id === id)!;
+    expect(role.description).toBeNull();
+    await deleteRole(id);
+  });
+
+  it('turns the table’s check constraints into sentences', async () => {
+    await asOwnerUser();
+    await expect(newRole('   ')).rejects.toThrow(/1–60 characters/);
+    await expect(newRole('x'.repeat(61))).rejects.toThrow(/1–60 characters/);
+    await expect(newRole('Wordy', 'y'.repeat(301))).rejects.toThrow(/under 300 characters/);
+    await expect(
+      saveRole({
+        id: null,
+        name: 'Bogus',
+        description: '',
+        base: 'team',
+        permissions: ['not.a.permission' as never],
+      }),
+    ).rejects.toThrow(/isn’t recognised/);
+  });
+
+  it('keeps the raw database error as the cause', async () => {
+    await asOwnerUser();
+    const err = await removeMember(OWNER).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(Error);
+    expect(((err as Error).cause as { message?: string }).message).toMatch(/last_owner/);
+  });
+
+  it('matches codes as whole identifiers', () => {
+    expect(teamErrorMessage('forbidden_booking_status_transition', 'x')).toBe('x');
+    expect(teamErrorMessage('forbidden', 'x')).toBe('Only the owner can do that.');
+    expect(teamErrorMessage('team_role_not_found', 'x')).toMatch(/That role no longer exists/);
+    expect(teamErrorMessage('not_found', 'x')).toMatch(/No account with that email/);
+    expect(
+      teamErrorMessage('new row violates row-level security policy for table "team_roles"', 'x'),
+    ).toBe('Only the owner can do that.');
+  });
 });
