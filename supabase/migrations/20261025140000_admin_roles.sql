@@ -477,3 +477,112 @@ grant execute on function api_my_access(jsonb) to authenticated, service_role;
 grant execute on function api_team_list(jsonb) to authenticated, service_role;
 grant execute on function api_team_assign(jsonb) to authenticated, service_role;
 grant execute on function api_team_remove(jsonb) to authenticated, service_role;
+
+-- ── 5) Money locks ──────────────────────────────────────────────────────────────────────────────
+-- (a) Tables that are nothing but prices: writing needs money.prices. Reads are unchanged — each
+--     table keeps its own `_read` policy (public, or published-or-staff).
+drop policy if exists aop_staff on activity_option_prices;
+create policy aop_staff on activity_option_prices for all
+  using (is_staff() and (select has_permission('money.prices')))
+  with check (is_staff() and (select has_permission('money.prices')));
+
+drop policy if exists activity_supplements_staff on activity_supplements;
+create policy activity_supplements_staff on activity_supplements for all
+  using (is_staff() and (select has_permission('money.prices')))
+  with check (is_staff() and (select has_permission('money.prices')));
+
+drop policy if exists sightseeing_pricing_staff on sightseeing_pricing;
+create policy sightseeing_pricing_staff on sightseeing_pricing for all
+  using (is_staff() and (select has_permission('money.prices')))
+  with check (is_staff() and (select has_permission('money.prices')));
+
+drop policy if exists planner_pricing_staff on planner_pricing;
+create policy planner_pricing_staff on planner_pricing for all
+  using (is_staff() and (select has_permission('money.prices')))
+  with check (is_staff() and (select has_permission('money.prices')));
+
+drop policy if exists transport_band_pricing_staff on transport_band_pricing;
+create policy transport_band_pricing_staff on transport_band_pricing for all
+  using (is_staff() and (select has_permission('money.prices')))
+  with check (is_staff() and (select has_permission('money.prices')));
+
+drop policy if exists airport_transfer_fare_staff on airport_transfer_fare;
+create policy airport_transfer_fare_staff on airport_transfer_fare for all
+  using (is_staff() and (select has_permission('money.prices')))
+  with check (is_staff() and (select has_permission('money.prices')));
+
+drop policy if exists hotel_transfer_fare_staff on hotel_transfer_fare;
+create policy hotel_transfer_fare_staff on hotel_transfer_fare for all
+  using (is_staff() and (select has_permission('money.prices')))
+  with check (is_staff() and (select has_permission('money.prices')));
+
+drop policy if exists airport_transfer_config_staff on airport_transfer_config;
+create policy airport_transfer_config_staff on airport_transfer_config for all
+  using (is_staff() and (select has_permission('money.prices')))
+  with check (is_staff() and (select has_permission('money.prices')));
+
+drop policy if exists hotel_transfer_config_staff on hotel_transfer_config;
+create policy hotel_transfer_config_staff on hotel_transfer_config for all
+  using (is_staff() and (select has_permission('money.prices')))
+  with check (is_staff() and (select has_permission('money.prices')));
+
+drop policy if exists region_zone_distance_staff on region_zone_distance;
+create policy region_zone_distance_staff on region_zone_distance for all
+  using (is_staff() and (select has_permission('money.prices')))
+  with check (is_staff() and (select has_permission('money.prices')));
+
+-- (b) Tables that mix prices with fields a worker may edit: RLS cannot split columns, so a trigger
+--     refuses a client caller without the permission who CHANGES a price column (update: new value
+--     differs; insert: a non-null, non-zero value). Unchanged re-saves pass — the editors send rows
+--     back whole. TG_ARGV[0] is the permission, the rest are the guarded columns.
+create or replace function enforce_money_columns()
+returns trigger
+language plpgsql
+security invoker
+set search_path = public
+as $$
+declare
+  v_perm text := tg_argv[0];
+  v_new jsonb := to_jsonb(new);
+  v_old jsonb := case when tg_op = 'UPDATE' then to_jsonb(old) end;
+  v_col text;
+  i int;
+begin
+  if current_user not in ('anon', 'authenticated') or has_permission(v_perm) then
+    return new;
+  end if;
+  for i in 1 .. tg_nargs - 1 loop
+    v_col := tg_argv[i];
+    if (tg_op = 'INSERT' and nullif(v_new ->> v_col, '0') is not null)
+       or (tg_op = 'UPDATE' and (v_new -> v_col) is distinct from (v_old -> v_col)) then
+      raise exception 'forbidden'
+        using detail = format('changing %s needs the %s permission', v_col, v_perm);
+    end if;
+  end loop;
+  return new;
+end;
+$$;
+
+revoke execute on function enforce_money_columns() from public, anon, authenticated;
+grant execute on function enforce_money_columns() to service_role;
+
+drop trigger if exists activity_options_money_guard on activity_options;
+create trigger activity_options_money_guard
+  before insert or update on activity_options
+  for each row execute function enforce_money_columns(
+    'money.prices', 'private_base_minor', 'private_included', 'private_extra_minor');
+
+drop trigger if exists activities_money_guard on activities;
+create trigger activities_money_guard
+  before insert or update on activities
+  for each row execute function enforce_money_columns('money.prices', 'supplement_minor');
+
+drop trigger if exists rental_vehicles_money_guard on rental_vehicles;
+create trigger rental_vehicles_money_guard
+  before insert or update on rental_vehicles
+  for each row execute function enforce_money_columns('money.prices', 'daily_rate_minor', 'deposit_minor');
+
+drop trigger if exists business_settings_money_guard on business_settings;
+create trigger business_settings_money_guard
+  before insert or update on business_settings
+  for each row execute function enforce_money_columns('money.currency', 'charge_currency', 'eur_mur_rate');

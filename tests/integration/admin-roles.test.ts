@@ -933,3 +933,186 @@ describe('team RPCs', () => {
     }
   });
 });
+
+describe('money locks', () => {
+  let db: TestDb;
+  const PRICER = '6a6a6a6a-6a6a-6a6a-6a6a-6a6a6a6a6a6a';
+  const CASHIER = '7a7a7a7a-7a7a-7a7a-7a7a-7a7a7a7a7a7a';
+  let optionId: string;
+
+  beforeAll(async () => {
+    db = await createTestDb();
+    await seedPeople(db, [
+      ...PEOPLE,
+      [PRICER, 'pricer@example.com', 'staff'],
+      [CASHIER, 'cashier@example.com', 'staff'],
+    ]);
+    await seedTeamRole(db, WORKER, ['section.tours', 'section.rental']);
+    await seedTeamRole(db, PRICER, ['section.tours', 'money.prices']);
+    await seedTeamRole(db, CASHIER, ['money.currency']);
+    await db.asOwner();
+    await db.pg.query(
+      `insert into operators (name, slug) values ('Belle Mare Tours', 'belle-mare-tours')`,
+    );
+    const activityId = await one<string>(
+      db,
+      `insert into activities (operator_id, slug, title, category, status)
+       select id, 'lock-test', 'Lock test', 'Island tours', 'draft' from operators limit 1
+       returning id as v`,
+    );
+    optionId = await one<string>(
+      db,
+      `insert into activity_options
+         (activity_id, name, position, private_base_minor, private_included, private_extra_minor, private_max_guests)
+       values ($1, 'Private', 0, 20000, 4, 3000, 8) returning id as v`,
+      [activityId],
+    );
+  });
+  afterAll(async () => db.close());
+
+  it('a price-only table: refused without money.prices, allowed with it', async () => {
+    await asUser(db, WORKER);
+    expect(
+      await failure(
+        db.pg.query(
+          `insert into activity_option_prices (activity_option_id, label, amount_minor, position)
+           values ($1, 'Adult', 5000, 0)`,
+          [optionId],
+        ),
+      ),
+    ).toMatch(/row-level security/);
+    const upd = await db.pg.query(`update transport_band_pricing set sedan_minor = 1`);
+    expect(upd.affectedRows).toBe(0);
+
+    await asUser(db, PRICER);
+    expect(
+      await failure(
+        db.pg.query(
+          `insert into activity_option_prices (activity_option_id, label, amount_minor, position)
+           values ($1, 'Adult', 5000, 0)`,
+          [optionId],
+        ),
+      ),
+    ).toBe('');
+  });
+
+  it('a mixed table: other columns stay editable, a changed price is refused', async () => {
+    await asUser(db, WORKER);
+    expect(
+      await failure(
+        db.pg.query(`update activity_options set name = 'Private trip' where id = $1`, [optionId]),
+      ),
+    ).toBe('');
+    // An unchanged re-save of the price columns passes (the tour editor sends them back as loaded).
+    expect(
+      await failure(
+        db.pg.query(
+          `update activity_options set private_base_minor = 20000, private_extra_minor = 3000 where id = $1`,
+          [optionId],
+        ),
+      ),
+    ).toBe('');
+    expect(
+      await failure(
+        db.pg.query(`update activity_options set private_base_minor = 1 where id = $1`, [optionId]),
+      ),
+    ).toMatch(/forbidden/);
+    expect(
+      await failure(
+        db.pg.query(`update activity_options set private_included = 8 where id = $1`, [optionId]),
+      ),
+    ).toMatch(/forbidden/);
+
+    await asUser(db, PRICER);
+    expect(
+      await failure(
+        db.pg.query(`update activity_options set private_base_minor = 25000 where id = $1`, [
+          optionId,
+        ]),
+      ),
+    ).toBe('');
+  });
+
+  it('rental: a new priced vehicle needs money.prices', async () => {
+    await asUser(db, WORKER);
+    expect(
+      await failure(
+        db.pg.query(
+          `insert into rental_vehicles (slug, name, daily_rate_minor) values ('lock-car', 'Lock car', 3600)`,
+        ),
+      ),
+    ).toMatch(/forbidden/);
+  });
+
+  it('business_settings: WhatsApp stays editable, the rate needs money.currency', async () => {
+    await asUser(db, WORKER);
+    expect(
+      await failure(db.pg.query(`update business_settings set whatsapp_number = '+230 5772 9919'`)),
+    ).toBe('');
+    expect(await failure(db.pg.query(`update business_settings set eur_mur_rate = 51`))).toMatch(
+      /forbidden/,
+    );
+    await asUser(db, CASHIER);
+    // CASHIER is staff (is_staff() passes the row policy) and holds money.currency.
+    expect(await failure(db.pg.query(`update business_settings set eur_mur_rate = 51`))).toBe('');
+  });
+
+  it('the Owner and the service role are never blocked', async () => {
+    await asUser(db, OWNER);
+    expect(
+      await failure(
+        db.pg.query(`update activity_options set private_base_minor = 30000 where id = $1`, [
+          optionId,
+        ]),
+      ),
+    ).toBe('');
+    // The harness has no Supabase default table privileges, so a table created after the first RLS
+    // migration gives service_role SELECT only. Production has the full set; mirror it here so the
+    // trigger — not a missing grant — is what is being tested.
+    await db.asOwner();
+    await db.pg.query(`grant update on business_settings to service_role`);
+    await db.as({ role: 'service_role' });
+    expect(
+      await failure(
+        db.pg.query(`update activity_options set private_base_minor = 31000 where id = $1`, [
+          optionId,
+        ]),
+      ),
+    ).toBe('');
+    expect(await failure(db.pg.query(`update business_settings set charge_currency = 'EUR'`))).toBe(
+      '',
+    );
+  });
+
+  it('every guarded column and permission named in a money-guard trigger really exists', async () => {
+    // A misspelt column in TG_ARGV would silently guard nothing (old and new are both null).
+    await db.asOwner();
+    const { rows } = await db.pg.query<{ tbl: string; args: string[] }>(
+      `select tgrelid::regclass::text as tbl,
+              string_to_array(encode(tgargs, 'escape'), '\\000') as args
+         from pg_trigger
+        where tgname like '%\\_money\\_guard' and not tgisinternal
+        order by 1`,
+    );
+    expect(rows.map((r) => r.tbl)).toEqual([
+      'activities',
+      'activity_options',
+      'business_settings',
+      'rental_vehicles',
+    ]);
+    const catalogue = await one<string[]>(db, `select permission_catalogue() as v`);
+    for (const { tbl, args } of rows) {
+      const [perm, ...columns] = args.filter(Boolean); // tgargs ends with a trailing NUL
+      expect(catalogue, `${tbl}: permission ${perm}`).toContain(perm);
+      expect(columns.length, `${tbl}: guarded columns`).toBeGreaterThan(0);
+      for (const col of columns) {
+        const hit = await db.pg.query(
+          `select 1 from pg_attribute
+            where attrelid = $1::regclass and attname = $2 and attnum > 0 and not attisdropped`,
+          [tbl, col],
+        );
+        expect(hit.rows.length, `${tbl}.${col}`).toBe(1);
+      }
+    }
+  });
+});
