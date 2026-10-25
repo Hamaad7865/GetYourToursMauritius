@@ -1371,3 +1371,56 @@ describe('money locks', () => {
     expect(rows[0]).toEqual({ daily_capacity: 6, private_max_guests: 6 });
   });
 });
+
+describe('refund guards', () => {
+  let db: TestDb;
+  const REFUNDER = '8a8a8a8a-8a8a-8a8a-8a8a-8a8a8a8a8a8a';
+  beforeAll(async () => {
+    db = await createTestDb();
+    await seedPeople(db, [...PEOPLE, [REFUNDER, 'refunder@example.com', 'staff']]);
+    await seedTeamRole(db, WORKER, ['section.bookings']);
+    await seedTeamRole(db, REFUNDER, ['section.bookings', 'money.refunds']);
+  });
+  afterAll(async () => db.close());
+
+  const MISSING = '9e9e9e9e-9e9e-9e9e-9e9e-9e9e9e9e9e9e';
+
+  it('api_mark_refunded refuses staff without money.refunds, before reading anything', async () => {
+    await asUser(db, WORKER);
+    expect(
+      await failure(
+        db.pg.query(`select api_mark_refunded($1::jsonb)`, [
+          JSON.stringify({ bookingId: MISSING }),
+        ]),
+      ),
+    ).toMatch(/forbidden/);
+    await asUser(db, REFUNDER);
+    // Past the guard: the next check is the booking lookup.
+    expect(
+      await failure(
+        db.pg.query(`select api_mark_refunded($1::jsonb)`, [
+          JSON.stringify({ bookingId: MISSING }),
+        ]),
+      ),
+    ).toMatch(/booking_not_found/);
+  });
+
+  it('api_record_change_refund refuses staff without money.refunds', async () => {
+    await asUser(db, WORKER);
+    expect(
+      await failure(
+        db.pg.query(`select api_record_change_refund($1::jsonb)`, [
+          JSON.stringify({ requestId: MISSING }),
+        ]),
+      ),
+    ).toMatch(/forbidden/);
+    await asUser(db, REFUNDER);
+    expect(
+      await failure(
+        db.pg.query(`select api_record_change_refund($1::jsonb)`, [
+          JSON.stringify({ requestId: MISSING }),
+        ]),
+      ),
+    ).toMatch(/change_request_not_found/);
+  });
+});

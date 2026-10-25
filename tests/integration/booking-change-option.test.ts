@@ -1,6 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { createTestDb, type TestDb } from '../db/pglite';
 import { apiBook } from '../db/book';
+import { seedTeamRole } from '../db/team';
 
 /**
  * Staff change-of-tour: move a PAID booking onto a different activity option and settle the price
@@ -147,6 +148,7 @@ describe('staff change of tour', () => {
     await db.pg.query(`insert into profiles (id, role) values ($1, 'customer')`, [CUSTOMER]);
     await db.pg.query(`insert into auth.users (id) values ($1)`, [STAFF]);
     await db.pg.query(`insert into profiles (id, role) values ($1, 'staff')`, [STAFF]);
+    await seedTeamRole(db, STAFF, ['section.bookings', 'money.refunds']);
     await db.pg.query(`insert into auth.users (id) values ($1)`, [OTHER]);
     await db.pg.query(`insert into profiles (id, role) values ($1, 'customer')`, [OTHER]);
 

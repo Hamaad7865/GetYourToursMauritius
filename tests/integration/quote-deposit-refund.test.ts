@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestDb, type TestDb } from '../db/pglite';
+import { seedTeamRole } from '../db/team';
 
 /**
  * THE NON-REFUNDABLE QUOTE DEPOSIT (Task 7 of the quote-deposit plan, deferred out of the
@@ -157,6 +158,7 @@ describe('quote deposit — non-refundable deposit on refund', () => {
     await db.asOwner();
     await db.pg.query(`insert into auth.users (id) values ($1)`, [STAFF]);
     await db.pg.query(`insert into profiles (id, role) values ($1, 'staff')`, [STAFF]);
+    await seedTeamRole(db, STAFF, ['section.bookings', 'money.refunds']);
   });
 
   afterAll(async () => {

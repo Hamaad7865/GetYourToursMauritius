@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestDb, type TestDb } from '../db/pglite';
 import { seedOccurrence } from '../db/seed';
+import { seedTeamRole } from '../db/team';
 
 /**
  * P1: an admin cancel of a PAID booking flips it to refund_pending, but nothing ever moves it on to
@@ -75,6 +76,7 @@ describe('api_mark_refunded records a manual refund', () => {
     await db.asOwner();
     await db.pg.query(`insert into auth.users (id) values ($1)`, [STAFF]);
     await db.pg.query(`insert into profiles (id, role) values ($1, 'staff')`, [STAFF]);
+    await seedTeamRole(db, STAFF, ['section.bookings', 'money.refunds']);
     await db.pg.query(`insert into auth.users (id) values ($1)`, [CUSTOMER]);
     await db.pg.query(`insert into profiles (id, role) values ($1, 'customer')`, [CUSTOMER]);
   });

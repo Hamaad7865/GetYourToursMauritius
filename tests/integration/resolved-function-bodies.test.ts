@@ -351,6 +351,21 @@ const CONTRACTS: ResolvedContract[] = [
       'moving a departure-only transfer leaves its hotel pickup on the old day while the slot sits on ' +
       'the new one, and a return can be moved past its own departure leg',
   },
+  // Refunds are an owner-grantable permission (20261025140000_admin_roles). Both bodies are long
+  // money-path definitions that have been re-declared from stale copies before; a later one forked from
+  // a pre-roles body would quietly hand every staff member the refund buttons again.
+  {
+    fn: 'api_mark_refunded',
+    must: 'refuse a staff member whose role lacks money.refunds',
+    code: /\bif\s+not\s+is_staff\(\)\s+or\s+not\s+has_permission\('money\.refunds'\)\s+then\b/,
+    why: 'any staff member could record a refund and email the guest a refund confirmation',
+  },
+  {
+    fn: 'api_record_change_refund',
+    must: 'refuse a staff member whose role lacks money.refunds',
+    code: /\bif\s+not\s+is_staff\(\)\s+or\s+not\s+has_permission\('money\.refunds'\)\s+then\b/,
+    why: 'any staff member could record a change-of-tour refund in the ledger',
+  },
 ];
 
 /**
