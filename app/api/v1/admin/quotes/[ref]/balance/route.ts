@@ -7,6 +7,8 @@ import { rateLimit } from '@/lib/http/rate-limit';
 import { getServerEnv } from '@/lib/config/env';
 import { isSiteUrlConfiguredForLive } from '@/lib/config/runtime';
 import { createServiceRoleClient } from '@/lib/supabase/admin';
+import { can } from '@/lib/admin/permissions';
+import { loadCallerAccess, type AccessClient } from '@/lib/http/access';
 import { hashQuoteToken, mintQuoteToken } from '@/lib/quotes/token';
 import { getNotificationProvider } from '@/lib/notifications';
 import { renderQuoteBalanceEmail } from '@/lib/email/quote';
@@ -48,10 +50,11 @@ type RouteCtx = { params: Promise<{ ref: string }> };
  *
  * ── THE STAFF GATE (copied from the send route, and for the same reasons) ─────────────────────────
  * `requireUser(req).role` is the JWT's POSTGRES role selector — 'authenticated' for staff and customer
- * alike — and NEVER the app's business role. There is no shared `requireStaff` helper, so the check is
- * the one the send route makes: look `profiles.role` up through the service-role client (RLS-exempt, so
- * it can answer for any caller). 'seo' IS NOT ADMITTED, exactly as on the send route: a quote carries
- * the guest's name, their email, and the operator's own margin note on the same row.
+ * alike — and NEVER the app's business role. So the check is the one the send route makes:
+ * `loadCallerAccess` (src/lib/http/access.ts) reads `profiles` and `team_roles` through the service-role
+ * client (RLS-exempt, so it can answer for any caller) and the route requires the Quotes section
+ * (`section.quotes`). A content-only account ('seo') never holds it, exactly as on the send route: a
+ * quote carries the guest's name, their email, and the operator's own margin note on the same row.
  *
  * ── WHAT IT REFUSES BEFORE MINTING A TOKEN ───────────────────────────────────────────────────────
  * Each refusal is a readable 409/404 the operator can act on, taken from the booking's own state so it
@@ -75,9 +78,6 @@ type RouteCtx = { params: Promise<{ ref: string }> };
 // one is a clean 400, and the client posts `{}`.
 const bodySchema = z.object({});
 
-/** The business roles allowed to send a guest a payment link. See the staff-gate note above re 'seo'. */
-const SENDING_ROLES = new Set(['admin', 'staff']);
-
 /* ---------------------------------------------------------------------------------------------
  * The typed client does not know the quotes tables — the same structural cast, and the same reason, as
  * app/api/v1/admin/quotes/send/route.ts and src/lib/quotes/resolve.ts: the quotes module landed in
@@ -98,7 +98,7 @@ interface WriteBuilder extends PromiseLike<{ data: Row[] | null; error: unknown 
 }
 
 interface BalanceClient {
-  from(table: 'quotes' | 'bookings' | 'profiles'): {
+  from(table: 'quotes' | 'bookings'): {
     select(columns: string): ReadBuilder;
     update(payload: Row): WriteBuilder;
   };
@@ -118,25 +118,14 @@ function minor(value: unknown): number {
   return Number(value ?? 0);
 }
 
-/**
- * The signed-in caller's business role, or null when they have no profile row. Read through the
- * SERVICE-ROLE client on purpose: `profiles` is RLS-protected and this must answer for any caller.
- */
-async function callerRole(db: BalanceClient, userId: string): Promise<string | null> {
-  const { data, error } = await db.from('profiles').select('role').eq('id', userId).maybeSingle();
-  if (error)
-    throw new Error(String((error as { message?: string }).message ?? 'profile read failed'));
-  return textOrNull(data?.role ?? null);
-}
-
 export const POST = apiHandler<RouteCtx>(async (req, { params }) => {
   // Before the auth check, as on every other rate-limited route here.
   await rateLimit(req, 'admin_quote_balance', 20, 60);
 
   const user = await requireUser(req);
   const db = createServiceRoleClient() as unknown as BalanceClient;
-  const role = await callerRole(db, user.id);
-  if (!role || !SENDING_ROLES.has(role)) {
+  const access = await loadCallerAccess(db as unknown as AccessClient, user.id);
+  if (!can(access, 'section.quotes')) {
     throw new ForbiddenError('Staff only');
   }
 

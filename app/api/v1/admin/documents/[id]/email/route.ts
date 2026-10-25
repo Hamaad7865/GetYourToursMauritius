@@ -3,7 +3,15 @@ import { jsonOk } from '@/lib/http/envelope';
 import { preflightResponse } from '@/lib/http/cors';
 import { requireUser, getBearerToken } from '@/lib/http/auth';
 import { createUserClient } from '@/lib/supabase/client';
-import { NotFoundError, ValidationError, ProviderError } from '@/lib/services/errors';
+import { createServiceRoleClient } from '@/lib/supabase/admin';
+import { can } from '@/lib/admin/permissions';
+import { loadCallerAccess, type AccessClient } from '@/lib/http/access';
+import {
+  ForbiddenError,
+  NotFoundError,
+  ValidationError,
+  ProviderError,
+} from '@/lib/services/errors';
 import { DOCUMENT_ISSUER } from '@/lib/documents/issuer';
 import { buildDocument } from '@/lib/documents/model';
 import { renderDocumentPdf } from '@/lib/documents/pdf';
@@ -33,12 +41,18 @@ function bytesToBase64(bytes: Uint8Array): string {
 /**
  * POST /api/v1/admin/documents/:id/email — email the document to its client, with the PDF attached.
  *
- * Staff-only via RLS (the read runs as the caller; the documents table is is_staff()-only, so a
- * non-staff caller 404s). Operator-initiated: the button in the editor is the only caller. The mail
+ * Staff with the Documents section — checked explicitly (`loadCallerAccess`, service-role read of the
+ * caller's role), and RLS still scopes the read to staff (the read runs as the caller; the documents
+ * table is is_staff()-only, so a non-staff caller 404s). Operator-initiated: the button in the editor is the only caller. The mail
  * goes out FROM the monitored info@ inbox so the client can just hit Reply.
  */
 export const POST = apiHandler<RouteCtx>(async (req, { params }) => {
-  await requireUser(req);
+  const user = await requireUser(req);
+  const access = await loadCallerAccess(
+    createServiceRoleClient() as unknown as AccessClient,
+    user.id,
+  );
+  if (!can(access, 'section.documents')) throw new ForbiddenError('Staff only');
   const { id } = await params;
 
   const supabase = createUserClient(getBearerToken(req));

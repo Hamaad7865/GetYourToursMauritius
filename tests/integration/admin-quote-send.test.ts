@@ -3,6 +3,7 @@ import { createTestDb, type TestDb } from '../db/pglite';
 import { makeSupabaseShim, type SupabaseShim } from '../db/supabase-pglite';
 import { pgliteServiceRoleRpc } from '../db/rpc';
 import { setRouteContext } from '../db/route-context';
+import { seedTeamRole } from '../db/team';
 import { StubPaymentProvider } from '@/lib/payments/stub';
 import { createStubAiProvider } from '@/lib/ai/stub';
 import { hashQuoteToken } from '@/lib/quotes/token';
@@ -291,6 +292,7 @@ describe('POST /api/v1/admin/quotes/send', () => {
               ($4, 'SEO hire', 'seo')`,
       [ADMIN, STAFF, CUSTOMER, SEO],
     );
+    await seedTeamRole(db, STAFF, ['section.quotes']);
     hoisted.users.set('admin-token', ADMIN);
     hoisted.users.set('staff-token', STAFF);
     hoisted.users.set('customer-token', CUSTOMER);
@@ -351,6 +353,18 @@ describe('POST /api/v1/admin/quotes/send', () => {
     const quote = await seedQuote();
     expect((await send(quote.id, 'staff-token')).status).toBe(200);
     expect(hoisted.sent).toHaveLength(1);
+  });
+
+  it('refuses a staff account whose role does not include Quotes', async () => {
+    const DRIVER = 'f6f6f6f6-f6f6-f6f6-f6f6-f6f6f6f6f6f6';
+    await db.asOwner();
+    await db.pg.query(`insert into auth.users (id) values ($1)`, [DRIVER]);
+    await db.pg.query(`insert into profiles (id, role) values ($1, 'staff')`, [DRIVER]);
+    await seedTeamRole(db, DRIVER, ['section.calendar']);
+    hoisted.users.set('driver-token', DRIVER);
+    const quote = await seedQuote();
+    expect((await send(quote.id, 'driver-token')).status).toBe(403);
+    expect(hoisted.sent).toHaveLength(0);
   });
 
   it('answers 404 for a quote that does not exist', async () => {

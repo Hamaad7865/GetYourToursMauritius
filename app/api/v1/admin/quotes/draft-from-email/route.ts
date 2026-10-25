@@ -6,6 +6,8 @@ import { jsonOk } from '@/lib/http/envelope';
 import { rateLimit } from '@/lib/http/rate-limit';
 import { buildServiceContext } from '@/lib/http/context';
 import { createServiceRoleClient } from '@/lib/supabase/admin';
+import { can } from '@/lib/admin/permissions';
+import { loadCallerAccess, type AccessClient } from '@/lib/http/access';
 import { extractQuoteFromEmail } from '@/lib/services/quote-extraction';
 import { searchActivities } from '@/lib/services/activities';
 import { listRentalVehicles } from '@/lib/services/rental';
@@ -32,8 +34,9 @@ export const runtime = 'edge';
  * the extraction's `matchedSlug` is looked up in exactly that list.
  *
  * THE STAFF GATE mirrors app/api/v1/admin/quotes/send/route.ts exactly: `requireUser(req).role` is the
- * JWT's Postgres selector ('authenticated'), never the business role, so the role is read from
- * `profiles` through the service-role client. 'seo' is NOT admitted — a drafted quote carries the
+ * JWT's Postgres selector ('authenticated'), never the business role, so `loadCallerAccess` reads the
+ * caller's role permissions through the service-role client and the route requires the Quotes section
+ * (`section.quotes`). A content-only account ('seo') never holds it — a drafted quote carries the
  * guest's name/email and shapes an offer we will price and send. It is rate-limited before the gate,
  * like every other admin route, because each call runs a model.
  *
@@ -47,20 +50,6 @@ const bodySchema = z.object({
   // A generous cap: a long enquiry with an itinerary pasted in, but not an unbounded upload.
   email: z.string().min(1, 'Paste the enquiry email first.').max(20000),
 });
-
-/** The business roles allowed to draft a quote. See the staff-gate note above re 'seo'. */
-const SENDING_ROLES = new Set(['admin', 'staff']);
-
-type Row = Record<string, unknown>;
-
-interface ReadBuilder extends PromiseLike<{ data: Row[] | null; error: unknown }> {
-  eq(column: string, value: string): ReadBuilder;
-  maybeSingle(): PromiseLike<{ data: Row | null; error: unknown }>;
-}
-
-interface RoleClient {
-  from(table: 'profiles'): { select(columns: string): ReadBuilder };
-}
 
 /**
  * The region a pickup hotel resolves to, for pricing transport add-ons in the browser draft (Phase 2).
@@ -82,22 +71,13 @@ async function resolvePickupRegion(hotel: string | null | undefined): Promise<st
   }
 }
 
-/** The signed-in caller's business role, read through the SERVICE-ROLE client (profiles is RLS-gated). */
-async function callerRole(db: RoleClient, userId: string): Promise<string | null> {
-  const { data, error } = await db.from('profiles').select('role').eq('id', userId).maybeSingle();
-  if (error)
-    throw new Error(String((error as { message?: string }).message ?? 'profile read failed'));
-  const role = data?.role;
-  return typeof role === 'string' ? role : null;
-}
-
 export const POST = apiHandler(async (req) => {
   await rateLimit(req, 'admin_quote_draft', 20, 60);
 
   const user = await requireUser(req);
-  const roleDb = createServiceRoleClient() as unknown as RoleClient;
-  const role = await callerRole(roleDb, user.id);
-  if (!role || !SENDING_ROLES.has(role)) {
+  const roleDb = createServiceRoleClient();
+  const access = await loadCallerAccess(roleDb as unknown as AccessClient, user.id);
+  if (!can(access, 'section.quotes')) {
     throw new ForbiddenError('Staff only');
   }
 

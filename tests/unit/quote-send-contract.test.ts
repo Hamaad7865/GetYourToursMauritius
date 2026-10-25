@@ -80,12 +80,14 @@ describe('POST /admin/quotes/send: the published contract vs the handler', () =>
     // validity window, is thrown inside assertQuoteStillValid and so is invisible to a census of this
     // file. ForbiddenError is the staff gate, NotFoundError the unknown quote, ConfigError the unset
     // site URL, ProviderError the mail outage.
-    // The four bare `Error`s are the read/write failures (profile, quote, lines, update); they carry
-    // no ServiceError status and so surface as the documented 500, alongside ProviderError's.
+    // The three bare `Error`s are the read/write failures (quote, lines, update); they carry no
+    // ServiceError status and so surface as the documented 500, alongside ProviderError's. The caller's
+    // profile read used to be a fourth: it now lives in loadCallerAccess (src/lib/http/access.ts), which
+    // the gate calls, so it is no longer a throw site in this file.
     expect(refusalSites(readFileSync(ROUTE, 'utf8'))).toEqual({
       ConfigError: 1,
       ConflictError: 3,
-      Error: 4,
+      Error: 3,
       ForbiddenError: 1,
       NotFoundError: 1,
       ProviderError: 1,

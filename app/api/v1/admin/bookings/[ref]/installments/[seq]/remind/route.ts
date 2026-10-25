@@ -7,6 +7,8 @@ import { rateLimit } from '@/lib/http/rate-limit';
 import { getServerEnv } from '@/lib/config/env';
 import { isSiteUrlConfiguredForLive } from '@/lib/config/runtime';
 import { createServiceRoleClient } from '@/lib/supabase/admin';
+import { can } from '@/lib/admin/permissions';
+import { loadCallerAccess, type AccessClient } from '@/lib/http/access';
 import { getNotificationProvider } from '@/lib/notifications';
 import { renderInstallmentReminderEmail } from '@/lib/email/quote';
 import { mintInstallmentToken } from '@/lib/quotes/installment-token';
@@ -36,16 +38,14 @@ type RouteCtx = { params: Promise<{ ref: string; seq: string }> };
  * "emailed" answer. The installment token is a deterministic HMAC recomputed at render time and never
  * persisted, so nothing sensitive is written anywhere by this path.
  *
- * STAFF ONLY, and the check is `profiles.role` looked up through the service-role client — never the
- * JWT's Postgres role (which is 'authenticated' for staff and customer alike). 'seo' is not admitted: a
- * booking carries the guest's name, email and the money owed. Every refusal is a readable 404/409 taken
+ * STAFF WITH THE BOOKINGS SECTION ONLY, and the check is the caller's role permissions
+ * (`loadCallerAccess`, read through the service-role client) — never the JWT's Postgres role (which is
+ * 'authenticated' for staff and customer alike). A content-only account never holds it: a booking
+ * carries the guest's name, email and the money owed. Every refusal is a readable 404/409 taken
  * from the booking's own state, so the button never claims to have sent a reminder the data can't support.
  */
 
 const bodySchema = z.object({});
-
-/** The business roles allowed to email a guest on the company's behalf. */
-const SENDING_ROLES = new Set(['admin', 'staff']);
 
 type Row = Record<string, unknown>;
 interface ReadBuilder extends PromiseLike<{ data: Row[] | null; error: unknown }> {
@@ -54,7 +54,7 @@ interface ReadBuilder extends PromiseLike<{ data: Row[] | null; error: unknown }
   maybeSingle(): PromiseLike<{ data: Row | null; error: unknown }>;
 }
 interface RemindClient {
-  from(table: 'bookings' | 'quotes' | 'profiles' | 'booking_installments'): {
+  from(table: 'bookings' | 'quotes' | 'booking_installments'): {
     select(columns: string): ReadBuilder;
   };
 }
@@ -69,21 +69,13 @@ function minor(value: unknown): number {
   return Number(value ?? 0);
 }
 
-/** The caller's business role, read through the SERVICE-ROLE client (profiles is RLS-protected). */
-async function callerRole(db: RemindClient, userId: string): Promise<string | null> {
-  const { data, error } = await db.from('profiles').select('role').eq('id', userId).maybeSingle();
-  if (error)
-    throw new Error(String((error as { message?: string }).message ?? 'profile read failed'));
-  return textOrNull(data?.role ?? null);
-}
-
 export const POST = apiHandler<RouteCtx>(async (req, { params }) => {
   await rateLimit(req, 'admin_installment_remind', 30, 60);
 
   const user = await requireUser(req);
   const db = createServiceRoleClient() as unknown as RemindClient;
-  const role = await callerRole(db, user.id);
-  if (!role || !SENDING_ROLES.has(role)) throw new ForbiddenError('Staff only');
+  const access = await loadCallerAccess(db as unknown as AccessClient, user.id);
+  if (!can(access, 'section.bookings')) throw new ForbiddenError('Staff only');
 
   await parseJsonBody(req, bodySchema);
 

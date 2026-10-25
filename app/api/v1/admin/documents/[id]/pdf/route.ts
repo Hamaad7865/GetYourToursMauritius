@@ -2,7 +2,10 @@ import { apiHandler } from '@/lib/http/handler';
 import { preflightResponse } from '@/lib/http/cors';
 import { requireUser, getBearerToken } from '@/lib/http/auth';
 import { createUserClient } from '@/lib/supabase/client';
-import { NotFoundError } from '@/lib/services/errors';
+import { createServiceRoleClient } from '@/lib/supabase/admin';
+import { can } from '@/lib/admin/permissions';
+import { loadCallerAccess, type AccessClient } from '@/lib/http/access';
+import { ForbiddenError, NotFoundError } from '@/lib/services/errors';
 import { DOCUMENT_ISSUER } from '@/lib/documents/issuer';
 import { buildDocument } from '@/lib/documents/model';
 import { renderDocumentPdf } from '@/lib/documents/pdf';
@@ -15,14 +18,20 @@ type RouteCtx = { params: Promise<{ id: string }> };
 /**
  * GET /api/v1/admin/documents/:id/pdf — the document's PDF (quote / invoice / proforma / receipt).
  *
- * Staff-only, enforced by RLS rather than a hand-rolled role check: the read runs as the CALLER (their
- * bearer token), and `documents_staff_all` only exposes the row to staff — so a non-staff or anonymous
- * caller gets no row and this 404s, never a document. The PDF is rendered on demand from the stored
+ * Staff with the Documents section — checked explicitly (`loadCallerAccess`, service-role read of the
+ * caller's role), and RLS still scopes the read to staff: the read runs as the CALLER (their bearer
+ * token) and `documents_staff_all` only exposes the row to staff, so a non-staff or anonymous caller
+ * gets no row and this 404s, never a document. The PDF is rendered on demand from the stored
  * row (never persisted), so it always reflects the current state; a draft (no `issuer_snapshot` yet)
  * falls back to the live business identity so the preview download works before the document is issued.
  */
 export const GET = apiHandler<RouteCtx>(async (req, { params }) => {
-  await requireUser(req);
+  const user = await requireUser(req);
+  const access = await loadCallerAccess(
+    createServiceRoleClient() as unknown as AccessClient,
+    user.id,
+  );
+  if (!can(access, 'section.documents')) throw new ForbiddenError('Staff only');
   const { id } = await params;
 
   const supabase = createUserClient(getBearerToken(req));

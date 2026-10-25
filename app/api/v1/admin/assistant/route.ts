@@ -5,6 +5,8 @@ import { jsonOk } from '@/lib/http/envelope';
 import { rateLimit } from '@/lib/http/rate-limit';
 import { buildServiceContext } from '@/lib/http/context';
 import { createServiceRoleClient } from '@/lib/supabase/admin';
+import { can } from '@/lib/admin/permissions';
+import { loadCallerAccess, type AccessClient } from '@/lib/http/access';
 import {
   runAdminAssistant,
   type AssistantDeparture,
@@ -43,24 +45,14 @@ export const runtime = 'edge';
  * the panel applies an action in the browser, under the operator's own session, only when they
  * press Apply. See `runAdminAssistant` for why that split is the security boundary.
  *
- * THE STAFF GATE mirrors app/api/v1/admin/quotes/send/route.ts exactly: `requireUser(req).role` is
- * the JWT's Postgres selector, never the business role, so the role is read from `profiles` through
- * the service-role client; 'seo' is NOT admitted (replies surface guests' names and money).
+ * THE GATE is the AI assistant section (`section.assistant`), read by `loadCallerAccess`:
+ * `requireUser(req).role` is the JWT's Postgres selector, never the business role, so the caller's
+ * role and permissions come from `profiles` + `team_roles` through the service-role client. A
+ * content-only account never holds it (replies surface guests' names and money).
  * Rate-limited before the gate because every call runs a model.
  */
 
-const SENDING_ROLES = new Set(['admin', 'staff']);
-
 type Row = Record<string, unknown>;
-
-interface ReadBuilder extends PromiseLike<{ data: Row[] | null; error: unknown }> {
-  eq(column: string, value: string): ReadBuilder;
-  maybeSingle(): PromiseLike<{ data: Row | null; error: unknown }>;
-}
-
-interface RoleClient {
-  from(table: 'profiles'): { select(columns: string): ReadBuilder };
-}
 
 /**
  * The generated Database types lag the schema (no `quotes` table, older `bookings` columns), so the
@@ -95,15 +87,6 @@ function stringList(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((v): v is string => typeof v === 'string') : [];
 }
 
-/** The signed-in caller's business role, read through the SERVICE-ROLE client (profiles is RLS-gated). */
-async function callerRole(db: RoleClient, userId: string): Promise<string | null> {
-  const { data, error } = await db.from('profiles').select('role').eq('id', userId).maybeSingle();
-  if (error)
-    throw new Error(String((error as { message?: string }).message ?? 'profile read failed'));
-  const role = data?.role;
-  return typeof role === 'string' ? role : null;
-}
-
 /** Region a free-typed hotel resolves to, best effort — the AI decides no geography. */
 async function hotelRegion(hotel: string | undefined): Promise<string | null> {
   const query = hotel?.trim();
@@ -124,8 +107,8 @@ export const POST = apiHandler(async (req) => {
 
   const user = await requireUser(req);
   const sb = createServiceRoleClient();
-  const role = await callerRole(sb as unknown as RoleClient, user.id);
-  if (!role || !SENDING_ROLES.has(role)) {
+  const access = await loadCallerAccess(sb as unknown as AccessClient, user.id);
+  if (!can(access, 'section.assistant')) {
     throw new ForbiddenError('Staff only');
   }
 

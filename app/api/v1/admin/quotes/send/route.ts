@@ -7,6 +7,8 @@ import { rateLimit } from '@/lib/http/rate-limit';
 import { getServerEnv } from '@/lib/config/env';
 import { isSiteUrlConfiguredForLive } from '@/lib/config/runtime';
 import { createServiceRoleClient } from '@/lib/supabase/admin';
+import { can } from '@/lib/admin/permissions';
+import { loadCallerAccess, type AccessClient } from '@/lib/http/access';
 import { getNotificationProvider } from '@/lib/notifications';
 import { renderQuoteEmail, type QuoteEmailLine } from '@/lib/email/quote';
 import { DEFAULT_DEPOSIT_BPS } from '@/lib/quotes/deposit';
@@ -39,15 +41,15 @@ export const runtime = 'edge';
  * ── THE STAFF GATE ────────────────────────────────────────────────────────────────────────────
  * `requireUser(req).role` is the JWT's POSTGRES role selector — 'anon' / 'authenticated' /
  * 'service_role' — and NEVER the app's business role. A gate written against it either admits every
- * signed-in customer (comparing to 'authenticated') or refuses everyone (comparing to 'admin'). There
- * is no shared `requireStaff` helper in this repo, so the check is the one the other two staff-gated
- * routes make: look `profiles.role` up directly through the service-role client
- * (app/api/v1/reviews/google-live/route.ts, app/api/v1/seo/search-console/route.ts).
+ * signed-in customer (comparing to 'authenticated') or refuses everyone (comparing to 'admin'). So the
+ * check is `loadCallerAccess` (src/lib/http/access.ts): it looks `profiles` and `team_roles` up through
+ * the service-role client and the route requires the Quotes section (`section.quotes`).
  *
- * 'seo' IS NOT ADMITTED, unlike on the Search Console route where it is. That route hands back
- * aggregate search performance and no customer data; a quote carries the guest's name, their email
- * address, the price we offered them and the operator's own margin note on the same row — and sending
- * one emails a stranger on the company's behalf.
+ * A CONTENT-ONLY ACCOUNT ('seo') NEVER HOLDS IT, unlike on the Search Console route where it is
+ * admitted. That route hands back aggregate search performance and no customer data; a quote carries
+ * the guest's name, their email address, the price we offered them and the operator's own margin note
+ * on the same row — and sending one emails a stranger on the company's behalf. A staff account with
+ * no team role yet holds nothing and is refused too.
  *
  * ── WHAT IT REFUSES TO SEND, AND WHY EACH ONE ─────────────────────────────────────────────────
  * An email cannot be recalled, so every refusal below is cheaper than the state it prevents: an
@@ -120,9 +122,6 @@ const bodySchema = z.object({
   quoteId: z.string().uuid(),
 });
 
-/** The business roles allowed to email an offer to a guest. See the staff-gate note above re 'seo'. */
-const SENDING_ROLES = new Set(['admin', 'staff']);
-
 /**
  * The statuses a quote may be SENT from.
  *
@@ -155,7 +154,7 @@ interface WriteBuilder extends PromiseLike<{ data: Row[] | null; error: unknown 
 }
 
 interface SendClient {
-  from(table: 'quotes' | 'quote_items' | 'profiles'): {
+  from(table: 'quotes' | 'quote_items'): {
     select(columns: string): ReadBuilder;
     update(payload: Row): WriteBuilder;
   };
@@ -184,19 +183,6 @@ function minor(value: unknown): number {
   return Number(value ?? 0);
 }
 
-/**
- * The signed-in caller's business role, or null when they have no profile row.
- *
- * Read through the SERVICE-ROLE client on purpose: `profiles` is RLS-protected and this must be able
- * to answer for any caller, including one whose own policies would hide the column.
- */
-async function callerRole(db: SendClient, userId: string): Promise<string | null> {
-  const { data, error } = await db.from('profiles').select('role').eq('id', userId).maybeSingle();
-  if (error)
-    throw new Error(String((error as { message?: string }).message ?? 'profile read failed'));
-  return textOrNull(data?.role ?? null);
-}
-
 export const POST = apiHandler(async (req) => {
   // Before the auth check, as on every other rate-limited route here. The budget being protected is
   // the mail provider's, and an unbounded loop against this endpoint would spam a real guest.
@@ -204,8 +190,8 @@ export const POST = apiHandler(async (req) => {
 
   const user = await requireUser(req);
   const db = createServiceRoleClient() as unknown as SendClient;
-  const role = await callerRole(db, user.id);
-  if (!role || !SENDING_ROLES.has(role)) {
+  const access = await loadCallerAccess(db as unknown as AccessClient, user.id);
+  if (!can(access, 'section.quotes')) {
     throw new ForbiddenError('Staff only');
   }
 
