@@ -47,10 +47,11 @@ describe('the assistant is global', () => {
     expect(quotes).toContain('useAssistantContext');
   });
 
-  it('is withheld from the restricted content role, like the rest of the money surfaces', () => {
+  it('is withheld from any role without the assistant permission, like the rest of the money surfaces', () => {
     const shell = source('src/components/admin/AdminShell.tsx');
-    expect(shell).toMatch(/!isSeoRole && <AssistantPanel \/>/);
-    expect(shell).toMatch(/!isSeoRole && <AssistantLauncher \/>/);
+    expect(shell).toContain("const canAssistant = can(access, 'section.assistant')");
+    expect(shell).toMatch(/canAssistant && <AssistantPanel \/>/);
+    expect(shell).toMatch(/canAssistant && <AssistantLauncher \/>/);
   });
 });
 

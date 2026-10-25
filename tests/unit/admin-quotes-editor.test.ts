@@ -34,7 +34,8 @@ import {
 } from '@/components/admin/quotes/state';
 import { quoteItemRows, quoteRowTotal, type QuoteDetail } from '@/lib/admin/quotes';
 import { renderQuoteEmail } from '@/lib/email/quote';
-import { navForRole } from '@/components/admin/nav';
+import { navFor } from '@/components/admin/nav';
+import { CONTENT_PERMISSIONS, buildAccess } from '@/lib/admin/permissions';
 import { fmtDate } from '@/lib/admin/format';
 
 /**
@@ -631,7 +632,7 @@ describe('the screen is reachable', () => {
   });
 
   it('is in the admin nav, and every nav entry points at a route that exists', () => {
-    const hrefs = navForRole('admin').map((item) => item.href);
+    const hrefs = navFor(buildAccess({ role: 'admin' })).map((item) => item.href);
     expect(hrefs).toContain('/admin/quotes');
     expect(hrefs).toContain('/admin/documents');
     for (const href of hrefs) {
@@ -647,7 +648,11 @@ describe('the screen is reachable', () => {
   });
 
   it('is hidden from the restricted content role, which must not read a guest’s offer', () => {
-    expect(navForRole('seo').map((item) => item.href)).not.toContain('/admin/quotes');
+    expect(
+      navFor(buildAccess({ role: 'seo', permissions: CONTENT_PERMISSIONS })).map(
+        (item) => item.href,
+      ),
+    ).not.toContain('/admin/quotes');
   });
 
   /**

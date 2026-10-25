@@ -1,4 +1,7 @@
+import { readdirSync, statSync } from 'node:fs';
+import { join, relative, sep } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { ADMIN_NAV, allows, bottomNavFor, navFor, navItemForPath } from '@/components/admin/nav';
 import {
   ALL_PERMISSIONS,
   CONTENT_PERMISSIONS,
@@ -141,5 +144,89 @@ describe('can', () => {
     const owner = buildAccess({ role: 'admin' });
     expect(can(owner, 'money.refunds')).toBe(true);
     expect(can(owner, [])).toBe(false);
+  });
+});
+
+const owner = buildAccess({ role: 'admin' });
+const reservations = buildAccess({
+  role: 'staff',
+  teamRoleId: 'r',
+  teamRoleName: 'Reservations',
+  permissions: ['section.bookings', 'section.quotes', 'section.calendar'],
+});
+const writer = buildAccess({
+  role: 'seo',
+  teamRoleId: 'c',
+  teamRoleName: 'Content',
+  permissions: CONTENT_PERMISSIONS,
+});
+
+function adminPages(dir = join(process.cwd(), 'app', '(site)', 'admin')): string[] {
+  return readdirSync(dir).flatMap((name) => {
+    const full = join(dir, name);
+    if (statSync(full).isDirectory()) return adminPages(full);
+    if (name !== 'page.tsx') return [];
+    const rel = relative(join(process.cwd(), 'app', '(site)'), dir)
+      .split(sep)
+      .join('/');
+    // Dynamic segments become a sample value: /admin/activities/[id]/edit -> /admin/activities/x/edit
+    return [`/${rel}`.replace(/\[[^\]]+\]/g, 'x')];
+  });
+}
+
+describe('admin navigation by permission', () => {
+  it('every nav item names a known permission, "owner", or null', () => {
+    for (const item of ADMIN_NAV) {
+      const p = item.permission;
+      const keys = p === null || p === 'owner' ? [] : typeof p === 'string' ? [p] : p;
+      expect(keys.every(isPermissionKey), item.href).toBe(true);
+    }
+  });
+
+  it('every admin page belongs to a nav item, so the page guard covers it', () => {
+    for (const path of adminPages()) {
+      expect(navItemForPath(path), path).not.toBeNull();
+    }
+  });
+
+  it('the Owner sees everything', () => {
+    expect(navFor(owner).map((n) => n.href)).toEqual(ADMIN_NAV.map((n) => n.href));
+  });
+
+  it('a team member sees the Dashboard plus their sections, never Reports', () => {
+    expect(navFor(reservations).map((n) => n.href)).toEqual([
+      '/admin',
+      '/admin/bookings',
+      '/admin/calendar',
+      '/admin/quotes',
+    ]);
+    expect(allows(reservations, navItemForPath('/admin/reports')!)).toBe(false);
+  });
+
+  it('a content member sees the Dashboard plus exactly the old seo sections', () => {
+    expect(navFor(writer).map((n) => n.href)).toEqual([
+      '/admin',
+      '/admin/activities',
+      '/admin/planner-places',
+      '/admin/seo',
+      '/admin/blog',
+      '/admin/redirects',
+    ]);
+  });
+
+  it('resolves deep paths to their section', () => {
+    expect(navItemForPath('/admin/activities/x/edit')?.href).toBe('/admin/activities');
+    expect(navItemForPath('/admin')?.href).toBe('/admin');
+    expect(navItemForPath('/admin/nope')).toBeNull();
+  });
+
+  it('the bottom bar keeps to allowed items', () => {
+    expect(bottomNavFor(reservations).map((n) => n.href)).toEqual(['/admin', '/admin/bookings']);
+    expect(bottomNavFor(writer).map((n) => n.href)).toEqual([
+      '/admin/seo',
+      '/admin/blog',
+      '/admin/activities',
+      '/admin/redirects',
+    ]);
   });
 });

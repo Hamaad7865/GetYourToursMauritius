@@ -11,12 +11,9 @@ import { AdminBell } from '@/components/admin/AdminBell';
 import { AiSparkButton } from '@/components/admin/quotes/AiSpark';
 import { AssistantProvider, useAssistant } from '@/components/admin/assistant/AssistantProvider';
 import { avatar } from '@/lib/admin/dashboard';
-import {
-  BOTTOM_NAV_HREFS,
-  BOTTOM_NAV_HREFS_SEO,
-  isActive,
-  navForRole,
-} from '@/components/admin/nav';
+import { allows, bottomNavFor, isActive, navFor, navItemForPath } from '@/components/admin/nav';
+import { useAdminAccess } from '@/components/admin/AdminAccessProvider';
+import { can, roleLabel } from '@/lib/admin/permissions';
 import {
   IconSearch,
   IconPlus,
@@ -74,16 +71,18 @@ function AdminShellInner({ children }: { children: ReactNode }) {
     router.push(`/admin/bookings?q=${encodeURIComponent(q)}`);
   };
 
+  const access = useAdminAccess();
   const name = profile?.fullName || user?.email?.split('@')[0] || 'Staff';
-  const isSeoRole = profile?.role === 'seo';
-  const items = navForRole(profile?.role);
-  const bottomHrefs = isSeoRole ? BOTTOM_NAV_HREFS_SEO : BOTTOM_NAV_HREFS;
-  const bottomNav = items.filter((n) => bottomHrefs.includes(n.href));
-  const role = profile?.role
-    ? isSeoRole
-      ? 'SEO'
-      : profile.role.charAt(0).toUpperCase() + profile.role.slice(1)
-    : 'Staff';
+  const items = navFor(access);
+  const bottomNav = bottomNavFor(access);
+  const role = roleLabel(access);
+  const here = navItemForPath(pathname);
+  // The PAGE guard: a section the role lacks shows "No access" instead of the screen. A path no nav item
+  // owns is Owner-only (fail closed); tests/unit/admin-permissions.test.ts keeps every page in the nav.
+  const pageAllowed = here ? allows(access, here) : access.isOwner;
+  const canBookings = can(access, 'section.bookings');
+  const canAssistant = can(access, 'section.assistant');
+  const canTours = can(access, 'section.tours');
   const { initials, hue } = avatar(name);
 
   const NavList = ({ onNavigate }: { onNavigate?: () => void }) => (
@@ -186,7 +185,7 @@ function AdminShellInner({ children }: { children: ReactNode }) {
           >
             <IconMenu width={19} height={19} />
           </button>
-          {!isSeoRole && (
+          {canBookings && (
             <form
               onSubmit={submitSearch}
               role="search"
@@ -207,14 +206,16 @@ function AdminShellInner({ children }: { children: ReactNode }) {
             </form>
           )}
           <div className="ml-auto flex items-center gap-2.5">
-            {!isSeoRole && <AssistantLauncher />}
-            {!isSeoRole && <AdminBell />}
-            <Link
-              href="/admin/activities/new"
-              className="hidden items-center gap-1.5 rounded-xl bg-teal px-4 py-2.5 text-[13.5px] font-bold text-white hover:bg-teal-dark sm:flex"
-            >
-              <IconPlus width={16} height={16} /> New tour
-            </Link>
+            {canAssistant && <AssistantLauncher />}
+            {canBookings && <AdminBell />}
+            {canTours && (
+              <Link
+                href="/admin/activities/new"
+                className="hidden items-center gap-1.5 rounded-xl bg-teal px-4 py-2.5 text-[13.5px] font-bold text-white hover:bg-teal-dark sm:flex"
+              >
+                <IconPlus width={16} height={16} /> New tour
+              </Link>
+            )}
             <Link
               href="/"
               className="hidden items-center gap-1 rounded-xl border border-[#E2E7EA] px-3 py-2.5 text-[13px] font-bold text-ink-muted hover:border-teal hover:text-teal md:flex"
@@ -235,7 +236,7 @@ function AdminShellInner({ children }: { children: ReactNode }) {
             opens this simply reflows narrower — nothing is occluded (the owner's note: the centre
             should diminish, not get covered). */}
         <main className="mx-auto w-full max-w-[1320px] flex-1 px-4 pb-24 pt-6 sm:px-6 lg:px-8 lg:pb-10">
-          {children}
+          {pageAllowed ? children : <NoAccess />}
         </main>
 
         {/* Mobile bottom nav */}
@@ -269,7 +270,7 @@ function AdminShellInner({ children }: { children: ReactNode }) {
       {/* ===== The assistant column =====
           A SIBLING of the main column, not an overlay: from lg it animates its own width, so the
           content beside it reflows. Below lg it fixes itself over the screen (no room to split). */}
-      {!isSeoRole && <AssistantPanel />}
+      {canAssistant && <AssistantPanel />}
     </div>
   );
 }
@@ -289,6 +290,19 @@ function SidebarHeader() {
       <span className="mt-1 self-start text-[9px] font-bold tracking-[0.32em] text-teal-bright">
         BACK OFFICE
       </span>
+    </div>
+  );
+}
+
+function NoAccess() {
+  return (
+    <div className="grid min-h-[50vh] place-items-center text-center">
+      <div>
+        <h1 className="font-display text-2xl font-semibold text-ink">No access</h1>
+        <p className="mt-2 max-w-md text-sm text-ink-muted">
+          Your role doesn’t include this section. Ask the owner if you need it.
+        </p>
+      </div>
     </div>
   );
 }
