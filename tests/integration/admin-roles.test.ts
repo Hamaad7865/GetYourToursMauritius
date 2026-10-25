@@ -18,6 +18,9 @@ const WORKER = '1a1a1a1a-1a1a-1a1a-1a1a-1a1a1a1a1a1a';
 const WRITER = '2a2a2a2a-2a2a-2a2a-2a2a-2a2a2a2a2a2a';
 const BARE = '3a3a3a3a-3a3a-3a3a-3a3a-3a3a3a3a3a3a';
 const GUEST = '4a4a4a4a-4a4a-4a4a-4a4a-4a4a4a4a4a4a';
+const COLLEAGUE = '6a6a6a6a-6a6a-6a6a-6a6a-6a6a6a6a6a6a';
+/** An auth account with no profile — the target of a re-key attempt. */
+const SPARE = '7a7a7a7a-7a7a-7a7a-7a7a-7a7a7a7a7a7a';
 
 const PEOPLE: Array<[string, string, string]> = [
   [OWNER, 'owner@example.com', 'admin'],
@@ -321,11 +324,20 @@ describe('the profile guard', () => {
   let db: TestDb;
   let workerRole: string;
   let writerRole: string;
+  let colleagueRole: string;
   beforeAll(async () => {
     db = await createTestDb();
-    await seedPeople(db, [...PEOPLE, [OWNER2, 'owner2@example.com', 'customer']]);
+    await seedPeople(db, [
+      ...PEOPLE,
+      [OWNER2, 'owner2@example.com', 'customer'],
+      [COLLEAGUE, 'colleague@example.com', 'staff'],
+    ]);
     workerRole = await seedTeamRole(db, WORKER, ['section.bookings']);
     writerRole = await seedTeamRole(db, WRITER, ['section.blog'], 'content');
+    colleagueRole = await seedTeamRole(db, COLLEAGUE, ['section.quotes', 'money.refunds']);
+    await db.pg.query(`insert into auth.users (id, email) values ($1, 'spare@example.com')`, [
+      SPARE,
+    ]);
   });
   afterAll(async () => db.close());
 
@@ -373,6 +385,66 @@ describe('the profile guard', () => {
     await asUser(db, BARE);
     await db.pg.query(`update profiles set team_role_id = $2 where id = $1`, [BARE, workerRole]);
     expect((await roleOf(BARE)).team_role_id).toBeNull();
+  });
+
+  it('staff cannot change a colleague’s team role either', async () => {
+    await asUser(db, WORKER);
+    await db.pg.query(`update profiles set team_role_id = null where id = $1`, [COLLEAGUE]);
+    await asUser(db, WORKER);
+    await db.pg.query(`update profiles set team_role_id = $2 where id = $1`, [
+      COLLEAGUE,
+      workerRole,
+    ]);
+    expect(await roleOf(COLLEAGUE)).toEqual({ role: 'staff', team_role_id: colleagueRole });
+  });
+
+  it('a PostgREST-style upsert cannot promote a staff member', async () => {
+    await asUser(db, WORKER);
+    await db.pg.query(
+      `insert into profiles (id, role, team_role_id) values ($1, 'admin', null)
+       on conflict (id) do update set role = excluded.role, team_role_id = excluded.team_role_id`,
+      [WORKER],
+    );
+    expect(await roleOf(WORKER)).toEqual({ role: 'staff', team_role_id: workerRole });
+  });
+
+  const profileExists = async (id: string) => {
+    await db.asOwner();
+    return (await db.pg.query(`select 1 from profiles where id = $1`, [id])).rows.length === 1;
+  };
+
+  it('a profile cannot be re-keyed onto another account', async () => {
+    await asUser(db, WORKER);
+    expect(
+      await failure(db.pg.query(`update profiles set id = $2 where id = $1`, [WORKER, SPARE])),
+    ).toMatch(/profile_id_immutable/);
+    expect(await profileExists(SPARE)).toBe(false);
+    expect(await roleOf(WORKER)).toEqual({ role: 'staff', team_role_id: workerRole });
+  });
+
+  it('two staff members’ roles cannot be swapped by re-keying their rows', async () => {
+    await asUser(db, WORKER);
+    expect(
+      await failure(
+        db.pg.query(
+          `update profiles set id = case when id = $1 then $3::uuid else $1::uuid end
+           where id in ($1, $2)`,
+          [WORKER, COLLEAGUE, SPARE],
+        ),
+      ),
+    ).toMatch(/profile_id_immutable/);
+    expect(await profileExists(SPARE)).toBe(false);
+    expect(await roleOf(WORKER)).toEqual({ role: 'staff', team_role_id: workerRole });
+    expect(await roleOf(COLLEAGUE)).toEqual({ role: 'staff', team_role_id: colleagueRole });
+  });
+
+  it('not even the table owner may re-key a profile', async () => {
+    await db.asOwner();
+    expect(
+      await failure(db.pg.query(`update profiles set id = $2 where id = $1`, [GUEST, SPARE])),
+    ).toMatch(/profile_id_immutable/);
+    expect(await profileExists(SPARE)).toBe(false);
+    expect(await profileExists(GUEST)).toBe(true);
   });
 
   it('a staff member cannot delete a profile or edit the Owner’s', async () => {
@@ -430,5 +502,65 @@ describe('the profile guard', () => {
     await asUser(db, OWNER2);
     await db.pg.query(`update profiles set role = 'customer' where id = $1`, [OWNER2]);
     expect((await roleOf(OWNER2)).role).toBe('customer');
+  });
+});
+
+describe('erasing a profile through api_erase_user', () => {
+  let db: TestDb;
+  beforeAll(async () => {
+    db = await createTestDb();
+    await seedPeople(db, [
+      ...PEOPLE,
+      [OWNER2, 'owner2@example.com', 'admin'],
+      [COLLEAGUE, 'colleague@example.com', 'staff'],
+    ]);
+    await seedTeamRole(db, WORKER, ['section.bookings']);
+    await seedTeamRole(db, COLLEAGUE, ['section.quotes']);
+    await seedTeamRole(db, WRITER, ['section.blog'], 'content');
+  });
+  afterAll(async () => db.close());
+
+  const erase = (id: string) =>
+    db.pg.query(`select api_erase_user($1::jsonb)`, [JSON.stringify({ userId: id })]);
+  const profileExists = async (id: string) => {
+    await db.asOwner();
+    return (await db.pg.query(`select 1 from profiles where id = $1`, [id])).rows.length === 1;
+  };
+
+  // api_erase_user is SECURITY DEFINER and open to any is_staff() caller, so it deletes as the table
+  // owner and skips the Owner-only delete policy: the delete trigger has to hold the line.
+  it('staff cannot erase a co-Owner or a team member', async () => {
+    await asUser(db, WORKER);
+    expect(await failure(erase(OWNER2))).toMatch(/forbidden/);
+    await asUser(db, WORKER);
+    expect(await failure(erase(COLLEAGUE))).toMatch(/forbidden/);
+    await asUser(db, WORKER);
+    expect(await failure(erase(WRITER))).toMatch(/forbidden/);
+    expect(await profileExists(OWNER2)).toBe(true);
+    expect(await profileExists(COLLEAGUE)).toBe(true);
+    expect(await profileExists(WRITER)).toBe(true);
+  });
+
+  it('staff can still erase a customer (GDPR)', async () => {
+    await asUser(db, WORKER);
+    expect(await failure(erase(GUEST))).toBe('');
+    expect(await profileExists(GUEST)).toBe(false);
+  });
+
+  it('a member can erase their own account', async () => {
+    await asUser(db, WRITER);
+    expect(await failure(erase(WRITER))).toBe('');
+    expect(await profileExists(WRITER)).toBe(false);
+  });
+
+  it('an Owner can erase a team member, but never the last Owner', async () => {
+    await asUser(db, OWNER);
+    expect(await failure(erase(COLLEAGUE))).toBe('');
+    expect(await profileExists(COLLEAGUE)).toBe(false);
+    await asUser(db, OWNER);
+    expect(await failure(erase(OWNER2))).toBe('');
+    await asUser(db, OWNER);
+    expect(await failure(erase(OWNER))).toMatch(/last_owner/);
+    expect(await profileExists(OWNER)).toBe(true);
   });
 });

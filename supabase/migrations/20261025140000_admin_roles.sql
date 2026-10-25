@@ -187,6 +187,14 @@ as $$
 declare
   v_base text;
 begin
+  -- 0) A PROFILE IS NEVER RE-KEYED, by anyone. Staff can UPDATE any non-Owner row, and the role /
+  --    team_role_id pin below guards the row's CONTENT, not its identity: `set id = <spare account>`
+  --    would carry a staff member's role and team role onto another account, and a two-row swap
+  --    would trade two members' roles. Nothing legitimate ever rewrites profiles.id.
+  if tg_op = 'UPDATE' and new.id is distinct from old.id then
+    raise exception 'profile_id_immutable';
+  end if;
+
   -- 1) WHO MAY CHANGE ACCESS: only the Owner, from a client. Everyone else's insert is forced to a
   --    plain customer and their updates keep the old values. service_role and the table owner (the
   --    definer RPCs below, migrations) pass through to the checks that bind everyone.
@@ -215,7 +223,8 @@ begin
   -- 3) THE LAST OWNER: nobody — the Owner included — demotes the only remaining Owner. The advisory
   --    lock serialises Owner demotions and deletions: two Owners demoting each other at once would
   --    each still see the other as an Owner and leave none. The lock is held to commit, so the second
-  --    transaction's next statement (a fresh READ COMMITTED snapshot) sees the first demotion.
+  --    transaction's next statement (a fresh READ COMMITTED snapshot) sees the first demotion. (It
+  --    serialises only under READ COMMITTED, the app's default; a REPEATABLE READ caller would not.)
   if tg_op = 'UPDATE' and old.role::text = 'admin' and new.role::text <> 'admin' then
     perform pg_advisory_xact_lock(hashtext('profiles_last_owner'));
     if not exists (select 1 from profiles where role::text = 'admin' and id <> old.id) then
@@ -238,6 +247,16 @@ security invoker
 set search_path = public
 as $$
 begin
+  -- WHO MAY ERASE A TEAM PROFILE: profiles_owner_delete stops a client DELETE, but api_erase_user
+  -- (SECURITY DEFINER, open to any is_staff() caller for GDPR) deletes as the table owner and so
+  -- bypasses RLS. Here auth.uid() is still the caller's JWT. A non-Owner may therefore erase only
+  -- themselves or a customer — never a co-Owner or a team member. auth.uid() is null for
+  -- service_role, the SQL editor and migrations, which stay unrestricted.
+  if auth.uid() is not null and auth.uid() <> old.id and old.role::text <> 'customer'
+     and not is_admin() then
+    raise exception 'forbidden';
+  end if;
+
   if old.role::text = 'admin' then
     perform pg_advisory_xact_lock(hashtext('profiles_last_owner')); -- same lock as enforce_profile_role
     if not exists (select 1 from profiles where role::text = 'admin' and id <> old.id) then
@@ -263,7 +282,7 @@ grant execute on function enforce_last_owner_delete() to service_role;
 drop policy if exists profiles_staff on profiles;
 drop policy if exists profiles_update on profiles;
 create policy profiles_update on profiles for update
-  using (id = auth.uid() or (is_staff() and (role::text <> 'admin' or (select is_admin()))))
-  with check (id = auth.uid() or is_staff());
+  using (id = auth.uid() or ((select is_staff()) and (role::text <> 'admin' or (select is_admin()))))
+  with check (id = auth.uid() or (select is_staff()));
 drop policy if exists profiles_owner_delete on profiles;
 create policy profiles_owner_delete on profiles for delete using ((select is_admin()));
