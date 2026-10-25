@@ -14,7 +14,9 @@
 
 ## Ground rules for this plan (read before Task 1)
 
-- **Work on `main`, commit after every task, never `git add -A`** (owner's rule). Stage the exact files listed.
+- **Work on `main` in this checkout — no branches, no worktrees — commit after every task, never
+  `git add -A`** (owner's rule). This holds whichever execution skill runs the plan. Stage the exact
+  files listed.
 - **Do NOT `git push` until Task 17.** A push to `main` deploys the web app AND runs `supabase db push`
   on production. The migration file is built up across Tasks 2–7; once a version is pushed it is
   immutable (see `docs/handbook/database.md` "appending to a migration that has already run").
@@ -2027,8 +2029,10 @@ on conflict (version) do nothing;
 - [ ] **Step 3: Regenerate setup.sql**
 
 Run: `npm run seed:gen && npm run setup:sql`
-Expected: `supabase/setup.sql` changes (the migration is now inside it); `git status` shows no other
-generated file changing except `supabase/seed.sql` if the seed generator touched it.
+Expected: `supabase/setup.sql` changes (the migration is now inside it). Then run
+`git diff --stat supabase/seed.sql` — it must print **nothing**: this migration adds no seed data. If
+`seed.sql` changed, STOP and find out why before going on (the seed generator has been lossy before);
+do not commit a changed `seed.sql` as part of this task.
 
 - [ ] **Step 4: Lockdown lists and the RPC allowlist**
 
@@ -2159,15 +2163,13 @@ loosen the migration.
 - [ ] **Step 8: Commit**
 
 ```bash
-git add supabase/catch-up.sql supabase/backfill-migration-ledger.sql supabase/setup.sql supabase/seed.sql src/lib/supabase/types.ts tests/db/rpc.ts tests/integration/definer-grants-lockdown.test.ts tests/integration/rpc-grants.test.ts
+git add supabase/catch-up.sql supabase/backfill-migration-ledger.sql supabase/setup.sql src/lib/supabase/types.ts tests/db/rpc.ts tests/integration/definer-grants-lockdown.test.ts tests/integration/rpc-grants.test.ts
 git commit -F - <<'EOF'
 chore(db): mirror the admin-roles migration into catch-up, ledger, setup and types
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 EOF
 ```
-
-(`supabase/seed.sql` only if Step 3 changed it — `git add` of an unchanged file is harmless.)
 
 ---
 
@@ -3217,12 +3219,24 @@ import { useAdminAccess } from '@/components/admin/AdminAccessProvider';
 import { can } from '@/lib/admin/permissions';
 ```
 
-at the top of `AdminDashboard()` add `const showMoney = can(useAdminAccess(), 'money.revenue');`, and
-just before `return (` of the loaded state add:
+at the top of `AdminDashboard()` add:
 
 ```ts
-// Business totals are owner-grantable (money.revenue). Without it the revenue card goes and the
-// pending card shows how many, not how much. Per-booking amounts in the lists stay.
+const access = useAdminAccess();
+// Business totals are owner-grantable (money.revenue).
+const showMoney = can(access, 'money.revenue');
+// The Dashboard is open to every role, but its booking panels show guest names and per-booking
+// amounts — those belong to whoever has Bookings (RLS lets every staff account read bookings, so
+// this gate is the only thing keeping a "Calendar only" role from seeing them here).
+const showBookings = can(access, 'section.bookings');
+// Today's departures name guests too; the Calendar section covers the same day sheet.
+const showDepartures = can(access, ['section.bookings', 'section.calendar']);
+```
+
+and just before `return (` of the loaded state add:
+
+```ts
+// Without money.revenue the revenue card goes and the pending card shows how many, not how much.
 const stats = showMoney
   ? data.stats
   : data.stats
@@ -3230,19 +3244,20 @@ const stats = showMoney
       .map((s) => (s.countValue ? { ...s, value: s.countValue, hint: 'open' } : s));
 ```
 
-Change `{data.stats.map((s) => {` to `{stats.map((s) => {`, and wrap the revenue chart card:
+Then, in the JSX:
 
-```tsx
-{
-  showMoney && (
-    <Card className="p-[18px]">
-      <RevenueChart revenue={data.revenue} />
-    </Card>
-  );
-}
-```
+- `{data.stats.map((s) => {` → `{stats.map((s) => {`, and wrap the whole stat-cards `<div>` (the one
+  under `{/* Stat cards — each drills into a pre-filtered bookings view. */}`) in `{showBookings && ( … )}`
+  — every card links into /admin/bookings.
+- Wrap the "View all bookings" `<Link>` in the heading in `{showBookings && ( … )}`.
+- Wrap the `{/* Today's departures */}` `<Card>` in `{showDepartures && ( … )}`.
+- Wrap the `{/* Recent bookings */}` `<Card>` and the `{/* Needs attention */}` `<Card>` each in
+  `{showBookings && ( … )}`.
+- Wrap the `{/* Revenue … */}` `<Card>` (the one holding `<RevenueChart revenue={data.revenue} />`) in
+  `{showMoney && ( … )}`.
 
-The stat grid is `lg:grid-cols-4`; with three cards it leaves one empty column, which is fine.
+The stat grid is `lg:grid-cols-4`; with three cards it leaves one empty column, which is fine. A role
+with neither Bookings nor Calendar sees the greeting and the WhatsApp card only.
 
 - [ ] **Step 2: Bookings — CSV export and Mark refunded**
 
@@ -3371,6 +3386,11 @@ Run: `npx vitest run tests/integration/admin-activity-edit.test.ts -t "money.pri
 Expected: FAIL — a type error on `pricingLocked` (unknown option), or the save throws an RLS error
 because it still replaces the price tiers.
 
+This is the first test in that file that saves as a signed-in STAFF user rather than the database
+owner. If, after Step 3, it fails on something unrelated to prices (reading `operators`, the
+materialize RPC, `activity_images`), fix the test's setup — e.g. the role's keys or the seed — and
+never loosen the migration to make it pass.
+
 - [ ] **Step 3: Teach the save path to skip prices**
 
 In `src/lib/admin/activity-write.ts`, replace the `SaveOpts` block with:
@@ -3494,6 +3514,12 @@ Wrap the currency card: `{canCurrency && ( <div className="mb-[18px]"> <PaymentC
 Wrap the fare sections — insert `{canPrices && (<>` on the line before `{/* Sightseeing tours */}` and
 `</>)}` after the final `</section>` that closes the last fare section (the one directly before the
 component's closing `</div>` / `);` / `}` at the end of the file).
+
+A currency-only role must not be stuck on "Loading…": with `canPrices` false, `load()` never runs, so
+every fare state stays `null`. That is fine only because each fare section's own "Loading…" sits inside
+the `{canPrices && …}` wrapper. Check the component has no top-level early return on that state (as of
+this plan there is none — the five "Loading…" paragraphs are all inside fare sections); if one exists,
+make it `if (canPrices && !sight) …`.
 
 - [ ] **Step 2: Rental**
 
@@ -4341,16 +4367,21 @@ and i18n-coverage checks); a coverage floor miss means `src/lib/admin/team.ts` o
 `src/lib/http/access.ts` lost its tests. Also run `git status` — an uncommitted file from another
 session can make the local gate pass while CI fails.
 
-- [ ] **Step 2: Apply the migration to the DEV database**
+- [ ] **Step 2: Bring the DEV database up to date (it ends with this migration)**
 
 `.env.local` points at the **DEV** Supabase project (never production). Confirm first:
-`grep SUPABASE_DB_URL .env.local` must NOT contain the production project ref. Then:
+`grep SUPABASE_DB_URL .env.local` must NOT contain the production project ref.
+
+Do not apply only the new file: the two refund functions are copies of October bodies and assume the
+October schema, so a DEV database that is behind fails in confusing ways. `supabase/catch-up.sql` is
+the idempotent sync script and its last section is now this migration, so run it whole:
 
 ```bash
-npx tsx scripts/db-exec.ts supabase/migrations/20261025140000_admin_roles.sql
+npx tsx scripts/db-exec.ts supabase/catch-up.sql
 ```
 
-Expected: it reports the file applied in one transaction.
+Expected: it reports the file applied. If it fails part-way, read the error — `catch-up.sql` is only
+half transactional (`docs/handbook/database.md`) — fix the cause and re-run; it is safe to run twice.
 
 - [ ] **Step 3: Check it in the browser** (dev server via the preview tools, `npm run dev`)
 
@@ -4367,18 +4398,19 @@ Signed in to the DEV site as an Owner test account:
    shows the fares and no currency card.
 5. As Owner, Team → try to remove yourself while you are the only Owner: the error says there must
    always be at least one Owner.
+6. As Owner, create "Drivers" (Team) with **Calendar only** and move the test account into it. As the
+   worker: the Dashboard shows the greeting and today's departures, but **no** stat cards, no
+   "Recent bookings", no "Needs attention" and no "View all bookings" link; `/admin/bookings` shows
+   "No access".
 
-Take a screenshot of steps 3 and 5 for the owner.
+Take a screenshot of steps 3, 5 and 6 for the owner.
 
 - [ ] **Step 4: Ask the owner before pushing**
 
 Pushing to `main` runs `supabase db push` on **production** and deploys the web app. Before asking,
-list what changes for real people on deploy day: nothing for the 4 `admin` accounts (all stay Owner),
-the `seo` account keeps exactly its sections (now via the "Content" role), and nobody else exists in
-the back office. After deploy the owner needs to tell us which of the 4 `admin` accounts are theirs; the
-others are moved into roles from the Team tab. Push only on the owner's explicit yes, then watch the
+list what changes for real people on deploy day: nothing for the 4 `admin` accounts (all stay Owner);
+the `seo` account keeps its five sections (now via the "Content" role) and additionally gets a
+Dashboard link, which shows it only a greeting and the WhatsApp card; nobody else exists in the back
+office. After deploy the owner needs to tell us which of the 4 `admin` accounts are theirs; the others
+are moved into roles from the Team tab. Push only on the owner's explicit yes, then watch the
 `release.yml` run until the `verify` job's final **Edge bundle** step and the deploy jobs are green.
-
-```
-
-```
