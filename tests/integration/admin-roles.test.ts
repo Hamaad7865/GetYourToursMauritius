@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestDb, type TestDb } from '../db/pglite';
 import { seedTeamRole } from '../db/team';
@@ -90,6 +92,27 @@ describe('has_permission / is_admin', () => {
     expect(await one<boolean>(db, `select is_admin() as v`)).toBe(true);
   });
 
+  it('an unknown or NULL key is false for everyone, the Owner included', async () => {
+    await asUser(db, OWNER);
+    expect(await has('money.refunds')).toBe(true);
+    expect(await has('money.refund')).toBe(false); // typo
+    expect(await one<boolean>(db, `select has_permission(null) as v`)).toBe(false);
+  });
+
+  it('a team role only counts while its base matches the profile’s role', async () => {
+    await db.asOwner();
+    await db.pg.query(`update profiles set role = 'seo' where id = $1`, [WORKER]);
+    try {
+      await asUser(db, WORKER);
+      expect(await has('section.bookings')).toBe(false);
+    } finally {
+      await db.asOwner();
+      await db.pg.query(`update profiles set role = 'staff' where id = $1`, [WORKER]);
+    }
+    await asUser(db, WORKER);
+    expect(await has('section.bookings')).toBe(true);
+  });
+
   it('a team member holds only their role’s keys', async () => {
     await asUser(db, WORKER);
     expect(await has('section.bookings')).toBe(true);
@@ -120,6 +143,7 @@ describe('team_roles', () => {
   beforeAll(async () => {
     db = await createTestDb();
     await seedPeople(db);
+    await seedPeople(db, [[OWNER2, 'owner2@example.com', 'admin']]);
     workerRole = await seedTeamRole(db, WORKER, ['section.quotes']);
   });
   afterAll(async () => db.close());
@@ -156,7 +180,9 @@ describe('team_roles', () => {
 
   it('refuses an unknown key and a duplicate name', async () => {
     await asUser(db, OWNER);
-    expect(await failure(insertRole('Bad key', 'team', ['money.everything']))).toMatch(/check/i);
+    expect(await failure(insertRole('Bad key', 'team', ['money.everything']))).toMatch(
+      /team_roles_permissions_check/,
+    );
     await insertRole('Drivers', 'team', []);
     expect(await failure(insertRole('drivers ', 'team', []))).toMatch(/team_roles_name_key/);
   });
@@ -209,5 +235,79 @@ describe('team_roles', () => {
         `select has_table_privilege('authenticated', 'public.team_roles', 'insert') as v`,
       ),
     ).toBe(true);
+    // TRUNCATE bypasses RLS, so no API role may hold it.
+    expect(
+      await one<boolean>(
+        db,
+        `select has_table_privilege('authenticated', 'public.team_roles', 'truncate') as v`,
+      ),
+    ).toBe(false);
+  });
+
+  it('the migration revokes every default privilege before granting back', () => {
+    // PGlite does not replicate Supabase's default table privileges (anon / authenticated get ALL on
+    // a new table, TRUNCATE included), so a privilege query cannot fail here. Pin the statements.
+    const sql = readFileSync(
+      join(process.cwd(), 'supabase/migrations/20261025140000_admin_roles.sql'),
+      'utf8',
+    );
+    const revoke = sql.indexOf('revoke all on team_roles from public, anon, authenticated;');
+    const grant = sql.indexOf(
+      'grant select, insert, update, delete on team_roles to authenticated;',
+    );
+    expect(revoke).toBeGreaterThan(-1);
+    expect(grant).toBeGreaterThan(-1);
+    expect(revoke).toBeLessThan(grant);
+  });
+
+  it('the Owner reads every role', async () => {
+    await db.asOwner();
+    const all = (await db.pg.query<{ id: string }>(`select id from team_roles`)).rows.map(
+      (r) => r.id,
+    );
+    expect(all.length).toBeGreaterThan(1);
+    await asUser(db, OWNER);
+    const seen = (await db.pg.query<{ id: string }>(`select id from team_roles`)).rows.map(
+      (r) => r.id,
+    );
+    expect(seen.sort()).toEqual(all.sort());
+  });
+
+  it('a member cannot update or delete their own role', async () => {
+    await asUser(db, WORKER);
+    const upd = await db.pg.query(`update team_roles set description = 'mine' where id = $1`, [
+      workerRole,
+    ]);
+    expect(upd.affectedRows).toBe(0);
+    const del = await db.pg.query(`delete from team_roles where id = $1`, [workerRole]);
+    expect(del.affectedRows).toBe(0);
+    await db.asOwner();
+    const row = (
+      await db.pg.query<{ description: string | null; permissions: string[] }>(
+        `select description, permissions from team_roles where id = $1`,
+        [workerRole],
+      )
+    ).rows[0]!;
+    expect(row.description).toBeNull();
+    expect(row.permissions).toEqual(['section.quotes']);
+  });
+
+  it('erasing the editor’s profile nulls updated_by instead of leaving a dangling id', async () => {
+    await asUser(db, OWNER);
+    const { rows } = await insertRole('Audited', 'team', ['section.leads']);
+    const roleId = rows[0]!.id;
+    const editor = () =>
+      one<string | null>(db, `select updated_by as v from team_roles where id = $1`, [roleId]);
+
+    // A second Owner edits the role: they are stamped as the editor.
+    await asUser(db, OWNER2);
+    await db.pg.query(`update team_roles set description = 'edited' where id = $1`, [roleId]);
+    expect(await editor()).toBe(OWNER2);
+
+    // That Owner erases their own profile: the FK's SET NULL must stick (the trigger may not
+    // write the dead id back).
+    expect(await failure(db.pg.query(`delete from profiles where id = $1`, [OWNER2]))).toBe('');
+    await db.asOwner();
+    expect(await editor()).toBeNull();
   });
 });

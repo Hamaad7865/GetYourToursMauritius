@@ -27,6 +27,8 @@
 -- Idempotent throughout (this file is appended verbatim to supabase/catch-up.sql).
 
 -- ── 1) The permission catalogue ─────────────────────────────────────────────────────────────────
+-- Only ever ADD keys: removing one leaves stored rows that violate the CHECK — strip it from
+-- team_roles in the same migration first.
 create or replace function permission_catalogue()
 returns text[]
 language sql
@@ -81,7 +83,10 @@ as $$
 $$;
 
 -- True for the Owner; for a 'staff'/'seo' member, when their team role holds the key; false for
--- everyone else (no profile, no team role, a customer, anonymous) — fail closed.
+-- everyone else (no profile, no team role, a customer, anonymous) — fail closed. An unknown or NULL
+-- key is false for EVERYONE, the Owner included, so a typo'd key in a later policy is caught by
+-- owner-run tests instead of silently granting. A team role only counts while its base matches the
+-- profile's role (staff <-> team, seo <-> content): defence in depth against a slipped pairing.
 create or replace function has_permission(p_key text)
 returns boolean
 language sql
@@ -89,14 +94,16 @@ stable
 security definer
 set search_path = public
 as $$
-  select coalesce((
-    select pr.role::text = 'admin'
-           or (pr.role::text in ('staff', 'seo')
-               and p_key = any(coalesce(tr.permissions, '{}'::text[])))
-      from profiles pr
-      left join team_roles tr on tr.id = pr.team_role_id
-     where pr.id = auth.uid()
-  ), false);
+  select coalesce(p_key = any(permission_catalogue()), false)
+     and coalesce((
+       select pr.role::text = 'admin'
+              or (    (   (pr.role::text = 'staff' and tr.base = 'team')
+                       or (pr.role::text = 'seo' and tr.base = 'content'))
+                  and p_key = any(tr.permissions))
+         from profiles pr
+         left join team_roles tr on tr.id = pr.team_role_id
+        where pr.id = auth.uid()
+     ), false);
 $$;
 
 -- Both are read inside RLS policies, which anon and authenticated evaluate, so both may execute them.
@@ -127,8 +134,17 @@ begin
     raise exception 'content_role_permission'
       using detail = 'a content-only role can hold only Tours, Places, SEO, Blog and Redirects';
   end if;
-  new.updated_at := now();
-  new.updated_by := coalesce(auth.uid(), new.updated_by);
+  -- Stamp the editor only when the role's content actually changed. The updated_by FK's ON DELETE SET
+  -- NULL is itself an UPDATE that passes through here: re-stamping auth.uid() on it would write the
+  -- just-erased profile's id straight back (a dangling reference).
+  if tg_op = 'INSERT'
+     or (new.name, new.description, new.permissions)
+        is distinct from (old.name, old.description, old.permissions) then
+    new.updated_at := now();
+    new.updated_by := coalesce(auth.uid(), new.updated_by);
+  elsif new.updated_by is not null then
+    new.updated_by := old.updated_by; -- a client may not forge the editor
+  end if;
   return new;
 end;
 $$;
@@ -154,7 +170,8 @@ create policy team_roles_owner_write on team_roles for all
   using ((select is_admin())) with check ((select is_admin()));
 
 -- A table created after 20260615120800's one-time blanket grant states its own privileges. Supabase's
--- default privileges hand anon ALL on a new table (DELETE included), so revoke it explicitly.
-revoke all on team_roles from anon;
+-- default privileges hand anon AND authenticated ALL on a new table — TRUNCATE included, which
+-- bypasses RLS — so revoke everything first and grant back only what the policies mediate.
+revoke all on team_roles from public, anon, authenticated;
 grant select, insert, update, delete on team_roles to authenticated;
 grant all on team_roles to service_role;
