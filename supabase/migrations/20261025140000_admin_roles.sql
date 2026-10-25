@@ -286,3 +286,152 @@ create policy profiles_update on profiles for update
   with check (id = auth.uid() or (select is_staff()));
 drop policy if exists profiles_owner_delete on profiles;
 create policy profiles_owner_delete on profiles for delete using ((select is_admin()));
+
+-- ── 4) The team RPCs ────────────────────────────────────────────────────────────────────────────
+-- What the signed-in caller may do in /admin. The browser loads this once per admin visit.
+create or replace function api_my_access(p jsonb)
+returns jsonb
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce((
+    select jsonb_build_object(
+      'role', pr.role::text,
+      'teamRoleId', pr.team_role_id,
+      'teamRoleName', tr.name,
+      'base', tr.base,
+      'permissions', case
+        when pr.role::text = 'admin' then to_jsonb(permission_catalogue())
+        -- Same rule as has_permission(): a team role counts only when its base matches the profile.
+        when (pr.role::text = 'staff' and tr.base = 'team')
+          or (pr.role::text = 'seo' and tr.base = 'content') then to_jsonb(tr.permissions)
+        else '[]'::jsonb
+      end
+    )
+      from profiles pr
+      left join team_roles tr on tr.id = pr.team_role_id
+     where pr.id = auth.uid()
+  ), jsonb_build_object(
+    'role', null, 'teamRoleId', null, 'teamRoleName', null, 'base', null, 'permissions', '[]'::jsonb
+  ));
+$$;
+
+-- Everyone in the back office, with their sign-in email (auth.users — profiles has no email). Owner only.
+create or replace function api_team_list(p jsonb)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+begin
+  if not is_admin() then
+    raise exception 'forbidden';
+  end if;
+  return coalesce((
+    select jsonb_agg(jsonb_build_object(
+             'userId', pr.id,
+             'fullName', pr.full_name,
+             'email', u.email,
+             'role', pr.role::text,
+             'teamRoleId', pr.team_role_id,
+             'teamRoleName', tr.name
+           ) order by (pr.role::text = 'admin') desc, lower(coalesce(pr.full_name, u.email, '')))
+      from profiles pr
+      join auth.users u on u.id = pr.id
+      left join team_roles tr on tr.id = pr.team_role_id
+     where pr.role::text <> 'customer'
+  ), '[]'::jsonb);
+end;
+$$;
+
+-- Put an account into a role (or make it an Owner: teamRoleId = 'owner'). The account is named by
+-- userId, or by the email it signed up with. role + team_role_id are set together so the pairing rule
+-- always holds; the profile guard's last-Owner check still applies (this runs as the table owner).
+create or replace function api_team_assign(p jsonb)
+returns jsonb
+language plpgsql
+volatile
+security definer
+set search_path = public
+as $$
+declare
+  v_user_text text := nullif(btrim(coalesce(p ->> 'userId', '')), '');
+  v_email text := lower(btrim(coalesce(p ->> 'email', '')));
+  v_target text := nullif(btrim(coalesce(p ->> 'teamRoleId', '')), '');
+  v_user uuid;
+  v_role team_roles;
+  v_new_role text;
+  v_new_team uuid;
+begin
+  if not is_admin() then
+    raise exception 'forbidden';
+  end if;
+  if v_target is null or (v_user_text is null and v_email = '') then
+    raise exception 'invalid_request' using detail = 'team_assign: teamRoleId and userId or email required';
+  end if;
+
+  if v_user_text is not null then
+    select id into v_user from auth.users where id::text = v_user_text;
+  else
+    select id into v_user from auth.users where lower(email) = v_email order by created_at limit 1;
+  end if;
+  if v_user is null then
+    raise exception 'not_found' using detail = 'no account with that email';
+  end if;
+
+  if v_target = 'owner' then
+    v_new_role := 'admin';
+    v_new_team := null;
+  else
+    select * into v_role from team_roles where id::text = v_target;
+    if not found then
+      raise exception 'team_role_not_found';
+    end if;
+    v_new_role := case when v_role.base = 'content' then 'seo' else 'staff' end;
+    v_new_team := v_role.id;
+  end if;
+
+  insert into profiles (id, role, team_role_id)
+  values (v_user, v_new_role::user_role, v_new_team)
+  on conflict (id) do update set role = excluded.role, team_role_id = excluded.team_role_id;
+
+  return jsonb_build_object('ok', true, 'userId', v_user, 'role', v_new_role, 'teamRoleId', v_new_team);
+end;
+$$;
+
+-- Take someone out of the back office: back to an ordinary customer account.
+create or replace function api_team_remove(p jsonb)
+returns jsonb
+language plpgsql
+volatile
+security definer
+set search_path = public
+as $$
+declare
+  v_user_text text := nullif(btrim(coalesce(p ->> 'userId', '')), '');
+  v_user uuid;
+begin
+  if not is_admin() then
+    raise exception 'forbidden';
+  end if;
+  update profiles set role = 'customer', team_role_id = null
+   where id::text = v_user_text
+  returning id into v_user;
+  if v_user is null then
+    raise exception 'not_found';
+  end if;
+  return jsonb_build_object('ok', true, 'userId', v_user);
+end;
+$$;
+
+revoke execute on function api_my_access(jsonb) from public, anon;
+revoke execute on function api_team_list(jsonb) from public, anon;
+revoke execute on function api_team_assign(jsonb) from public, anon;
+revoke execute on function api_team_remove(jsonb) from public, anon;
+grant execute on function api_my_access(jsonb) to authenticated, service_role;
+grant execute on function api_team_list(jsonb) to authenticated, service_role;
+grant execute on function api_team_assign(jsonb) to authenticated, service_role;
+grant execute on function api_team_remove(jsonb) to authenticated, service_role;
