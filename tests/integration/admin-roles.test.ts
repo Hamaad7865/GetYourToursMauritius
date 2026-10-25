@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestDb, type TestDb } from '../db/pglite';
+import { seedOccurrence } from '../db/seed';
 import { seedTeamRole } from '../db/team';
 import { ALL_PERMISSIONS, CONTENT_PERMISSIONS } from '@/lib/admin/permissions';
 
@@ -1422,5 +1423,159 @@ describe('refund guards', () => {
         ]),
       ),
     ).toMatch(/change_request_not_found/);
+  });
+
+  it('a staff account with NO team role is refused by both refund RPCs', async () => {
+    // BARE is profiles.role = 'staff' with no team_role_id: it holds no refund permission at all.
+    await asUser(db, BARE);
+    expect(
+      await failure(
+        db.pg.query(`select api_mark_refunded($1::jsonb)`, [
+          JSON.stringify({ bookingId: MISSING }),
+        ]),
+      ),
+    ).toMatch(/forbidden/);
+    expect(
+      await failure(
+        db.pg.query(`select api_record_change_refund($1::jsonb)`, [
+          JSON.stringify({ requestId: MISSING }),
+        ]),
+      ),
+    ).toMatch(/forbidden/);
+  });
+});
+
+describe('booking money columns', () => {
+  let db: TestDb;
+  beforeAll(async () => {
+    db = await createTestDb();
+    await seedPeople(db);
+    // A bookings-only role: it may add notes and make the operational status moves, nothing else.
+    await seedTeamRole(db, WORKER, ['section.bookings']);
+  });
+  afterAll(async () => db.close());
+
+  const ITEMS = JSON.stringify([{ price_label: 'Adult', quantity: 1 }]);
+
+  /** A confirmed, fully-paid 7500 booking (the money is really held); leaves the session as owner. */
+  async function makePaidBooking(key: string): Promise<{ id: string; paymentId: string }> {
+    await db.asOwner();
+    const { occurrenceId } = await seedOccurrence(db, 5);
+    const { rows: h } = await db.pg.query<{ id: string }>(`select * from create_hold($1, 1, $2)`, [
+      occurrenceId,
+      `${key}-h`,
+    ]);
+    const { rows: b } = await db.pg.query<{ id: string }>(
+      `select * from create_booking($1, $2, 'Money Tester', 'money@example.com', null, 'web'::booking_source, $3::jsonb)`,
+      [`${key}-bk`, h[0]!.id, ITEMS],
+    );
+    const { rows: p } = await db.pg.query<{ id: string }>(
+      `insert into payments (booking_id, idempotency_key, amount_minor, status)
+       values ($1, $2, 7500, 'pending') returning id`,
+      [b[0]!.id, `${key}-pay`],
+    );
+    await db.pg.query(`select append_payment_event($1, 'paid', $2, 7500, now(), '{}'::jsonb)`, [
+      p[0]!.id,
+      `${key}-evt-paid`,
+    ]);
+    return { id: b[0]!.id, paymentId: p[0]!.id };
+  }
+
+  const read = async (id: string) => {
+    await db.asOwner();
+    return (
+      await db.pg.query<Record<string, unknown>>(
+        `select status, notes, total_minor, deposit_minor, balance_due_minor, transport_minor,
+                supplement_minor, supplement_qty, child_seats, payment_state, currency
+           from bookings where id = $1`,
+        [id],
+      )
+    ).rows[0]!;
+  };
+
+  // Every column below changes what the booking costs or what a refund returns, and none is one the
+  // browser ever writes (it sets only status and notes). The values satisfy the columns' CHECKs, so a
+  // refusal could only come from the guard, never from a constraint.
+  const MONEY_COLUMNS: Array<[string, number]> = [
+    ['deposit_minor', 100],
+    ['balance_due_minor', 100],
+    ['transport_minor', 100],
+    ['supplement_minor', 100],
+    ['supplement_qty', 2],
+    ['child_seats', 3],
+  ];
+
+  it.each(MONEY_COLUMNS)(
+    'a bookings-only staff member cannot rewrite %s',
+    async (column, value) => {
+      const { id } = await makePaidBooking(`pin-${column}`);
+      const before = await read(id);
+      await asUser(db, WORKER);
+      expect(
+        await failure(db.pg.query(`update bookings set ${column} = $2 where id = $1`, [id, value])),
+      ).toBe('');
+      expect((await read(id))[column]).toEqual(before[column]);
+    },
+  );
+
+  it('notes and an allowed status move still apply beside pinned columns in one UPDATE', async () => {
+    const { id } = await makePaidBooking('still-works');
+    const before = await read(id);
+    expect(before.status).toBe('confirmed');
+    await asUser(db, WORKER);
+    expect(
+      await failure(
+        db.pg.query(
+          `update bookings set notes = 'called the guest', status = 'completed', deposit_minor = 100,
+                  balance_due_minor = 100, transport_minor = 100, supplement_minor = 100
+            where id = $1`,
+          [id],
+        ),
+      ),
+    ).toBe('');
+    const after = await read(id);
+    expect(after.notes).toBe('called the guest');
+    expect(after.status).toBe('completed');
+    for (const [column] of MONEY_COLUMNS) expect(after[column]).toEqual(before[column]);
+    expect(after.total_minor).toEqual(before.total_minor);
+  });
+
+  it('a staff member cannot dress a paid booking as a "deposit" to keep the guest’s money', async () => {
+    // The hole: bookings_staff lets a bookings-only account PATCH the row, and deposit_minor was not
+    // pinned. 0 < deposit < total makes api_mark_refunded treat the paid row as the NON-REFUNDABLE
+    // deposit: it reverses nothing and emails the guest a deposit_forfeited notice. money.refunds
+    // would then guard a front door while the back window stood open.
+    const { id, paymentId } = await makePaidBooking('deposit-hole');
+    await asUser(db, WORKER);
+    expect(
+      await failure(db.pg.query(`update bookings set deposit_minor = 100 where id = $1`, [id])),
+    ).toBe('');
+    expect(
+      await failure(db.pg.query(`update bookings set status = 'cancelled' where id = $1`, [id])),
+    ).toBe('');
+    // The same guard reroutes a cancel of a paid booking to refund_pending.
+    expect((await read(id)).status).toBe('refund_pending');
+
+    await asUser(db, OWNER);
+    expect(
+      await failure(
+        db.pg.query(`select api_mark_refunded($1::jsonb)`, [JSON.stringify({ bookingId: id })]),
+      ),
+    ).toBe('');
+    await db.asOwner();
+    const pay = (
+      await db.pg.query<{ status: string; refunded_minor: number | string }>(
+        `select status, refunded_minor from payments where id = $1`,
+        [paymentId],
+      )
+    ).rows[0]!;
+    expect(pay.status).toBe('refunded');
+    expect(Number(pay.refunded_minor)).toBe(7500); // the whole payment IS reversed
+    expect((await read(id)).status).toBe('refunded');
+    const forfeits = await db.pg.query<{ n: string }>(
+      `select count(*) as n from notification_outbox where booking_id = $1 and template = 'deposit_forfeited'`,
+      [id],
+    );
+    expect(Number(forfeits.rows[0]!.n)).toBe(0);
   });
 });

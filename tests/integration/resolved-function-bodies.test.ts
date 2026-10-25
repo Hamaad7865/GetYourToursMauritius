@@ -357,15 +357,39 @@ const CONTRACTS: ResolvedContract[] = [
   {
     fn: 'api_mark_refunded',
     must: 'refuse a staff member whose role lacks money.refunds',
-    code: /\bif\s+not\s+is_staff\(\)\s+or\s+not\s+has_permission\('money\.refunds'\)\s+then\b/,
+    code: /\bif\s+not\s+is_staff\(\)\s+or\s+not\s+has_permission\('money\.refunds'\)\s+then\s+raise\s+exception\s+'forbidden'/,
     why: 'any staff member could record a refund and email the guest a refund confirmation',
   },
   {
     fn: 'api_record_change_refund',
     must: 'refuse a staff member whose role lacks money.refunds',
-    code: /\bif\s+not\s+is_staff\(\)\s+or\s+not\s+has_permission\('money\.refunds'\)\s+then\b/,
+    code: /\bif\s+not\s+is_staff\(\)\s+or\s+not\s+has_permission\('money\.refunds'\)\s+then\s+raise\s+exception\s+'forbidden'/,
     why: 'any staff member could record a change-of-tour refund in the ledger',
   },
+  // The browser-session guard on bookings (BEFORE UPDATE; 20260617120400 is the body written before
+  // roles). bookings_staff is `for all using (is_staff())`, so this trigger is the ONLY thing between a
+  // bookings-only staff member and a hand-rolled PATCH of the row. It pinned the money columns that
+  // existed in June; each one added later (transport 20260720, supplement 20260905, deposit 20260912)
+  // stayed writable. deposit_minor is the dangerous one: 0 < deposit < total makes api_mark_refunded
+  // keep the guest's payment as a non-refundable deposit. A re-declaration forked from the June body
+  // would drop these silently — one row per column, so the failing name says which.
+  ...(
+    [
+      'deposit_minor',
+      'balance_due_minor',
+      'transport_minor',
+      'supplement_minor',
+      'supplement_qty',
+      'child_seats',
+    ] as const
+  ).map(
+    (col): ResolvedContract => ({
+      fn: 'enforce_booking_admin_update',
+      must: `pin bookings.${col} against a browser-session write`,
+      code: new RegExp(String.raw`\bnew\.${col}\s*:=\s*old\.${col}\s*;`),
+      why: `a bookings-only staff member could PATCH ${col} on any booking from the browser`,
+    }),
+  ),
 ];
 
 /**

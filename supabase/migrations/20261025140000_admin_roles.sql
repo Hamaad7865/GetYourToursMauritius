@@ -843,3 +843,69 @@ $$;
 
 revoke execute on function api_record_change_refund(jsonb) from public, anon;
 grant execute on function api_record_change_refund(jsonb) to authenticated, service_role;
+
+-- ── 6b) Staff cannot rewrite a booking's deposit, balance or add-on amounts ─────────────────────
+-- bookings_staff is `for all using (is_staff())`, so enforce_booking_admin_update (BEFORE UPDATE) is the
+-- only thing between a bookings-only staff member and a hand-rolled PATCH of the row. It pinned the
+-- money columns that existed in June 2026 and none added since. deposit_minor is the dangerous one:
+-- 0 < deposit_minor < total_minor makes api_mark_refunded treat the paid `booking` row as the
+-- NON-REFUNDABLE deposit — it reverses nothing and emails the guest deposit_forfeited — so
+-- money.refunds would guard the front door while this stood open. The browser only ever writes
+-- `status` and `notes` on bookings (src/lib/admin/bookings.ts), so nothing legitimate loses a write.
+-- The body is the WINNING definition VERBATIM (20260617120400_booking_cancel_refund) plus exactly
+-- these `new.<col> := old.<col>` pins, in the same caller condition (anon/authenticated only: the
+-- owner, service_role and the SECURITY DEFINER RPCs that legitimately write these are untouched).
+-- `create or replace` keeps the existing bookings_admin_update_guard trigger bound; none is re-created.
+-- Pinned by tests/integration/resolved-function-bodies.test.ts.
+create or replace function enforce_booking_admin_update()
+returns trigger
+language plpgsql
+security invoker
+set search_path = public
+as $$
+begin
+  if current_user not in ('anon', 'authenticated') then
+    return new; -- service_role / owner / SECURITY DEFINER RPCs (webhook, create_booking)
+  end if;
+
+  -- Immutable from a browser session — owned by the booking/ledger RPCs.
+  new.payment_state           := old.payment_state;
+  new.total_minor             := old.total_minor;
+  new.agency_commission_minor := old.agency_commission_minor;
+  new.operator_payout_minor   := old.operator_payout_minor;
+  new.currency                := old.currency;
+  new.ref                     := old.ref;
+  new.idempotency_key         := old.idempotency_key;
+  new.user_id                 := old.user_id;
+  new.customer_name           := old.customer_name;
+  new.customer_email          := old.customer_email;
+  new.customer_phone          := old.customer_phone;
+  new.source                  := old.source;
+  new.created_at              := old.created_at;
+  new.deposit_minor           := old.deposit_minor;
+  new.balance_due_minor       := old.balance_due_minor;
+  new.transport_minor         := old.transport_minor;
+  new.supplement_minor        := old.supplement_minor;
+  new.supplement_qty          := old.supplement_qty;
+  new.child_seats             := old.child_seats;
+
+  -- A cancel on a paid booking becomes a refund_pending (money is owed back).
+  if new.status = 'cancelled' and old.payment_state in ('paid', 'partially_refunded') then
+    new.status := 'refund_pending';
+  end if;
+
+  -- Status may only move through the operational transitions staff are allowed to make.
+  if new.status is distinct from old.status then
+    if not (
+      (new.status = 'completed' and old.status = 'confirmed') or
+      (new.status = 'cancelled' and old.status in ('draft', 'held', 'payment_pending', 'confirmed')) or
+      (new.status = 'refund_pending' and old.status = 'confirmed')
+    ) then
+      raise exception 'forbidden_booking_status_transition'
+        using detail = format('%s -> %s', old.status, new.status);
+    end if;
+  end if;
+
+  return new;
+end;
+$$;
