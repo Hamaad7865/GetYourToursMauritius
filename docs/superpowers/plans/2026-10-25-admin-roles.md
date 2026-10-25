@@ -1280,7 +1280,9 @@ as $$
       'base', tr.base,
       'permissions', case
         when pr.role::text = 'admin' then to_jsonb(permission_catalogue())
-        when pr.role::text in ('staff', 'seo') then to_jsonb(coalesce(tr.permissions, '{}'::text[]))
+        -- Same rule as has_permission(): a team role counts only when its base matches the profile.
+        when (pr.role::text = 'staff' and tr.base = 'team')
+          or (pr.role::text = 'seo' and tr.base = 'content') then to_jsonb(tr.permissions)
         else '[]'::jsonb
       end
     )
