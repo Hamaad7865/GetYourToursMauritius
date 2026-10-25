@@ -100,14 +100,19 @@ describe('has_permission / is_admin', () => {
   });
 
   it('a team role only counts while its base matches the profile’s role', async () => {
+    // The profile guard (its pairing rule applies to every writer) refuses this slipped pairing, so
+    // the setup switches that one trigger off — has_permission's own base check is the defence in
+    // depth under test here, for the day a pairing gets past the guard anyway.
     await db.asOwner();
-    await db.pg.query(`update profiles set role = 'seo' where id = $1`, [WORKER]);
+    await db.pg.exec(`alter table profiles disable trigger profiles_role_guard`);
     try {
+      await db.pg.query(`update profiles set role = 'seo' where id = $1`, [WORKER]);
       await asUser(db, WORKER);
       expect(await has('section.bookings')).toBe(false);
     } finally {
       await db.asOwner();
       await db.pg.query(`update profiles set role = 'staff' where id = $1`, [WORKER]);
+      await db.pg.exec(`alter table profiles enable trigger profiles_role_guard`);
     }
     await asUser(db, WORKER);
     expect(await has('section.bookings')).toBe(true);
@@ -309,5 +314,121 @@ describe('team_roles', () => {
     expect(await failure(db.pg.query(`delete from profiles where id = $1`, [OWNER2]))).toBe('');
     await db.asOwner();
     expect(await editor()).toBeNull();
+  });
+});
+
+describe('the profile guard', () => {
+  let db: TestDb;
+  let workerRole: string;
+  let writerRole: string;
+  beforeAll(async () => {
+    db = await createTestDb();
+    await seedPeople(db, [...PEOPLE, [OWNER2, 'owner2@example.com', 'customer']]);
+    workerRole = await seedTeamRole(db, WORKER, ['section.bookings']);
+    writerRole = await seedTeamRole(db, WRITER, ['section.blog'], 'content');
+  });
+  afterAll(async () => db.close());
+
+  const roleOf = async (id: string) => {
+    await db.asOwner();
+    return (
+      await db.pg.query<{ role: string; team_role_id: string | null }>(
+        `select role::text as role, team_role_id from profiles where id = $1`,
+        [id],
+      )
+    ).rows[0]!;
+  };
+
+  it('a staff member cannot make themselves admin', async () => {
+    await asUser(db, WORKER);
+    await db.pg.query(`update profiles set role = 'admin' where id = $1`, [WORKER]);
+    expect((await roleOf(WORKER)).role).toBe('staff');
+  });
+
+  it('a staff member cannot change their own or anyone’s team role', async () => {
+    await asUser(db, WORKER);
+    await db.pg.query(`update profiles set team_role_id = null where id = $1`, [WORKER]);
+    expect((await roleOf(WORKER)).team_role_id).toBe(workerRole);
+    await asUser(db, WORKER);
+    await db.pg.query(`update profiles set role = 'staff' where id = $1`, [GUEST]);
+    expect((await roleOf(GUEST)).role).toBe('customer');
+  });
+
+  it('a content member cannot move themselves onto a team role', async () => {
+    await asUser(db, WRITER);
+    await db.pg.query(`update profiles set team_role_id = $2 where id = $1`, [WRITER, workerRole]);
+    expect(await roleOf(WRITER)).toEqual({ role: 'seo', team_role_id: writerRole });
+  });
+
+  it('a customer cannot give themselves a role or a team role', async () => {
+    await asUser(db, GUEST);
+    await db.pg.query(`update profiles set role = 'staff', team_role_id = $2 where id = $1`, [
+      GUEST,
+      workerRole,
+    ]);
+    expect(await roleOf(GUEST)).toEqual({ role: 'customer', team_role_id: null });
+  });
+
+  it('staff without a role cannot assign themselves one', async () => {
+    await asUser(db, BARE);
+    await db.pg.query(`update profiles set team_role_id = $2 where id = $1`, [BARE, workerRole]);
+    expect((await roleOf(BARE)).team_role_id).toBeNull();
+  });
+
+  it('a staff member cannot delete a profile or edit the Owner’s', async () => {
+    await asUser(db, WORKER);
+    const del = await db.pg.query(`delete from profiles where id = $1`, [GUEST]);
+    expect(del.affectedRows).toBe(0);
+    const upd = await db.pg.query(`update profiles set full_name = 'x' where id = $1`, [OWNER]);
+    expect(upd.affectedRows).toBe(0);
+  });
+
+  it('a signed-up customer still cannot insert themselves as admin', async () => {
+    const NEWBIE = '5a5a5a5a-5a5a-5a5a-5a5a-5a5a5a5a5a5a';
+    await db.asOwner();
+    await db.pg.query(`insert into auth.users (id) values ($1)`, [NEWBIE]);
+    await asUser(db, NEWBIE);
+    await db.pg.query(`insert into profiles (id, role) values ($1, 'admin')`, [NEWBIE]);
+    expect((await roleOf(NEWBIE)).role).toBe('customer');
+  });
+
+  it('a team role must match the profile’s base', async () => {
+    await asUser(db, OWNER);
+    expect(
+      await failure(
+        db.pg.query(`update profiles set role = 'admin', team_role_id = $2 where id = $1`, [
+          GUEST,
+          workerRole,
+        ]),
+      ),
+    ).toMatch(/team_role_mismatch/);
+    expect(
+      await failure(
+        db.pg.query(`update profiles set role = 'seo', team_role_id = $2 where id = $1`, [
+          GUEST,
+          workerRole,
+        ]),
+      ),
+    ).toMatch(/team_role_mismatch/);
+  });
+
+  it('the last Owner cannot be demoted or deleted — not even by themselves', async () => {
+    await asUser(db, OWNER);
+    expect(
+      await failure(db.pg.query(`update profiles set role = 'customer' where id = $1`, [OWNER])),
+    ).toMatch(/last_owner/);
+    await db.asOwner();
+    expect(await failure(db.pg.query(`delete from profiles where id = $1`, [OWNER]))).toMatch(
+      /last_owner/,
+    );
+  });
+
+  it('with a second Owner, one may step down', async () => {
+    await asUser(db, OWNER);
+    await db.pg.query(`update profiles set role = 'admin' where id = $1`, [OWNER2]);
+    expect((await roleOf(OWNER2)).role).toBe('admin');
+    await asUser(db, OWNER2);
+    await db.pg.query(`update profiles set role = 'customer' where id = $1`, [OWNER2]);
+    expect((await roleOf(OWNER2)).role).toBe('customer');
   });
 });

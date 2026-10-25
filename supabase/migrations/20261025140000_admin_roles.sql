@@ -175,3 +175,95 @@ create policy team_roles_owner_write on team_roles for all
 revoke all on team_roles from public, anon, authenticated;
 grant select, insert, update, delete on team_roles to authenticated;
 grant all on team_roles to service_role;
+
+-- ── 3) The profile guard ────────────────────────────────────────────────────────────────────────
+-- Replaces 20260615121000's body, which let any is_staff() caller assign roles.
+create or replace function enforce_profile_role()
+returns trigger
+language plpgsql
+security invoker
+set search_path = public
+as $$
+declare
+  v_base text;
+begin
+  -- 1) WHO MAY CHANGE ACCESS: only the Owner, from a client. Everyone else's insert is forced to a
+  --    plain customer and their updates keep the old values. service_role and the table owner (the
+  --    definer RPCs below, migrations) pass through to the checks that bind everyone.
+  if current_user in ('anon', 'authenticated') and not is_admin() then
+    if tg_op = 'INSERT' then
+      new.role := 'customer';
+      new.team_role_id := null;
+    else
+      new.role := old.role;
+      new.team_role_id := old.team_role_id;
+    end if;
+  end if;
+
+  -- 2) THE PAIRING RULE, for every writer: a team role sits only on a 'staff' (base 'team') or 'seo'
+  --    (base 'content') profile; Owner and customer profiles never carry one. v_base is null only when
+  --    the caller cannot read the role (a non-admin re-saving someone else's unchanged row).
+  if new.team_role_id is not null then
+    select base into v_base from team_roles where id = new.team_role_id;
+    if not (   (v_base = 'team' and new.role::text = 'staff')
+            or (v_base = 'content' and new.role::text = 'seo')
+            or (v_base is null and new.role::text in ('staff', 'seo'))) then
+      raise exception 'team_role_mismatch';
+    end if;
+  end if;
+
+  -- 3) THE LAST OWNER: nobody — the Owner included — demotes the only remaining Owner. The advisory
+  --    lock serialises Owner demotions and deletions: two Owners demoting each other at once would
+  --    each still see the other as an Owner and leave none. The lock is held to commit, so the second
+  --    transaction's next statement (a fresh READ COMMITTED snapshot) sees the first demotion.
+  if tg_op = 'UPDATE' and old.role::text = 'admin' and new.role::text <> 'admin' then
+    perform pg_advisory_xact_lock(hashtext('profiles_last_owner'));
+    if not exists (select 1 from profiles where role::text = 'admin' and id <> old.id) then
+      raise exception 'last_owner';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists profiles_role_guard on profiles;
+create trigger profiles_role_guard
+  before insert or update on profiles
+  for each row execute function enforce_profile_role();
+
+create or replace function enforce_last_owner_delete()
+returns trigger
+language plpgsql
+security invoker
+set search_path = public
+as $$
+begin
+  if old.role::text = 'admin' then
+    perform pg_advisory_xact_lock(hashtext('profiles_last_owner')); -- same lock as enforce_profile_role
+    if not exists (select 1 from profiles where role::text = 'admin' and id <> old.id) then
+      raise exception 'last_owner';
+    end if;
+  end if;
+  return old;
+end;
+$$;
+
+drop trigger if exists profiles_last_owner_guard on profiles;
+create trigger profiles_last_owner_guard
+  before delete on profiles
+  for each row execute function enforce_last_owner_delete();
+
+revoke execute on function enforce_last_owner_delete() from public, anon, authenticated;
+grant execute on function enforce_last_owner_delete() to service_role;
+
+-- Policies. profiles_staff (FOR ALL using is_staff()) let staff DELETE any profile — including the
+-- Owner's, which AuthProvider would then re-create as a customer. Reads stay with profiles_select;
+-- updates move into profiles_update, which no longer reaches an Owner's row unless you are an Owner;
+-- deletes are Owner-only.
+drop policy if exists profiles_staff on profiles;
+drop policy if exists profiles_update on profiles;
+create policy profiles_update on profiles for update
+  using (id = auth.uid() or (is_staff() and (role::text <> 'admin' or (select is_admin()))))
+  with check (id = auth.uid() or is_staff());
+drop policy if exists profiles_owner_delete on profiles;
+create policy profiles_owner_delete on profiles for delete using ((select is_admin()));
