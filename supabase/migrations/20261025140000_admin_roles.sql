@@ -347,9 +347,21 @@ begin
 end;
 $$;
 
--- Put an account into a role (or make it an Owner: teamRoleId = 'owner'). The account is named by
--- userId, or by the email it signed up with. role + team_role_id are set together so the pairing rule
--- always holds; the profile guard's last-Owner check still applies (this runs as the table owner).
+-- Put an account into a role (or make it an Owner: teamRoleId = 'owner'). role + team_role_id are set
+-- together so the profile guard's pairing rule always holds; the guard's last-Owner check still applies
+-- (this runs as the table owner, so an Owner assigning the only Owner seat away is refused).
+--
+-- The account is named by userId or by email; when BOTH are given, userId wins and email is ignored.
+-- An EMAIL names an account only under the same rule as quote_owner_for_email (20260909000000), because
+-- this call can hand out the whole back office:
+--   * normalised through quote_email_key on BOTH sides (case and surrounding spaces do not matter);
+--   * EXACTLY ONE auth.users row may hold the address — auth.users does not constrain email to be
+--     unique, and picking "the oldest" of two would be a coin toss on who becomes an Owner:
+--     none → not_found, several → ambiguous_email;
+--   * that one account must be CONFIRMED (email_confirmed_at set) — anyone can register a stranger's
+--     address and never confirm it, so an unconfirmed match is refused: not_confirmed.
+-- A userId was chosen from the team screen or a known account, so it is not held to the confirmed rule;
+-- it is cast to uuid (primary-key lookup; any letter case) and a malformed one is invalid_request.
 create or replace function api_team_assign(p jsonb)
 returns jsonb
 language plpgsql
@@ -359,9 +371,12 @@ set search_path = public
 as $$
 declare
   v_user_text text := nullif(btrim(coalesce(p ->> 'userId', '')), '');
-  v_email text := lower(btrim(coalesce(p ->> 'email', '')));
+  v_email text := quote_email_key(p ->> 'email');
   v_target text := nullif(btrim(coalesce(p ->> 'teamRoleId', '')), '');
   v_user uuid;
+  v_matches int;
+  v_confirmed boolean;
+  v_role_id uuid;
   v_role team_roles;
   v_new_role text;
   v_new_team uuid;
@@ -369,24 +384,43 @@ begin
   if not is_admin() then
     raise exception 'forbidden';
   end if;
-  if v_target is null or (v_user_text is null and v_email = '') then
+  if v_target is null or (v_user_text is null and v_email is null) then
     raise exception 'invalid_request' using detail = 'team_assign: teamRoleId and userId or email required';
   end if;
 
   if v_user_text is not null then
-    select id into v_user from auth.users where id::text = v_user_text;
+    begin
+      v_user := v_user_text::uuid;
+    exception when invalid_text_representation then
+      raise exception 'invalid_request' using detail = 'team_assign: userId is not a uuid';
+    end;
+    if not exists (select 1 from auth.users where id = v_user) then
+      raise exception 'not_found' using detail = 'no such account';
+    end if;
   else
-    select id into v_user from auth.users where lower(email) = v_email order by created_at limit 1;
-  end if;
-  if v_user is null then
-    raise exception 'not_found' using detail = 'no account with that email';
+    select count(*)::int, (array_agg(u.id))[1], bool_or(u.email_confirmed_at is not null)
+      into v_matches, v_user, v_confirmed
+      from auth.users u
+     where quote_email_key(u.email) = v_email;
+    if v_matches = 0 then
+      raise exception 'not_found' using detail = 'no account with that email';
+    elsif v_matches > 1 then
+      raise exception 'ambiguous_email' using detail = 'more than one account holds that email';
+    elsif not v_confirmed then
+      raise exception 'not_confirmed' using detail = 'that account has not confirmed its email';
+    end if;
   end if;
 
   if v_target = 'owner' then
     v_new_role := 'admin';
     v_new_team := null;
   else
-    select * into v_role from team_roles where id::text = v_target;
+    begin
+      v_role_id := v_target::uuid;
+    exception when invalid_text_representation then
+      raise exception 'team_role_not_found';
+    end;
+    select * into v_role from team_roles where id = v_role_id;
     if not found then
       raise exception 'team_role_not_found';
     end if;
@@ -402,7 +436,9 @@ begin
 end;
 $$;
 
--- Take someone out of the back office: back to an ordinary customer account.
+-- Take someone out of the back office: back to an ordinary customer account. Needs a userId (a
+-- missing or malformed one is invalid_request, an unknown profile is not_found); the profile guard
+-- still refuses removing the last Owner (last_owner).
 create or replace function api_team_remove(p jsonb)
 returns jsonb
 language plpgsql
@@ -417,10 +453,16 @@ begin
   if not is_admin() then
     raise exception 'forbidden';
   end if;
-  update profiles set role = 'customer', team_role_id = null
-   where id::text = v_user_text
-  returning id into v_user;
-  if v_user is null then
+  if v_user_text is null then
+    raise exception 'invalid_request' using detail = 'team_remove: userId required';
+  end if;
+  begin
+    v_user := v_user_text::uuid;
+  exception when invalid_text_representation then
+    raise exception 'invalid_request' using detail = 'team_remove: userId is not a uuid';
+  end;
+  update profiles set role = 'customer', team_role_id = null where id = v_user;
+  if not found then
     raise exception 'not_found';
   end if;
   return jsonb_build_object('ok', true, 'userId', v_user);

@@ -33,7 +33,10 @@ const PEOPLE: Array<[string, string, string]> = [
 async function seedPeople(db: TestDb, people = PEOPLE): Promise<void> {
   await db.asOwner();
   for (const [id, email, role] of people) {
-    await db.pg.query(`insert into auth.users (id, email) values ($1, $2)`, [id, email]);
+    await db.pg.query(
+      `insert into auth.users (id, email, email_confirmed_at) values ($1, $2, now())`,
+      [id, email],
+    );
     await db.pg.query(`insert into profiles (id, full_name, role) values ($1, $2, $3::user_role)`, [
       id,
       email.split('@')[0],
@@ -580,6 +583,54 @@ describe('team RPCs', () => {
   const call = <T>(fn: string, p: unknown) =>
     one<T>(db, `select ${fn}($1::jsonb) as v`, [JSON.stringify(p)]);
 
+  // The seeded people (OWNER, WORKER, WRITER, BARE, GUEST) are only ever READ by these tests. Anything a
+  // test changes it changes on an account of its own, made here and removed again by `forget`, so the
+  // tests do not depend on each other's order — and OWNER is the sole Owner whenever a test starts.
+  let seq = 0;
+  async function addPerson(
+    opts: {
+      email?: string;
+      name?: string;
+      role?: string;
+      confirmed?: boolean;
+      profile?: boolean;
+    } = {},
+  ): Promise<string> {
+    seq += 1;
+    const id = `8a000000-0000-4000-8000-${String(seq).padStart(12, '0')}`;
+    await db.asOwner();
+    await db.pg.query(
+      `insert into auth.users (id, email, email_confirmed_at)
+       values ($1, $2, case when $3::boolean then now() end)`,
+      [id, opts.email ?? `person${seq}@example.com`, opts.confirmed ?? true],
+    );
+    if (opts.profile ?? true) {
+      await db.pg.query(
+        `insert into profiles (id, full_name, role) values ($1, $2, $3::user_role)`,
+        [id, opts.name ?? `person${seq}`, opts.role ?? 'customer'],
+      );
+    }
+    return id;
+  }
+  async function forget(...ids: string[]): Promise<void> {
+    await db.asOwner();
+    for (const id of ids) {
+      await db.pg.query(`delete from profiles where id = $1`, [id]);
+      await db.pg.query(`delete from auth.users where id = $1`, [id]);
+    }
+  }
+  async function profileOf(
+    id: string,
+  ): Promise<{ role: string; team_role_id: string | null } | undefined> {
+    await db.asOwner();
+    return (
+      await db.pg.query<{ role: string; team_role_id: string | null }>(
+        `select role::text as role, team_role_id from profiles where id = $1`,
+        [id],
+      )
+    ).rows[0];
+  }
+
   it('api_my_access describes the caller', async () => {
     await asUser(db, OWNER);
     const owner = await call<{ role: string; permissions: string[] }>('api_my_access', {});
@@ -598,88 +649,287 @@ describe('team RPCs', () => {
     expect((await call<{ permissions: string[] }>('api_my_access', {})).permissions).toEqual([]);
   });
 
-  it('api_team_list is Owner-only and lists everyone but customers, with email', async () => {
-    await asUser(db, WORKER);
-    expect(await failure(call('api_team_list', {}))).toMatch(/forbidden/);
+  it('api_my_access answers an account with no profile with nothing, not an error', async () => {
+    const ghost = await addPerson({ profile: false });
+    try {
+      await asUser(db, ghost);
+      expect(await call('api_my_access', {})).toEqual({
+        role: null,
+        teamRoleId: null,
+        teamRoleName: null,
+        base: null,
+        permissions: [],
+      });
+    } finally {
+      await forget(ghost);
+    }
+  });
+
+  it('every Owner-only RPC refuses a staff, a content and a customer caller', async () => {
+    const bystander = await addPerson({ role: 'customer' });
+    try {
+      for (const [who, caller] of [
+        ['staff', WORKER],
+        ['seo', WRITER],
+        ['customer', GUEST],
+      ] as const) {
+        await asUser(db, caller);
+        expect(await failure(call('api_team_list', {})), `list as ${who}`).toMatch(/forbidden/);
+        await asUser(db, caller);
+        expect(
+          await failure(call('api_team_assign', { userId: bystander, teamRoleId: reservations })),
+          `assign as ${who}`,
+        ).toMatch(/forbidden/);
+        await asUser(db, caller);
+        // The escalation itself: asking to become an Owner.
+        expect(
+          await failure(call('api_team_assign', { userId: caller, teamRoleId: 'owner' })),
+          `self-promote as ${who}`,
+        ).toMatch(/forbidden/);
+        await asUser(db, caller);
+        expect(
+          await failure(call('api_team_remove', { userId: bystander })),
+          `remove as ${who}`,
+        ).toMatch(/forbidden/);
+      }
+      // Refused means untouched.
+      expect((await profileOf(bystander))!.role).toBe('customer');
+      expect((await profileOf(WORKER))!.role).toBe('staff');
+      expect((await profileOf(WRITER))!.role).toBe('seo');
+      expect((await profileOf(GUEST))!.role).toBe('customer');
+    } finally {
+      await forget(bystander);
+    }
+  });
+
+  it('api_team_list lists everyone but customers, with their email', async () => {
     await asUser(db, OWNER);
     const team = await call<Array<{ userId: string; email: string; role: string }>>(
       'api_team_list',
       {},
     );
-    expect(team.map((m) => m.userId).sort()).toEqual([OWNER, WORKER, WRITER, BARE].sort());
-    expect(team[0]!.role).toBe('admin'); // Owners first
+    const ids = team.map((m) => m.userId);
+    expect(ids).toEqual(expect.arrayContaining([OWNER, WORKER, WRITER, BARE]));
+    expect(ids).not.toContain(GUEST);
+    expect(team.every((m) => m.role !== 'customer')).toBe(true);
     expect(team.find((m) => m.userId === WORKER)!.email).toBe('worker@example.com');
   });
 
+  it('api_team_list puts every Owner before every non-Owner, whatever their names', async () => {
+    // Names chosen so a plain alphabetical sort would interleave them: 'aaa' < 'worker' < 'zzz'.
+    const aaaStaff = await addPerson({ name: 'aaa-staff', role: 'staff' });
+    const zzzOwner = await addPerson({ name: 'zzz-owner', role: 'admin' });
+    try {
+      await asUser(db, OWNER);
+      const team = await call<Array<{ userId: string; role: string }>>('api_team_list', {});
+      const ids = team.map((m) => m.userId);
+      expect(ids).toEqual(expect.arrayContaining([OWNER, zzzOwner, aaaStaff, WORKER]));
+      const firstNonOwner = team.findIndex((m) => m.role !== 'admin');
+      expect(firstNonOwner).toBeGreaterThan(1); // at least the two Owners come before it
+      expect(team.slice(firstNonOwner).every((m) => m.role !== 'admin')).toBe(true);
+      expect(team.slice(0, firstNonOwner).map((m) => m.userId)).toEqual(
+        expect.arrayContaining([OWNER, zzzOwner]),
+      );
+    } finally {
+      await forget(aaaStaff, zzzOwner);
+    }
+  });
+
   it('api_team_assign puts an account into a role by email, and sets the matching base', async () => {
-    await asUser(db, OWNER);
-    await call('api_team_assign', { email: 'GUEST@example.com ', teamRoleId: reservations });
-    await db.asOwner();
-    let p = (
-      await db.pg.query<{ role: string; team_role_id: string }>(
-        `select role::text as role, team_role_id from profiles where id = $1`,
-        [GUEST],
-      )
-    ).rows[0]!;
-    expect(p).toEqual({ role: 'staff', team_role_id: reservations });
+    const casey = await addPerson({ email: 'Casey.Mixed@Example.com' });
+    try {
+      await asUser(db, OWNER);
+      await call('api_team_assign', {
+        email: ' casey.mixed@EXAMPLE.com ',
+        teamRoleId: reservations,
+      });
+      expect(await profileOf(casey)).toEqual({ role: 'staff', team_role_id: reservations });
 
-    await asUser(db, OWNER);
-    await call('api_team_assign', { userId: GUEST, teamRoleId: content });
-    await db.asOwner();
-    p = (
-      await db.pg.query<{ role: string; team_role_id: string }>(
-        `select role::text as role, team_role_id from profiles where id = $1`,
-        [GUEST],
-      )
-    ).rows[0]!;
-    expect(p).toEqual({ role: 'seo', team_role_id: content });
+      // By userId instead — an upper-case uuid is the same uuid — onto a content role.
+      await asUser(db, OWNER);
+      await call('api_team_assign', { userId: casey.toUpperCase(), teamRoleId: content });
+      expect(await profileOf(casey)).toEqual({ role: 'seo', team_role_id: content });
+    } finally {
+      await forget(casey);
+    }
   });
 
-  it('api_team_assign can make an Owner, and refuses bad input', async () => {
+  it('api_team_assign: when both userId and email are given, userId wins', async () => {
+    const named = await addPerson();
+    const other = await addPerson({ email: 'other.holder@example.com' });
+    try {
+      await asUser(db, OWNER);
+      await call('api_team_assign', {
+        userId: named,
+        email: 'other.holder@example.com',
+        teamRoleId: reservations,
+      });
+      expect((await profileOf(named))!.role).toBe('staff');
+      expect((await profileOf(other))!.role).toBe('customer');
+    } finally {
+      await forget(named, other);
+    }
+  });
+
+  it('api_team_assign by email refuses an account that has not confirmed it', async () => {
+    const stranger = await addPerson({ email: 'unconfirmed@example.com', confirmed: false });
+    try {
+      await asUser(db, OWNER);
+      expect(
+        await failure(
+          call('api_team_assign', { email: 'Unconfirmed@Example.com', teamRoleId: 'owner' }),
+        ),
+      ).toMatch(/not_confirmed/);
+      expect((await profileOf(stranger))!.role).toBe('customer');
+    } finally {
+      await forget(stranger);
+    }
+  });
+
+  it('api_team_assign by email refuses an address held by more than one account', async () => {
+    const first = await addPerson({ email: 'twin@example.com' });
+    const second = await addPerson({ email: '  TWIN@example.com' }); // differs by case and spaces only
+    const lone = await addPerson({ email: 'half@example.com' });
+    const halfUnconfirmed = await addPerson({ email: 'HALF@example.com', confirmed: false });
+    try {
+      await asUser(db, OWNER);
+      expect(
+        await failure(
+          call('api_team_assign', { email: 'twin@example.com', teamRoleId: reservations }),
+        ),
+      ).toMatch(/ambiguous_email/);
+      // An unconfirmed twin still makes the address ambiguous: the confirmed one is not "the" owner.
+      await asUser(db, OWNER);
+      expect(
+        await failure(
+          call('api_team_assign', { email: 'half@example.com', teamRoleId: reservations }),
+        ),
+      ).toMatch(/ambiguous_email/);
+      for (const id of [first, second, lone, halfUnconfirmed]) {
+        expect((await profileOf(id))!.role, id).toBe('customer');
+      }
+    } finally {
+      await forget(first, second, lone, halfUnconfirmed);
+    }
+  });
+
+  it('api_team_assign can make an Owner', async () => {
+    const heir = await addPerson();
+    try {
+      await asUser(db, OWNER);
+      await call('api_team_assign', { userId: heir, teamRoleId: 'owner' });
+      expect(await profileOf(heir)).toEqual({ role: 'admin', team_role_id: null });
+    } finally {
+      await forget(heir);
+    }
+  });
+
+  it('api_team_assign creates the profile when the account has none yet', async () => {
+    const fresh = await addPerson({ profile: false });
+    try {
+      expect(await profileOf(fresh)).toBeUndefined();
+      await asUser(db, OWNER);
+      await call('api_team_assign', { userId: fresh, teamRoleId: reservations });
+      expect(await profileOf(fresh)).toEqual({ role: 'staff', team_role_id: reservations });
+    } finally {
+      await forget(fresh);
+    }
+  });
+
+  it('api_team_assign refuses unknown targets and malformed input', async () => {
+    const target = await addPerson();
+    const missing = '9f9f9f9f-9f9f-4f9f-9f9f-9f9f9f9f9f9f';
+    try {
+      await asUser(db, OWNER);
+      const refused = async (p: Record<string, unknown>) => failure(call('api_team_assign', p));
+      expect(await refused({ email: 'nobody@example.com', teamRoleId: content })).toMatch(
+        /not_found/,
+      );
+      expect(await refused({ userId: missing, teamRoleId: content })).toMatch(/not_found/);
+      expect(await refused({ userId: target, teamRoleId: 'not-a-role' })).toMatch(
+        /team_role_not_found/,
+      );
+      expect(await refused({ userId: target, teamRoleId: missing })).toMatch(/team_role_not_found/);
+      expect(await refused({ userId: target })).toMatch(/invalid_request/); // no teamRoleId
+      expect(await refused({ teamRoleId: content })).toMatch(/invalid_request/); // no one named
+      expect(await refused({ email: '   ', teamRoleId: content })).toMatch(/invalid_request/);
+      expect(await refused({ userId: 'not-a-uuid', teamRoleId: content })).toMatch(
+        /invalid_request/,
+      );
+      expect((await profileOf(target))!.role).toBe('customer');
+    } finally {
+      await forget(target);
+    }
+  });
+
+  it('api_team_assign never lets the only Owner step down — not even to a team role', async () => {
     await asUser(db, OWNER);
-    await call('api_team_assign', { userId: BARE, teamRoleId: 'owner' });
-    await db.asOwner();
     expect(
-      await one<string>(db, `select role::text as v from profiles where id = $1`, [BARE]),
-    ).toBe('admin');
+      await failure(call('api_team_assign', { userId: OWNER, teamRoleId: reservations })),
+    ).toMatch(/last_owner/);
+    expect((await profileOf(OWNER))!.role).toBe('admin');
+  });
+
+  it('api_team_remove turns a member back into a customer', async () => {
+    const member = await addPerson();
+    const writer = await addPerson();
+    try {
+      await asUser(db, OWNER);
+      await call('api_team_assign', { userId: member, teamRoleId: reservations });
+      await call('api_team_assign', { userId: writer, teamRoleId: content });
+      expect((await profileOf(writer))!.role).toBe('seo');
+
+      await asUser(db, OWNER);
+      await call('api_team_remove', { userId: member });
+      await call('api_team_remove', { userId: writer.toUpperCase() });
+      expect(await profileOf(member)).toEqual({ role: 'customer', team_role_id: null });
+      expect(await profileOf(writer)).toEqual({ role: 'customer', team_role_id: null });
+    } finally {
+      await forget(member, writer);
+    }
+  });
+
+  it('api_team_remove never removes the last Owner, but may remove a second one', async () => {
+    const second = await addPerson({ role: 'admin' });
+    try {
+      await asUser(db, OWNER);
+      await call('api_team_remove', { userId: second });
+      expect((await profileOf(second))!.role).toBe('customer');
+      await asUser(db, OWNER);
+      expect(await failure(call('api_team_remove', { userId: OWNER }))).toMatch(/last_owner/);
+      expect((await profileOf(OWNER))!.role).toBe('admin');
+    } finally {
+      await forget(second);
+    }
+  });
+
+  it('api_team_remove refuses a missing, malformed or unknown userId', async () => {
     await asUser(db, OWNER);
-    expect(
-      await failure(call('api_team_assign', { email: 'nobody@example.com', teamRoleId: content })),
-    ).toMatch(/not_found/);
-    expect(
-      await failure(call('api_team_assign', { userId: GUEST, teamRoleId: 'not-a-role' })),
-    ).toMatch(/team_role_not_found/);
-    await asUser(db, WORKER);
-    expect(await failure(call('api_team_assign', { userId: WORKER, teamRoleId: 'owner' }))).toMatch(
-      /forbidden/,
+    expect(await failure(call('api_team_remove', {}))).toMatch(/invalid_request/);
+    expect(await failure(call('api_team_remove', { userId: '  ' }))).toMatch(/invalid_request/);
+    expect(await failure(call('api_team_remove', { userId: 'not-a-uuid' }))).toMatch(
+      /invalid_request/,
     );
-  });
-
-  it('api_team_remove turns a member back into a customer, but never the last Owner', async () => {
-    await asUser(db, OWNER);
-    await call('api_team_remove', { userId: WRITER });
-    await db.asOwner();
     expect(
-      await one<string>(db, `select role::text as v from profiles where id = $1`, [WRITER]),
-    ).toBe('customer');
-    // BARE became a second Owner above; remove them, then try the last one.
-    await asUser(db, OWNER);
-    await call('api_team_remove', { userId: BARE });
-    expect(await failure(call('api_team_remove', { userId: OWNER }))).toMatch(/last_owner/);
-    expect(
-      await failure(call('api_team_remove', { userId: '9f9f9f9f-9f9f-9f9f-9f9f-9f9f9f9f9f9f' })),
+      await failure(call('api_team_remove', { userId: '9f9f9f9f-9f9f-4f9f-9f9f-9f9f9f9f9f9f' })),
     ).toMatch(/not_found/);
   });
 
-  it('anonymous callers cannot execute any of them', async () => {
+  it('anonymous callers cannot execute any of them; signed-in ones can', async () => {
     await db.asOwner();
     for (const fn of ['api_my_access', 'api_team_list', 'api_team_assign', 'api_team_remove']) {
-      expect(
-        await one<boolean>(db, `select has_function_privilege('anon', $1, 'execute') as v`, [
-          `public.${fn}(jsonb)`,
-        ]),
-        fn,
-      ).toBe(false);
+      for (const [role, expected] of [
+        ['anon', false],
+        ['authenticated', true],
+      ] as const) {
+        expect(
+          await one<boolean>(db, `select has_function_privilege($1, $2, 'execute') as v`, [
+            role,
+            `public.${fn}(jsonb)`,
+          ]),
+          `${role} ${fn}`,
+        ).toBe(expected);
+      }
     }
   });
 });
