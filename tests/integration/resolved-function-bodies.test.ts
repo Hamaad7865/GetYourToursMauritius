@@ -324,6 +324,20 @@ const CONTRACTS: ResolvedContract[] = [
       'payment from the sum leaves balance_due_minor equal to the difference just paid, on a booking ' +
       'that is, in fact, paid in full',
   },
+  // api_book's first-leg date backstop (20261025120000_transfer_first_leg_date_guard). api_book is the
+  // function this repo has re-declared most often, and once already lost a guard to a stale body
+  // (database.md). Pin the slot day being read in Mauritius time, a departure's date being REQUIRED
+  // to equal it (`is distinct from`, so a missing date is refused too), and a return's second leg
+  // not preceding it — a re-definition from the pre-guard body lets a departure hold a slot on a
+  // different day from the one the guest leaves (BMT61C672F6CC1B6: slot 9 Oct, left 15 Oct).
+  {
+    fn: 'api_book',
+    must: 'refuses an airport transfer whose first-leg date is off the slot’s Mauritius day',
+    code: /\bat\s+time\s+zone\s+'indian\/mauritius'\s*\)\s*::\s*date\s+into\s+v_slot_day\b[\s\S]*?\bv_trip_direction\s*=\s*'departure'\s+and\s+nullif\s*\(\s*p\s*->>\s*'returndate'\s*,\s*''\s*\)\s*::\s*date\s+is\s+distinct\s+from\s+v_slot_day\b[\s\S]*?\bv_trip_direction\s*=\s*'return'\s+and\s+nullif\s*\(\s*p\s*->>\s*'returndate'\s*,\s*''\s*\)\s*::\s*date\s*<\s*v_slot_day\b[\s\S]*?\braise\s+exception\s+'transfer_date_mismatch'/,
+    why:
+      'without it a stale or crafted checkout books a departure-only transfer on the widget’s day ' +
+      'while the guest leaves on another — the driver is sent on the wrong date',
+  },
 ];
 
 /**

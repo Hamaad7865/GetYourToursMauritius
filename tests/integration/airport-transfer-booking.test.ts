@@ -123,6 +123,16 @@ describe('airport-transfer booking: zone pricing + the new form fields persist',
   });
 
   it('prices a return Zone 2 trip at €63 (2 legs − 10%) and stores both legs', async () => {
+    // The second leg must not precede the slot's Mauritius day (api_book's first-leg date guard), so
+    // derive it from the occurrence rather than hard-coding a date that ages into the past.
+    await db.asOwner();
+    const returnDate = (
+      await db.pg.query<{ d: string }>(
+        `select ((starts_at at time zone 'Indian/Mauritius')::date + 5)::text as d
+           from session_occurrences where id = $1`,
+        [occurrenceId],
+      )
+    ).rows[0]!.d;
     await db.as({ sub: CUSTOMER, role: 'authenticated' });
     const booking = await apiBook<{ ref: string; totalEur: number }>(db, {
       occurrenceId,
@@ -133,7 +143,7 @@ describe('airport-transfer booking: zone pricing + the new form fields persist',
       tripDirection: 'return',
       flightNumber: 'MK015',
       arrivalTime: '14:30',
-      returnDate: '2026-08-01',
+      returnDate,
       returnTime: '10:00',
       departureFlightNumber: 'MK014',
       customerName: 'Return Tester',
@@ -148,7 +158,7 @@ describe('airport-transfer booking: zone pricing + the new form fields persist',
     expect(got.tripType).toBe('return');
     expect(got.departureFlightNumber).toBe('MK014');
     expect(got.returnTime).toBe('10:00');
-    expect(got.returnDate).toBe('2026-08-01');
+    expect(got.returnDate).toBe(returnDate);
     expect(got.dropoffLocation).toBe('Shandrani Beachcomber Resort & Spa');
   });
 

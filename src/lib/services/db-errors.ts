@@ -55,6 +55,14 @@ export function mapDbError(error: unknown): never {
   if (/duplicate key value|unique constraint/i.test(message)) {
     throw new ConflictError('This request was already submitted');
   }
+  // An airport transfer whose first-leg date is off the day it reserved (api_book's backstop). Only a
+  // stale or hand-edited checkout reaches it — the current one shows the reserved day read-only — so
+  // the guest's way out is to pick the date again on the transfer page.
+  if (/\btransfer_date_mismatch\b/.test(message)) {
+    throw new ValidationError(
+      'Your transfer date doesn’t match the day we reserved for it — please go back to the transfer page and choose your date again.',
+    );
+  }
   if (
     /\b(occurrence_not_bookable|occurrence_not_found|occurrence_in_past|occurrence_too_soon|occurrence_activity_mismatch|invalid_party|invalid_item|invalid_quantity|unknown_price_tier|exceeds_max_guests|exceeds_vehicle_capacity|items_quantity_mismatch|invalid_request)\b/.test(
       message,

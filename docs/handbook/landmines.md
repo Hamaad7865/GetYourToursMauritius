@@ -231,6 +231,12 @@ directions that keep it (`src/lib/transfers/direction.ts`). Before that, a guest
 Departure at checkout and type another day: BMT61C672F6CC1B6 and BMT128D90D2935B0 held 2026-10-09
 while the guest left on 2026-10-15.
 
+`api_book` backstops it server-side (`20261025120000_transfer_first_leg_date_guard.sql`): for an airport
+transfer, a departure's `returnDate` is required and must equal the slot's Mauritius day, and a return's
+must not precede it — otherwise `transfer_date_mismatch` (a 400 telling the guest to pick the date
+again). It guards **creation only**: `api_reschedule_booking` and `apply_booking_change` move the slot
+without touching `return_date`, so moving a departure-only booking still lets the two drift apart.
+
 ---
 
 ## Generated files
