@@ -4,6 +4,16 @@ import { makeSupabaseShim, type SupabaseShim } from '../db/supabase-pglite';
 import { seedTeamRole } from '../db/team';
 import { can } from '@/lib/admin/permissions';
 import { loadCallerAccess, type AccessClient } from '@/lib/http/access';
+import {
+  assignMember,
+  deleteRole,
+  loadMyAccess,
+  loadRoles,
+  loadTeam,
+  removeMember,
+  saveRole,
+  teamErrorMessage,
+} from '@/lib/admin/team';
 
 const OWNER = 'aa000000-0000-0000-0000-000000000001';
 const WORKER = 'aa000000-0000-0000-0000-000000000002';
@@ -107,5 +117,68 @@ describe('loadCallerAccess (server, service-role reads)', () => {
     const seoOnTeam = await access(SEO_ON_TEAM);
     expect(seoOnTeam.permissions.size).toBe(0);
     expect(can(seoOnTeam, 'section.quotes')).toBe(false);
+  });
+});
+
+describe('src/lib/admin/team.ts (the Roles screen’s calls)', () => {
+  const asOwnerUser = () => db.as({ sub: OWNER, role: 'authenticated' });
+
+  it('loadMyAccess returns the caller’s access', async () => {
+    await db.as({ sub: WORKER, role: 'authenticated' });
+    const a = await loadMyAccess();
+    expect(a.role).toBe('staff');
+    expect([...a.permissions]).toEqual(['section.quotes']);
+  });
+
+  it('creates, edits and deletes a role', async () => {
+    await asOwnerUser();
+    const id = await saveRole({
+      id: null,
+      name: 'Drivers',
+      description: '',
+      base: 'team',
+      permissions: ['section.calendar'],
+    });
+    await saveRole({
+      id,
+      name: 'Drivers',
+      description: 'Day sheets only',
+      base: 'team',
+      permissions: ['section.calendar', 'section.bookings'],
+    });
+    const role = (await loadRoles()).find((r) => r.id === id)!;
+    expect(role.description).toBe('Day sheets only');
+    expect(role.permissions).toEqual(['section.bookings', 'section.calendar']);
+    await deleteRole(id);
+    expect((await loadRoles()).some((r) => r.id === id)).toBe(false);
+  });
+
+  it('assigns by email, changes, and removes a member', async () => {
+    await asOwnerUser();
+    const id = await saveRole({
+      id: null,
+      name: 'Desk',
+      description: '',
+      base: 'team',
+      permissions: [],
+    });
+    await assignMember({ email: 'bare@example.com' }, id);
+    let member = (await loadTeam()).find((m) => m.userId === BARE)!;
+    expect(member.teamRoleName).toBe('Desk');
+    await removeMember(BARE);
+    member = (await loadTeam()).find((m) => m.userId === BARE)!;
+    expect(member).toBeUndefined();
+  });
+
+  it('turns database refusals into sentences', async () => {
+    await asOwnerUser();
+    await expect(assignMember({ email: 'nobody@example.com' }, 'owner')).rejects.toThrow(
+      /sign up on the website first/,
+    );
+    await expect(removeMember(OWNER)).rejects.toThrow(/at least one Owner/);
+    expect(
+      teamErrorMessage('duplicate key value violates unique constraint "team_roles_name_key"', 'x'),
+    ).toMatch(/already exists/);
+    expect(teamErrorMessage('something else', 'Could not save.')).toBe('Could not save.');
   });
 });
