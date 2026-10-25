@@ -31,6 +31,10 @@ describe('the permission catalogue', () => {
     expect(MONEY_PERMISSIONS.some((p) => p.contentAllowed)).toBe(false);
   });
 
+  it('has 21 keys (tripwire: the SQL mirror must change with this)', () => {
+    expect(ALL_PERMISSIONS).toHaveLength(21);
+  });
+
   it('recognises only catalogue keys', () => {
     expect(isPermissionKey('money.refunds')).toBe(true);
     expect(isPermissionKey('money.everything')).toBe(false);
@@ -50,7 +54,6 @@ describe('buildAccess', () => {
       role: 'staff',
       teamRoleId: 'r1',
       teamRoleName: 'Reservations',
-      base: 'team',
       permissions: ['section.bookings', 'section.quotes', 'money.everything'],
     });
     expect(a.isOwner).toBe(false);
@@ -63,7 +66,6 @@ describe('buildAccess', () => {
       role: 'seo',
       teamRoleId: 'r2',
       teamRoleName: 'Content',
-      base: 'content',
       permissions: ['section.blog', 'section.bookings', 'money.reports'],
     });
     expect([...a.permissions]).toEqual(['section.blog']);
@@ -78,13 +80,50 @@ describe('buildAccess', () => {
     expect(NO_ACCESS.permissions.size).toBe(0);
     expect(roleLabel(buildAccess({ role: 'staff' }))).toBe('No role yet');
   });
+
+  it('never throws on malformed permissions from the jsonb RPC', () => {
+    const objectPerms = buildAccess({ role: 'staff', permissions: {} as never });
+    expect(objectPerms.permissions.size).toBe(0);
+    const stringPerms = buildAccess({ role: 'staff', permissions: 'section.bookings' as never });
+    expect(stringPerms.permissions.size).toBe(0);
+    const mixed = buildAccess({
+      role: 'staff',
+      permissions: ['section.bookings', 42, null, { key: 'section.leads' }] as never,
+    });
+    expect([...mixed.permissions]).toEqual(['section.bookings']);
+  });
+
+  it('carries no team role for a customer, whatever it is given', () => {
+    const a = buildAccess({
+      role: 'customer',
+      teamRoleId: 'r9',
+      teamRoleName: 'Sneaky',
+      permissions: ['section.bookings'],
+    });
+    expect(a.teamRoleId).toBeNull();
+    expect(a.teamRoleName).toBeNull();
+    expect(a.base).toBeNull();
+    expect(a.permissions.size).toBe(0);
+    expect(roleLabel(a)).toBe('No role yet');
+  });
+
+  it('derives base from the role, not from the row', () => {
+    expect(buildAccess({ role: 'seo', permissions: ['section.blog'] }).base).toBe('content');
+    expect(buildAccess({ role: 'staff' }).base).toBe('team');
+    expect(buildAccess({ role: 'admin' }).base).toBeNull();
+  });
+
+  it('does not render a blank label for an empty role name', () => {
+    expect(roleLabel(buildAccess({ role: 'staff', teamRoleId: 'r', teamRoleName: '' }))).toBe(
+      'No role yet',
+    );
+  });
 });
 
 describe('can', () => {
   const a = buildAccess({
     role: 'staff',
     teamRoleId: 'r',
-    base: 'team',
     permissions: ['money.prices'],
   });
 
@@ -96,5 +135,11 @@ describe('can', () => {
   it('treats a list as any-of', () => {
     expect(can(a, ['money.currency', 'money.prices'])).toBe(true);
     expect(can(a, ['money.currency', 'money.refunds'])).toBe(false);
+  });
+
+  it('lets the Owner do anything, but an empty list matches nothing', () => {
+    const owner = buildAccess({ role: 'admin' });
+    expect(can(owner, 'money.refunds')).toBe(true);
+    expect(can(owner, [])).toBe(false);
   });
 });

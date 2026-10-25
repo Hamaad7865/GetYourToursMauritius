@@ -166,33 +166,40 @@ export const NO_ACCESS: AdminAccess = {
 };
 
 /**
- * Normalise whatever the database returned into an AdminAccess. The Owner gets every key; a team
- * member gets their role's known keys; a content member additionally loses any non-content key (the
- * database refuses to store one, this is the second lock); everyone else gets nothing — FAIL CLOSED.
+ * Normalise whatever the database returned into an AdminAccess — FAIL CLOSED, and never throws, because
+ * `permissions` arrives from an untyped jsonb RPC. The Owner (role 'admin') gets every key. A team
+ * member ('staff') gets their role's known keys; a content member ('seo') additionally loses any
+ * non-content key (the database refuses to store one, this is the second lock). Everyone else — a
+ * customer, nobody, an unknown role — gets nothing.
+ *
+ * `base` is derived from the role, not read from the row: the database's pairing rule guarantees
+ * staff ↔ team and seo ↔ content, so `profiles.role` is the single source of truth. The team role's
+ * id and name are only carried for staff and seo; for anyone else they are null.
  */
 export function buildAccess(input: {
   role: string | null;
   teamRoleId?: string | null;
   teamRoleName?: string | null;
-  base?: string | null;
   permissions?: readonly string[] | null;
 }): AdminAccess {
   const role = input.role ?? null;
   const isOwner = role === 'admin';
-  const base: RoleBase | null =
-    input.base === 'team' || input.base === 'content' ? input.base : null;
+  const isMember = role === 'staff' || role === 'seo';
+  const base: RoleBase | null = role === 'staff' ? 'team' : role === 'seo' ? 'content' : null;
   let keys: PermissionKey[] = [];
   if (isOwner) keys = [...ALL_PERMISSIONS];
-  else if (role === 'staff' || role === 'seo') {
-    keys = (input.permissions ?? []).filter(isPermissionKey);
+  else if (isMember) {
+    // Runtime guard: the type says string[], the wire says whatever jsonb held.
+    const raw: unknown[] = Array.isArray(input.permissions) ? input.permissions : [];
+    keys = raw.filter((k): k is PermissionKey => typeof k === 'string' && isPermissionKey(k));
     if (role === 'seo') keys = keys.filter((k) => CONTENT.has(k));
   }
   return {
     role,
     isOwner,
-    teamRoleId: isOwner ? null : (input.teamRoleId ?? null),
-    teamRoleName: isOwner ? null : (input.teamRoleName ?? null),
-    base: isOwner ? null : base,
+    teamRoleId: isMember ? (input.teamRoleId ?? null) : null,
+    teamRoleName: isMember ? (input.teamRoleName ?? null) : null,
+    base,
     permissions: new Set(keys),
   };
 }
@@ -206,5 +213,5 @@ export function can(access: AdminAccess, need: PermissionKey | readonly Permissi
 /** The label shown under the person's name in the sidebar. */
 export function roleLabel(access: AdminAccess): string {
   if (access.isOwner) return 'Owner';
-  return access.teamRoleName ?? 'No role yet';
+  return access.teamRoleName || 'No role yet';
 }
