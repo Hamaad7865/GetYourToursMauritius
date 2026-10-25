@@ -531,10 +531,25 @@ create policy region_zone_distance_staff on region_zone_distance for all
   using (is_staff() and (select has_permission('money.prices')))
   with check (is_staff() and (select has_permission('money.prices')));
 
+-- Not a fare, but a price INPUT: `zone` picks the airport fare and `region` the hotel-to-hotel band
+-- a hotel is priced in, so whoever edits a row here re-prices every transfer to that hotel.
+drop policy if exists airport_transfer_hotels_staff on airport_transfer_hotels;
+create policy airport_transfer_hotels_staff on airport_transfer_hotels for all
+  using (is_staff() and (select has_permission('money.prices')))
+  with check (is_staff() and (select has_permission('money.prices')));
+
 -- (b) Tables that mix prices with fields a worker may edit: RLS cannot split columns, so a trigger
 --     refuses a client caller without the permission who CHANGES a price column (update: new value
 --     differs; insert: a non-null, non-zero value). Unchanged re-saves pass — the editors send rows
 --     back whole. TG_ARGV[0] is the permission, the rest are the guarded columns.
+--
+--     The INSERT rule is deliberately crude and has limits. It would refuse a column whose NON-price
+--     default is non-null and not '0' (a text default such as 'MUR', a boolean, a pricing_mode
+--     of 'per_person'), and a numeric rendered as '0.000000' (numeric(18,6) prints its scale, so it
+--     is not equal to '0'). Such a column MUST NOT be passed to a trigger that fires on INSERT: a
+--     worker creating a new tour or option would be refused. Guard it with an UPDATE-only trigger
+--     instead (see the *_money_guard_update triggers below) — there the rule is simply
+--     "new value differs from old", which has no such limit.
 create or replace function enforce_money_columns()
 returns trigger
 language plpgsql
@@ -543,13 +558,19 @@ set search_path = public
 as $$
 declare
   v_perm text := tg_argv[0];
-  v_new jsonb := to_jsonb(new);
-  v_old jsonb := case when tg_op = 'UPDATE' then to_jsonb(old) end;
+  v_new jsonb;
+  v_old jsonb;
   v_col text;
   i int;
 begin
+  -- Cheap exit first: the Owner, a permitted member and every non-client role (service_role, the
+  -- definer functions' owner, migrations) never need the row serialised.
   if current_user not in ('anon', 'authenticated') or has_permission(v_perm) then
     return new;
+  end if;
+  v_new := to_jsonb(new);
+  if tg_op = 'UPDATE' then
+    v_old := to_jsonb(old);
   end if;
   for i in 1 .. tg_nargs - 1 loop
     v_col := tg_argv[i];
@@ -585,4 +606,22 @@ create trigger rental_vehicles_money_guard
 drop trigger if exists business_settings_money_guard on business_settings;
 create trigger business_settings_money_guard
   before insert or update on business_settings
-  for each row execute function enforce_money_columns('money.currency', 'charge_currency', 'eur_mur_rate');
+  for each row execute function enforce_money_columns(
+    'money.currency', 'charge_currency', 'eur_mur_rate', 'eur_mur_rate_updated_at');
+
+-- Columns that change what a booking costs but MUST stay settable on INSERT (a worker creating a new
+-- tour or option sends pricing_mode, the transfer flags and the option's activity_id on INSERT, and
+-- none of them is null or '0'). They get UPDATE-only triggers: enforce_money_columns() applies its crude INSERT rule only
+-- when tg_op = 'INSERT', so an update-only trigger never sees it — and an update is refused only when
+-- the value actually changes. Moving an option to another activity re-prices it (it inherits that
+-- activity's pricing_mode and fares).
+drop trigger if exists activities_money_guard_update on activities;
+create trigger activities_money_guard_update
+  before update on activities
+  for each row execute function enforce_money_columns(
+    'money.prices', 'pricing_mode', 'is_airport_transfer', 'is_hotel_transfer');
+
+drop trigger if exists activity_options_money_guard_update on activity_options;
+create trigger activity_options_money_guard_update
+  before update on activity_options
+  for each row execute function enforce_money_columns('money.prices', 'activity_id');

@@ -950,6 +950,8 @@ describe('money locks', () => {
     await seedTeamRole(db, WORKER, ['section.tours', 'section.rental']);
     await seedTeamRole(db, PRICER, ['section.tours', 'money.prices']);
     await seedTeamRole(db, CASHIER, ['money.currency']);
+    // A content member (seo): activities_content_editor admits their writes to the activities row.
+    await seedTeamRole(db, WRITER, ['section.blog'], 'content');
     await db.asOwner();
     await db.pg.query(
       `insert into operators (name, slug) values ('Belle Mare Tours', 'belle-mare-tours')`,
@@ -1087,19 +1089,36 @@ describe('money locks', () => {
   it('every guarded column and permission named in a money-guard trigger really exists', async () => {
     // A misspelt column in TG_ARGV would silently guard nothing (old and new are both null).
     await db.asOwner();
-    const { rows } = await db.pg.query<{ tbl: string; args: string[] }>(
+    const { rows } = await db.pg.query<{
+      tbl: string;
+      name: string;
+      onInsert: boolean;
+      onUpdate: boolean;
+      args: string[];
+    }>(
       `select tgrelid::regclass::text as tbl,
+              tgname as name,
+              (tgtype & 4) <> 0 as "onInsert",
+              (tgtype & 16) <> 0 as "onUpdate",
               string_to_array(encode(tgargs, 'escape'), '\\000') as args
          from pg_trigger
-        where tgname like '%\\_money\\_guard' and not tgisinternal
-        order by 1`,
+        where tgname like '%\\_money\\_guard%' and not tgisinternal
+        order by 1, 2`,
     );
-    expect(rows.map((r) => r.tbl)).toEqual([
-      'activities',
-      'activity_options',
-      'business_settings',
-      'rental_vehicles',
+    expect(rows.map((r) => `${r.tbl}.${r.name}`)).toEqual([
+      'activities.activities_money_guard',
+      'activities.activities_money_guard_update',
+      'activity_options.activity_options_money_guard',
+      'activity_options.activity_options_money_guard_update',
+      'business_settings.business_settings_money_guard',
+      'rental_vehicles.rental_vehicles_money_guard',
     ]);
+    for (const r of rows) {
+      // The *_update guards cover columns that must stay settable on INSERT (a new tour, a new
+      // option). Adding INSERT to one would refuse every new tour a worker creates.
+      expect(r.onUpdate, `${r.name} fires on update`).toBe(true);
+      expect(r.onInsert, `${r.name} fires on insert`).toBe(!r.name.endsWith('_update'));
+    }
     const catalogue = await one<string[]>(db, `select permission_catalogue() as v`);
     for (const { tbl, args } of rows) {
       const [perm, ...columns] = args.filter(Boolean); // tgargs ends with a trailing NUL
@@ -1114,5 +1133,241 @@ describe('money locks', () => {
         expect(hit.rows.length, `${tbl}.${col}`).toBe(1);
       }
     }
+  });
+
+  it('every write policy on the 11 price-only tables still demands money.prices', async () => {
+    // Guards against a later migration silently reopening one with a bare is_staff() policy.
+    const TABLES = [
+      'activity_option_prices',
+      'activity_supplements',
+      'sightseeing_pricing',
+      'planner_pricing',
+      'transport_band_pricing',
+      'airport_transfer_fare',
+      'hotel_transfer_fare',
+      'airport_transfer_config',
+      'hotel_transfer_config',
+      'region_zone_distance',
+      'airport_transfer_hotels',
+    ];
+    await db.asOwner();
+    const { rows } = await db.pg.query<{
+      tablename: string;
+      policyname: string;
+      qual: string | null;
+      with_check: string | null;
+    }>(
+      `select tablename, policyname, qual, with_check
+         from pg_policies
+        where schemaname = 'public' and tablename = any($1)
+          and cmd <> 'SELECT' and permissive = 'PERMISSIVE'
+        order by 1, 2`,
+      [TABLES],
+    );
+    expect([...new Set(rows.map((r) => r.tablename))].sort()).toEqual([...TABLES].sort());
+    // Postgres prints the call as has_permission('money.prices'::text).
+    const needle = `has_permission('money.prices'`;
+    for (const r of rows) {
+      const where = `${r.tablename}.${r.policyname}`;
+      expect(r.qual !== null || r.with_check !== null, `${where}: has a predicate`).toBe(true);
+      if (r.qual !== null) expect(r.qual, `${where} using`).toContain(needle);
+      if (r.with_check !== null) expect(r.with_check, `${where} with check`).toContain(needle);
+    }
+  });
+
+  it('a worker cannot change what a tour or option costs by any other column', async () => {
+    await db.asOwner();
+    const second = await one<string>(
+      db,
+      `insert into activities (operator_id, slug, title, category, status)
+       select id, 'lock-test-2', 'Lock test 2', 'Island tours', 'draft' from operators limit 1
+       returning id as v`,
+    );
+    await asUser(db, WORKER);
+    for (const sql of [
+      `update activities set pricing_mode = 'vehicle' where slug = 'lock-test'`,
+      `update activities set is_airport_transfer = true where slug = 'lock-test'`,
+      `update activities set is_hotel_transfer = true where slug = 'lock-test'`,
+    ]) {
+      expect(await failure(db.pg.query(sql)), sql).toMatch(/forbidden/);
+    }
+    // Moving an option onto another activity re-prices it (it inherits that activity's mode).
+    expect(
+      await failure(
+        db.pg.query(`update activity_options set activity_id = $2 where id = $1`, [
+          optionId,
+          second,
+        ]),
+      ),
+    ).toMatch(/forbidden/);
+    // An unchanged re-save of those columns still passes.
+    expect(
+      await failure(
+        db.pg.query(
+          `update activities set pricing_mode = pricing_mode, is_airport_transfer = false,
+                  is_hotel_transfer = false, title = 'Lock test (renamed)'
+            where slug = 'lock-test'`,
+        ),
+      ),
+    ).toBe('');
+    await db.asOwner();
+    expect(
+      await one<string>(db, `select activity_id as v from activity_options where id = $1`, [
+        optionId,
+      ]),
+    ).not.toBe(second);
+    expect(
+      await one<string>(db, `select pricing_mode as v from activities where slug = 'lock-test'`),
+    ).toBe('per_person');
+
+    // The pricer may.
+    await asUser(db, PRICER);
+    expect(
+      await failure(
+        db.pg.query(`update activities set pricing_mode = 'per_group' where slug = 'lock-test'`),
+      ),
+    ).toBe('');
+  });
+
+  it('a content member cannot change the pricing mode of a tour they may edit', async () => {
+    await asUser(db, WRITER);
+    // activities_content_editor admits the row: a title edit is fine...
+    expect(
+      await failure(
+        db.pg.query(`update activities set title = 'Lock test (seo)' where slug = 'lock-test'`),
+      ),
+    ).toBe('');
+    // ...but the trigger refuses the price-shaping column.
+    expect(
+      await failure(
+        db.pg.query(`update activities set pricing_mode = 'vehicle' where slug = 'lock-test'`),
+      ),
+    ).toMatch(/forbidden/);
+  });
+
+  it('a worker still creates a new tour and a new option (update-only guards do not fire)', async () => {
+    await asUser(db, WORKER);
+    const created = await db.pg.query<{ id: string }>(
+      `insert into activities
+         (operator_id, slug, title, category, status, pricing_mode, is_airport_transfer, is_hotel_transfer)
+       select id, 'worker-new', 'Worker new', 'Island tours', 'draft', 'per_person', false, false
+         from operators limit 1
+       returning id`,
+    );
+    expect(created.rows).toHaveLength(1);
+    expect(
+      await failure(
+        db.pg.query(
+          `insert into activity_options (activity_id, name, position) values ($1, 'Standard', 0)`,
+          [created.rows[0]!.id],
+        ),
+      ),
+    ).toBe('');
+  });
+
+  it('airport_transfer_hotels (zone picks the airport fare) is locked too', async () => {
+    const zoneOf = async () => {
+      await db.asOwner();
+      return one<string>(
+        db,
+        `select zone as v from airport_transfer_hotels where slug = 'lux-belle-mare'`,
+      );
+    };
+    const before = await zoneOf();
+    const flipped = before === 'zone1' ? 'zone2' : 'zone1';
+    await asUser(db, WORKER);
+    const upd = await db.pg.query(
+      `update airport_transfer_hotels set zone = $1 where slug = 'lux-belle-mare'`,
+      [flipped],
+    );
+    expect(upd.affectedRows).toBe(0);
+    expect(await zoneOf()).toBe(before);
+    await asUser(db, PRICER);
+    const ok = await db.pg.query(
+      `update airport_transfer_hotels set zone = $1 where slug = 'lux-belle-mare'`,
+      [flipped],
+    );
+    expect(ok.affectedRows).toBe(1);
+  });
+
+  it('a worker cannot delete a price tier; the pricer can edit a fare', async () => {
+    await db.asOwner();
+    await db.pg.query(
+      `insert into activity_option_prices (activity_option_id, label, amount_minor, position)
+       values ($1, 'Keep me', 7000, 9)`,
+      [optionId],
+    );
+    await asUser(db, WORKER);
+    const del = await db.pg.query(
+      `delete from activity_option_prices where activity_option_id = $1`,
+      [optionId],
+    );
+    expect(del.affectedRows).toBe(0);
+    await db.asOwner();
+    expect(
+      await one<number>(
+        db,
+        `select count(*)::int as v from activity_option_prices where label = 'Keep me'`,
+      ),
+    ).toBe(1);
+
+    await asUser(db, PRICER);
+    const fare = await db.pg.query(
+      `update transport_band_pricing set sedan_minor = sedan_minor + 1`,
+    );
+    expect(fare.affectedRows ?? 0).toBeGreaterThan(0);
+  });
+
+  it('rental and currency: a changed price is refused, an unchanged re-save passes', async () => {
+    await db.asOwner();
+    await db.pg.query(
+      `insert into rental_vehicles (slug, name, daily_rate_minor, deposit_minor)
+       values ('lock-car-2', 'Lock car 2', 3600, 1000)`,
+    );
+    await asUser(db, WORKER);
+    expect(
+      await failure(
+        db.pg.query(
+          `update rental_vehicles set name = 'Lock car 2b', daily_rate_minor = 3600, deposit_minor = 1000
+            where slug = 'lock-car-2'`,
+        ),
+      ),
+    ).toBe('');
+    for (const sql of [
+      `update rental_vehicles set daily_rate_minor = 3700 where slug = 'lock-car-2'`,
+      `update rental_vehicles set deposit_minor = 1100 where slug = 'lock-car-2'`,
+      // Flip whatever the current currency is, so the value really changes.
+      `update business_settings set charge_currency = case when charge_currency = 'EUR' then 'MUR' else 'EUR' end`,
+      // create_payment copies this timestamp into charged_fx_at.
+      `update business_settings set eur_mur_rate_updated_at = now()`,
+    ]) {
+      expect(await failure(db.pg.query(sql)), sql).toMatch(/forbidden/);
+    }
+    await asUser(db, CASHIER);
+    expect(
+      await failure(db.pg.query(`update business_settings set eur_mur_rate_updated_at = now()`)),
+    ).toBe('');
+  });
+
+  it('a definer RPC a worker may call still writes past the lock (non-price columns only)', async () => {
+    await db.asOwner();
+    const activityId = await one<string>(
+      db,
+      `select id as v from activities where slug = 'lock-test'`,
+    );
+    await asUser(db, WORKER);
+    expect(
+      await failure(
+        db.pg.query(`select set_daily_capacity_atomic($1::jsonb)`, [
+          JSON.stringify({ activityId, optionId, capacity: 6, guestsPerTrip: 6 }),
+        ]),
+      ),
+    ).toBe('');
+    await db.asOwner();
+    const { rows } = await db.pg.query<{ daily_capacity: number; private_max_guests: number }>(
+      `select daily_capacity, private_max_guests from activity_options where id = $1`,
+      [optionId],
+    );
+    expect(rows[0]).toEqual({ daily_capacity: 6, private_max_guests: 6 });
   });
 });
