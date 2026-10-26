@@ -1055,7 +1055,8 @@ function BookingDrawer({
                   {busy === 'cancel' ? 'Cancelling…' : 'Cancel booking'}
                 </button>
               )}
-              {isRefundable(booking) && !canRefund && (
+              {/* Only where a refund is actually waiting; an ordinary paid booking needs no note. */}
+              {booking.status === 'refund_pending' && !canRefund && (
                 <p className="w-full text-[12px] text-ink-muted">
                   The owner records refunds — tell them once it’s been sent in Peach.
                 </p>
