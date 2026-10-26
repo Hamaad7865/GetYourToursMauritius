@@ -292,6 +292,17 @@ describe('the page guard', () => {
     expect(pageAllowedFor(noRole, '/admin/activities/x/edit')).toBe(false);
   });
 
+  it('keeps the Dashboard for back-office members only — a customer or nobody gets "No access"', () => {
+    expect(pageAllowedFor(owner, '/admin')).toBe(true);
+    expect(pageAllowedFor(reservations, '/admin')).toBe(true);
+    expect(pageAllowedFor(writer, '/admin')).toBe(true);
+    expect(pageAllowedFor(buildAccess({ role: 'customer' }), '/admin')).toBe(false);
+    expect(pageAllowedFor(NO_ACCESS, '/admin')).toBe(false);
+    // And the sidebar agrees: it offers them nothing.
+    expect(navFor(buildAccess({ role: 'customer' }))).toEqual([]);
+    expect(navFor(NO_ACCESS)).toEqual([]);
+  });
+
   it('opens Pricing for either half of it, and for neither it stays shut', () => {
     const currencyOnly = buildAccess({
       role: 'staff',

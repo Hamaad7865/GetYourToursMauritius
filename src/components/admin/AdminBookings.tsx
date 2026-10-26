@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthProvider';
+import { useAdminAccess } from '@/components/admin/AdminAccessProvider';
+import { can } from '@/lib/admin/permissions';
 import {
   loadBookings,
   loadBookingDetail,
@@ -186,6 +188,8 @@ function exportCsv(rows: BookingRow[]): void {
 export function AdminBookings() {
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'admin' || profile?.role === 'staff';
+  // The CSV carries every booking's guest and money columns — it is the Reports permission.
+  const canExport = can(useAdminAccess(), 'money.reports');
   // The global top-bar search (AdminShell) routes here as /admin/bookings?q=… — seed the filter from it
   // on arrival, and re-sync if the bar pushes a new query while this screen is already open.
   const searchParams = useSearchParams();
@@ -353,14 +357,16 @@ export function AdminBookings() {
             open the details
           </p>
         </div>
-        <button
-          type="button"
-          disabled={!rows || rows.length === 0}
-          onClick={() => exportCsv(filtered)}
-          className="rounded-xl border border-[#E2E7EA] bg-white px-4 py-2.5 text-[13.5px] font-semibold text-ink hover:border-teal hover:text-teal disabled:opacity-50"
-        >
-          Export CSV
-        </button>
+        {canExport && (
+          <button
+            type="button"
+            disabled={!rows || rows.length === 0}
+            onClick={() => exportCsv(filtered)}
+            className="rounded-xl border border-[#E2E7EA] bg-white px-4 py-2.5 text-[13.5px] font-semibold text-ink hover:border-teal hover:text-teal disabled:opacity-50"
+          >
+            Export CSV
+          </button>
+        )}
       </div>
 
       {/* Filter bar */}
@@ -566,6 +572,7 @@ function BookingDrawer({
   onClose: () => void;
   onChanged: () => void;
 }) {
+  const canRefund = can(useAdminAccess(), 'money.refunds');
   const [booking, setBooking] = useState<BookingDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   // Distinct from `booking === null`: a well-formed id that has no row (deleted / erased / stale
@@ -1039,23 +1046,24 @@ function BookingDrawer({
                   {busy === 'cancel' ? 'Cancelling…' : 'Cancel booking'}
                 </button>
               )}
-              {(booking.status === 'refund_pending' ||
-                ((booking.status === 'confirmed' || booking.status === 'completed') &&
-                  (booking.paymentState === 'paid' ||
-                    booking.paymentState === 'partially_refunded'))) && (
-                <button
-                  type="button"
-                  disabled={busy === 'refund'}
-                  onClick={() => {
-                    const msg = `Confirm you've refunded ${eur(booking.netPaidEur)} to ${booking.customerName} in Peach. This records the refund in the ledger and emails the customer their refund confirmation.`;
-                    if (window.confirm(msg))
-                      void act('refund', () => markBookingRefunded(booking.id));
-                  }}
-                  className="rounded-full bg-ink px-4 py-2 text-[13px] font-bold text-white hover:bg-teal-dark disabled:opacity-50"
-                >
-                  {busy === 'refund' ? 'Recording…' : 'Mark refunded'}
-                </button>
-              )}
+              {canRefund &&
+                (booking.status === 'refund_pending' ||
+                  ((booking.status === 'confirmed' || booking.status === 'completed') &&
+                    (booking.paymentState === 'paid' ||
+                      booking.paymentState === 'partially_refunded'))) && (
+                  <button
+                    type="button"
+                    disabled={busy === 'refund'}
+                    onClick={() => {
+                      const msg = `Confirm you've refunded ${eur(booking.netPaidEur)} to ${booking.customerName} in Peach. This records the refund in the ledger and emails the customer their refund confirmation.`;
+                      if (window.confirm(msg))
+                        void act('refund', () => markBookingRefunded(booking.id));
+                    }}
+                    className="rounded-full bg-ink px-4 py-2 text-[13px] font-bold text-white hover:bg-teal-dark disabled:opacity-50"
+                  >
+                    {busy === 'refund' ? 'Recording…' : 'Mark refunded'}
+                  </button>
+                )}
               <button
                 type="button"
                 disabled={busy === 'erase'}

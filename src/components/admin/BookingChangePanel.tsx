@@ -12,6 +12,8 @@
  * it from the price list. Nothing is priced in the browser.
  */
 import { useCallback, useEffect, useState } from 'react';
+import { useAdminAccess } from '@/components/admin/AdminAccessProvider';
+import { can } from '@/lib/admin/permissions';
 import {
   quoteBookingChange,
   proposeBookingChange,
@@ -63,6 +65,7 @@ function defaultDay(currentStartsAt?: string | null): string {
 }
 
 export function BookingChangePanel({ bookingId, bookingRef, currentStartsAt, onChanged }: Props) {
+  const canRefund = can(useAdminAccess(), 'money.refunds');
   const [open, setOpen] = useState(false);
   const [activities, setActivities] = useState<QuotableActivity[]>([]);
   const [activityId, setActivityId] = useState('');
@@ -186,26 +189,32 @@ export function BookingChangePanel({ bookingId, bookingRef, currentStartsAt, onC
           <p className="mt-0.5 text-ink-muted">
             The booking has already moved. Refund this amount in Peach, then record it here.
           </p>
-          <button
-            type="button"
-            disabled={busy === 'refund'}
-            onClick={() => {
-              const amount = eur(-existing.differenceMinor / 100);
-              if (
-                !window.confirm(
-                  `Confirm you've refunded ${amount} to this guest in Peach. This records it in the ledger.`,
+          {canRefund ? (
+            <button
+              type="button"
+              disabled={busy === 'refund'}
+              onClick={() => {
+                const amount = eur(-existing.differenceMinor / 100);
+                if (
+                  !window.confirm(
+                    `Confirm you've refunded ${amount} to this guest in Peach. This records it in the ledger.`,
+                  )
                 )
-              )
-                return;
-              void run('refund', async () => {
-                const minor = await recordChangeRefund(existing.id);
-                return `Recorded a refund of ${eur(minor / 100)}.`;
-              });
-            }}
-            className="mt-2 rounded-full bg-ink px-3 py-1 text-[12px] font-bold text-white hover:bg-teal-dark disabled:opacity-50"
-          >
-            {busy === 'refund' ? 'Recording…' : 'Record refund'}
-          </button>
+                  return;
+                void run('refund', async () => {
+                  const minor = await recordChangeRefund(existing.id);
+                  return `Recorded a refund of ${eur(minor / 100)}.`;
+                });
+              }}
+              className="mt-2 rounded-full bg-ink px-3 py-1 text-[12px] font-bold text-white hover:bg-teal-dark disabled:opacity-50"
+            >
+              {busy === 'refund' ? 'Recording…' : 'Record refund'}
+            </button>
+          ) : (
+            <p className="mt-2 text-[12px] text-ink-muted">
+              The owner records refunds — tell them it’s been sent in Peach.
+            </p>
+          )}
         </div>
       )}
 

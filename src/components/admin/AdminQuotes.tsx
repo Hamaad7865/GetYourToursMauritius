@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/components/auth/AuthProvider';
+import { useAdminAccess } from '@/components/admin/AdminAccessProvider';
+import { can } from '@/lib/admin/permissions';
 import {
   AdminError,
   AdminHeading,
@@ -324,6 +326,9 @@ function QuoteEditor({
   /** Leave this quote and open another — the copy `duplicate()` just created. */
   onOpen: (id: string) => void;
 }) {
+  // Margin notes are owner-grantable (money.notes). The value stays in the form state, so saving
+  // without the field leaves the note as it was.
+  const showNotes = can(useAdminAccess(), 'money.notes');
   const [form, setForm] = useState<QuoteFormValues | null>(id ? null : emptyQuoteForm());
   const [loading, setLoading] = useState(Boolean(id));
   const [error, setError] = useState<string | null>(null);
@@ -879,21 +884,23 @@ function QuoteEditor({
                   Printed above the prices in the email and on the guest’s quote page.
                 </p>
               </Card>
-              <Card title="Internal note — never sent">
-                <textarea
-                  value={values.internalNotes}
-                  onChange={(e) => set('internalNotes', e.target.value)}
-                  rows={4}
-                  aria-label="Internal note, never sent to the guest"
-                  placeholder="Margin is thin at this price — don’t discount further."
-                  className={TEXTAREA_CLS}
-                />
-                <p className="mt-2 text-[12px] leading-relaxed text-ink-muted">
-                  Staff only. It is not loaded by the send route and is not a field the email
-                  renderer accepts, so it cannot reach the guest — not in the email, not on their
-                  quote page.
-                </p>
-              </Card>
+              {showNotes && (
+                <Card title="Internal note — never sent">
+                  <textarea
+                    value={values.internalNotes}
+                    onChange={(e) => set('internalNotes', e.target.value)}
+                    rows={4}
+                    aria-label="Internal note, never sent to the guest"
+                    placeholder="Margin is thin at this price — don’t discount further."
+                    className={TEXTAREA_CLS}
+                  />
+                  <p className="mt-2 text-[12px] leading-relaxed text-ink-muted">
+                    Staff only. It is not loaded by the send route and is not a field the email
+                    renderer accepts, so it cannot reach the guest — not in the email, not on their
+                    quote page.
+                  </p>
+                </Card>
+              )}
             </div>
           )}
 

@@ -1,6 +1,8 @@
 'use client';
 
 import { Card, Field, INPUT_CLS, TEXTAREA_CLS } from '@/components/admin/ui';
+import { useAdminAccess } from '@/components/admin/AdminAccessProvider';
+import { can } from '@/lib/admin/permissions';
 import { CURRENCY_SYMBOL } from '@/lib/documents/money';
 import type { DocumentFormValues } from './state';
 import { DatePicker } from '@/components/ui/DatePicker';
@@ -12,6 +14,9 @@ export function DetailsPane({
   form: DocumentFormValues;
   onChange: (patch: Partial<DocumentFormValues>) => void;
 }) {
+  // Margin notes are owner-grantable (money.notes). The value stays in the form state, so saving
+  // without the field leaves the note as it was.
+  const showNotes = can(useAdminAccess(), 'money.notes');
   const isQuote = form.type === 'quote';
   const isReceipt = form.type === 'receipt';
   const showPayment = form.type !== 'quote';
@@ -61,20 +66,22 @@ export function DetailsPane({
             className={TEXTAREA_CLS}
           />
         </Field>
-        <div className="mt-4">
-          <Field
-            label="Internal note — never printed"
-            hint="Staff only; it is not rendered on the document."
-          >
-            <textarea
-              value={form.internalNotes}
-              onChange={(e) => onChange({ internalNotes: e.target.value })}
-              rows={3}
-              placeholder="Corporate client — net 14 days, chase accounts if unpaid."
-              className={TEXTAREA_CLS}
-            />
-          </Field>
-        </div>
+        {showNotes && (
+          <div className="mt-4">
+            <Field
+              label="Internal note — never printed"
+              hint="Staff only; it is not rendered on the document."
+            >
+              <textarea
+                value={form.internalNotes}
+                onChange={(e) => onChange({ internalNotes: e.target.value })}
+                rows={3}
+                placeholder="Corporate client — net 14 days, chase accounts if unpaid."
+                className={TEXTAREA_CLS}
+              />
+            </Field>
+          </div>
+        )}
       </Card>
 
       {showPayment && (

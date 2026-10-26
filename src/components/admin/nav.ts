@@ -32,7 +32,7 @@ export interface NavItem {
   label: string;
   icon: (p: { width?: number; height?: number }) => ReactNode;
   exact?: boolean;
-  /** Who sees it: a permission (a list = any of them), 'owner', or null = everyone in the back office. */
+  /** Who sees it: a permission (a list = any of them), 'owner', or null = any back-office member. */
   permission: PermissionKey | readonly PermissionKey[] | 'owner' | null;
 }
 
@@ -89,7 +89,9 @@ export const ADMIN_NAV: NavItem[] = [
 ];
 
 export function allows(access: AdminAccess, item: NavItem): boolean {
-  if (item.permission === null) return true;
+  // null = any back-office member: the Owner, or someone on a team/content base (even with no role
+  // yet). A customer, or nobody, is not a member.
+  if (item.permission === null) return access.isOwner || access.base !== null;
   if (item.permission === 'owner') return access.isOwner;
   return can(access, item.permission);
 }

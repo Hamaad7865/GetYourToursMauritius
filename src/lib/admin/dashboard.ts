@@ -11,6 +11,8 @@ export interface DashStat {
   /** Small contextual label under the value (e.g. "4 open", "next 7 days"). Honest context, not a fabricated %. */
   hint: string;
   tone: 'teal' | 'green' | 'amber' | 'ink';
+  /** Shown instead of `value` to someone without money.revenue: the count, not the euros. */
+  countValue?: string;
 }
 
 export interface DepartureRow {
@@ -298,6 +300,7 @@ export function computeDashboard(bookings: BookingRow[], now: Date): DashboardDa
       value: euro(pendingTotalEur),
       hint: `${pendingAll.length} open`,
       tone: 'amber',
+      countValue: String(pendingAll.length),
     },
     {
       key: 'upcoming',
