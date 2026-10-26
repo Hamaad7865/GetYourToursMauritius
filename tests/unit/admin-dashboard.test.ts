@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computeDashboard } from '@/lib/admin/dashboard';
+import { computeDashboard, statsFor, type DashViewer } from '@/lib/admin/dashboard';
 import type { BookingRow } from '@/lib/admin/bookings';
 
 function booking(over: Partial<BookingRow>): BookingRow {
@@ -150,5 +150,98 @@ describe('computeDashboard', () => {
     const july = d.revenue['12m'].points[11]!;
     expect(july.label).toBe('Jul');
     expect(july.value).toBe(150);
+  });
+});
+
+describe('statsFor — the cards each role may see', () => {
+  // One pending booking (total 200) so the pending card has a euro value AND a count.
+  const stats = computeDashboard(
+    [
+      booking({
+        id: 'p1',
+        ref: 'BMT-P1',
+        startsAt: '2026-07-20T05:00:00Z',
+        paymentState: 'pending',
+        status: 'payment_pending',
+        totalEur: 200,
+        netPaidEur: 0,
+      }),
+    ],
+    NOW,
+  ).stats;
+
+  const none: DashViewer = { showMoney: false, showBookings: false, showDepartures: false };
+  const keys = (v: Partial<DashViewer>) => statsFor(stats, { ...none, ...v }).map((s) => s.key);
+  const pending = (v: Partial<DashViewer>) =>
+    statsFor(stats, { ...none, ...v }).find((s) => s.key === 'pending');
+
+  it('gives the Owner (money + bookings + departures) all four cards, each a link', () => {
+    const all = statsFor(stats, { showMoney: true, showBookings: true, showDepartures: true });
+    expect(all.map((s) => s.key)).toEqual(['today', 'revenue', 'pending', 'upcoming']);
+    expect(all.every((s) => s.linked)).toBe(true);
+    // The euro figures are untouched.
+    expect(all.find((s) => s.key === 'pending')?.value).toBe('€200');
+    expect(all.find((s) => s.key === 'revenue')?.value).toBe(
+      stats.find((s) => s.key === 'revenue')?.value,
+    );
+  });
+
+  it('shows nothing to a role with no Bookings, Calendar or money', () => {
+    expect(statsFor(stats, none)).toEqual([]);
+  });
+
+  it('shows Bookings-only the departure counts and the pending COUNT, never euros', () => {
+    expect(keys({ showBookings: true, showDepartures: true })).toEqual([
+      'today',
+      'pending',
+      'upcoming',
+    ]);
+    const p = pending({ showBookings: true, showDepartures: true })!;
+    expect(p.value).toBe('1');
+    expect(p.hint).toBe('open');
+    expect(p.linked).toBe(true);
+  });
+
+  it('shows Calendar-only the two departure counts as plain, unlinked cards', () => {
+    const cards = statsFor(stats, { ...none, showDepartures: true });
+    expect(cards.map((s) => s.key)).toEqual(['today', 'upcoming']);
+    expect(cards.some((s) => s.linked)).toBe(false);
+  });
+
+  it('shows a money-only role revenue and the pending euros, unlinked', () => {
+    const cards = statsFor(stats, { ...none, showMoney: true });
+    expect(cards.map((s) => s.key)).toEqual(['revenue', 'pending']);
+    expect(cards.find((s) => s.key === 'pending')?.value).toBe('€200');
+    expect(cards.some((s) => s.linked)).toBe(false);
+  });
+
+  it('keeps euros for money + Calendar, and links nothing without Bookings', () => {
+    const cards = statsFor(stats, { showMoney: true, showBookings: false, showDepartures: true });
+    expect(cards.map((s) => s.key)).toEqual(['today', 'revenue', 'pending', 'upcoming']);
+    expect(cards.some((s) => s.linked)).toBe(false);
+  });
+
+  it('hides pending from Calendar-only and from a role with no money and no Bookings', () => {
+    expect(pending({ showDepartures: true })).toBeUndefined();
+    expect(pending(none)).toBeUndefined();
+  });
+
+  it('hides revenue unless money.revenue, whatever else the role holds', () => {
+    expect(keys({ showBookings: true, showDepartures: true })).not.toContain('revenue');
+    expect(keys({ showMoney: true })).toContain('revenue');
+  });
+
+  it('hides a card it was not told about, and does not mutate its input', () => {
+    const before = JSON.stringify(stats);
+    const extra = [
+      ...stats,
+      { key: 'mystery', label: 'X', value: '1', hint: '', tone: 'ink' as const },
+    ];
+    expect(
+      statsFor(extra, { showMoney: true, showBookings: true, showDepartures: true }).map(
+        (s) => s.key,
+      ),
+    ).toEqual(['today', 'revenue', 'pending', 'upcoming']);
+    expect(JSON.stringify(stats)).toBe(before);
   });
 });

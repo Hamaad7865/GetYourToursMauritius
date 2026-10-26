@@ -342,3 +342,55 @@ export function avatar(name: string): { initials: string; hue: number } {
   for (let i = 0; i < name.length; i += 1) h = name.charCodeAt(i) + ((h << 5) - h);
   return { initials, hue: Math.abs(h) % 360 };
 }
+
+/** What the signed-in person may see on the Dashboard (src/lib/admin/permissions.ts). */
+export interface DashViewer {
+  /** money.revenue — business totals in euros. */
+  showMoney: boolean;
+  /** section.bookings — guest names, per-booking amounts, and the drill-down links into Bookings. */
+  showBookings: boolean;
+  /** Bookings or Calendar — today's departures and the departure counts. */
+  showDepartures: boolean;
+}
+
+/** A stat card as the viewer sees it. */
+export interface DashStatView extends DashStat {
+  /** Every card drills into /admin/bookings, so it is a link only for someone who may open it. */
+  linked: boolean;
+}
+
+/**
+ * The stat cards one person may see, already reworded for them.
+ *
+ * - Departures today / upcoming are departure counts: they need showDepartures.
+ * - Revenue needs showMoney.
+ * - Pending payments is euros with showMoney; with Bookings but no money it is the COUNT ("3 open");
+ *   with neither it is hidden.
+ * - A card nobody asked for (an unknown key) is hidden, so a new stat is opt-in here.
+ *
+ * Pure so every role combination can be asserted without mounting React.
+ */
+export function statsFor(stats: readonly DashStat[], viewer: DashViewer): DashStatView[] {
+  const { showMoney, showBookings, showDepartures } = viewer;
+  const linked = showBookings;
+  const out: DashStatView[] = [];
+  for (const s of stats) {
+    switch (s.key) {
+      case 'today':
+      case 'upcoming':
+        if (showDepartures) out.push({ ...s, linked });
+        break;
+      case 'revenue':
+        if (showMoney) out.push({ ...s, linked });
+        break;
+      case 'pending':
+        if (showMoney) out.push({ ...s, linked });
+        else if (showBookings && s.countValue !== undefined)
+          out.push({ ...s, value: s.countValue, hint: 'open', linked });
+        break;
+      default:
+        break;
+    }
+  }
+  return out;
+}

@@ -563,6 +563,15 @@ export function AdminBookings() {
 
 const CANCELLABLE: BookingStatus[] = ['draft', 'held', 'payment_pending', 'confirmed'];
 
+/** Money was taken and has not all gone back: a refund is outstanding or can be recorded. */
+function isRefundable(b: Pick<BookingDetail, 'status' | 'paymentState'>): boolean {
+  return (
+    b.status === 'refund_pending' ||
+    ((b.status === 'confirmed' || b.status === 'completed') &&
+      (b.paymentState === 'paid' || b.paymentState === 'partially_refunded'))
+  );
+}
+
 function BookingDrawer({
   id,
   onClose,
@@ -1046,24 +1055,25 @@ function BookingDrawer({
                   {busy === 'cancel' ? 'Cancelling…' : 'Cancel booking'}
                 </button>
               )}
-              {canRefund &&
-                (booking.status === 'refund_pending' ||
-                  ((booking.status === 'confirmed' || booking.status === 'completed') &&
-                    (booking.paymentState === 'paid' ||
-                      booking.paymentState === 'partially_refunded'))) && (
-                  <button
-                    type="button"
-                    disabled={busy === 'refund'}
-                    onClick={() => {
-                      const msg = `Confirm you've refunded ${eur(booking.netPaidEur)} to ${booking.customerName} in Peach. This records the refund in the ledger and emails the customer their refund confirmation.`;
-                      if (window.confirm(msg))
-                        void act('refund', () => markBookingRefunded(booking.id));
-                    }}
-                    className="rounded-full bg-ink px-4 py-2 text-[13px] font-bold text-white hover:bg-teal-dark disabled:opacity-50"
-                  >
-                    {busy === 'refund' ? 'Recording…' : 'Mark refunded'}
-                  </button>
-                )}
+              {isRefundable(booking) && !canRefund && (
+                <p className="w-full text-[12px] text-ink-muted">
+                  The owner records refunds — tell them once it’s been sent in Peach.
+                </p>
+              )}
+              {canRefund && isRefundable(booking) && (
+                <button
+                  type="button"
+                  disabled={busy === 'refund'}
+                  onClick={() => {
+                    const msg = `Confirm you've refunded ${eur(booking.netPaidEur)} to ${booking.customerName} in Peach. This records the refund in the ledger and emails the customer their refund confirmation.`;
+                    if (window.confirm(msg))
+                      void act('refund', () => markBookingRefunded(booking.id));
+                  }}
+                  className="rounded-full bg-ink px-4 py-2 text-[13px] font-bold text-white hover:bg-teal-dark disabled:opacity-50"
+                >
+                  {busy === 'refund' ? 'Recording…' : 'Mark refunded'}
+                </button>
+              )}
               <button
                 type="button"
                 disabled={busy === 'erase'}

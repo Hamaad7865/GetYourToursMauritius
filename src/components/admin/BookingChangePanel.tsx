@@ -186,9 +186,11 @@ export function BookingChangePanel({ bookingId, bookingRef, currentStartsAt, onC
           <p className="font-semibold text-ink">
             You owe this guest {eur(-existing.differenceMinor / 100)}
           </p>
-          <p className="mt-0.5 text-ink-muted">
-            The booking has already moved. Refund this amount in Peach, then record it here.
-          </p>
+          {canRefund && (
+            <p className="mt-0.5 text-ink-muted">
+              The booking has already moved. Refund this amount in Peach, then record it here.
+            </p>
+          )}
           {canRefund ? (
             <button
               type="button"
