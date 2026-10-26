@@ -91,8 +91,8 @@ _sent_ as `bookings@` (`RESEND_FROM`), _replies_ route to `info@` (`SITE.email`)
 **Roles / RLS.** `customer` (own bookings) · `admin` = Owner (everything) · `staff` / `seo` = members of an
 owner-defined role in `/admin/roles` (team base / content base). The real boundary is the database:
 `is_staff()` / `is_content_editor()` for reads, `is_admin()` for anything about roles,
-`has_permission('money.*')` for prices, the charge currency and refunds. Sections are enforced by the UI
-and the staff API routes (`loadCallerAccess`), not RLS. Never add an `seo` grant to any booking /
+`has_permission()` for `money.prices`, `money.currency` and `money.refunds` (the other `money.*` keys,
+like every section, are enforced by the UI and the staff API routes via `loadCallerAccess`, not RLS). Never add an `seo` grant to any booking /
 payment / lead / profile / pricing table, and never let a non-Owner change `profiles.role` or
 `team_role_id`.
 
