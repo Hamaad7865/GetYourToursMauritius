@@ -178,10 +178,51 @@ The first security lockdown shipped this exact bug — the money RPCs stayed cal
 Also: `create or replace` **preserves** grants, but `drop` + `create` **resets** them (and re-grants to
 PUBLIC). So changing a function's signature silently re-opens it. Re-issue the revoke afterwards.
 
+### A table the browser never writes must revoke Supabase's default write grants from `anon` and `authenticated`
+
+**Trap:** "RLS already guards it" / "there's no policy for that role, so it's closed."
+
+Production's default privileges grant `INSERT`, `UPDATE`, `DELETE`, `TRUNCATE` (and `REFERENCES`,
+`TRIGGER`) to both `anon` and `authenticated` on **every new table**, and two migrations granted
+`authenticated` writes outright. The only thing between a signed-in user and those privileges is the table's
+RLS policy — and the staff policies are `for all using (is_staff())`. Before roles existed that was
+fine ("staff" meant "trusted with everything"); now a team member with only `section.bookings` is
+`is_staff()` too, so unless the privilege itself is gone they can rewrite a booking line amount or an
+installment, queue mail through `notification_outbox`, or `delete from bookings` and cascade away a paid
+booking's whole `payments` ledger. Migration §6c (the five `booking_*` line tables) and §6d (`bookings`
+DELETE/TRUNCATE, `booking_holds`, `notification_outbox`, `operators`) are the pattern:
+
+```sql
+revoke insert, update, delete, truncate on my_table from public, anon, authenticated;
+```
+
+Name `public` as well (same reason as functions, above). Only revoke what the browser genuinely never
+does — `bookings` keeps INSERT and UPDATE because the admin screens update `status` and `notes`. Every
+legitimate writer then has to be a `SECURITY DEFINER` function (it runs as the table owner, so the
+revoke doesn't touch it) or the service role. **Add every new such table to the same revoke** — the
+platform default hands out its writes the moment it exists.
+
+**A test cannot see this gap on its own.** PGlite has no default table grants, so a privilege query on
+the as-built test database says "revoked" whether or not your migration did anything. Copy the drift
+tests instead: `describeLocks('6c' | '6d')` in `tests/integration/admin-roles.test.ts` first
+`grant all` on the tables to `anon, authenticated` (production's real starting point), prove the
+worker's writes go through, apply the section's own SQL, and prove the same writes are now refused —
+plus a text pin on the revoke statements that fails if a later migration grants the table back. A new
+table is one more row in that file's `LOCKS` list.
+
+**Corollary — a trigger that writes a locked table must stay `SECURITY DEFINER`.**
+`enqueue_booking_notification()` (the AFTER UPDATE trigger on `bookings`) inserts into
+`notification_outbox`. As a definer it runs as the table owner and the revoke never touches it. Turn it
+into `security invoker`, or write a new trigger on a locked table as invoker, and every staff status
+change that queues a notification (a cancel on a paid booking, for one) fails with `permission denied
+for table notification_outbox` — a bug a test run as the owner or the service role never shows.
+
 ### A migration that isn't mirrored into `catch-up.sql` never reaches production
 
 There is no migration runner in prod. `catch-up.sql` is what the owner actually runs. Forget to append
-your change and the feature is green in CI and dead in production.
+your change and the feature is green in CI and dead in production. (The release pipeline doesn't apply
+migrations either — it only checks that the ledger already lists them; see
+[Shipping a new migration](database.md#shipping-a-new-migration--the-real-procedure).)
 
 And the reverse: **SQL written only into `catch-up.sql` and not into a migration is completely
 untested** — the test suite applies only `supabase/migrations/`. Migration first, always. `catch-up.sql`
@@ -290,7 +331,8 @@ column. A column not on the list is silently editable. The guard's INSERT rule i
 value other than `'0'` is a "change" — so a column with a text/boolean default, or a `numeric(18,6)`
 that prints as `'0.000000'`, would break creating a tour: guard it with an update-only trigger
 instead (`pricing_mode`, `is_airport_transfer`, `is_hotel_transfer` and `activity_options.activity_id`
-already are). A whole new price **table** instead needs the staff policy
+already are, and so is `business_settings_money_guard` — `charge_currency` defaults to `'MUR'`, and
+the table is one seeded row with no client INSERT). A whole new price **table** instead needs the staff policy
 `is_staff() and (select has_permission('money.prices'))`. Add the case to
 `tests/integration/admin-roles.test.ts` in the same change.
 
@@ -424,7 +466,10 @@ panel at a section's URL. That is **cosmetic** — the browser reads most tables
 with the member's own JWT, so someone who skips the UI can still query a hidden section's data. The
 real boundary is the database: `is_staff()` for money and PII reads, `is_content_editor()` for
 content, `is_admin()` for roles, and `has_permission(…)` for the three money locks (`money.prices`,
-`money.currency`, `money.refunds`). Only those are locked "even outside the UI"; every other section
+`money.currency`, `money.refunds`), plus plain table privileges: the booking line tables, `booking_holds`,
+`notification_outbox` and `operators` are read-only for every signed-in client and `bookings` cannot be
+deleted from one (see [the landmine above](#a-table-the-browser-never-writes-must-revoke-supabases-default-write-grants-from-anon-and-authenticated)).
+Only those are locked "even outside the UI"; every other section
 and `money.reports` / `money.revenue` / `money.notes` are screen-level. Ten staff API routes check
 their section themselves, before reading anything — `loadCallerAccess`, never `requireUser().role`.
 
@@ -440,7 +485,11 @@ Known, deliberate leftovers — don't "fix" one without asking the owner:
   (`transport_fare_minor`) but stay editable by team and content roles: they are logistics and map
   data. Without `money.prices` a worker can change **which** fare applies to a tour, never the fare.
 - A worker can **delete** an unbooked, unquoted option; its price tiers cascade away with it. Deleting a
-  rental vehicle likewise stays with the Rental section.
+  rental vehicle likewise stays with the Rental section. A Tours member without `money.prices` can
+  likewise delete a whole unbooked tour; its prices and supplements cascade away.
+- The WhatsApp number card on the Dashboard is editable by any team member — no permission guards it,
+  only the currency columns of the same row are locked. Content accounts see the card, but their save
+  does nothing.
 - A downgrade change-of-tour can still create a refund obligation without `money.refunds` — only
   **recording** the refund needs it.
 - A worker can re-open pickup on a booking (`pickup_pending` / `pickup_location`), which leads to a

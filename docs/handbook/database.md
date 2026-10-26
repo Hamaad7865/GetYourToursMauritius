@@ -8,8 +8,9 @@
 
 **Two eras, read carefully which one you're in:** until the [release pipeline bootstrap
 checklist](deployment.md#bootstrap-checklist-do-this-once-in-this-exact-order) is complete, production
-is still updated **by hand** exactly as described below. Once bootstrapped, `release.yml` runs
-`supabase db push` automatically on every push to `main` — see
+is still updated **by hand** exactly as described below. Once bootstrapped, `release.yml` checks the
+ledger and runs `supabase db push` on every push to `main`, but **it never applies a new migration** —
+the owner still applies each one by hand, then records it in the ledger, _before_ pushing. See
 ["The automated path"](#the-automated-path-once-bootstrapped) below. The manual recipe further down
 (writing a migration, mirroring it into `catch-up.sql`, regenerating `setup.sql`) **does not change**
 either way — `catch-up.sql` stays the disaster-recovery / fresh-reconciliation script and
@@ -21,13 +22,14 @@ either way — `catch-up.sql` stays the disaster-recovery / fresh-reconciliation
 
 | File                        | Who runs it                                                                                       | Generated?       |
 | --------------------------- | ------------------------------------------------------------------------------------------------- | ---------------- |
-| `supabase/migrations/*.sql` | The test suite; `supabase db push` once bootstrapped; the source of truth                         | Hand-written ✍️  |
+| `supabase/migrations/*.sql` | The test suite; the owner by hand (SQL editor); the release's ledger gate checks them             | Hand-written ✍️  |
 | `supabase/catch-up.sql`     | The owner (manual era); `reconcile-supabase-ledger.yml` (bootstrap); disaster recovery thereafter | Hand-mirrored ✍️ |
 | `supabase/setup.sql`        | `npm run db:setup`, on a **fresh** DB                                                             | **Generated** 🤖 |
 | `supabase/seed.sql`         | Bundled into setup.sql                                                                            | **Generated** 🤖 |
 
 **`supabase/migrations/` is the source of truth.** ~107 files, applied in **filename sort order**.
-The tests apply these and only these; once bootstrapped, so does `supabase db push` in production.
+The tests apply these and only these. In production the owner applies a new one by hand, and the
+release's ledger gate then checks that the ledger lists every file here (it does not apply anything).
 
 **`supabase/catch-up.sql` is the manual-era delta script and the reconciliation script.** Before
 bootstrap, there is no migration runner in production — the live database has never been `supabase db
@@ -43,23 +45,49 @@ NOT stop being maintained.
 
 ## The automated path (once bootstrapped)
 
-`release.yml`'s `supabase-ledger-gate` job, on every push to `main`:
+`release.yml`'s `supabase-ledger-gate` job, on every push to `main`, is a **gate, not a deployer**:
 
 1. Fails immediately unless the repository variable `SUPABASE_MIGRATION_LEDGER_RECONCILED` is
    exactly `true` (see the [bootstrap checklist](deployment.md#bootstrap-checklist-do-this-once-in-this-exact-order)).
-2. Re-verifies the ledger (`supabase_migrations.schema_migrations`) matches `supabase/migrations/`
-   1:1 — no gaps, no unexpected remote-only versions, no non-linear history
-   (`scripts/release/supabase-ledger.mjs --mode status`).
-3. Runs `supabase db push --dry-run --linked` and fails if it reports anything pending that wasn't
-   expected.
-4. Only then runs the real `supabase db push --linked` — **never `--include-all`**.
-5. Re-verifies the ledger is synchronized afterward.
+2. Verifies the ledger (`supabase_migrations.schema_migrations`) matches `supabase/migrations/`
+   1:1 (`scripts/release/supabase-ledger.mjs --mode status`). It **throws when any local migration
+   has no ledger row**, or the ledger holds a version with no local file.
+3. Runs `supabase db push --dry-run --linked` and fails if it names any local migration (= pending).
+4. Runs the real `supabase db push --linked` — **never `--include-all`**. Steps 2 and 3 have already
+   proved there is nothing to push, so this is a no-op safety net: **the release never applies a new
+   migration.**
+5. Re-verifies the ledger afterwards.
 
-This job runs BEFORE the web/cron deploys, so a migration failure blocks the whole release — the app
-never ships against a schema it doesn't match. The one-time reconciliation
-(`reconcile-supabase-ledger.yml`) that gets the ledger into a state where this is safe to do
-automatically is documented in `deployment.md` and is deliberately **manual-only, never triggered by
-this pipeline**.
+This job runs BEFORE the web/cron deploys (`deploy-web` needs it), so a migration the owner has not
+yet applied and recorded blocks the whole release and the site stays on the old build. The one-time
+reconciliation (`reconcile-supabase-ledger.yml`) that got the ledger into this state is documented in
+`deployment.md` and is deliberately **manual-only, never triggered by this pipeline**.
+
+### Shipping a new migration — the real procedure
+
+The migration reaches production by hand, in this order:
+
+1. **The owner runs the migration** (the new file in `supabase/migrations/`, or `catch-up.sql`) in the
+   production SQL editor.
+2. **Verify it** with read-only checks specific to that migration (a function body, a policy, a
+   `has_table_privilege()` answer, a row count).
+3. **Only then record it in the ledger** — one row, the same tuple that already sits in
+   `supabase/backfill-migration-ledger.sql`:
+
+   ```sql
+   insert into supabase_migrations.schema_migrations (version, name)
+   values ('20261025140000', 'admin_roles')   -- the file's <version>_<name>.sql
+   on conflict (version) do nothing;
+   ```
+
+4. **Then `git push origin main`.**
+
+**The order is load-bearing.** A ledger row without the schema behind it lets the gate pass and ships
+new web code onto the old schema — every request touching the new column or RPC then 500s. (Never paste
+the whole `backfill-migration-ledger.sql` to "catch up": it already lists migrations that have not been
+applied yet, so it would record them early.) Pushing with the migration still unapplied is the safe
+mistake: the gate fails with "Ledger is NOT in sync", `deploy-web` is skipped, production is unchanged;
+apply, verify, insert the row, then re-run the failed release.
 
 **`supabase/setup.sql` is the fresh-install bundle** (every migration + seed, in one file). Generated —
 never edit it.
@@ -202,8 +230,9 @@ The functions to be most careful with: `api_book`, `create_booking`, `create_hol
 
 10. **Run `npm run test:coverage`** — the parity, lockdown and grant guards all live in there.
 
-11. **Tell the owner to re-run `catch-up.sql` on production.** Deploying code does not change the
-    database.
+11. **Tell the owner to apply the migration on production and record it in the ledger — before you
+    push.** Deploying code does not change the database, and the release does not apply migrations
+    either: see [Shipping a new migration](#shipping-a-new-migration--the-real-procedure).
 
 ---
 
@@ -222,11 +251,12 @@ the same: fix the error, re-run the whole file from the top.
 
 ## Owner: applying an update to production
 
-**Once the release pipeline is bootstrapped, you don't do this for ordinary changes** —
-`release.yml`'s `supabase-ledger-gate` job runs `supabase db push` automatically on every push to
-`main`, gated on the checks in ["The automated path"](#the-automated-path-once-bootstrapped) above.
-This manual recipe is the fallback (pre-bootstrap) and the disaster-recovery path (any time the
-ledger needs rebuilding from scratch):
+**This is how every migration reaches production, bootstrapped or not.** `release.yml`'s
+`supabase-ledger-gate` job does not apply anything — it only checks that the ledger already lists
+every file in `supabase/migrations/` (see ["The automated path"](#the-automated-path-once-bootstrapped)
+above). So after step 4 below, **insert the ledger row** for each new migration
+([Shipping a new migration](#shipping-a-new-migration--the-real-procedure), steps 2–3) and only then
+push. It is also the disaster-recovery path (any time the ledger needs rebuilding from scratch):
 
 1. Supabase dashboard → **SQL Editor** → New query.
 2. Open `supabase/catch-up.sql`, copy the **whole file**, paste, **Run**.
@@ -243,9 +273,9 @@ npx tsx scripts/db-exec.ts supabase/catch-up.sql
 ```
 
 **Order matters:** run the SQL **before** deploying the code that needs it. The migrations are additive,
-so old code runs fine against the new schema. New code against an old schema 500s. (Once bootstrapped,
-the pipeline enforces this ordering for you — the ledger gate runs, and the database is pushed,
-strictly before the web/cron deploy steps.)
+so old code runs fine against the new schema. New code against an old schema 500s. (The ledger gate
+backs this up — a push whose migration is not yet in the ledger stops there and the web deploy is
+skipped — but only if you insert the ledger row _after_ the SQL has run and been checked, never before.)
 
 ---
 
@@ -272,8 +302,9 @@ There are no `down` migrations. **The only way to undo SQL in production is forw
    replay files in order.
 2. Append the same SQL to the end of `catch-up.sql`.
 3. `npm run seed:gen && npm run setup:sql`, then `npm run test:coverage`.
-4. Owner pastes `catch-up.sql` into Supabase (manual era) — or just push to `main` (automated era:
-   the new migration is a normal forward migration, `db push` applies it like any other).
+4. The owner applies it like any other migration: run the new file (or `catch-up.sql`) in the SQL
+   editor, verify, insert its ledger row, and only then push to `main`
+   ([Shipping a new migration](#shipping-a-new-migration--the-real-procedure)).
 
 **If the bad migration destroyed data, SQL cannot bring it back.** Use Supabase's own backups
 (Dashboard → Database → Backups / PITR).
@@ -341,8 +372,32 @@ whole back office.
   and `activity_options.activity_id` on **update only** (a new tour legitimately sets them on insert).
   A column whose non-price default is not null/`'0'` must never go on an insert-firing trigger.
 - `business_settings.charge_currency`, `eur_mur_rate`, `eur_mur_rate_updated_at` need `money.currency`.
-  The WhatsApp number on the same row stays editable.
+  The WhatsApp number on the same row stays editable. `business_settings_money_guard` is
+  **`before update` only**: `charge_currency` defaults to `'MUR'` and `eur_mur_rate` is numeric, both of
+  which the guard's crude INSERT rule would refuse, and nothing is lost because the table is one seeded
+  row with no client INSERT policy.
 - `api_mark_refunded` and `api_record_change_refund` need `money.refunds`.
+- **Table privileges, not policies (§6c, §6d).** Several tables carry a staff policy
+  `for all using (is_staff())` that a browser session should never exercise, and production's default
+  privileges hand `anon` and `authenticated` every write on them. The migration revokes those writes
+  (from `public, anon, authenticated`; `SELECT` is untouched, `service_role` keeps its writes):
+  - **§6c — the booking line tables** `booking_items`, `booking_custom_items`,
+    `booking_pickup_requests`, `booking_installments`, `booking_supplements`: read-only for signed-in
+    clients (INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER). Every legitimate writer is a
+    `SECURITY DEFINER` function or the service role. Without this, a bookings-only member could rewrite
+    a line amount or an installment (which sizes the real charge in `create_payment`) straight through
+    PostgREST, past every lock above.
+  - **§6d — `bookings`:** `DELETE` and `TRUNCATE` revoked (`INSERT` and `UPDATE` stay — the browser
+    updates `status` and `notes`, and `forbid_public_write` / `enforce_booking_admin_update` pin
+    the rest). Nothing guarded DELETE, and the foreign keys cascade `bookings` → `payments` →
+    `payment_events`, so a worker could otherwise erase a paid booking and its whole payments ledger.
+    The only legitimate deleter is `api_erase_user` (definer).
+  - **§6d — `booking_holds`, `notification_outbox`, `operators`:** all writes revoked. Holds are made
+    and freed by definer functions; a client write to the outbox could queue mail in the business's
+    name; `operators` holds `payout_details`. The admin UI only reads them.
+  - The tests are the `describeLocks('6c' | '6d')` drift tests in
+    `tests/integration/admin-roles.test.ts` — see the landmine
+    [a table the browser never writes must revoke the default write grants](landmines.md#a-table-the-browser-never-writes-must-revoke-supabases-default-write-grants-from-anon-and-authenticated).
 - §6b of the migration pins a booking's `deposit_minor`, `balance_due_minor`, `transport_minor`,
   `supplement_minor`, `supplement_qty` and `child_seats` against **any** browser session, the Owner's
   included (`enforce_booking_admin_update`): a hand-edited `deposit_minor` would make `api_mark_refunded`

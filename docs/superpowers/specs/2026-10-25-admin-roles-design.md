@@ -159,6 +159,7 @@ which covers the catalogue only.
 | Which fare applies (`pickup_available`, `region`, `lat`, `lng`) | Not locked: logistics and map data                                                     | Accepted residual: a worker can change which fare applies, never the fare (see below)                       |
 | Assigning roles                                                 | Database, owner only                                                                   | None                                                                                                        |
 | A booking's deposit, balance and add-on amounts                 | Trigger, for every browser session (the Owner's too)                                   | None: only the booking RPCs write them                                                                      |
+| Booking line tables, holds, outbox, operators; booking DELETE   | Table privileges revoked from clients (§6c, §6d)                                       | None: only definer functions and the service role write them                                                |
 
 Locking every section in RLS (≈150 `is_staff()` references, including money-path functions) was
 rejected for now; it can be done later one section at a time.
@@ -170,15 +171,18 @@ rejected for now; it can be done later one section at a time.
   data. A worker without `money.prices` can change **which** fare applies to a tour, never the fare
   itself.
 - Deleting an unbooked, unquoted option (its price tiers cascade away) and deleting a rental vehicle
-  stay with the owning section.
+  stay with the owning section. A Tours member without `money.prices` can likewise delete a whole
+  unbooked tour; its prices and supplements cascade away.
 - A downgrade change-of-tour can still create a refund obligation without `money.refunds`; only
   **recording** the refund needs the permission.
 - A worker can re-open pickup on a booking (`pickup_pending` / `pickup_location`), which leads to a
   late-pickup charge offer.
-- Pre-existing, not caused by roles — follow-ups: the content-only role currently **cannot save tours
+- The WhatsApp number card on the Dashboard is editable by any team member — no permission guards it;
+  only the currency columns of the same `business_settings` row are locked. Content accounts see the
+  card too, but their save does nothing (the table's policy is `is_staff()`).
+- Pre-existing, not caused by roles — follow-up: the content-only role currently **cannot save tours
   at all** (the editor reads `operators`, whose policy is `is_staff()`-only, so the save stops at
-  "operator not found"), and the WhatsApp number card shows to content accounts although their save
-  does nothing.
+  "operator not found").
 
 ## Data model
 
@@ -282,7 +286,10 @@ from `anon`; `authenticated` gets select/insert/update/delete, RLS narrows it).
     are not null/`'0'`): `activities.pricing_mode`, `is_airport_transfer`, `is_hotel_transfer`, and
     `activity_options.activity_id` (moving an option to another activity re-prices it).
   - `business_settings.charge_currency`, `eur_mur_rate`, `eur_mur_rate_updated_at` →
-    `money.currency` (the WhatsApp number on the same row stays editable).
+    `money.currency` (the WhatsApp number on the same row stays editable). This trigger is **update
+    only**: `charge_currency` defaults to `'MUR'` and `eur_mur_rate` is numeric, both of which the
+    crude INSERT rule would refuse, and `business_settings` is a single seeded row whose only client
+    policy is UPDATE, so no INSERT is lost.
 - **Refunds** — `api_mark_refunded` and `api_record_change_refund` raise `forbidden` without
   `money.refunds`. Re-defined from the winning bodies, adding only the check.
 - **Booking money columns** (§6b of the migration) — `enforce_booking_admin_update` also pins
@@ -291,6 +298,30 @@ from `anon`; `authenticated` gets select/insert/update/delete, RLS narrows it).
   one: a value between 0 and the total makes `api_mark_refunded` treat the paid row as a
   non-refundable deposit, so `money.refunds` would guard the front door while this stood open. The
   browser only ever writes `status` and `notes` on bookings, so nothing legitimate loses a write.
+- **Table privileges** (§6c, §6d of the migration) — a lock that is a `revoke`, not a policy.
+  Production's default privileges give `anon` and `authenticated` INSERT / UPDATE / DELETE / TRUNCATE on
+  every new table (two migrations also granted `authenticated` writes outright), and each of these
+  tables has a staff policy `for all using (is_staff())`. Once a member can hold a role without money
+  permissions, that policy alone lets them past every lock above. Every legitimate writer is a
+  `SECURITY DEFINER` function (it runs as the table owner, so it is unaffected) or the service role,
+  which keeps its grants. `SELECT` is left as it was everywhere.
+  - **§6c — booking line tables** (`booking_items`, `booking_custom_items`,
+    `booking_pickup_requests`, `booking_installments`, `booking_supplements`): INSERT, UPDATE, DELETE,
+    TRUNCATE, REFERENCES and TRIGGER revoked from `public, anon, authenticated`. Without it a
+    bookings-only member could rewrite a line amount, an installment (which sizes the real charge in
+    `create_payment`), a supplement or a late-pickup fee through PostgREST.
+  - **§6d — `bookings`**: DELETE and TRUNCATE revoked. Nothing guarded DELETE, and the foreign keys
+    cascade `bookings` → `payments` → `payment_events` (and every `booking_*` table), so a worker could
+    erase a paid booking together with its payment ledger. INSERT and UPDATE stay: the browser updates
+    `status` and `notes`, and `forbid_public_write` (INSERT) plus `enforce_booking_admin_update` and §6b
+    (UPDATE) pin the rest. The only legitimate deleter is `api_erase_user` (definer).
+  - **§6d — `booking_holds`, `notification_outbox`, `operators`**: all writes revoked. A client write to
+    holds could pin capacity or free a customer's seat; to the outbox, queue an email or WhatsApp
+    message in the business's name; `operators` carries `payout_details`. The writers are the
+    `create_hold` / `release_hold` / `expire_holds` / `enqueue_*` / `notify_*` definer functions and the
+    cron's service-role calls. The AFTER UPDATE trigger that writes the outbox
+    (`enqueue_booking_notification`) must stay `SECURITY DEFINER`, or every staff status change that
+    queues a notification fails.
 
 **Backfill** — the migration creates a "Content" role (base `content`, the five content sections) and
 points every existing `seo` profile at it — but only at a **content-base** role named Content, so a
@@ -341,6 +372,10 @@ closed.
   - Pricing page: fare editors need `money.prices`; `PaymentCurrencyCard` needs `money.currency`.
   - Rental: rates read-only and "Add a vehicle" hidden without `money.prices`; saves omit the rate fields.
   - Places: the screen is gated on `section.places`.
+  - Assistant panel: the **Apply** button on a proposal card is withheld without the matching section —
+    a tour card needs Tours, a quote hand-off needs Quotes (`ActionCard`; the card says which section
+    is missing). This is the second lock, for a stale conversation from before a role change; the route
+    already stopped offering those tools.
 - **Server routes** — one helper, `loadCallerAccess(db, userId)` in `src/lib/http/access.ts`, reads
   `profiles` + `team_roles` through the service-role client and replaces the five `callerRole()` copies
   (and three more hand-written `profiles.role` checks in the SEO and reviews routes). Never
@@ -358,7 +393,13 @@ closed.
   | `reviews/google-live`                                      | `section.reviews`                                          |
 
   The assistant's booking and quote lookups additionally need Bookings / Quotes (without them a lookup
-  answers "not found"). A content-only member is refused by every route except the SEO ones, as `seo`
+  answers "not found"). **Its proposals are gated by section too.** `section.assistant` lets a member
+  _ask_, but the browser applies a tour or quote proposal under the member's own session, so the route
+  derives `AssistantGrants` from the caller's access (`assistantGrants(access)` in
+  `src/lib/http/assistant-lookups.ts`) and `runAdminAssistant` only offers the model
+  `propose_new_tour` / `propose_tour_update` with `section.tours` and `draft_quote_from_email` with
+  `section.quotes`. The system prompt stops naming a tool the model was not given, and the grants are a
+  required argument, never defaulted. A content-only member is refused by every route except the SEO ones, as `seo`
   was before. `tests/unit/admin-route-gates.test.ts` pins each route's gate and its position, and fails
   when a route that calls `loadCallerAccess` is missing from its list.
 
@@ -368,13 +409,56 @@ closed.
 
 ## Rollout
 
-1. One push ships the migration (with the profiles guard) and the code. No account changes role, so
-   nothing changes for anyone on deploy day except the SEO account, whose access stays the same.
-2. The owner builds roles in `/admin/roles`.
-3. The owner confirms which of the 4 `admin` accounts are theirs; the others are moved into roles from
-   the Team tab.
-4. The owner decides whether the leftover `seo` account (contractor let go 2026-09-29) stays as Content
-   or is removed.
+**A push does not ship the migration.** The release's ledger gate fails when a local migration has no
+row in `supabase_migrations.schema_migrations`, and its dry-run refuses anything pending, so the
+migration is applied by hand first and its ledger row is inserted **only after** the schema is verified
+(an early row lets the release pass and puts the new web code on the old schema). Pushing with the
+migration un-applied fails safe: the ledger gate stops and `deploy-web` is skipped. No account changes
+role on deploy day, so nothing changes for anyone except the SEO account, whose access stays the same.
+
+**Deploy-day checklist**
+
+1. Owner runs `supabase/migrations/20261025140000_admin_roles.sql` in the production SQL editor (one
+   transaction, safe to re-run; production's ledger already matches up to `20261025130000`).
+2. Verify (read-only): `team_roles` has one row "Content" with base `content`; the seo profile has a
+   `team_role_id`; policy `profiles_staff` is gone; policy `aop_staff` mentions `has_permission`;
+   `has_table_privilege('authenticated','public.notification_outbox','INSERT')` and
+   `has_table_privilege('authenticated','public.bookings','DELETE')` are false. One query that shows all
+   of it (expect `1, 0, 0, 1, false, false`):
+
+   ```sql
+   select
+     (select count(*) from team_roles where lower(btrim(name)) = 'content' and base = 'content') as content_role,
+     (select count(*) from profiles where role::text = 'seo' and team_role_id is null)          as seo_unassigned,
+     (select count(*) from pg_policies where schemaname = 'public' and tablename = 'profiles'
+         and policyname = 'profiles_staff')                                                     as profiles_staff,
+     (select count(*) from pg_policies where schemaname = 'public' and policyname = 'aop_staff'
+         and tablename = 'activity_option_prices' and qual like '%has_permission%')             as aop_staff_locked,
+     has_table_privilege('authenticated', 'public.notification_outbox', 'INSERT')               as outbox_insert,
+     has_table_privilege('authenticated', 'public.bookings', 'DELETE')                          as bookings_delete;
+   ```
+
+3. Only then insert the ledger row ('20261025140000', 'admin_roles'):
+
+   ```sql
+   insert into supabase_migrations.schema_migrations (version, name)
+   values ('20261025140000', 'admin_roles') on conflict (version) do nothing;
+   ```
+
+4. `git push origin main`. CI's final Edge bundle step must be green; the release then shows the ledger
+   171/171 and "Remote database is up to date", and deploys web, then cron.
+5. `curl -s "https://bellemaretours.com/api/v1/health?deep=true"` → 200 with `releaseSha` = the pushed
+   commit.
+6. As an Owner: `/admin` loads without a spinner and shows Roles; `/admin/roles` → Team lists the 4
+   Owners and the seo account under Content; the "Ask Gemini" panel answers; a Documents PDF opens.
+7. Build roles; move 3 of the 4 admin accounts into them (the last-Owner guard keeps one Owner). Each
+   moved person reloads and checks what they see.
+8. Decide on the seo contractor's account (let go 2026-09-29): keep it as Content or remove it.
+9. Watch: `error_logs` for 500s on `/api/v1/admin/*` and `/api/v1/seo/*`; client reports of kind
+   `admin.access_load_failed`; the Postgres logs for "permission denied for table" (a browser writer
+   this migration's revokes missed); and `forbidden` from `enforce_money_columns`.
+10. Rollback: redeploying the previous web build is safe; the database is forward-only (a fix is a new
+    migration, applied the same way).
 
 The first Owner of a fresh database is still made by SQL (`update profiles set role = 'admin' …`); the
 handbook pages that describe granting roles by SQL are updated to point at `/admin/roles` for
@@ -401,6 +485,19 @@ Integration (PGlite, `tests/integration/admin-roles.test.ts` and neighbours):
   create a new tour and option; `business_settings` WhatsApp edit passes without `money.currency`, rate
   edit refused; both refund RPCs refused without `money.refunds`; a booking's deposit, balance and
   add-on amounts cannot be rewritten from a browser session.
+- Table privileges (§6c, §6d) — `describeLocks('6c' | '6d')`, table-driven over `LOCKS`:
+  - the revoke statements are pinned in the migration text (comments stripped), and no later statement
+    may `grant` a locked table back, `grant … on all tables in schema`, or `alter default privileges`;
+  - as built: `authenticated` and `anon` hold none of the revoked privileges, keep `SELECT`, and
+    `service_role` keeps its writes;
+  - a bookings-only member can read each table but every write, including a forged amount, is refused
+    with `permission denied for table …`;
+  - **drift test:** `grant all` on the tables to `anon, authenticated` (production's real starting
+    point, which PGlite does not have), prove the worker's writes go through, apply the section's own
+    SQL, prove the same writes are refused. This is the pattern for any new locked table;
+  - §6d: a bookings-only member cannot `delete from bookings` and the payments ledger survives; the
+    browser's own booking writes still work (notes, `confirmed → completed`, and cancelling a paid
+    booking → `refund_pending`, where the definer trigger still writes `notification_outbox`).
 - The Content backfill is idempotent and skips a mis-based "Content" role.
 - Grants: `anon` has no privilege on `team_roles`; the new RPCs are not executable by `anon`
   (`rpc-grants.test.ts` / `definer-grants-lockdown.test.ts`). `resolved-function-bodies.test.ts` pins the
@@ -415,6 +512,10 @@ Unit:
   the Dashboard's per-role cards (`admin-dashboard.test.ts`).
 - `admin-route-gates.test.ts`: each of the ten routes checks its section once, first, through
   `loadCallerAccess`; any route under `app/api/v1` that calls it must be on the list.
+- The assistant's grants: `admin-assistant.test.ts` (the tour tools exist only with Tours, the quote
+  drafter only with Quotes, and the system prompt names only the tools offered),
+  `admin-assistant-lookups.test.ts` (`assistantGrants`), `admin-assistant-action-card.test.ts` (Apply is
+  withheld without the section).
 - (Integration, `admin-activity-edit.test.ts`) the tour save path makes no `activity_option_prices` /
   `activity_supplements` writes without `money.prices`.
 
@@ -430,7 +531,10 @@ Unit:
 - Re-defining `enforce_profile_role`, `enforce_booking_admin_update`, `api_mark_refunded`,
   `api_record_change_refund` and the price tables' policies: start from the **winning** (last in filename order) body, mirror to the end of
   `supabase/catch-up.sql`, add a `backfill-migration-ledger.sql` row.
-- New table grants: `anon` gets DELETE by default — revoke explicitly and check with
-  `has_table_privilege()`.
+- New table grants: Supabase's default privileges give `anon` and `authenticated` every write on a new
+  table — revoke what the browser never uses (naming `public` too) and check with
+  `has_table_privilege()`; PGlite has no default grants, so prove it with a drift test (§6c, §6d).
+- Shipping: the release never applies a migration; apply by hand, verify, **then** insert the ledger row
+  (see Rollout).
 - Hand-edit `src/lib/supabase/types.ts` for `team_roles`, `profiles.team_role_id` and the new RPCs.
 - New admin UI strings passed to `t(...)` need `messages.ts` rows; run `node scripts/i18n-scan.mjs`.

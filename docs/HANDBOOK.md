@@ -30,13 +30,15 @@ emailed invoice. The owner runs everything from a `/admin` back-office.
 
 This app has **three moving parts** — the web app, the database, and the cron Worker. They used to
 deploy separately, and forgetting one was the single most common way to break production silently.
-**Since 2026-07-22 a single `git push origin main` ships all three**, in a strict order, with
-post-deploy verification:
+**Since 2026-07-22 a single `git push origin main` ships the web app and the cron Worker** in a strict
+order, with post-deploy verification, and **checks** the database. A new migration is not applied by
+the push — the owner applies it by hand and records its ledger row first
+([Deployment](handbook/deployment.md#deploying-a-change-that-includes-sql--order-matters)):
 
 | Part            | How it ships                                                     | Ships on `git push`? |
 | --------------- | ---------------------------------------------------------------- | -------------------- |
 | The web app     | `release.yml` → `wrangler pages deploy` of the CI-built artifact | ✅ Yes               |
-| The database    | `release.yml` → `supabase db push` (reconciled ledger)           | ✅ Yes               |
+| The database    | Owner applies the SQL + ledger row; `release.yml` only checks it | ❌ No (checked)      |
 | The cron Worker | `release.yml` → `wrangler deploy`, same SHA, after the web       | ✅ Yes               |
 
 **Cloudflare Pages' own Git auto-deploy is DISABLED** — the pipeline is the only deploy path, and it
@@ -150,10 +152,11 @@ If you remember nothing else from this handbook:
 2. **A booking is only ever confirmed by `append_payment_event`.** Never `UPDATE bookings SET
 status='confirmed'` by hand — you'd skip the underpayment guard and the capacity re-check.
 
-3. **Migration first, then mirror into `catch-up.sql`.** Pre-bootstrap, also run the SQL on prod
-   _before_ you push the code — the pipeline doesn't exist yet to apply it, and nothing will remind
-   you. Once bootstrapped, `release.yml` applies it automatically on push, in the correct order — but
-   the migration-first mirroring discipline itself never goes away.
+3. **Migration first, then mirror into `catch-up.sql`.** Then have the owner run the SQL on prod
+   _before_ you push the code, verify it, and only then insert the migration's ledger row. The release
+   never applies a migration: its ledger gate fails (and skips the web deploy) when a migration has no
+   ledger row, and a ledger row inserted before the schema exists ships new code onto the old schema.
+   ([How](handbook/database.md#shipping-a-new-migration--the-real-procedure).)
 
 4. **Pre-bootstrap, the cron Worker is not deployed by `git push`.** If you touched `workers/cron/`,
    run wrangler by hand. Once bootstrapped, `release.yml` deploys it automatically, sequentially

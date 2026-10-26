@@ -6,8 +6,11 @@
 
 ## ✅ This pipeline is LIVE (since 2026-07-22)
 
-`git push origin main` now deploys everything — web, database, and cron Worker — automatically, in
-that strict order. **Cloudflare Pages' own Git auto-deploy is DISABLED** (both production and
+`git push origin main` now deploys the web app and the cron Worker automatically, in strict order,
+behind a database **ledger gate**. The gate checks the database; it does **not** apply a new
+migration — the owner does that by hand first (see
+[Deploying a change that includes SQL](#deploying-a-change-that-includes-sql--order-matters)).
+**Cloudflare Pages' own Git auto-deploy is DISABLED** (both production and
 preview); `wrangler pages deploy` from the CI-built artifact is the only deploy path, and
 `cloudflare-preflight` fails the release if anyone re-enables it.
 
@@ -33,11 +36,12 @@ reviewers are configured on the `production-payment-smoke` environment. See
 | Part            | How it ships (once bootstrapped)                                                      |
 | --------------- | ------------------------------------------------------------------------------------- |
 | **Web app**     | `release.yml` → `wrangler pages deploy` of the exact artifact CI built                |
-| **Database**    | `release.yml` → `supabase db push` (linked), gated on an explicitly-reconciled ledger |
+| **Database**    | **By hand:** owner applies the SQL, then its ledger row; `release.yml` only verifies. |
 | **Cron Worker** | `release.yml` → `wrangler deploy --config workers/cron/wrangler.toml`, same SHA       |
 
-All three now happen automatically, in a strict dependency chain, on every push to `main` — **once
-bootstrapped**. Before that, see the three manual fallback sections further down in this file.
+The web app and the cron Worker ship automatically, in a strict dependency chain, on every push to
+`main` — **once bootstrapped**; the database is _checked_ by the same chain but changed by the owner,
+before the push. Before bootstrap, see the manual fallback sections further down in this file.
 
 ### The full chain
 
@@ -54,8 +58,10 @@ git push main
       2. create-deployment       — opens a GitHub Deployment (environment "production")
       3. cloudflare-preflight    — fails unless Cloudflare's OWN git-integration auto-deploy is
                                     confirmed disabled (see the dashboard step below)
-      4. supabase-ledger-gate    — fails unless SUPABASE_MIGRATION_LEDGER_RECONCILED=true, re-checks
-                                    parity, `db push --dry-run`, then the REAL `db push`
+      4. supabase-ledger-gate    — fails unless SUPABASE_MIGRATION_LEDGER_RECONCILED=true, then fails
+                                    if ANY local migration is missing from the ledger (parity), then
+                                    `db push --dry-run` (fails on anything pending), then the REAL
+                                    `db push` — by now a no-op: it never applies a new migration
       5. deploy-web              — `wrangler pages deploy` of the CI artifact (no rebuild)
       6. deploy-cron             — `wrangler deploy` for workers/cron, same SHA, sequential AFTER web
       7. verify-dns-health       — canonical DNS/redirects + deep health, releaseSha must match
@@ -201,22 +207,40 @@ gh run watch --exit-status
 curl -i "https://bellemaretours.com/api/v1/health?deep=true"     # expect 200 "status":"ok"
 ```
 
-## Deploying a change that includes SQL — **order matters** (manual fallback)
+## Deploying a change that includes SQL — **order matters**
+
+**The release pipeline does not apply a new migration.** In `supabase-ledger-gate`,
+`scripts/release/supabase-ledger.mjs --mode status` runs _before_ `db push` and **throws if any file in
+`supabase/migrations/` has no row in `supabase_migrations.schema_migrations`**; the dry-run step after
+it refuses anything pending. By the time the real `db push` runs there is nothing left for it to apply.
+So the owner puts the migration on production by hand, in this exact order:
 
 ```
-1. Write the migration + mirror it into catch-up.sql + regenerate setup.sql
-2. Run the local gate
-3. ▶ OWNER RUNS supabase/catch-up.sql ON PRODUCTION  ← BEFORE the code ships (only if the ledger
-   pipeline below isn't live yet; once bootstrapped, `release.yml`'s `supabase db push` does this)
-4. git push origin main
+1. Write the migration + mirror it into catch-up.sql + regenerate setup.sql, then run the local gate
+2. ▶ OWNER RUNS the migration (the new file, or catch-up.sql) in the production SQL editor
+3. ▶ VERIFY it landed — read-only checks specific to that migration
+4. ▶ ONLY THEN insert its ledger row:
+     insert into supabase_migrations.schema_migrations (version, name)
+     values ('<version>', '<name>') on conflict (version) do nothing;
+   (the same tuple as in supabase/backfill-migration-ledger.sql — one row, never the whole file)
+5. git push origin main   ← CI green, then the release: ledger N/N, "Remote database is up to date",
+                             then web, then cron
 ```
 
-Push the code first and every request touching the new RPC or column **500s** until someone remembers to
-paste the SQL. The other order is safe: the migrations are additive, so the _old_ code keeps working
-against the _new_ schema. **Once the release pipeline is bootstrapped, `supabase/migrations/` stays
-the source of truth and `db push` applies it automatically** — but still write the migration BEFORE
-merging the code that depends on it, same ordering logic, now enforced by the pipeline instead of a
-human's memory.
+**Why the order is load-bearing.**
+
+- **Ledger row without the schema** (inserted early, or before you checked) — the gate passes and the
+  release ships new web code onto the old schema: every request touching the new RPC or column
+  **500s**. This is the dangerous mistake. Never paste the whole `backfill-migration-ledger.sql` to
+  "catch up" either: it already lists migrations that are not applied yet and would record them early.
+- **Push with the migration still unapplied** — fails safe. The gate stops at "Ledger is NOT in sync:
+  1 migration(s) missing from remote", `deploy-web` (which `needs` the gate) is skipped, and production
+  stays on the previous build. Apply, verify, insert the row, then re-run the failed release.
+- **Old code on the new schema** is safe: migrations are additive, so the previous web build keeps
+  working. That is also why rolling the web app back never needs a database rollback.
+
+Worked example with the exact checks: the deploy-day checklist in
+[`docs/superpowers/specs/2026-10-25-admin-roles-design.md`](../superpowers/specs/2026-10-25-admin-roles-design.md#rollout).
 
 ---
 

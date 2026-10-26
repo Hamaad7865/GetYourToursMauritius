@@ -21,7 +21,9 @@ reliance) so the same backend can serve a future mobile app unchanged.
 
 Three moving parts, all shipped by a single `git push origin main` (`.github/workflows/release.yml`, in
 order, with post-deploy verification): **the web app** (Cloudflare Pages via `@cloudflare/next-on-pages`,
-edge runtime), **the database** (`supabase db push`), **the cron Worker** (`workers/cron/`, a _separate_
+edge runtime), **the database** (the release only _verifies_ the migration ledger; it never applies a
+migration — the owner runs the SQL on prod, verifies it, then inserts its ledger row, all before the push:
+`database.md` → "Shipping a new migration"), **the cron Worker** (`workers/cron/`, a _separate_
 Worker). Cloudflare's own Git auto-deploy is disabled — the pipeline is the only deploy path. Direct
 commits to `main`, no feature branches (owner's explicit preference).
 

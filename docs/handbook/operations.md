@@ -101,7 +101,8 @@ signed in as an Owner: **Admin → Roles → Team → Add a member** — type th
 
 What is enforced where: the database refuses price, fare, exchange-rate and refund changes from a role
 without the switch, and only an Owner can change anyone's role — so a team member cannot promote
-themselves, erase a colleague or the Owner, or rewrite a booking's deposit or balance. Sections and the
+themselves, erase a colleague or the Owner, rewrite a booking's deposit, balance or line amounts, or
+delete a booking and its payment history. Sections and the
 revenue totals are hidden in the back office but not locked in the database — a technical person with a
 section's data could still query it.
 
@@ -116,15 +117,23 @@ update profiles set role = 'admin'
 
 ## Applying a database update
 
-When a developer says _"re-run catch-up.sql"_:
+A push does **not** change the database — the release only checks it. When a developer says _"apply the
+migration"_ or _"re-run catch-up.sql"_, you do these in this order:
 
 1. Supabase → **SQL Editor** → New query.
-2. Open `supabase/catch-up.sql` from the repo, copy the **entire file**, paste it, press **Run**.
+2. Open `supabase/catch-up.sql` from the repo (or the new migration file the developer names), copy the
+   **entire file**, paste it, press **Run**.
 3. It's safe to run as many times as you like.
+4. **Check it took.** The developer will give you a few read-only checks to run; run them.
+5. **Only then**, run the one-line ledger entry the developer gives you. It looks like
+   `insert into supabase_migrations.schema_migrations (version, name) values ('…', '…') on conflict (version) do nothing;`
+   Run it too early and the release goes ahead on a database that doesn't have the change yet; skip it
+   and the release stops at "Ledger is NOT in sync" and nothing is deployed.
+6. Tell the developer it's done — they push after that.
 
 **If it fails partway:** note the error, get it fixed, then **re-run the whole file from the top**. Don't
 try to run "just the rest" — part of the script has already been applied and re-running is designed to be
-safe.
+safe. Don't do step 5 until it has run cleanly.
 
 ---
 
@@ -300,7 +309,7 @@ invocations — the job is deliberately written to _fail loudly_ rather than exi
 its work.
 
 **It ships automatically with every release.** Since 2026-07-22 a single `git push origin main` deploys
-the website, the database _and_ this Worker from the same commit — the Worker goes last, and the release
+the website _and_ this Worker from the same commit (and checks the database) — the Worker goes last, and the release
 fails if it doesn't come back reporting the version just shipped. So "someone forgot to deploy it" is no
 longer how this breaks. When it does go quiet, suspect its **configuration** — most often
 `INTERNAL_TASK_SECRET` no longer matching the value in the website's environment, which shows up as

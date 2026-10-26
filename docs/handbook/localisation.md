@@ -164,10 +164,10 @@ in `activity_translations` (locale = `'fr'`), left-joined and coalesced by `api_
 machine-translated, every row lands with `source = 'machine'`.
 
 It lives in `migrations/`, not as a standalone seed file, and that placement is deliberate. The
-release pipeline (`.github/workflows/release.yml`) runs `supabase db push`, which applies
-**migrations only** — nothing runs a loose `supabase/*.sql` seed. This content originally shipped as
-`supabase/seed-fr-catalogue.sql` and therefore never reached production at all: the code was
-deployed, the RPCs resolved French correctly, and the catalogue still rendered in English because
+release pipeline (`.github/workflows/release.yml`) knows **migrations only** — the owner applies them
+by hand and records each in the ledger, and nothing runs a loose `supabase/*.sql` seed. This content
+originally shipped as `supabase/seed-fr-catalogue.sql` and therefore never reached production at all: the
+code was deployed, the RPCs resolved French correctly, and the catalogue still rendered in English because
 the rows did not exist. If you add catalogue data that must reach production, it goes in a
 migration.
 
