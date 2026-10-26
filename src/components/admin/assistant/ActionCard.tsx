@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { applyAssistantAction } from '@/lib/admin/assistant';
+import { can, type PermissionKey } from '@/lib/admin/permissions';
+import { useAdminAccess } from '@/components/admin/AdminAccessProvider';
 import { useAssistant } from '@/components/admin/assistant/AssistantProvider';
 import { refusalMessage } from '@/components/admin/quotes/state';
 import type { AssistantAction, TourContentPatch } from '@/lib/validation/admin-assistant';
@@ -36,6 +38,17 @@ const FIELD_LABEL: Record<keyof TourContentPatch, string> = {
   whatToBring: 'What to bring',
   importantInfo: 'Know before you go',
 };
+
+/**
+ * The section a proposal needs before Apply is offered. The server no longer offers the model the
+ * tools that raise a proposal the caller lacks the section for, so this is the second lock: a card
+ * that arrives anyway (a stale thread after a role change) cannot be applied from here.
+ */
+function sectionFor(action: AssistantAction): { key: PermissionKey; name: string } {
+  return action.kind === 'draft_quote_from_email'
+    ? { key: 'section.quotes', name: 'Quotes' }
+    : { key: 'section.tours', name: 'Tours' };
+}
 
 const Sparkle = () => (
   <svg width={14} height={14} viewBox="0 0 24 24" aria-hidden="true" className="shrink-0">
@@ -99,6 +112,9 @@ export function ActionCard({ action }: { action: AssistantAction }) {
   const router = useRouter();
   const pathname = usePathname();
   const assistant = useAssistant();
+  const access = useAdminAccess();
+  const needs = sectionFor(action);
+  const allowed = can(access, needs.key);
   const [expanded, setExpanded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState<{ message: string; href: string | null } | null>(null);
@@ -117,6 +133,7 @@ export function ActionCard({ action }: { action: AssistantAction }) {
   }
 
   async function apply() {
+    if (!allowed) return;
     setBusy(true);
     setError(null);
     try {
@@ -207,14 +224,20 @@ export function ActionCard({ action }: { action: AssistantAction }) {
           </p>
         )}
 
-        <button
-          type="button"
-          onClick={() => void apply()}
-          disabled={busy}
-          className="ai-apply-btn mt-2.5 w-full rounded-lg px-3 py-2 text-[12.5px] font-bold text-white disabled:opacity-60"
-        >
-          {busy ? 'Applying…' : 'Apply'}
-        </button>
+        {allowed ? (
+          <button
+            type="button"
+            onClick={() => void apply()}
+            disabled={busy}
+            className="ai-apply-btn mt-2.5 w-full rounded-lg px-3 py-2 text-[12.5px] font-bold text-white disabled:opacity-60"
+          >
+            {busy ? 'Applying…' : 'Apply'}
+          </button>
+        ) : (
+          <p className="mt-2.5 text-[12px] font-semibold leading-relaxed text-ink-muted">
+            Your role doesn’t include {needs.name} — ask the owner to apply this.
+          </p>
+        )}
       </div>
     </div>
   );

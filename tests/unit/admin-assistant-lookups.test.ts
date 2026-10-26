@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { buildAccess, type PermissionKey } from '@/lib/admin/permissions';
-import { buildRecordLookups, type RefLookupClient } from '@/lib/http/assistant-lookups';
+import {
+  assistantGrants,
+  buildRecordLookups,
+  type RefLookupClient,
+} from '@/lib/http/assistant-lookups';
 
 /* The assistant's lookup_booking / lookup_quote tools read a guest's name, email and amounts through
  * the SERVICE-ROLE client, which sees every row. Holding the assistant section alone must not unlock
@@ -116,5 +120,33 @@ describe('buildRecordLookups', () => {
     const lookups = buildRecordLookups(db, buildAccess({ role: 'admin' }));
     expect(await lookups.lookupBooking('BMTNOPE')).toBeNull();
     expect(await lookups.lookupQuote('QNOPE')).toBeNull();
+  });
+});
+
+describe('assistantGrants', () => {
+  it('the assistant section alone grants no proposals', () => {
+    expect(assistantGrants(staffWith('section.assistant'))).toEqual({
+      tours: false,
+      quotes: false,
+    });
+  });
+
+  it('Tours and Quotes each grant only their own proposals', () => {
+    expect(assistantGrants(staffWith('section.assistant', 'section.tours'))).toEqual({
+      tours: true,
+      quotes: false,
+    });
+    expect(assistantGrants(staffWith('section.assistant', 'section.quotes'))).toEqual({
+      tours: false,
+      quotes: true,
+    });
+  });
+
+  it('the Owner holds both; a customer or nobody holds neither', () => {
+    expect(assistantGrants(buildAccess({ role: 'admin' }))).toEqual({ tours: true, quotes: true });
+    expect(assistantGrants(buildAccess({ role: 'customer' }))).toEqual({
+      tours: false,
+      quotes: false,
+    });
   });
 });

@@ -7,7 +7,11 @@ import { buildServiceContext } from '@/lib/http/context';
 import { createServiceRoleClient } from '@/lib/supabase/admin';
 import { can } from '@/lib/admin/permissions';
 import { loadCallerAccess, type AccessClient } from '@/lib/http/access';
-import { buildRecordLookups, type RefLookupClient } from '@/lib/http/assistant-lookups';
+import {
+  assistantGrants,
+  buildRecordLookups,
+  type RefLookupClient,
+} from '@/lib/http/assistant-lookups';
 import {
   runAdminAssistant,
   type AssistantDeparture,
@@ -49,7 +53,9 @@ export const runtime = 'edge';
  * THE GATE is the AI assistant section (`section.assistant`), read by `loadCallerAccess`:
  * `requireUser(req).role` is the JWT's Postgres selector, never the business role, so the caller's
  * role and permissions come from `profiles` + `team_roles` through the service-role client. A
- * content-only account never holds it (replies surface guests' names and money).
+ * content-only account never holds it (replies surface guests' names and money). Holding it does not
+ * entitle a role to PROPOSE tour changes or quote drafts, though: those tools are only offered to the
+ * model with `section.tours` / `section.quotes` (see `AssistantGrants`).
  * Rate-limited before the gate because every call runs a model.
  */
 
@@ -338,6 +344,9 @@ export const POST = apiHandler(async (req) => {
   const { available, reply, actions } = await runAdminAssistant(ctx, port, {
     messages: body.messages,
     page: body.page,
+    // The assistant section alone does not entitle a role to the tour-writing or quote-drafting tools:
+    // the browser applies those proposals as the member, so they are only offered with the section.
+    grants: assistantGrants(access),
   });
 
   const response: AdminAssistantResponse = { available, reply, actions };

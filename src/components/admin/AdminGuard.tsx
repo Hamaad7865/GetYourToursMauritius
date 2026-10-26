@@ -3,10 +3,6 @@
 import { Fragment, type ReactNode } from 'react';
 import { useAuth } from '@/components/auth/AuthProvider';
 
-/** Roles allowed into the back-office. 'seo' is the restricted content role — the shell shows it
- *  only the SEO/content sections and RLS keeps it out of bookings/customers server-side. */
-export const ADMIN_ROLES = ['admin', 'staff', 'seo'] as const;
-
 /** Gates the admin area to staff/admin/seo profiles. Customers and signed-out users are blocked. */
 export function AdminGuard({ children }: { children: ReactNode }) {
   const { user, profile, loading, openAuth } = useAuth();

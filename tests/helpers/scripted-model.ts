@@ -36,19 +36,25 @@ function stepResult(step: ScriptedStep, id: string) {
   };
 }
 
-/** A model that replays `steps` in order (the last one repeats) and records every prompt it saw. */
+/**
+ * A model that replays `steps` in order (the last one repeats) and records every prompt it saw, plus
+ * the names of the tools it was OFFERED on each call (`seenTools`) — the only honest way to assert a
+ * tool is withheld from the model rather than refused after the fact.
+ */
 export function scriptedModel(steps: ScriptedStep[]) {
   const seenPrompts: string[] = [];
+  const seenTools: string[][] = [];
   let i = 0;
   const model = new MockLanguageModelV2({
     doGenerate: async (options) => {
       seenPrompts.push(JSON.stringify(options.prompt));
+      seenTools.push((options.tools ?? []).map((t) => t.name));
       const step = steps[Math.min(i, steps.length - 1)]!;
       i += 1;
       return stepResult(step, `call-${i}`);
     },
   });
-  return { model, seenPrompts };
+  return { model, seenPrompts, seenTools };
 }
 
 /** A model that answers `generateObject` with a fixed JSON object. */

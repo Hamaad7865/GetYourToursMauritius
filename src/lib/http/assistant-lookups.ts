@@ -1,4 +1,5 @@
 import { can, type AdminAccess } from '@/lib/admin/permissions';
+import type { AssistantGrants } from '@/lib/services/admin-assistant';
 
 type Row = Record<string, unknown>;
 
@@ -20,6 +21,15 @@ export interface RefLookupClient {
 /** A minor-unit column as euros, tolerating null/undefined and non-numeric junk. */
 function eurOf(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value / 100 : null;
+}
+
+/**
+ * Which PROPOSALS the model may be offered for this caller. Holding the assistant section lets a member
+ * ask; the browser applies a proposal under their own session, so the tour-writing tools need
+ * `section.tours` and the quote drafter `section.quotes` (the services layer takes plain booleans).
+ */
+export function assistantGrants(access: AdminAccess): AssistantGrants {
+  return { tours: can(access, 'section.tours'), quotes: can(access, 'section.quotes') };
 }
 
 /**

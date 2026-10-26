@@ -1131,11 +1131,17 @@ describe('money locks', () => {
       'business_settings.business_settings_money_guard',
       'rental_vehicles.rental_vehicles_money_guard',
     ]);
+    // Guards that must NOT fire on INSERT: the *_update ones cover columns that stay settable when a
+    // worker creates a new tour or option, and business_settings' columns ('MUR' default, a numeric
+    // rate) are exactly what the crude INSERT rule would refuse — it is a single-row table anyway.
+    const updateOnly = new Set([
+      'activities_money_guard_update',
+      'activity_options_money_guard_update',
+      'business_settings_money_guard',
+    ]);
     for (const r of rows) {
-      // The *_update guards cover columns that must stay settable on INSERT (a new tour, a new
-      // option). Adding INSERT to one would refuse every new tour a worker creates.
       expect(r.onUpdate, `${r.name} fires on update`).toBe(true);
-      expect(r.onInsert, `${r.name} fires on insert`).toBe(!r.name.endsWith('_update'));
+      expect(r.onInsert, `${r.name} fires on insert`).toBe(!updateOnly.has(r.name));
     }
     const catalogue = await one<string[]>(db, `select permission_catalogue() as v`);
     for (const { tbl, args } of rows) {
@@ -2034,6 +2040,58 @@ function describeLocks(title: string, section: '6c' | '6d'): void {
               fixture.bookingId,
             ]),
           ).toBe('called the guest');
+
+          // The status moves the admin screens make. Each runs on its own paid booking so the shared
+          // fixture stays untouched for the tests around this one.
+          const statusOf = async (bookingId: string): Promise<string> => {
+            await db.asOwner();
+            return one<string>(db, `select status as v from bookings where id = $1`, [bookingId]);
+          };
+          const outboxRows = (bookingId?: string): Promise<number> =>
+            bookingId
+              ? countOf(db, `select count(*) as v from notification_outbox where booking_id = $1`, [
+                  bookingId,
+                ])
+              : countOf(db, `select count(*) as v from notification_outbox`);
+
+          // Confirmed -> completed.
+          const done = await seedLockFixture(db, `${section}-status-complete`);
+          expect(await statusOf(done.bookingId)).toBe('confirmed');
+          await asUser(db, WORKER);
+          expect(
+            await failure(
+              db.pg.query(`update bookings set status = 'completed' where id = $1`, [
+                done.bookingId,
+              ]),
+            ),
+          ).toBe('');
+          expect(await statusOf(done.bookingId)).toBe('completed');
+
+          // Cancelling a PAID booking: the money guard reroutes it to refund_pending (the owner refunds
+          // it with money.refunds), and the enqueue trigger — SECURITY DEFINER — still writes the
+          // notification_outbox rows this worker has no privilege to insert itself.
+          const cancelled = await seedLockFixture(db, `${section}-status-cancel`);
+          expect(await statusOf(cancelled.bookingId)).toBe('confirmed');
+          const outboxBefore = await outboxRows();
+          const bookingOutboxBefore = await outboxRows(cancelled.bookingId);
+          await asUser(db, WORKER);
+          expect(
+            await failure(
+              db.pg.query(`insert into notification_outbox (channel, recipient, template)
+                           values ('email', 'x@example.com', 'forged')`),
+            ),
+          ).toMatch(DENIED('notification_outbox'));
+          await asUser(db, WORKER);
+          expect(
+            await failure(
+              db.pg.query(`update bookings set status = 'cancelled' where id = $1`, [
+                cancelled.bookingId,
+              ]),
+            ),
+          ).toBe('');
+          expect(await statusOf(cancelled.bookingId)).toBe('refund_pending');
+          expect(await outboxRows()).toBeGreaterThan(outboxBefore);
+          expect(await outboxRows(cancelled.bookingId)).toBeGreaterThan(bookingOutboxBefore);
         });
       }
     });

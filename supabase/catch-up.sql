@@ -37294,9 +37294,13 @@ create trigger rental_vehicles_money_guard
   before insert or update on rental_vehicles
   for each row execute function enforce_money_columns('money.prices', 'daily_rate_minor', 'deposit_minor');
 
+-- UPDATE-only, by the rule above: `charge_currency` defaults to 'MUR' and `eur_mur_rate` is numeric,
+-- both of which the crude INSERT rule would refuse. Nothing is lost — business_settings is a single
+-- row (id boolean primary key, seeded by its own migration) and its only client policy is UPDATE, so a
+-- signed-in client can never insert one.
 drop trigger if exists business_settings_money_guard on business_settings;
 create trigger business_settings_money_guard
-  before insert or update on business_settings
+  before update on business_settings
   for each row execute function enforce_money_columns(
     'money.currency', 'charge_currency', 'eur_mur_rate', 'eur_mur_rate_updated_at');
 
