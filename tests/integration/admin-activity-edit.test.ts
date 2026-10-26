@@ -337,4 +337,49 @@ describe('updateActivity preserves option ids on edit', () => {
       'the booked option is kept, not deleted',
     ).toBe(true);
   });
+
+  it('a role without money.prices can save the description; prices are left untouched', async () => {
+    const { activityId, optionId } = await seedActivity('locked-pricing');
+    const LOCKED = 'a6a6a6a6-a6a6-a6a6-a6a6-a6a6a6a6a6a6';
+    await db.asOwner();
+    await db.pg.query(`insert into auth.users (id) values ($1)`, [LOCKED]);
+    await db.pg.query(`insert into profiles (id, role) values ($1, 'staff')`, [LOCKED]);
+    const { seedTeamRole } = await import('../db/team');
+    await seedTeamRole(db, LOCKED, ['section.tours']);
+    const before = (
+      await db.pg.query<{ id: string }>(
+        `select id from activity_option_prices where activity_option_id = $1`,
+        [optionId],
+      )
+    ).rows.map((r) => r.id);
+
+    await db.as({ sub: LOCKED, role: 'authenticated' });
+    const form = {
+      ...EMPTY_ACTIVITY,
+      slug: 'locked-pricing',
+      title: 'New words only',
+      options: [
+        {
+          id: optionId,
+          name: 'Private group',
+          prices: [{ label: 'Adult', amountEur: 1, maxGuests: null }],
+        },
+      ],
+    };
+    await updateActivity(activityId, form, { pricingLocked: true });
+
+    await db.asOwner();
+    const after = await db.pg.query<{ id: string; amount_minor: number }>(
+      `select id, amount_minor from activity_option_prices where activity_option_id = $1`,
+      [optionId],
+    );
+    expect(after.rows.map((r) => r.id)).toEqual(before); // not replaced
+    expect(after.rows[0]!.amount_minor).toBe(7000); // the form's €1 was ignored
+    const title = (
+      await db.pg.query<{ title: string }>(`select title from activities where id = $1`, [
+        activityId,
+      ])
+    ).rows[0]!.title;
+    expect(title).toBe('New words only');
+  });
 });

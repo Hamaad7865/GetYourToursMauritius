@@ -654,16 +654,21 @@ async function nextSortForCategory(category: string): Promise<number> {
   return ((data?.sort as number | null) ?? -1) + 1;
 }
 
-/** Save options for the restricted 'seo' content role: skip the option/price reconcile (RLS blocks
- *  those tables for seo — attempting them would fail the save midway) and the staff-gated
- *  materialize RPC. Content fields, images and itinerary still save normally. */
+/** Save options.
+ *  - `contentOnly` — the restricted content role: skip the option/price reconcile (RLS blocks those
+ *    tables) and the staff-gated materialize RPC. Content fields, images and itinerary still save.
+ *  - `pricingLocked` — a team role without money.prices: skip the option/price/supplement reconcile
+ *    (the database refuses price writes for it, and saving would replace every tier), but still
+ *    materialize. The "Pricing & options" pane is hidden for both. */
 export interface SaveOpts {
   contentOnly?: boolean;
+  pricingLocked?: boolean;
 }
 
 /** Create a new activity (+ images/options/prices). Returns the new id. */
 export async function createActivity(v: ActivityFormValues, opts: SaveOpts = {}): Promise<string> {
-  if (!opts.contentOnly) assertPricingValid(v);
+  const writePricing = !opts.contentOnly && !opts.pricingLocked;
+  if (writePricing) assertPricingValid(v);
   const sb = getBrowserSupabase();
   const opId = await operatorId();
   const sort = await nextSortForCategory(v.category);
@@ -674,11 +679,11 @@ export async function createActivity(v: ActivityFormValues, opts: SaveOpts = {})
     .single();
   if (error) throw error;
   await replaceImages(data.id, v.images);
-  if (!opts.contentOnly) {
+  if (writePricing) {
     await reconcileOptions(data.id, v.options);
     await reconcileSupplements(data.id, v.supplements);
-    await materializeActivity(data.id);
   }
+  if (!opts.contentOnly) await materializeActivity(data.id);
   return data.id;
 }
 
@@ -688,7 +693,8 @@ export async function updateActivity(
   v: ActivityFormValues,
   opts: SaveOpts = {},
 ): Promise<{ keptWithBookings: string[] }> {
-  if (!opts.contentOnly) assertPricingValid(v);
+  const writePricing = !opts.contentOnly && !opts.pricingLocked;
+  if (writePricing) assertPricingValid(v);
   const sb = getBrowserSupabase();
   const opId = await operatorId();
   // Moving to another category keeps the old `sort` otherwise — a sort-0 tour would jump ahead of
@@ -707,12 +713,12 @@ export async function updateActivity(
   if (error) throw error;
   await replaceImages(id, v.images);
   let keptWithBookings: string[] = [];
-  if (!opts.contentOnly) {
+  if (writePricing) {
     keptWithBookings = await reconcileOptions(id, v.options);
     await reconcileSupplements(id, v.supplements);
-    // Publishing or adding the first price makes the activity materializable — fill its window now.
-    await materializeActivity(id);
   }
+  // Publishing or adding the first price makes the activity materializable — fill its window now.
+  if (!opts.contentOnly) await materializeActivity(id);
   return { keptWithBookings };
 }
 

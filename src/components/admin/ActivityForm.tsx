@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthProvider';
+import { useAdminAccess } from '@/components/admin/AdminAccessProvider';
+import { can } from '@/lib/admin/permissions';
 import { useCategories } from '@/lib/categories/useCategories';
 import { loadContentDefaults as loadContentDefaultsMap } from '@/lib/admin/content-defaults';
 import { highlightsAreOverridden, type ContentDefaults } from '@/lib/catalogue/content-defaults';
@@ -53,6 +55,10 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
   // The restricted 'seo' content role edits copy/photos/itinerary only: the pricing pane is hidden
   // and the save skips options/prices + the staff-gated materialize RPC (RLS blocks them).
   const contentOnly = profile?.role === 'seo';
+  // A team role without money.prices edits everything except "Pricing & options": that pane is hidden
+  // and the save leaves options, tiers and supplements alone (the database would refuse the writes).
+  const access = useAdminAccess();
+  const pricingLocked = contentOnly || !can(access, 'money.prices');
   const categories = useCategories();
   const [values, setValues] = useState<ActivityFormValues | null>(
     mode === 'new' ? EMPTY_ACTIVITY : null,
@@ -105,7 +111,7 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const requested = params.get('s');
-    if (isSectionId(requested, contentOnly)) setActive(requested);
+    if (isSectionId(requested, pricingLocked)) setActive(requested);
     // A brand-new tour redirects to its own edit URL with ?saved=1 after Create, so the owner lands
     // INSIDE the tour they just made with the confirmation showing. Strip the flag so a reload
     // doesn't re-show it.
@@ -116,7 +122,7 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
       url.searchParams.delete('saved');
       window.history.replaceState(null, '', url);
     }
-  }, [contentOnly]);
+  }, [pricingLocked]);
 
   useEffect(() => {
     if (mode !== 'edit' || !id) return;
@@ -148,11 +154,11 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
   if (!values) return <p className="text-sm text-coral">{error ?? 'Not found.'}</p>;
   const v = values;
   const highlightsOverridden = highlightsAreOverridden(v.category, contentDefaults);
-  const sections = visibleSections(contentOnly);
-  // The seo role can arrive on ?s=pricing before its profile has loaded, which would leave the rail
-  // pointing at a pane that no longer exists once it has.
-  const current = sections.some((s) => s.id === active) ? active : defaultSection(contentOnly);
-  const issues = submitted ? sectionIssues(v, contentOnly) : {};
+  const sections = visibleSections(pricingLocked);
+  // A role that cannot edit prices can arrive on ?s=pricing before its profile or access has loaded,
+  // which would leave the rail pointing at a pane that no longer exists once it has.
+  const current = sections.some((s) => s.id === active) ? active : defaultSection(pricingLocked);
+  const issues = submitted ? sectionIssues(v, pricingLocked) : {};
 
   function set<K extends keyof ActivityFormValues>(key: K, val: ActivityFormValues[K]) {
     setJustSaved(false);
@@ -185,7 +191,7 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
     setSubmitted(true);
     // One pane is on screen, so an error about a private option is useless while you're looking at
     // Basics. Check before writing and go to the pane that owns the problem.
-    const found = sectionIssues(v, contentOnly);
+    const found = sectionIssues(v, pricingLocked);
     const firstBad = sections.find((s) => found[s.id]);
     if (firstBad) {
       setActive(firstBad.id);
@@ -195,7 +201,7 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
     setSaving(true);
     try {
       if (mode === 'new') {
-        const newId = await createActivity(v, { contentOnly });
+        const newId = await createActivity(v, { contentOnly, pricingLocked });
         // Saving the activity always saves its French alongside it — the owner typing (or simply
         // reviewing and clicking Save) IS the review, so this also clears the machine-draft badge.
         await saveActivityTranslation(newId, fr);
@@ -207,7 +213,7 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
         return;
       }
       if (id) {
-        const { keptWithBookings } = await updateActivity(id, v, { contentOnly });
+        const { keptWithBookings } = await updateActivity(id, v, { contentOnly, pricingLocked });
         await saveActivityTranslation(id, fr);
         // Reload so newly-added options/supplements pick up their database ids, then stay on the
         // current pane with a "Saved ✓" confirmation rather than leaving the tour.
@@ -275,10 +281,11 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
             setFr={editFr}
             frSource={frSource}
             // The supplements' FR labels live on the activity_supplements rows themselves, saved by
-            // the main save path — not the translation upsert. The restricted 'seo' role can't write
-            // that table (contentOnly saves skip the reconcile), so it doesn't get the inputs.
-            supplements={contentOnly ? undefined : v.supplements}
-            setSupplements={contentOnly ? undefined : (next) => set('supplements', next)}
+            // the main save path — not the translation upsert. A role that can't edit prices (the 'seo'
+            // role, or a team role without money.prices) never writes that table — the save skips the
+            // reconcile — so it doesn't get the inputs.
+            supplements={pricingLocked ? undefined : v.supplements}
+            setSupplements={pricingLocked ? undefined : (next) => set('supplements', next)}
           />
         )}
 

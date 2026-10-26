@@ -47,7 +47,8 @@ export interface SectionMeta {
   id: SectionId;
   label: string;
   icon: ComponentType<SVGProps<SVGSVGElement>>;
-  /** Hidden from the restricted 'seo' content role — RLS blocks the option/price tables for it. */
+  /** Hidden when the person may not edit prices — the content role (RLS blocks the tables) and any
+   *  role without money.prices. */
   staffOnly?: boolean;
 }
 
