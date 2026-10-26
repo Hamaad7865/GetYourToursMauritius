@@ -17,6 +17,11 @@
 --   5. money locks: price tables need money.prices to write; price columns on mixed tables need it too;
 --      the charge currency and rate need money.currency;
 --   6. refunds need money.refunds (api_mark_refunded, api_record_change_refund);
+--      6b. a bookings-only member cannot rewrite a booking's deposit, balance or add-on amounts;
+--      6c. the five booking line tables (items, custom items, pickup requests, installments,
+--          supplements) are read-only for signed-in clients — their writes are revoked;
+--      6d. a client cannot DELETE bookings (the FKs cascade into the payment ledger) or write
+--          booking_holds, notification_outbox or operators — their writes are revoked;
 --   7. a "Content" role for the existing seo account(s).
 --
 -- user_role stays the DATA floor: a team role's members are 'staff' (base 'team', is_staff()) or 'seo'
@@ -911,9 +916,10 @@ end;
 $$;
 
 -- ── 6c) Booking line tables are read-only for signed-in clients ─────────────────────────────────
--- None of these five tables is written from a browser, yet production lets `authenticated` (and
--- `anon`) write all of them: Supabase's default table privileges hand INSERT / UPDATE / DELETE /
--- TRUNCATE / REFERENCES / TRIGGER to both roles on every new table, and two migrations granted
+-- None of these five tables is written from a browser, yet production lets `authenticated` write all
+-- of them (and `anon` too on booking_items, booking_installments and booking_supplements; the other two
+-- revoked anon in their own migrations): Supabase's default table privileges hand INSERT / UPDATE /
+-- DELETE / TRUNCATE / REFERENCES / TRIGGER to both roles on every new table, and two migrations granted
 -- `authenticated` writes outright (20260615120800_rls for booking_items, 20260909000000_quotes for
 -- booking_custom_items; 20260930000000_payment_schedule and 20260908000000_multi_supplements_trip_capacity
 -- meant SELECT alone). Each table has a staff policy `for all using (is_staff())`, so once a team
@@ -924,8 +930,38 @@ $$;
 -- separately, untouched); browser code only selects. SELECT is left exactly as it is — this only
 -- removes writes. Idempotent: revoking what is not held is a no-op. A new booking line table needs the
 -- same revoke, or the platform default hands out its writes.
+-- PG17's MAINTAIN privilege is deliberately left alone: PostgREST cannot issue VACUUM / ANALYZE / LOCK,
+-- and naming it is a syntax error before PG17.
 revoke insert, update, delete, truncate, references, trigger
   on booking_items, booking_custom_items, booking_pickup_requests, booking_installments, booking_supplements
+  from public, anon, authenticated;
+
+-- ── 6d) A client cannot delete bookings, or write holds, the outbox or operators ────────────────
+-- The same default privileges, on four more tables whose staff policy is `for all using (is_staff())`
+-- and which a browser session has no business writing. Each revoke below was checked against the code:
+-- every writer is a SECURITY DEFINER function (or trigger) or the service role; browser code only
+-- selects. SELECT is left exactly as it is on all four.
+--
+-- bookings — DELETE and TRUNCATE only. Nothing guards DELETE (enforce_booking_admin_update is BEFORE
+-- UPDATE, forbid_public_write is INSERT only) and the foreign keys cascade bookings -> payments ->
+-- payment_events (and every booking_* table), so a team member holding only section.bookings could
+-- `delete from bookings where id = <a paid booking>` and take the guest's whole payment ledger with
+-- it. INSERT and UPDATE stay: the browser really updates status and notes (src/lib/admin/bookings.ts),
+-- and the existing guards (forbid_public_write on INSERT, enforce_booking_admin_update plus 6b on
+-- UPDATE) pin everything else. The only legitimate deleter is api_erase_user (definer); an FK cascade
+-- runs as the table owner, so it needs no privilege either.
+revoke delete, truncate on bookings from public, anon, authenticated;
+
+-- booking_holds — a hold is created and released by create_hold / release_hold / api_create_hold /
+-- api_release_hold / expire_holds (all definer); the cron and the hold-status route use the service
+-- role. A client write could pin capacity (a hold with a far expires_at) or free a customer's seat.
+-- notification_outbox — a client write could queue an arbitrary email or WhatsApp message in the
+-- business's name to anyone, or cancel a real one. The writers are the enqueue_* triggers, the notify_*
+-- and api_* functions (all definer) and the cron's claim / mark RPCs.
+-- operators — the operator row carries payout_details, contact_email and phone. The admin UI only
+-- READS operators.id (operatorId() in src/lib/admin/activity-write.ts); nothing edits an operator.
+revoke insert, update, delete, truncate
+  on booking_holds, notification_outbox, operators
   from public, anon, authenticated;
 
 -- ── 7) Backfill: the existing seo account(s) keep exactly what they had ─────────────────────────

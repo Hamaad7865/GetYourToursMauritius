@@ -10,7 +10,9 @@ import { ALL_PERMISSIONS, CONTENT_PERMISSIONS } from '@/lib/admin/permissions';
  * Every database rule behind /admin/roles (20261025140000_admin_roles). Real Postgres: the RLS, the
  * triggers and the definer RPCs run exactly as in production. The rule that matters most is the one
  * the old schema got wrong — any is_staff() caller could change any profile's role, so a staff member
- * could make themselves admin.
+ * could make themselves admin. It also pins the write locks that keep a team member without money
+ * permissions out of the money tables: 6b (a booking's amount columns), 6c (the five booking line
+ * tables) and 6d (DELETE on bookings; holds, the outbox and operators).
  */
 
 const OWNER = '0a0a0a0a-0a0a-0a0a-0a0a-0a0a0a0a0a0a';
@@ -1698,201 +1700,451 @@ describe('the Content role backfill', () => {
   });
 });
 
-describe('booking line tables', () => {
-  /**
-   * The five tables a booking's money is written down in, and a column an UPDATE would rewrite. On the
-   * live project Supabase's default table privileges handed `authenticated` (and `anon`) INSERT /
-   * UPDATE / DELETE on all of them, and each carries a staff policy `for all using (is_staff())` — so a
-   * team member WITHOUT money permissions could rewrite a line amount, an installment (which sizes the
-   * real charge), a supplement or a late-pickup fee straight through PostgREST. Every legitimate write
-   * is a SECURITY DEFINER function or the service role; no browser code writes these tables.
-   */
-  const LINE_TABLES: Array<[string, string]> = [
-    ['booking_items', 'unit_amount_minor'],
-    ['booking_custom_items', 'unit_amount_minor'],
-    ['booking_pickup_requests', 'fee_minor'],
-    ['booking_installments', 'amount_minor'],
-    ['booking_supplements', 'total_minor'],
-  ];
-  const TABLE_LIST = LINE_TABLES.map(([table]) => table).join(', ');
+/**
+ * §6c and §6d of the migration: tables a signed-in browser session must not WRITE. On the live project
+ * Supabase's default table privileges hand `authenticated` (and often `anon`) INSERT / UPDATE / DELETE
+ * / TRUNCATE on every table, and each of these has a staff policy `for all using (is_staff())` — so a
+ * team member WITHOUT money permissions could rewrite a booking line, an installment (which sizes the
+ * real charge), a supplement or a late-pickup fee, queue an arbitrary email, edit an operator's payout
+ * details, or `delete from bookings` and take the whole payment ledger with it through the FK cascades.
+ * Every legitimate writer is a SECURITY DEFINER function or the service role; browser code only
+ * selects (bookings is the one table it also updates — status and notes).
+ *
+ * PGlite has no default table privileges, so the as-built database cannot show the production state for
+ * most of these tables. The drift tests therefore grant what production has, prove the worker's writes
+ * go through, apply the section's own text, and prove the same writes are refused.
+ */
+interface Lock {
+  table: string;
+  section: '6c' | '6d';
+  /** Privileges the section takes from public, anon and authenticated. */
+  revoked: string[];
+  /** The column a forged UPDATE rewrites (null: UPDATE is deliberately left alone on this table). */
+  forge: { column: string; sql: string; text: string } | null;
+}
 
-  const migrationText = (): string =>
-    readFileSync(join(process.cwd(), 'supabase/migrations/20261025140000_admin_roles.sql'), 'utf8');
+const WRITE_PRIVILEGES = ['insert', 'update', 'delete', 'truncate'];
+const LINE_PRIVILEGES = [...WRITE_PRIVILEGES, 'references', 'trigger'];
 
-  /** The migration's own §6c text, read from the file so what is tested is what ships. */
-  function section6c(): string {
-    const migration = migrationText();
-    const start = migration.indexOf('-- ── 6c)');
-    expect(start).toBeGreaterThan(-1);
-    const next = migration.indexOf('\n-- ── ', start + 1);
-    return migration.slice(start, next === -1 ? undefined : next);
-  }
+const LOCKS: Lock[] = [
+  {
+    table: 'booking_items',
+    section: '6c',
+    revoked: LINE_PRIVILEGES,
+    forge: { column: 'unit_amount_minor', sql: '1', text: '1' },
+  },
+  {
+    table: 'booking_custom_items',
+    section: '6c',
+    revoked: LINE_PRIVILEGES,
+    forge: { column: 'unit_amount_minor', sql: '1', text: '1' },
+  },
+  {
+    table: 'booking_pickup_requests',
+    section: '6c',
+    revoked: LINE_PRIVILEGES,
+    forge: { column: 'fee_minor', sql: '1', text: '1' },
+  },
+  {
+    table: 'booking_installments',
+    section: '6c',
+    revoked: LINE_PRIVILEGES,
+    forge: { column: 'amount_minor', sql: '1', text: '1' },
+  },
+  {
+    table: 'booking_supplements',
+    section: '6c',
+    revoked: LINE_PRIVILEGES,
+    forge: { column: 'total_minor', sql: '1', text: '1' },
+  },
+  { table: 'bookings', section: '6d', revoked: ['delete', 'truncate'], forge: null },
+  {
+    table: 'booking_holds',
+    section: '6d',
+    revoked: WRITE_PRIVILEGES,
+    forge: { column: 'quantity', sql: '7', text: '7' },
+  },
+  {
+    table: 'notification_outbox',
+    section: '6d',
+    revoked: WRITE_PRIVILEGES,
+    forge: { column: 'recipient', sql: `'forged@example.com'`, text: 'forged@example.com' },
+  },
+  {
+    table: 'operators',
+    section: '6d',
+    revoked: WRITE_PRIVILEGES,
+    forge: {
+      column: 'payout_details',
+      sql: `'{"iban": "FORGED"}'::jsonb`,
+      text: '{"iban": "FORGED"}',
+    },
+  },
+];
 
-  const hasPrivilege = (db: TestDb, role: string, table: string, privilege: string) =>
-    one<boolean>(db, `select has_table_privilege($1, $2, $3) as v`, [
-      role,
-      `public.${table}`,
-      privilege,
-    ]);
+const REVOKE_STATEMENTS: Record<'6c' | '6d', string[]> = {
+  '6c': [
+    'revoke insert, update, delete, truncate, references, trigger on booking_items, booking_custom_items, booking_pickup_requests, booking_installments, booking_supplements from public, anon, authenticated;',
+  ],
+  '6d': [
+    'revoke delete, truncate on bookings from public, anon, authenticated;',
+    'revoke insert, update, delete, truncate on booking_holds, notification_outbox, operators from public, anon, authenticated;',
+  ],
+};
 
-  it('pins the revoke in the migration text (PGlite has no default table privileges to show it)', () => {
-    const flat = (text: string): string => text.replace(/\s+/g, ' ');
-    const revoke = flat(
-      `revoke insert, update, delete, truncate, references, trigger on ${TABLE_LIST} from public, anon, authenticated;`,
-    );
-    const migration = flat(migrationText());
-    const at = migration.indexOf(revoke);
-    expect(at).toBeGreaterThan(-1);
-    // ... and nothing later in the file hands a write back on any of the five.
-    const after = migration.slice(at + revoke.length);
-    for (const [table] of LINE_TABLES) {
-      expect(after).not.toMatch(new RegExp(`grant[^;]*\\bon[^;]*\\b${table}\\b`, 'i'));
-    }
-  });
+const MIGRATION_FILE = 'supabase/migrations/20261025140000_admin_roles.sql';
+const migrationText = (): string => readFileSync(join(process.cwd(), MIGRATION_FILE), 'utf8');
 
-  it('removes the writes Supabase’s default privileges hand out, keeps SELECT, and is idempotent', async () => {
-    const db = await createTestDb();
-    try {
-      await db.asOwner();
-      // Production's starting point (verified on the live project): every write, on every table.
-      await db.pg.exec(`grant all on ${TABLE_LIST} to anon, authenticated;`);
-      for (const [table] of LINE_TABLES) {
-        for (const role of ['authenticated', 'anon']) {
-          expect(await hasPrivilege(db, role, table, 'update'), `${role} ${table} drift`).toBe(
-            true,
+/** One `-- ── <tag>)` section of the migration, read from the file so what is tested is what ships. */
+function migrationSection(tag: string): string {
+  const migration = migrationText();
+  const start = migration.indexOf(`-- ── ${tag})`);
+  expect(start, `section ${tag} exists`).toBeGreaterThan(-1);
+  const next = migration.indexOf('\n-- ── ', start + 1);
+  return migration.slice(start, next === -1 ? undefined : next);
+}
+
+const lockPrivilege = (db: TestDb, role: string, table: string, privilege: string) =>
+  one<boolean>(db, `select has_table_privilege($1, $2, $3) as v`, [
+    role,
+    `public.${table}`,
+    privilege,
+  ]);
+
+interface Fixture {
+  bookingId: string;
+  paymentId: string;
+}
+
+/**
+ * A confirmed, fully-paid booking carrying a row in every table the locks cover (and a payment ledger
+ * behind it), all written as the owner — what a definer RPC or the service role does. Leaves the
+ * session as owner.
+ */
+async function seedLockFixture(db: TestDb, key: string): Promise<Fixture> {
+  await db.asOwner();
+  const { occurrenceId } = await seedOccurrence(db, 5);
+  const { rows: hold } = await db.pg.query<{ id: string }>(`select * from create_hold($1, 1, $2)`, [
+    occurrenceId,
+    `${key}-h`,
+  ]);
+  const { rows: booking } = await db.pg.query<{ id: string }>(
+    `select * from create_booking($1, $2, 'Lock Tester', 'locks@example.com', null, 'web'::booking_source, $3::jsonb)`,
+    [`${key}-bk`, hold[0]!.id, JSON.stringify([{ price_label: 'Adult', quantity: 1 }])],
+  );
+  const bookingId = booking[0]!.id;
+  const { rows: pay } = await db.pg.query<{ id: string }>(
+    `insert into payments (booking_id, idempotency_key, amount_minor, status)
+     values ($1, $2, 7500, 'pending') returning id`,
+    [bookingId, `${key}-pay`],
+  );
+  await db.pg.query(`select append_payment_event($1, 'paid', $2, 7500, now(), '{}'::jsonb)`, [
+    pay[0]!.id,
+    `${key}-evt`,
+  ]);
+  await db.pg.query(
+    `insert into booking_custom_items (booking_id, kind, description, quantity, unit_amount_minor, subtotal_minor, position)
+     values ($1, 'custom', 'Lunch', 1, 900, 900, 0)`,
+    [bookingId],
+  );
+  await db.pg.query(
+    `insert into booking_installments (booking_id, seq, due_on, label, amount_minor)
+     values ($1, 1, current_date + 30, 'Deposit', 1000)`,
+    [bookingId],
+  );
+  await db.pg.query(
+    `insert into booking_supplements (booking_id, name, qty, unit_minor, total_minor)
+     values ($1, 'Child seat', 1, 500, 500)`,
+    [bookingId],
+  );
+  await db.pg.query(
+    `insert into booking_pickup_requests (booking_id, pickup_location, fee_minor)
+     values ($1, 'A hotel', 300)`,
+    [bookingId],
+  );
+  await db.pg.query(
+    `insert into notification_outbox (channel, recipient, template)
+     values ('email', 'guest@example.com', 'lock_probe')`,
+  );
+  return { bookingId, paymentId: pay[0]!.id };
+}
+
+/** A count(*) as a number (PGlite may hand back a bigint or a string). Runs as the owner. */
+async function countOf(db: TestDb, sql: string, params: unknown[] = []): Promise<number> {
+  await db.asOwner();
+  return Number(await one<string | number | bigint>(db, sql, params));
+}
+
+async function ledgerOf(db: TestDb, f: Fixture): Promise<{ payments: number; events: number }> {
+  return {
+    payments: await countOf(db, `select count(*) as v from payments where booking_id = $1`, [
+      f.bookingId,
+    ]),
+    events: await countOf(
+      db,
+      `select count(*) as v from payment_events e join payments p on p.id = e.payment_id where p.booking_id = $1`,
+      [f.bookingId],
+    ),
+  };
+}
+
+const bookingRows = (db: TestDb, f: Fixture): Promise<number> =>
+  countOf(db, `select count(*) as v from bookings where id = $1`, [f.bookingId]);
+
+const insertAttempt = (l: Lock): [string, unknown[]] => [
+  `insert into ${l.table} default values`,
+  [],
+];
+const updateAttempt = (l: Lock): [string, unknown[]] => [
+  `update ${l.table} set ${l.forge!.column} = ${l.forge!.sql}`,
+  [],
+];
+const deleteAttempt = (l: Lock, f: Fixture): [string, unknown[]] =>
+  l.table === 'bookings'
+    ? [`delete from bookings where id = $1`, [f.bookingId]]
+    : [`delete from ${l.table}`, []];
+
+/** Every write the section is meant to stop, as the worker. [privilege, sql, params] per table. */
+function writeAttempts(l: Lock, f: Fixture): Array<[string, string, unknown[]]> {
+  const out: Array<[string, string, unknown[]]> = [];
+  if (l.revoked.includes('insert')) out.push(['insert', ...insertAttempt(l)]);
+  if (l.revoked.includes('update') && l.forge) out.push(['update', ...updateAttempt(l)]);
+  if (l.revoked.includes('delete')) out.push(['delete', ...deleteAttempt(l, f)]);
+  return out;
+}
+
+const DENIED = (table: string): RegExp => new RegExp(`permission denied for table ${table}\\b`);
+
+function describeLocks(title: string, section: '6c' | '6d'): void {
+  const locks = LOCKS.filter((l) => l.section === section);
+  const lockedTables = LOCKS.map((l) => l.table);
+  const sectionTables = locks.map((l) => l.table);
+
+  describe(title, () => {
+    it('pins the revoke in the migration text, and nothing later hands a write back', () => {
+      // PGlite has no default table privileges, so a privilege query cannot see the production drift
+      // for every table; the statements themselves are pinned (comments stripped, whitespace folded).
+      const code = migrationText()
+        .split('\n')
+        .filter((line) => !/^\s*--/.test(line))
+        .join('\n')
+        .replace(/\s+/g, ' ');
+      for (const statement of REVOKE_STATEMENTS[section]) {
+        expect(code.includes(statement), `missing: ${statement}`).toBe(true);
+      }
+      const lastRevoke = Math.max(...REVOKE_STATEMENTS[section].map((s) => code.indexOf(s)));
+      const later = code
+        .slice(lastRevoke)
+        .split(';')
+        .map((s) => s.trim());
+      for (const statement of later) {
+        if (!/^(grant\b|alter default privileges\b)/i.test(statement)) continue;
+        expect(statement, 'a later grant must not name all tables in the schema').not.toMatch(
+          /\ball tables in schema\b/i,
+        );
+        expect(statement, 'a later default-privileges change would re-open the writes').not.toMatch(
+          /^alter default privileges\b/i,
+        );
+        for (const table of lockedTables) {
+          expect(statement, `a later grant names ${table}`).not.toMatch(
+            new RegExp(`\\b${table}\\b`, 'i'),
           );
         }
       }
+    });
 
-      await db.pg.exec(section6c());
-      await db.pg.exec(section6c()); // catch-up.sql re-applies the file: a second run changes nothing
+    describe('as built', () => {
+      let db: TestDb;
+      let fixture: Fixture;
+      beforeAll(async () => {
+        db = await createTestDb();
+        await seedPeople(db);
+        await seedTeamRole(db, WORKER, ['section.bookings']);
+        fixture = await seedLockFixture(db, `${section}-built`);
+      });
+      afterAll(async () => db.close());
 
-      for (const [table] of LINE_TABLES) {
-        for (const role of ['authenticated', 'anon']) {
-          for (const privilege of [
-            'insert',
-            'update',
-            'delete',
-            'truncate',
-            'references',
-            'trigger',
-          ]) {
-            expect(
-              await hasPrivilege(db, role, table, privilege),
-              `${role} still holds ${privilege} on ${table}`,
-            ).toBe(false);
+      it.each(locks.map((l) => [l.table, l] as const))(
+        '%s: clients keep SELECT and hold none of the revoked privileges; service_role keeps its writes',
+        async (_table, lock) => {
+          await db.asOwner();
+          for (const privilege of lock.revoked) {
+            for (const role of ['authenticated', 'anon']) {
+              expect(
+                await lockPrivilege(db, role, lock.table, privilege),
+                `${role} ${privilege}`,
+              ).toBe(false);
+            }
           }
-          // This section only takes writes away: reads stay exactly as they were.
-          expect(await hasPrivilege(db, role, table, 'select'), `${role} select ${table}`).toBe(
+          expect(await lockPrivilege(db, 'authenticated', lock.table, 'select')).toBe(true);
+          expect(await lockPrivilege(db, 'service_role', lock.table, 'update')).toBe(true);
+          expect(await lockPrivilege(db, 'service_role', lock.table, 'delete')).toBe(true);
+        },
+      );
+
+      it.each(locks.map((l) => [l.table, l] as const))(
+        '%s: a bookings-only team member can read it but every write is refused',
+        async (_table, lock) => {
+          await asUser(db, WORKER);
+          const { rows } = await db.pg.query(`select 1 from ${lock.table} limit 1`);
+          expect(rows.length).toBeGreaterThan(0); // reading is untouched: the admin screens still work
+          for (const [privilege, sql, params] of writeAttempts(lock, fixture)) {
+            expect(await failure(db.pg.query(sql, params)), `${privilege} ${lock.table}`).toMatch(
+              DENIED(lock.table),
+            );
+          }
+          if (lock.forge) {
+            const landed = await countOf(
+              db,
+              `select count(*) as v from ${lock.table} where ${lock.forge.column}::text = $1`,
+              [lock.forge.text],
+            );
+            expect(landed, 'a forged value reached the table').toBe(0);
+          }
+        },
+      );
+
+      if (section === '6d') {
+        it('a bookings-only member cannot delete a paid booking, and the payment ledger survives', async () => {
+          const before = await ledgerOf(db, fixture);
+          expect(before.payments).toBeGreaterThan(0);
+          expect(before.events).toBeGreaterThan(0);
+
+          await asUser(db, WORKER);
+          expect(
+            await failure(db.pg.query(`delete from bookings where id = $1`, [fixture.bookingId])),
+          ).toMatch(DENIED('bookings'));
+
+          expect(await ledgerOf(db, fixture)).toEqual(before);
+          expect(await bookingRows(db, fixture)).toBe(1);
+        });
+
+        it('the browser’s own booking writes still work: notes update, status moves, rows read', async () => {
+          await asUser(db, WORKER);
+          expect(
+            await failure(
+              db.pg.query(`update bookings set notes = 'called the guest' where id = $1`, [
+                fixture.bookingId,
+              ]),
+            ),
+          ).toBe('');
+          await asUser(db, WORKER);
+          expect(
+            await one<string>(db, `select notes as v from bookings where id = $1`, [
+              fixture.bookingId,
+            ]),
+          ).toBe('called the guest');
+        });
+      }
+    });
+
+    it('removes the writes Supabase’s default privileges hand out, and refuses the worker afterwards', async () => {
+      const db = await createTestDb();
+      try {
+        await seedPeople(db);
+        await seedTeamRole(db, WORKER, ['section.bookings']);
+        const before = await seedLockFixture(db, `${section}-drift-a`);
+
+        // Production's starting point (verified on the live project): every privilege, on each table.
+        await db.asOwner();
+        await db.pg.exec(`grant all on ${sectionTables.join(', ')} to anon, authenticated;`);
+        for (const lock of locks) {
+          for (const privilege of lock.revoked) {
+            for (const role of ['authenticated', 'anon']) {
+              expect(
+                await lockPrivilege(db, role, lock.table, privilege),
+                `${role} ${privilege} ${lock.table} (drift)`,
+              ).toBe(true);
+            }
+          }
+        }
+        const anonSelect = new Map<string, boolean>();
+        for (const lock of locks) {
+          anonSelect.set(lock.table, await lockPrivilege(db, 'anon', lock.table, 'select'));
+        }
+
+        // The hole is real: with the drift in place the worker's writes go through (or reach a guard
+        // further down — never a privilege error). The booking itself goes last: deleting it cascades.
+        const bookingLast = [...locks].sort(
+          (a, b) => Number(a.table === 'bookings') - Number(b.table === 'bookings'),
+        );
+        for (const lock of bookingLast) {
+          for (const [privilege, sql, params] of writeAttempts(lock, before)) {
+            await asUser(db, WORKER);
+            const message = await failure(db.pg.query(sql, params));
+            expect(message, `${privilege} ${lock.table} under the drift`).not.toMatch(
+              /permission denied/,
+            );
+            if (privilege === 'update') {
+              if (lock.table === 'booking_items') {
+                expect(message).toMatch(/forbidden_direct_write/); // the one table with a trigger
+              } else {
+                expect(message, `update ${lock.table}`).toBe('');
+                const landed = await countOf(
+                  db,
+                  `select count(*) as v from ${lock.table} where ${lock.forge!.column}::text = $1`,
+                  [lock.forge!.text],
+                );
+                expect(landed, `forged ${lock.table}.${lock.forge!.column}`).toBeGreaterThan(0);
+              }
+            }
+          }
+        }
+        if (section === '6d') {
+          // ... and `delete from bookings` took the whole ledger with it.
+          expect(await bookingRows(db, before)).toBe(0);
+          expect(await ledgerOf(db, before)).toEqual({ payments: 0, events: 0 });
+        }
+
+        // The section's own text, read from the migration (run twice: catch-up.sql re-applies it).
+        await db.asOwner();
+        await db.pg.exec(migrationSection(section));
+        await db.pg.exec(migrationSection(section));
+
+        for (const lock of locks) {
+          for (const privilege of lock.revoked) {
+            for (const role of ['authenticated', 'anon']) {
+              expect(
+                await lockPrivilege(db, role, lock.table, privilege),
+                `${role} still holds ${privilege} on ${lock.table}`,
+              ).toBe(false);
+            }
+          }
+          // Only writes go: SELECT is exactly as it was, and the service role keeps its writes.
+          expect(await lockPrivilege(db, 'authenticated', lock.table, 'select'), lock.table).toBe(
+            true,
+          );
+          expect(await lockPrivilege(db, 'anon', lock.table, 'select'), `anon ${lock.table}`).toBe(
+            anonSelect.get(lock.table),
+          );
+          expect(await lockPrivilege(db, 'service_role', lock.table, 'update'), lock.table).toBe(
+            true,
+          );
+          expect(await lockPrivilege(db, 'service_role', lock.table, 'delete'), lock.table).toBe(
             true,
           );
         }
-      }
-    } finally {
-      await db.close();
-    }
-  });
 
-  describe('a team member with only section.bookings', () => {
-    let db: TestDb;
-    let bookingId: string;
-
-    beforeAll(async () => {
-      db = await createTestDb();
-      await seedPeople(db);
-      await seedTeamRole(db, WORKER, ['section.bookings']);
-
-      // One booking carrying a row in every line table, all written as the owner (what a definer RPC
-      // or the service role does).
-      await db.asOwner();
-      const { occurrenceId } = await seedOccurrence(db, 5);
-      const { rows: hold } = await db.pg.query<{ id: string }>(
-        `select * from create_hold($1, 1, $2)`,
-        [occurrenceId, 'lines-hold'],
-      );
-      const { rows: booking } = await db.pg.query<{ id: string }>(
-        `select * from create_booking($1, $2, 'Lines Tester', 'lines@example.com', null, 'web'::booking_source, $3::jsonb)`,
-        ['lines-bk', hold[0]!.id, JSON.stringify([{ price_label: 'Adult', quantity: 1 }])],
-      );
-      bookingId = booking[0]!.id;
-      await db.pg.query(
-        `insert into booking_custom_items (booking_id, kind, description, quantity, unit_amount_minor, subtotal_minor, position)
-         values ($1, 'custom', 'Lunch', 1, 900, 900, 0)`,
-        [bookingId],
-      );
-      await db.pg.query(
-        `insert into booking_installments (booking_id, seq, due_on, label, amount_minor)
-         values ($1, 1, current_date + 30, 'Deposit', 1000)`,
-        [bookingId],
-      );
-      await db.pg.query(
-        `insert into booking_supplements (booking_id, name, qty, unit_minor, total_minor)
-         values ($1, 'Child seat', 1, 500, 500)`,
-        [bookingId],
-      );
-      await db.pg.query(
-        `insert into booking_pickup_requests (booking_id, pickup_location, fee_minor)
-         values ($1, 'A hotel', 300)`,
-        [bookingId],
-      );
-    });
-    afterAll(async () => db.close());
-
-    it.each(LINE_TABLES)(
-      '%s: signed-in clients hold SELECT and no write privilege',
-      async (table) => {
-        await db.asOwner();
-        for (const privilege of ['insert', 'update', 'delete']) {
-          expect(await hasPrivilege(db, 'authenticated', table, privilege), privilege).toBe(false);
-          expect(await hasPrivilege(db, 'anon', table, privilege), `anon ${privilege}`).toBe(false);
+        // The same writes, on a fresh paid booking, are now refused — and nothing was touched.
+        const after = await seedLockFixture(db, `${section}-drift-b`);
+        const ledger = await ledgerOf(db, after);
+        expect(ledger.payments).toBeGreaterThan(0);
+        for (const lock of locks) {
+          for (const [privilege, sql, params] of writeAttempts(lock, after)) {
+            await asUser(db, WORKER);
+            expect(await failure(db.pg.query(sql, params)), `${privilege} ${lock.table}`).toMatch(
+              DENIED(lock.table),
+            );
+          }
         }
-        expect(await hasPrivilege(db, 'authenticated', table, 'select')).toBe(true);
-      },
-    );
-
-    const amountsOf = async (table: string, column: string): Promise<string[]> => {
-      await db.asOwner();
-      const { rows } = await db.pg.query<{ v: string }>(
-        `select ${column}::text as v from ${table} where booking_id = $1 order by 1`,
-        [bookingId],
-      );
-      return rows.map((r) => r.v);
-    };
-
-    it.each(LINE_TABLES)(
-      '%s: the rows are readable but an UPDATE is refused',
-      async (table, column) => {
-        const before = await amountsOf(table, column);
-        expect(before.length).toBeGreaterThan(0);
-        expect(before).not.toContain('1');
-
-        await asUser(db, WORKER);
-        const { rows } = await db.pg.query(`select 1 from ${table} where booking_id = $1`, [
-          bookingId,
-        ]);
-        expect(rows.length).toBeGreaterThan(0); // reading is untouched: the admin screens still work
-        expect(
-          await failure(
-            db.pg.query(`update ${table} set ${column} = 1 where booking_id = $1`, [bookingId]),
-          ),
-        ).toMatch(new RegExp(`permission denied for table ${table}`));
-
-        expect(await amountsOf(table, column)).toEqual(before);
-      },
-    );
-
-    it.each(LINE_TABLES)('%s: DELETE and INSERT are refused too', async (table, column) => {
-      const before = await amountsOf(table, column);
-
-      await asUser(db, WORKER);
-      expect(
-        await failure(db.pg.query(`delete from ${table} where booking_id = $1`, [bookingId])),
-      ).toMatch(new RegExp(`permission denied for table ${table}`));
-      expect(await failure(db.pg.query(`insert into ${table} default values`))).toMatch(
-        new RegExp(`permission denied for table ${table}`),
-      );
-
-      expect(await amountsOf(table, column)).toEqual(before);
+        expect(await ledgerOf(db, after)).toEqual(ledger);
+        expect(await bookingRows(db, after)).toBe(1);
+      } finally {
+        await db.close();
+      }
     });
   });
-});
+}
+
+describeLocks('booking line tables', '6c');
+describeLocks('bookings, holds, the outbox and operators', '6d');
