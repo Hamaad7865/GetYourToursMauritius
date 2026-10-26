@@ -220,7 +220,7 @@ export const apiPaths: ZodOpenApiPathsObject = {
   '/reviews/google-live': {
     get: {
       operationId: 'getGoogleLiveReviews',
-      summary: "Live fetch of the business's own Google reviews (staff-only)",
+      summary: "Live fetch of the business's own Google reviews (needs the Reviews section)",
       tags: ['Reviews'],
       security: [{ bearerAuth: [] }],
       requestParams: { query: placeIdParam },
@@ -244,7 +244,7 @@ export const apiPaths: ZodOpenApiPathsObject = {
         ),
         '400': errorResponse('Invalid query parameters'),
         '401': errorResponse('Authentication required'),
-        '403': errorResponse('Staff only'),
+        '403': errorResponse('The caller’s role does not include the Reviews section'),
         '503': errorResponse('Google Maps API key is not configured'),
       },
     },
@@ -252,7 +252,7 @@ export const apiPaths: ZodOpenApiPathsObject = {
   '/seo/search-console': {
     get: {
       operationId: 'getSearchConsoleReport',
-      summary: 'Google Search Console performance for the site (content editors only)',
+      summary: 'Google Search Console performance for the site (needs the SEO section)',
       tags: ['SEO'],
       security: [{ bearerAuth: [] }],
       requestParams: { query: searchConsoleQuery },
@@ -260,7 +260,7 @@ export const apiPaths: ZodOpenApiPathsObject = {
         '200': okJson(searchConsoleReportSchema, 'Search performance for the window'),
         '400': errorResponse('Invalid query parameters'),
         '401': errorResponse('Authentication required'),
-        '403': errorResponse('Content editors only'),
+        '403': errorResponse('The caller’s role does not include the SEO section'),
         '503': errorResponse('Search Console is not connected'),
       },
     },
@@ -269,7 +269,7 @@ export const apiPaths: ZodOpenApiPathsObject = {
     post: {
       operationId: 'aiFixSeoIssue',
       summary:
-        'Gemini rewrite of one SEO Health-check issue, server-verified (content editors only)',
+        'Gemini rewrite of one SEO Health-check issue, server-verified (needs the SEO section)',
       tags: ['SEO'],
       security: [{ bearerAuth: [] }],
       requestBody: jsonBody(seoAiFixRequestSchema),
@@ -277,7 +277,7 @@ export const apiPaths: ZodOpenApiPathsObject = {
         '200': okJson(seoAiFixResponseSchema, 'Verified rewrite — safe for the browser to save'),
         '400': errorResponse('Invalid request'),
         '401': errorResponse('Authentication required'),
-        '403': errorResponse('Content editors only'),
+        '403': errorResponse('The caller’s role does not include the SEO section'),
         '422': errorResponse('Rewrite failed verification — manual edit required'),
         '503': errorResponse('Gemini is not configured'),
       },
@@ -1000,11 +1000,14 @@ export const apiPaths: ZodOpenApiPathsObject = {
   '/admin/documents/{id}/pdf': {
     get: {
       operationId: 'getDocumentPdf',
-      summary: 'Download a document (quote/invoice/proforma/receipt) PDF (staff only)',
+      summary:
+        'Download a document (quote/invoice/proforma/receipt) PDF (needs the Documents section)',
       description:
-        'Renders the stored document to a PDF on demand. Staff only, enforced by RLS: the read runs ' +
-        'as the caller and the documents table is is_staff()-only, so a non-staff caller gets no row ' +
-        'and this 404s. A draft (no issuer snapshot yet) falls back to the live business identity.',
+        'Renders the stored document to a PDF on demand. The caller needs the Documents section in ' +
+        'their role, checked first (403 otherwise, naming the section; the Owner always has it). RLS is ' +
+        'the second lock: the read then runs as the caller and the documents table is is_staff()-only, ' +
+        'so a row the caller cannot see 404s. A draft (no issuer snapshot yet) falls back to the live ' +
+        'business identity.',
       tags: ['Documents'],
       security: [{ bearerAuth: [] }],
       requestParams: { path: idParam },
@@ -1014,6 +1017,7 @@ export const apiPaths: ZodOpenApiPathsObject = {
           content: { 'application/pdf': { schema: z.string() } },
         },
         '401': errorResponse('Authentication required'),
+        '403': errorResponse('The caller’s role does not include the Documents section'),
         '404': errorResponse('Document not found'),
       },
     },
@@ -1021,11 +1025,12 @@ export const apiPaths: ZodOpenApiPathsObject = {
   '/admin/documents/{id}/email': {
     post: {
       operationId: 'emailDocument',
-      summary: 'Email a document to its client with the PDF attached (staff only)',
+      summary: 'Email a document to its client with the PDF attached (needs the Documents section)',
       description:
         'Renders the document PDF and sends it to the client_snapshot email as an attachment, from the ' +
-        'monitored info@ inbox so a reply reaches a human. Staff only (RLS). Refuses a document with no ' +
-        'client email.',
+        'monitored info@ inbox so a reply reaches a human. The caller needs the Documents section in ' +
+        'their role, checked first (403 otherwise; the Owner always has it); RLS is the second lock. ' +
+        'Refuses a document with no client email.',
       tags: ['Documents'],
       security: [{ bearerAuth: [] }],
       requestParams: { path: idParam },
@@ -1036,6 +1041,7 @@ export const apiPaths: ZodOpenApiPathsObject = {
         ),
         '400': errorResponse('The document has no client email'),
         '401': errorResponse('Authentication required'),
+        '403': errorResponse('The caller’s role does not include the Documents section'),
         '404': errorResponse('Document not found'),
         '500': errorResponse('The email could not be sent'),
       },
@@ -1044,11 +1050,12 @@ export const apiPaths: ZodOpenApiPathsObject = {
   '/admin/quotes/send': {
     post: {
       operationId: 'sendQuote',
-      summary: 'Email a drafted quote to its guest and mint its public link (staff-only)',
+      summary: 'Email a drafted quote to its guest and mint its public link (needs Quotes)',
       description:
         'The only writer of quotes.token_hash, so the only thing that can turn a draft into an ' +
-        'offer a guest can open and pay. STAFF ONLY, and the check is profiles.role — the JWT role ' +
-        'claim is the Postgres role selector, never the business role. It refuses to email an offer ' +
+        'offer a guest can open and pay. The caller needs the Quotes section in their role (the Owner ' +
+        'always has it); the check reads the caller’s profile and team role, never the JWT role ' +
+        'claim, which is the Postgres role selector. It refuses to email an offer ' +
         'nobody could act on: one whose valid_until has passed, and one with no lines, a zero total ' +
         'or a negative one. A quote of scheduled activities sends normally and reserves nothing — ' +
         'the seats are held when the guest pays. A RE-SEND mints a fresh token and the previously ' +
@@ -1066,7 +1073,7 @@ export const apiPaths: ZodOpenApiPathsObject = {
         ),
         '400': errorResponse('The quote cannot be emailed as it stands'),
         '401': errorResponse('Authentication required'),
-        '403': errorResponse('Staff only'),
+        '403': errorResponse('The caller’s role does not include the Quotes section'),
         '404': errorResponse('No such quote'),
         // The three ConflictErrors the handler actually raises, in its own order: a quote already
         // accepted (its converted_at is stamped, or its status says so), a status that is neither
@@ -1084,12 +1091,13 @@ export const apiPaths: ZodOpenApiPathsObject = {
   '/admin/quotes/draft-from-email': {
     post: {
       operationId: 'draftQuoteFromEmail',
-      summary: 'Read a pasted enquiry email into a draft quote request (staff-only)',
+      summary: 'Read a pasted enquiry email into a draft quote request (needs Quotes)',
       description:
         'The AI email→draft entry point. Reads a pasted customer enquiry into a structured request ' +
         '(tours matched to catalogue slugs, party, dates, pickup hotel, car rental) plus the catalogue ' +
-        'candidates the browser composes the draft from. STAFF ONLY — profiles.role, not the JWT role ' +
-        'claim — and it never writes a quote or sends anything: every custom line comes back unpriced ' +
+        'candidates the browser composes the draft from. Needs the Quotes section in the caller’s ' +
+        'role (read from the profile and team role, not the JWT role claim), and it never writes a ' +
+        'quote or sends anything: every custom line comes back unpriced ' +
         'for the operator to price. Extraction runs server-side (the model key is server-only); the ' +
         'draft is assembled in the browser. With no model configured it returns available:false and ' +
         'the operator drafts by hand.',
@@ -1105,7 +1113,7 @@ export const apiPaths: ZodOpenApiPathsObject = {
         ),
         '400': errorResponse('No email text was supplied'),
         '401': errorResponse('Authentication required'),
-        '403': errorResponse('Staff only'),
+        '403': errorResponse('The caller’s role does not include the Quotes section'),
         '429': errorResponse('Too many requests'),
       },
     },
@@ -1113,16 +1121,18 @@ export const apiPaths: ZodOpenApiPathsObject = {
   '/admin/assistant': {
     post: {
       operationId: 'askAdminAssistant',
-      summary: 'One turn of the back-office Gemini assistant (staff-only)',
+      summary: 'One turn of the back-office Gemini assistant (needs the AI assistant section)',
       description:
         'The chattable assistant in the quotes screen. The browser sends the visible thread (the ' +
         'route holds no state); the reply is grounded by READ-ONLY tools over our own data — the ' +
         'published catalogue, open departures with real price tiers, the transport fare tables, a ' +
         'booking or quote by ref, and the rental fleet. The model is instructed that every figure ' +
         'must come from a tool result, and there is no writing tool at all: changing data stays in ' +
-        'the operator’s hands. STAFF ONLY — profiles.role, not the JWT role claim; "seo" is ' +
-        'excluded (replies surface guests’ names and money). With no model configured it returns ' +
-        'available:false and the panel says so.',
+        'the operator’s hands. The caller needs the AI assistant section in their role (read from the ' +
+        'profile and team role, not the JWT role claim); a content-only role can never hold it, since ' +
+        'replies surface guests’ names and money. Its booking and quote lookups additionally need the ' +
+        'Bookings and Quotes sections and answer "not found" without them. With no model configured ' +
+        'it returns available:false and the panel says so.',
       tags: ['Quotes'],
       security: [{ bearerAuth: [] }],
       requestBody: jsonBody(adminAssistantRequestSchema),
@@ -1133,7 +1143,7 @@ export const apiPaths: ZodOpenApiPathsObject = {
         ),
         '400': errorResponse('No messages, or a thread over the cap'),
         '401': errorResponse('Authentication required'),
-        '403': errorResponse('Staff only'),
+        '403': errorResponse('The caller’s role does not include the AI assistant section'),
         '429': errorResponse('Too many requests'),
       },
     },
@@ -1141,16 +1151,16 @@ export const apiPaths: ZodOpenApiPathsObject = {
   '/admin/quotes/{ref}/balance': {
     post: {
       operationId: 'sendQuoteBalanceLink',
-      summary: 'Mint a DURABLE balance payment link for a deposit-confirmed quote (staff-only)',
+      summary: 'Mint a DURABLE balance payment link for a deposit-confirmed quote (needs Quotes)',
       description:
         'A quote guest pays a DEPOSIT that confirms the booking and reserves the seat; the BALANCE ' +
         'is chased later, by hand. This mints a DURABLE balance-link token (it no longer mints a ' +
         'checkout at send time — a Peach session expires in ~30 minutes, and an accountless guest ' +
         'cannot re-mint one). It stores only the token’s SHA-256 in quotes.balance_token_hash and ' +
         'returns /quotes/{ref}/balance?t=<rawToken>; the guest’s page mints a FRESH checkout on the ' +
-        'click, so the URL works for as long as the balance is owed. STAFF ONLY, and the check is ' +
-        'profiles.role — the JWT role claim is the Postgres role selector, never the business role; ' +
-        '"seo" is excluded, as on the send route. It writes ONLY balance_token_hash, never ' +
+        'click, so the URL works for as long as the balance is owed. The caller needs the Quotes ' +
+        'section in their role, as on the send route — read from the profile and team role, never the ' +
+        'JWT role claim, which is the Postgres role selector. It writes ONLY balance_token_hash, never ' +
         'quotes.token_hash, so the guest’s original quote link keeps working. Refused when the quote ' +
         'has no booking yet, the booking is not confirmed, or nothing is owed.',
       tags: ['Quotes'],
@@ -1170,7 +1180,7 @@ export const apiPaths: ZodOpenApiPathsObject = {
         ),
         '400': errorResponse('Invalid request'),
         '401': errorResponse('Authentication required'),
-        '403': errorResponse('Staff only'),
+        '403': errorResponse('The caller’s role does not include the Quotes section'),
         '404': errorResponse('No such quote'),
         '409': errorResponse('No booking yet, the booking is not confirmed, or nothing is owed'),
         '429': errorResponse('Too many requests'),
@@ -1181,15 +1191,16 @@ export const apiPaths: ZodOpenApiPathsObject = {
   '/admin/bookings/{ref}/installments/{seq}/remind': {
     post: {
       operationId: 'sendInstallmentReminder',
-      summary: 'Send a per-date installment reminder email on demand (staff-only)',
+      summary: 'Send a per-date installment reminder email on demand (needs Bookings)',
       description:
         'The operator’s "Send reminder now" button on a per-date booking’s payment schedule. The ' +
         'automated chase (api_enqueue_installment_reminders) only fires ~3 days before each date; this ' +
         'sends the SAME reminder for a chosen installment immediately — to chase early or re-send one ' +
         'that bounced. The email renders through the same template + deterministic HMAC link and asks ' +
         'for the same running-total charge the pay link collects. Sent IN-REQUEST, not via the outbox ' +
-        '(the token is never persisted, and the hosted sandbox has no cron to drain a queue). STAFF ' +
-        'ONLY via profiles.role (never the JWT’s Postgres role); "seo" is excluded. Refused when the ' +
+        '(the token is never persisted, and the hosted sandbox has no cron to drain a queue). The ' +
+        'caller needs the Bookings section in their role (read from the profile and team role, never ' +
+        'the JWT’s Postgres role). Refused when the ' +
         'booking is not confirmed, has no email/quote, or the installment is already covered. A ' +
         'provider failure comes back as emailed:false (retryable), not a 500.',
       tags: ['Bookings'],
@@ -1209,7 +1220,7 @@ export const apiPaths: ZodOpenApiPathsObject = {
         ),
         '400': errorResponse('Invalid request'),
         '401': errorResponse('Authentication required'),
-        '403': errorResponse('Staff only'),
+        '403': errorResponse('The caller’s role does not include the Bookings section'),
         '404': errorResponse('No such booking or installment'),
         '409': errorResponse(
           'Not confirmed, no email/quote, or the installment is already covered',

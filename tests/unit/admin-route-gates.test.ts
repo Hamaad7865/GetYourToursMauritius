@@ -21,8 +21,9 @@ import { describe, expect, it } from 'vitest';
  * only that it is there, once, first. The behaviour itself is exercised by
  * tests/integration/admin-section-gates.test.ts and the admin-quote-* suites.
  *
- * A new route under app/api/v1/admin/ MUST be added to GATED below — the last test fails until it is, so
- * the list cannot silently fall behind the directory.
+ * A new route under app/api/v1/admin/ MUST be added to GATED below, and so must any other route under
+ * app/api/v1/ whose code calls loadCallerAccess (today the seo/* and reviews/* ones) — the last two tests
+ * fail until it is, so the list cannot silently fall behind the directory.
  */
 
 const API = join(process.cwd(), 'app', 'api', 'v1');
@@ -104,18 +105,34 @@ describe.each(Object.entries(GATED))('%s', (route, permission) => {
   });
 });
 
+/** Every route.ts under `dir`, relative to app/api/v1 with posix separators. */
+function routeFiles(dir: string): string[] {
+  const found: string[] = [];
+  const walk = (current: string): void => {
+    for (const name of readdirSync(current)) {
+      const full = join(current, name);
+      if (statSync(full).isDirectory()) walk(full);
+      else if (name === 'route.ts') found.push(relative(API, full).split(sep).join('/'));
+    }
+  };
+  walk(dir);
+  return found;
+}
+
 describe('the list of gated routes', () => {
   it('covers every route under app/api/v1/admin', () => {
-    const found: string[] = [];
-    const walk = (dir: string): void => {
-      for (const name of readdirSync(dir)) {
-        const full = join(dir, name);
-        if (statSync(full).isDirectory()) walk(full);
-        else if (name === 'route.ts') found.push(relative(API, full).split(sep).join('/'));
-      }
-    };
-    walk(join(API, 'admin'));
-    const missing = found.filter((route) => !(route in GATED));
+    const missing = routeFiles(join(API, 'admin')).filter((route) => !(route in GATED));
     expect(missing, 'add each new admin route to GATED with its section').toEqual([]);
+  });
+
+  it('covers every route anywhere under app/api/v1 that calls loadCallerAccess', () => {
+    // Comments stripped, so prose that merely mentions the helper cannot trigger this.
+    const callers = routeFiles(API).filter((route) => /\bloadCallerAccess\(/.test(load(route)));
+    expect(
+      callers.length,
+      'the scan found no gated route at all — is it looking in the right place?',
+    ).toBeGreaterThan(0);
+    const missing = callers.filter((route) => !(route in GATED));
+    expect(missing, 'add each staff route to GATED with its section').toEqual([]);
   });
 });
