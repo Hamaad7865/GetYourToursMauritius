@@ -8,10 +8,11 @@ import {
   useState,
   type Dispatch,
   type FormEvent,
+  type MutableRefObject,
   type SetStateAction,
 } from 'react';
 import { useAuth } from '@/components/auth/AuthProvider';
-import { useAdminAccess, useAdminAccessStatus } from '@/components/admin/AdminAccessProvider';
+import { useAdminAccess } from '@/components/admin/AdminAccessProvider';
 import {
   AdminError,
   AdminHeading,
@@ -154,8 +155,7 @@ function Status({ error, notice }: { error?: string | null; notice?: string | nu
  *  hide it from everyone else; the database refuses every write here from anyone but an Owner). */
 export function AdminRoles() {
   const access = useAdminAccess();
-  const { retry } = useAdminAccessStatus();
-  const { user, refreshProfile } = useAuth();
+  const { user } = useAuth();
   const [tab, setTab] = useState<'roles' | 'team'>('roles');
   const [roles, setRoles] = useState<TeamRole[] | null>(null);
   const [team, setTeam] = useState<TeamMember[] | null>(null);
@@ -163,6 +163,9 @@ export function AdminRoles() {
   // Lifted so a half-written role survives a trip to the Team tab and back.
   const [editor, setEditor] = useState<EditorState | null>(null);
   const [busy, setBusy] = useState<Busy>(null);
+  // The editor open that has already scrolled into view and taken focus. Lives here, not in the editor,
+  // because the editor remounts when you come back to the Roles tab — and that must not grab focus again.
+  const shownNonce = useRef<number | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -180,15 +183,12 @@ export function AdminRoles() {
   }, [access.isOwner, load]);
 
   // After the signed-in Owner leaves the Owner role (or the back office), the team list is no longer
-  // theirs to read — reloading it would show a false "only the owner" error. Re-read their access
-  // instead, so the shell's guard takes over.
+  // theirs to read — reloading it would show a false "only the owner" error. A full page load is the
+  // one way to be sure both their access and their profile are read afresh, and the shell's guard then
+  // decides what they may see.
   const onSelfExit = useCallback(async () => {
-    try {
-      await Promise.all([retry(), refreshProfile()]);
-    } catch {
-      // The guard re-checks on its own the next time the tab is shown.
-    }
-  }, [retry, refreshProfile]);
+    window.location.assign('/admin');
+  }, []);
 
   const memberCount = useMemo(() => {
     const counts = new Map<string, number>();
@@ -254,6 +254,7 @@ export function AdminRoles() {
           ownerCount={ownerCount}
           editor={editor}
           setEditor={setEditor}
+          shownNonce={shownNonce}
           busy={busy}
           setBusy={setBusy}
           onChanged={load}
@@ -279,6 +280,7 @@ function RolesTab({
   ownerCount,
   editor,
   setEditor,
+  shownNonce,
   busy,
   setBusy,
   onChanged,
@@ -288,6 +290,7 @@ function RolesTab({
   ownerCount: number | null;
   editor: EditorState | null;
   setEditor: Dispatch<SetStateAction<EditorState | null>>;
+  shownNonce: MutableRefObject<number | null>;
   busy: Busy;
   setBusy: (b: Busy) => void;
   onChanged: () => Promise<void>;
@@ -448,7 +451,8 @@ function RolesTab({
         <RoleEditor
           editor={editor}
           setDraft={(draft) => setEditor({ ...editor, draft })}
-          busy={busy === 'role'}
+          shownNonce={shownNonce}
+          busy={busy !== null}
           error={editorError}
           members={editor.original.id ? (memberCount.get(editor.original.id) ?? 0) : 0}
           onSave={() => void save()}
@@ -463,6 +467,7 @@ function RolesTab({
 function RoleEditor({
   editor,
   setDraft,
+  shownNonce,
   busy,
   error,
   members,
@@ -472,6 +477,7 @@ function RoleEditor({
 }: {
   editor: EditorState;
   setDraft: (d: Draft) => void;
+  shownNonce: MutableRefObject<number | null>;
   busy: boolean;
   error: string | null;
   members: number;
@@ -481,13 +487,18 @@ function RoleEditor({
 }) {
   const { draft, original, nonce } = editor;
   const rootRef = useRef<HTMLDivElement>(null);
-  const nameRef = useRef<HTMLInputElement>(null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
 
-  // On a phone the editor sits below the list: bring it into view and put the cursor in the Name box.
+  // On a phone the editor sits below the list: when an Edit / New role click opens it, bring it into
+  // view and move focus to its heading (a screen reader announces what opened; the keyboard is one Tab
+  // from the Name box, and no on-screen keyboard pops up). Coming back to the tab with a draft already
+  // open does neither.
   useEffect(() => {
+    if (shownNonce.current === nonce) return;
+    shownNonce.current = nonce;
     rootRef.current?.scrollIntoView?.({ block: 'nearest' });
-    nameRef.current?.focus({ preventScroll: true });
-  }, [nonce]);
+    headingRef.current?.focus({ preventScroll: true });
+  }, [nonce, shownNonce]);
 
   const content = draft.base === 'content';
   const toggle = (key: PermissionKey) =>
@@ -510,114 +521,122 @@ function RoleEditor({
 
   return (
     <div ref={rootRef} className="scroll-mt-24 lg:self-start">
-      <Card title={original.id ? `Edit “${original.name || 'role'}”` : 'New role'}>
+      <Card>
+        <h2
+          ref={headingRef}
+          tabIndex={-1}
+          className="mb-3.5 text-[14px] font-extrabold text-ink outline-none"
+        >
+          {original.id ? `Edit “${original.name || 'role'}”` : 'New role'}
+        </h2>
         <form
-          className="grid gap-4"
           onSubmit={(e: FormEvent) => {
             e.preventDefault();
             if (!busy) onSave();
           }}
         >
-          <Field label="Name">
-            <input
-              ref={nameRef}
-              className={INPUT_CLS}
-              value={draft.name}
-              maxLength={60}
-              onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-              placeholder="Reservations"
-            />
-          </Field>
-          <Field label="Description" hint="Optional — what this role is for.">
-            <textarea
-              className={TEXTAREA_CLS}
-              rows={2}
-              maxLength={300}
-              value={draft.description}
-              onChange={(e) => setDraft({ ...draft, description: e.target.value })}
-            />
-          </Field>
+          {/* Disabled while a save runs, so nothing typed in the meantime is lost to the reload. */}
+          <fieldset disabled={busy} className="grid min-w-0 gap-4">
+            <Field label="Name">
+              <input
+                className={INPUT_CLS}
+                value={draft.name}
+                maxLength={60}
+                onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+                placeholder="Reservations"
+              />
+            </Field>
+            <Field label="Description" hint="Optional — what this role is for.">
+              <textarea
+                className={TEXTAREA_CLS}
+                rows={2}
+                maxLength={300}
+                value={draft.description}
+                onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+              />
+            </Field>
 
-          <fieldset>
-            <legend className="mb-1.5 block text-[12.5px] font-bold text-ink/60">
-              Base access
-            </legend>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {BASES.map((b) => (
-                <label
-                  key={b.value}
-                  className={`flex gap-2.5 rounded-xl border p-3 ${
-                    draft.base === b.value ? 'border-teal bg-teal/5' : 'border-[#E2E7EA]'
-                  } ${draft.id ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
+            <fieldset>
+              <legend className="mb-1.5 block text-[12.5px] font-bold text-ink/60">
+                Base access
+              </legend>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {BASES.map((b) => (
+                  <label
+                    key={b.value}
+                    className={`flex gap-2.5 rounded-xl border p-3 ${
+                      draft.base === b.value ? 'border-teal bg-teal/5' : 'border-[#E2E7EA]'
+                    } ${draft.id ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
+                  >
+                    <input
+                      type="radio"
+                      name="role-base"
+                      className="mt-0.5 accent-teal"
+                      checked={draft.base === b.value}
+                      disabled={Boolean(draft.id)}
+                      onChange={() => setBase(b.value)}
+                    />
+                    <span>
+                      <span className="block text-[13.5px] font-bold text-ink">{b.label}</span>
+                      <span className="block text-[12px] text-ink-muted">{b.hint}</span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+              {draft.id && (
+                <p className="mt-1.5 text-[12px] text-ink-muted">
+                  Base access is fixed once a role exists. Make a new role to change it.
+                </p>
+              )}
+            </fieldset>
+
+            <PermissionGroup
+              title="Sections"
+              items={SECTION_PERMISSIONS}
+              selected={draft.permissions}
+              locked={locked}
+              onToggle={toggle}
+            />
+            <PermissionGroup
+              title="Money"
+              items={MONEY_PERMISSIONS}
+              selected={draft.permissions}
+              locked={locked}
+              onToggle={toggle}
+            />
+            {content && (
+              <p className="text-[12px] text-ink-muted">
+                Content-only roles can’t open guest data or money, so those boxes are off.
+              </p>
+            )}
+
+            <Status error={error} />
+
+            <div className="flex flex-wrap items-center gap-2.5">
+              <button type="submit" className={BTN_PRIMARY} disabled={busy}>
+                {busy ? 'Saving…' : 'Save role'}
+              </button>
+              <button type="button" className={BTN_GHOST} disabled={busy} onClick={onCancel}>
+                Cancel
+              </button>
+              {draft.id && (
+                <button
+                  type="button"
+                  disabled={busy || members > 0}
+                  onClick={onDelete}
+                  className="ml-auto px-2 py-1.5 text-[13px] font-bold text-coral-dark disabled:opacity-50"
                 >
-                  <input
-                    type="radio"
-                    name="role-base"
-                    className="mt-0.5 accent-teal"
-                    checked={draft.base === b.value}
-                    disabled={Boolean(draft.id)}
-                    onChange={() => setBase(b.value)}
-                  />
-                  <span>
-                    <span className="block text-[13.5px] font-bold text-ink">{b.label}</span>
-                    <span className="block text-[12px] text-ink-muted">{b.hint}</span>
-                  </span>
-                </label>
-              ))}
+                  Delete role
+                </button>
+              )}
             </div>
-            {draft.id && (
-              <p className="mt-1.5 text-[12px] text-ink-muted">
-                Base access is fixed once a role exists. Make a new role to change it.
+            {draft.id && members > 0 && (
+              <p className="text-[12px] text-ink-muted">
+                {members} {members === 1 ? 'person has' : 'people have'} this role. Move them to
+                another role before deleting it.
               </p>
             )}
           </fieldset>
-
-          <PermissionGroup
-            title="Sections"
-            items={SECTION_PERMISSIONS}
-            selected={draft.permissions}
-            locked={locked}
-            onToggle={toggle}
-          />
-          <PermissionGroup
-            title="Money"
-            items={MONEY_PERMISSIONS}
-            selected={draft.permissions}
-            locked={locked}
-            onToggle={toggle}
-          />
-          {content && (
-            <p className="text-[12px] text-ink-muted">
-              Content-only roles can’t open guest data or money, so those boxes are off.
-            </p>
-          )}
-
-          <Status error={error} />
-
-          <div className="flex flex-wrap items-center gap-2.5">
-            <button type="submit" className={BTN_PRIMARY} disabled={busy}>
-              {busy ? 'Saving…' : 'Save role'}
-            </button>
-            <button type="button" className={BTN_GHOST} disabled={busy} onClick={onCancel}>
-              Cancel
-            </button>
-            {draft.id && (
-              <button
-                type="button"
-                disabled={busy || members > 0}
-                onClick={onDelete}
-                className="ml-auto px-2 py-1.5 text-[13px] font-bold text-coral-dark disabled:opacity-50"
-              >
-                Delete role
-              </button>
-            )}
-          </div>
-          {draft.id && members > 0 && (
-            <p className="text-[12px] text-ink-muted">
-              {members} {members === 1 ? 'person has' : 'people have'} this role. Move them to
-              another role before deleting it.
-            </p>
-          )}
         </form>
       </Card>
     </div>
@@ -677,6 +696,7 @@ function RoleSelect({
   ariaLabel,
   orphan,
   placeholder = value === '',
+  pending = false,
 }: {
   roles: TeamRole[];
   value: string;
@@ -689,10 +709,16 @@ function RoleSelect({
   /** Offer "Choose a role…" (the empty choice). A row for someone with no role keeps it, so a stray key
    *  can always be undone by choosing it again. */
   placeholder?: boolean;
+  /** A choice that is not saved yet: outlined in teal so it cannot be mistaken for the saved role. */
+  pending?: boolean;
 }) {
   return (
     <select
-      className={SELECT_CLS}
+      className={
+        pending
+          ? `${SELECT_CLS.replace('border-[#E2E7EA]', 'border-teal')} ring-1 ring-teal`
+          : SELECT_CLS
+      }
       value={value}
       disabled={disabled}
       aria-label={ariaLabel}
@@ -727,7 +753,8 @@ function MemberRow({
   roles: TeamRole[];
   self: boolean;
   disabled: boolean;
-  onChange: (to: string) => void;
+  /** Starts the change; false when it was called off (a cancelled confirm), so the row can undo it. */
+  onChange: (to: string) => boolean;
   onRemove: () => void;
 }) {
   const current = currentRoleOf(m);
@@ -735,6 +762,7 @@ function MemberRow({
   const [choice, setChoice] = useState(current);
   const who = whoOf(m);
   const known = current === '' || current === 'owner' || roles.some((r) => r.id === current);
+  const pending = choice !== current && choice !== '';
 
   return (
     <li className="flex flex-wrap items-center gap-3 py-3">
@@ -757,22 +785,28 @@ function MemberRow({
           roles={roles}
           value={choice}
           placeholder={current === ''}
+          pending={pending}
           disabled={disabled}
           ariaLabel={`Role for ${who}`}
           orphan={known ? undefined : { value: current, label: m.teamRoleName ?? 'Unknown role' }}
           onChange={setChoice}
         />
       </div>
-      {choice !== current && choice !== '' && (
-        <button
-          type="button"
-          className={BTN_GHOST}
-          disabled={disabled}
-          aria-label={`Change role for ${who}`}
-          onClick={() => onChange(choice)}
-        >
-          Change
-        </button>
+      {pending && (
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            className={BTN_GHOST}
+            disabled={disabled}
+            aria-label={`Change role for ${who}`}
+            onClick={() => {
+              if (!onChange(choice)) setChoice(current);
+            }}
+          >
+            Change
+          </button>
+          <span className="text-[12px] text-ink-muted">Not saved — click Change</span>
+        </div>
       )}
       <button
         type="button"
@@ -815,7 +849,7 @@ function TeamTab({
     id === 'owner' ? 'Owner' : (roles.find((r) => r.id === id)?.name ?? 'that role');
 
   /** Run one team operation. `leavesBackOffice`: the signed-in Owner is the person being changed, so the
-   *  list is reloaded by re-reading their own access instead (see AdminRoles.onSelfExit). */
+   *  page is reloaded from /admin instead of the list (see AdminRoles.onSelfExit). */
   async function run(
     area: 'add' | 'list',
     key: string,
@@ -887,12 +921,13 @@ function TeamTab({
     );
   }
 
-  function changeRole(m: TeamMember, to: string) {
+  /** Returns false when the owner called it off at a confirm, true once it is under way. */
+  function changeRole(m: TeamMember, to: string): boolean {
     const from = currentRoleOf(m);
     const who = whoOf(m);
     const self = m.userId === selfId;
     const question = ownerChangeQuestion({ who, self, from, to, toName: roleName(to) });
-    if (question && !window.confirm(question)) return;
+    if (question && !window.confirm(question)) return false;
     void run(
       'list',
       m.userId,
@@ -902,6 +937,7 @@ function TeamTab({
       },
       self && from === 'owner' && to !== 'owner',
     );
+    return true;
   }
 
   function remove(m: TeamMember) {
