@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { Fragment, type ReactNode } from 'react';
 import { useAuth } from '@/components/auth/AuthProvider';
 
 /** Roles allowed into the back-office. 'seo' is the restricted content role — the shell shows it
@@ -40,7 +40,9 @@ export function AdminGuard({ children }: { children: ReactNode }) {
       </Centered>
     );
   }
-  return <>{children}</>;
+  // Keyed by user: signing in as someone else discards the previous person's screens and their state,
+  // rather than carrying them over for the new person to see.
+  return <Fragment key={user.id}>{children}</Fragment>;
 }
 
 function Centered({ children }: { children: ReactNode }) {

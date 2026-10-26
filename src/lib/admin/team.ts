@@ -109,22 +109,39 @@ function fail(
   return new Error(teamErrorMessage(error?.message ?? '', fallback, overrides), { cause: error });
 }
 
-/** The signed-in person's access (api_my_access). */
+/** How long the access call may take before it counts as failed (the screen would otherwise spin). */
+export const MY_ACCESS_TIMEOUT_MS = 10_000;
+
+/** The signed-in person's access (api_my_access). Rejects on an error or after MY_ACCESS_TIMEOUT_MS. */
 export async function loadMyAccess(): Promise<AdminAccess> {
-  const { data, error } = await getBrowserSupabase().rpc('api_my_access', { p: {} });
-  if (error) throw new Error(error.message, { cause: error });
-  const d = (data ?? {}) as {
-    role?: string | null;
-    teamRoleId?: string | null;
-    teamRoleName?: string | null;
-    permissions?: string[] | null;
-  };
-  return buildAccess({
-    role: d.role ?? null,
-    teamRoleId: d.teamRoleId ?? null,
-    teamRoleName: d.teamRoleName ?? null,
-    permissions: d.permissions ?? [],
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timedOut = new Promise<never>((_, reject) => {
+    timer = setTimeout(
+      () => reject(new Error('Loading your permissions timed out.')),
+      MY_ACCESS_TIMEOUT_MS,
+    );
   });
+  try {
+    const { data, error } = await Promise.race([
+      getBrowserSupabase().rpc('api_my_access', { p: {} }),
+      timedOut,
+    ]);
+    if (error) throw new Error(error.message, { cause: error });
+    const d = (data ?? {}) as {
+      role?: string | null;
+      teamRoleId?: string | null;
+      teamRoleName?: string | null;
+      permissions?: string[] | null;
+    };
+    return buildAccess({
+      role: d.role ?? null,
+      teamRoleId: d.teamRoleId ?? null,
+      teamRoleName: d.teamRoleName ?? null,
+      permissions: d.permissions ?? [],
+    });
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 export async function loadRoles(): Promise<TeamRole[]> {

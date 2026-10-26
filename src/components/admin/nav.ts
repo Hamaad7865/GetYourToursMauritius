@@ -113,6 +113,15 @@ export function navItemForPath(pathname: string): NavItem | null {
   return best;
 }
 
+/**
+ * The page guard: may this person see the screen at `pathname`? A path no nav item owns is Owner-only
+ * (fail closed) — tests/unit/admin-permissions.test.ts keeps every real page inside the nav.
+ */
+export function pageAllowedFor(access: AdminAccess, pathname: string): boolean {
+  const item = navItemForPath(pathname);
+  return item ? allows(access, item) : access.isOwner;
+}
+
 export const BOTTOM_NAV_HREFS = ['/admin', '/admin/bookings', '/admin/activities', '/admin/leads'];
 export const BOTTOM_NAV_HREFS_CONTENT = [
   '/admin/seo',
@@ -120,10 +129,20 @@ export const BOTTOM_NAV_HREFS_CONTENT = [
   '/admin/activities',
   '/admin/redirects',
 ];
+const BOTTOM_NAV_SLOTS = 4;
 
-/** The mobile bottom bar: the usual four, in that order, minus any the person cannot open. */
+/**
+ * The mobile bottom bar, in sidebar order: the usual four that the person may open, topped up to four
+ * from their other allowed items when they may open fewer (a Calendar-only role gets Calendar there,
+ * not an empty bar).
+ */
 export function bottomNavFor(access: AdminAccess): NavItem[] {
-  const hrefs = access.base === 'content' ? BOTTOM_NAV_HREFS_CONTENT : BOTTOM_NAV_HREFS;
+  const usual = access.base === 'content' ? BOTTOM_NAV_HREFS_CONTENT : BOTTOM_NAV_HREFS;
   const items = navFor(access);
-  return hrefs.flatMap((href) => items.filter((n) => n.href === href));
+  const chosen = new Set(items.filter((n) => usual.includes(n.href)).map((n) => n.href));
+  for (const item of items) {
+    if (chosen.size >= BOTTOM_NAV_SLOTS) break;
+    chosen.add(item.href);
+  }
+  return items.filter((n) => chosen.has(n.href));
 }

@@ -1,7 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useAuth } from '@/components/auth/AuthProvider';
+import { useAdminAccess } from '@/components/admin/AdminAccessProvider';
+import { can } from '@/lib/admin/permissions';
 import {
   PLACE_CATEGORIES,
   PLACE_REGIONS,
@@ -37,8 +38,9 @@ const EMPTY: PlannerPlaceInput = {
 };
 
 export function AdminPlannerPlaces() {
-  const { profile } = useAuth();
-  const isAdmin = profile?.role === 'admin' || profile?.role === 'staff';
+  // The Places permission, not a role name: the content role holds it too, and the nav, the page guard
+  // and RLS already let that role in.
+  const canPlaces = can(useAdminAccess(), 'section.places');
   const [rows, setRows] = useState<PlannerPlaceRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -56,8 +58,8 @@ export function AdminPlannerPlaces() {
   }, []);
 
   useEffect(() => {
-    if (isAdmin) void load();
-  }, [isAdmin, load]);
+    if (canPlaces) void load();
+  }, [canPlaces, load]);
 
   async function run(fn: () => Promise<void>) {
     setBusy(true);
@@ -96,7 +98,7 @@ export function AdminPlannerPlaces() {
     setEditing(p.id);
   }
 
-  if (!isAdmin) return <p className="text-sm text-coral">Access denied.</p>;
+  if (!canPlaces) return <p className="text-sm text-coral">Access denied.</p>;
 
   return (
     <div>

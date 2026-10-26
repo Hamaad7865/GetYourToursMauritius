@@ -1,7 +1,14 @@
 import { readdirSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { ADMIN_NAV, allows, bottomNavFor, navFor, navItemForPath } from '@/components/admin/nav';
+import {
+  ADMIN_NAV,
+  allows,
+  bottomNavFor,
+  navFor,
+  navItemForPath,
+  pageAllowedFor,
+} from '@/components/admin/nav';
 import {
   ALL_PERMISSIONS,
   CONTENT_PERMISSIONS,
@@ -220,13 +227,97 @@ describe('admin navigation by permission', () => {
     expect(navItemForPath('/admin/nope')).toBeNull();
   });
 
-  it('the bottom bar keeps to allowed items', () => {
-    expect(bottomNavFor(reservations).map((n) => n.href)).toEqual(['/admin', '/admin/bookings']);
+  it('the bottom bar is the usual four in sidebar order, minus any not allowed, topped up to four', () => {
+    // Owner: the usual four.
+    expect(bottomNavFor(owner).map((n) => n.href)).toEqual([
+      '/admin',
+      '/admin/bookings',
+      '/admin/activities',
+      '/admin/leads',
+    ]);
+    // The old seo account's bar keeps its order: Tours, SEO, Blog, Redirects.
     expect(bottomNavFor(writer).map((n) => n.href)).toEqual([
+      '/admin/activities',
       '/admin/seo',
       '/admin/blog',
-      '/admin/activities',
       '/admin/redirects',
     ]);
+    // Only two of the usual four are open, so two more of their own sections fill the bar.
+    expect(bottomNavFor(reservations).map((n) => n.href)).toEqual([
+      '/admin',
+      '/admin/bookings',
+      '/admin/calendar',
+      '/admin/quotes',
+    ]);
+  });
+
+  it('a role with a single unusual section still gets it in the bottom bar', () => {
+    const calendarOnly = buildAccess({
+      role: 'staff',
+      teamRoleId: 'r',
+      permissions: ['section.calendar'],
+    });
+    expect(bottomNavFor(calendarOnly).map((n) => n.href)).toEqual(['/admin', '/admin/calendar']);
+    const fewContent = buildAccess({
+      role: 'seo',
+      teamRoleId: 'c',
+      permissions: ['section.blog', 'section.places'],
+    });
+    expect(bottomNavFor(fewContent).map((n) => n.href)).toEqual([
+      '/admin',
+      '/admin/planner-places',
+      '/admin/blog',
+    ]);
+  });
+
+  it('never puts more than four items in the bottom bar', () => {
+    for (const access of [owner, reservations, writer]) {
+      expect(bottomNavFor(access).length).toBeLessThanOrEqual(4);
+    }
+  });
+});
+
+describe('the page guard', () => {
+  const noRole = buildAccess({ role: 'staff' });
+
+  it('treats a path no nav item owns as Owner-only', () => {
+    expect(pageAllowedFor(owner, '/admin/not-a-real-page')).toBe(true);
+    expect(pageAllowedFor(reservations, '/admin/not-a-real-page')).toBe(false);
+    expect(pageAllowedFor(writer, '/admin/not-a-real-page')).toBe(false);
+  });
+
+  it('lets a staff account with no role open the Dashboard and nothing else', () => {
+    expect(pageAllowedFor(noRole, '/admin')).toBe(true);
+    expect(pageAllowedFor(noRole, '/admin/bookings')).toBe(false);
+    expect(pageAllowedFor(noRole, '/admin/activities/x/edit')).toBe(false);
+  });
+
+  it('opens Pricing for either half of it, and for neither it stays shut', () => {
+    const currencyOnly = buildAccess({
+      role: 'staff',
+      teamRoleId: 'r',
+      permissions: ['money.currency'],
+    });
+    const pricesOnly = buildAccess({
+      role: 'staff',
+      teamRoleId: 'r',
+      permissions: ['money.prices'],
+    });
+    const neither = buildAccess({ role: 'staff', teamRoleId: 'r', permissions: ['money.refunds'] });
+    expect(pageAllowedFor(currencyOnly, '/admin/vehicle-pricing')).toBe(true);
+    expect(pageAllowedFor(pricesOnly, '/admin/vehicle-pricing')).toBe(true);
+    expect(pageAllowedFor(neither, '/admin/vehicle-pricing')).toBe(false);
+  });
+
+  it('covers a section’s deep pages, not just its index', () => {
+    expect(pageAllowedFor(writer, '/admin/activities/x/availability')).toBe(true);
+    expect(pageAllowedFor(writer, '/admin/activities/new')).toBe(true);
+    expect(pageAllowedFor(writer, '/admin/bookings')).toBe(false);
+    expect(pageAllowedFor(owner, '/admin/activities/x/availability')).toBe(true);
+  });
+
+  it('opens a path a team member holds the permission for', () => {
+    expect(pageAllowedFor(reservations, '/admin/quotes')).toBe(true);
+    expect(pageAllowedFor(reservations, '/admin/reports')).toBe(false);
   });
 });

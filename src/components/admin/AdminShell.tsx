@@ -11,8 +11,9 @@ import { AdminBell } from '@/components/admin/AdminBell';
 import { AiSparkButton } from '@/components/admin/quotes/AiSpark';
 import { AssistantProvider, useAssistant } from '@/components/admin/assistant/AssistantProvider';
 import { avatar } from '@/lib/admin/dashboard';
-import { allows, bottomNavFor, isActive, navFor, navItemForPath } from '@/components/admin/nav';
-import { useAdminAccess } from '@/components/admin/AdminAccessProvider';
+import { bottomNavFor, isActive, navFor, pageAllowedFor } from '@/components/admin/nav';
+import { useAdminAccess, useAdminAccessStatus } from '@/components/admin/AdminAccessProvider';
+import { NoAccess } from '@/components/admin/NoAccess';
 import { can, roleLabel } from '@/lib/admin/permissions';
 import {
   IconSearch,
@@ -72,14 +73,17 @@ function AdminShellInner({ children }: { children: ReactNode }) {
   };
 
   const access = useAdminAccess();
+  const { loadFailed, retry } = useAdminAccessStatus();
   const name = profile?.fullName || user?.email?.split('@')[0] || 'Staff';
   const items = navFor(access);
   const bottomNav = bottomNavFor(access);
-  const role = roleLabel(access);
-  const here = navItemForPath(pathname);
-  // The PAGE guard: a section the role lacks shows "No access" instead of the screen. A path no nav item
-  // owns is Owner-only (fail closed); tests/unit/admin-permissions.test.ts keeps every page in the nav.
-  const pageAllowed = here ? allows(access, here) : access.isOwner;
+  // Permissions that could not be read are not the same as a role with none: say so, offer a retry,
+  // and don't show even the Dashboard as if that were everything this person may open. (The Owner's
+  // role-only fallback is complete, so the Owner is never held up by this.)
+  const permissionsFailed = loadFailed && !access.isOwner;
+  const role = permissionsFailed ? 'Permissions didn’t load' : roleLabel(access);
+  // The PAGE guard: a section the role lacks shows "No access" instead of the screen.
+  const pageAllowed = pageAllowedFor(access, pathname);
   const canBookings = can(access, 'section.bookings');
   const canAssistant = can(access, 'section.assistant');
   const canTours = can(access, 'section.tours');
@@ -236,7 +240,13 @@ function AdminShellInner({ children }: { children: ReactNode }) {
             opens this simply reflows narrower — nothing is occluded (the owner's note: the centre
             should diminish, not get covered). */}
         <main className="mx-auto w-full max-w-[1320px] flex-1 px-4 pb-24 pt-6 sm:px-6 lg:px-8 lg:pb-10">
-          {pageAllowed ? children : <NoAccess />}
+          {permissionsFailed ? (
+            <NoAccess loadFailed onRetry={retry} />
+          ) : pageAllowed ? (
+            children
+          ) : (
+            <NoAccess />
+          )}
         </main>
 
         {/* Mobile bottom nav */}
@@ -290,19 +300,6 @@ function SidebarHeader() {
       <span className="mt-1 self-start text-[9px] font-bold tracking-[0.32em] text-teal-bright">
         BACK OFFICE
       </span>
-    </div>
-  );
-}
-
-function NoAccess() {
-  return (
-    <div className="grid min-h-[50vh] place-items-center text-center">
-      <div>
-        <h1 className="font-display text-2xl font-semibold text-ink">No access</h1>
-        <p className="mt-2 max-w-md text-sm text-ink-muted">
-          Your role doesn’t include this section. Ask the owner if you need it.
-        </p>
-      </div>
     </div>
   );
 }
