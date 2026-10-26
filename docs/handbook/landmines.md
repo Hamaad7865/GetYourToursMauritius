@@ -502,8 +502,13 @@ database refuses any write to the table, so the tour editor hides the whole supp
 French fields) rather than offering fields that cannot save. The "Pricing & options" pane is hidden for
 the same roles, the save path never sends price columns or `pricing_mode`, and a tour **created** by such
 a role starts as a draft and cannot be published until it has a live option. This applies to the
-content-only role as well (which, until the follow-up in the spec lands, cannot save a tour at all:
-the editor reads `operators`, which only staff can read).
+content-only role as well.
+
+The content role cannot read `operators`, which holds payout details and is staff-only. That is why an
+update never sends `operator_id`, and why a content-role create takes the id from an existing tour
+(`operatorId()` in `src/lib/admin/activity-write.ts`). Don't put an `operators` read back on that path:
+saves would fail with "Operator not found". The content role also cannot upload photos, because the
+`activity-images` bucket is staff-write; it can add them by URL.
 
 ### `activities.extra` must be merged, not rebuilt
 

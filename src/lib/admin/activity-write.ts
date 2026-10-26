@@ -187,8 +187,25 @@ export function slugify(input: string): string {
     .slice(0, 80);
 }
 
-async function operatorId(): Promise<string> {
-  const { data, error } = await getBrowserSupabase()
+/**
+ * The operator a NEW tour belongs to (an update never sends operator_id, so it needs none). The
+ * content role cannot read `operators` — the row carries payout details and stays staff-only — so it
+ * takes the id from an existing tour instead, which it can already read. The catalogue has exactly one
+ * operator; an empty one is bootstrapped by the Owner.
+ */
+async function operatorId(contentOnly: boolean): Promise<string> {
+  const sb = getBrowserSupabase();
+  if (contentOnly) {
+    const { data, error } = await sb
+      .from('activities')
+      .select('operator_id')
+      .limit(1)
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) throw new Error('There are no tours yet — the Owner needs to create the first one.');
+    return data.operator_id;
+  }
+  const { data, error } = await sb
     .from('operators')
     .select('id')
     .eq('slug', 'belle-mare-tours')
@@ -256,10 +273,10 @@ function buildExtra(v: ActivityFormValues) {
   return out;
 }
 
-/** The `activities` column payload for one form value set. Pure, so it's unit-tested. */
-export function activityRow(v: ActivityFormValues, opId: string) {
+/** The `activities` column payload for one form value set. Pure, so it's unit-tested. It never
+ *  carries operator_id: only a create sets that (see operatorId). */
+export function activityRow(v: ActivityFormValues) {
   return {
-    operator_id: opId,
     slug: v.slug.trim(),
     type: v.type,
     title: v.title.trim(),
@@ -667,8 +684,8 @@ export function hasActiveOption(options: ReadonlyArray<{ status?: string }>): bo
  * would "change" it back and trip the database's update-only price guard. Omitting the column leaves
  * the stored value alone on update and applies the column default on create.
  */
-function savePayload(v: ActivityFormValues, opId: string, opts: SaveOpts) {
-  const row = activityRow(v, opId);
+function savePayload(v: ActivityFormValues, opts: SaveOpts) {
+  const row = activityRow(v);
   if (!opts.pricingLocked) return row;
   const { pricing_mode: _pricingMode, ...rest } = row;
   return rest;
@@ -692,14 +709,14 @@ export async function createActivity(v: ActivityFormValues, opts: SaveOpts = {})
   const writePricing = !opts.contentOnly && !opts.pricingLocked;
   if (writePricing) assertPricingValid(v);
   const sb = getBrowserSupabase();
-  const opId = await operatorId();
+  const opId = await operatorId(!!opts.contentOnly);
   const sort = await nextSortForCategory(v.category);
   // Content now, pricing by someone with the Prices permission: a locked worker's new tour has no
   // options, so it must not go live as an unbookable page. Mirrors the assistant's create_tour.
   const status = opts.pricingLocked ? ('draft' as const) : v.status;
   const { data, error } = await sb
     .from('activities')
-    .insert({ ...savePayload(v, opId, opts), status, sort })
+    .insert({ ...savePayload(v, opts), operator_id: opId, status, sort })
     .select('id')
     .single();
   if (error) throw error;
@@ -748,7 +765,6 @@ export async function updateActivity(
   const writePricing = !opts.contentOnly && !opts.pricingLocked;
   if (writePricing) assertPricingValid(v);
   const sb = getBrowserSupabase();
-  const opId = await operatorId();
   if (opts.pricingLocked && v.status === 'published') await assertPublishable(id);
   // Moving to another category keeps the old `sort` otherwise — a sort-0 tour would jump ahead of
   // the destination category's arranged order. Re-file it at the end, like a newly created tour.
@@ -758,7 +774,7 @@ export async function updateActivity(
     .eq('id', id)
     .maybeSingle();
   if (curErr) throw curErr;
-  const payload = savePayload(v, opId, opts);
+  const payload = savePayload(v, opts);
   const row =
     cur && cur.category !== v.category
       ? { ...payload, sort: await nextSortForCategory(v.category) }

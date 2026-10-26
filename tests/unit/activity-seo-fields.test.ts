@@ -20,14 +20,13 @@ describe('activityRow — per-tour SEO fields', () => {
         seoTitle: '  Île aux Cerfs Speedboat Trip | Belle Mare Tours  ',
         seoDescription: '  Speedboat to Île aux Cerfs with BBQ lunch and hotel pickup.  ',
       }),
-      'op-1',
     );
     expect(row.seo_title).toBe('Île aux Cerfs Speedboat Trip | Belle Mare Tours');
     expect(row.seo_description).toBe('Speedboat to Île aux Cerfs with BBQ lunch and hotel pickup.');
   });
 
   it('stores null — not "" — when a field is cleared, so the page falls back to its built-ins', () => {
-    const row = activityRow(form({ seoTitle: '', seoDescription: '   ' }), 'op-1');
+    const row = activityRow(form({ seoTitle: '', seoDescription: '   ' }));
     expect(row.seo_title).toBeNull();
     expect(row.seo_description).toBeNull();
   });
@@ -35,14 +34,14 @@ describe('activityRow — per-tour SEO fields', () => {
   it('defaults a brand-new tour to no override', () => {
     expect(EMPTY_ACTIVITY.seoTitle).toBe('');
     expect(EMPTY_ACTIVITY.seoDescription).toBe('');
-    const row = activityRow(form(), 'op-1');
+    const row = activityRow(form());
     expect(row.seo_title).toBeNull();
     expect(row.seo_description).toBeNull();
   });
 
   it('leaves the rest of the row untouched (the panel is additive)', () => {
-    const base = activityRow(form(), 'op-1');
-    const withSeo = activityRow(form({ seoTitle: 'X', seoDescription: 'Y' }), 'op-1');
+    const base = activityRow(form());
+    const withSeo = activityRow(form({ seoTitle: 'X', seoDescription: 'Y' }));
     const { seo_title: _t1, seo_description: _d1, ...restBase } = base;
     const { seo_title: _t2, seo_description: _d2, ...restSeo } = withSeo;
     expect(restSeo).toEqual(restBase);

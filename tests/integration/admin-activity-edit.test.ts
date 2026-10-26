@@ -348,6 +348,14 @@ describe('updateActivity preserves option ids on edit', () => {
     await seedTeamRole(db, id, permissions);
   }
 
+  /** A signed-in member of a CONTENT role (profiles.role 'seo'). Leaves the session as owner. */
+  async function seedContentWriter(id: string) {
+    await db.asOwner();
+    await db.pg.query(`insert into auth.users (id) values ($1)`, [id]);
+    await db.pg.query(`insert into profiles (id, role) values ($1, 'seo')`, [id]);
+    await seedTeamRole(db, id, ['section.tours'], 'content');
+  }
+
   const priceRows = async (optionId: string) => {
     await db.asOwner();
     return (
@@ -502,6 +510,68 @@ describe('updateActivity preserves option ids on edit', () => {
     await db.as({ sub: LOCKED, role: 'authenticated' });
     await updateActivity(activityId, form, { pricingLocked: true });
     expect(await storedStatus()).toBe('published');
+  });
+
+  it('a content-role member can save a tour’s copy; options and prices are left untouched', async () => {
+    const { activityId, optionId } = await seedActivity('content-copy');
+    const WRITER = 'b2b2b2b2-b2b2-b2b2-b2b2-b2b2b2b2b2b2';
+    await seedContentWriter(WRITER);
+    const before = (await priceRows(optionId)).map((r) => r.id);
+
+    await db.as({ sub: WRITER, role: 'authenticated' });
+    const loaded = await loadActivityForEdit(activityId);
+    await updateActivity(
+      activityId,
+      { ...loaded!, title: 'Rewritten by the content role', summary: 'New summary' },
+      { contentOnly: true, pricingLocked: true },
+    );
+
+    await db.asOwner();
+    const row = (
+      await db.pg.query<{ title: string; summary: string; status: string }>(
+        `select title, summary, status from activities where id = $1`,
+        [activityId],
+      )
+    ).rows[0]!;
+    expect(row).toEqual({
+      title: 'Rewritten by the content role',
+      summary: 'New summary',
+      status: 'published',
+    });
+    expect((await priceRows(optionId)).map((r) => r.id)).toEqual(before);
+  });
+
+  it('a content-role member creates a tour as a draft with no options, without reading operators', async () => {
+    const WRITER = 'b3b3b3b3-b3b3-b3b3-b3b3-b3b3b3b3b3b3';
+    await seedContentWriter(WRITER);
+
+    await db.as({ sub: WRITER, role: 'authenticated' });
+    // The precondition the fix rests on: operators (payout details) stays invisible to this role.
+    expect((await db.pg.query(`select id from operators`)).rows).toHaveLength(0);
+    const id = await createActivity(
+      {
+        ...EMPTY_ACTIVITY,
+        slug: 'content-new-tour',
+        title: 'Written by the content role',
+        category: 'Island tours',
+        status: 'published',
+        options: [{ name: 'Shared', prices: [{ label: 'Adult', amountEur: 1, maxGuests: null }] }],
+      },
+      { contentOnly: true, pricingLocked: true },
+    );
+
+    await db.asOwner();
+    const act = (
+      await db.pg.query<{ status: string; operator_id: string }>(
+        `select status, operator_id from activities where id = $1`,
+        [id],
+      )
+    ).rows[0]!;
+    expect(act).toEqual({ status: 'draft', operator_id: operatorId });
+    const options = await db.pg.query(`select id from activity_options where activity_id = $1`, [
+      id,
+    ]);
+    expect(options.rows).toHaveLength(0);
   });
 
   it('a team member WITH money.prices still saves prices (the lock is per permission)', async () => {

@@ -180,9 +180,15 @@ rejected for now; it can be done later one section at a time.
 - The WhatsApp number card on the Dashboard is editable by any team member — no permission guards it;
   only the currency columns of the same `business_settings` row are locked. Content accounts see the
   card too, but their save does nothing (the table's policy is `is_staff()`).
-- Pre-existing, not caused by roles — follow-up: the content-only role currently **cannot save tours
-  at all** (the editor reads `operators`, whose policy is `is_staff()`-only, so the save stops at
-  "operator not found").
+- Fixed 2026-10-26 (pre-existing, not caused by roles): the content-only role could not save tours,
+  because the editor read `operators`, whose policy is `is_staff()`-only. Now an update never sends
+  `operator_id`, and a content-role create takes it from an existing tour. `operators` stays
+  staff-only. No migration. RLS hides a draft tour's options from the content role, so it never sees
+  a live option there and cannot publish a draft at all. Someone in a team role publishes it.
+- The content role still cannot **upload** tour photos. The `activity-images` bucket's write policies
+  are `is_staff()`-only; they were set by hand from step 3 of `supabase/admin-setup.sql` and are not
+  in the migrations. It can add a photo by URL, reorder photos and edit alt text. Opening uploads to it
+  is an owner decision: the bucket is public and has no content-type limit.
 
 ## Data model
 
