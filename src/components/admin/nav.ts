@@ -8,6 +8,7 @@ import {
   IconGrid,
   IconMail,
   IconPin,
+  IconShield,
   IconSliders,
   IconStar,
   IconSwap,
@@ -86,6 +87,8 @@ export const ADMIN_NAV: NavItem[] = [
   { href: '/admin/redirects', label: 'Redirects', icon: IconSwap, permission: 'section.redirects' },
   { href: '/admin/leads', label: 'Leads', icon: IconUsers, permission: 'section.leads' },
   { href: '/admin/reviews', label: 'Reviews', icon: IconStar, permission: 'section.reviews' },
+  // Owner only: who may open what. The database refuses every write behind it from anyone else.
+  { href: '/admin/roles', label: 'Roles', icon: IconShield, permission: 'owner' },
 ];
 
 export function allows(access: AdminAccess, item: NavItem): boolean {

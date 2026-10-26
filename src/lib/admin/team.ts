@@ -227,7 +227,7 @@ export async function assignMember(
   // `not_found` reads "no account with that email" only when an email was typed; by id it means the
   // person's row went away.
   if (error) {
-    throw fail(error, 'Could not change their role.', who.email ? [] : NO_SUCH_PERSON);
+    throw fail(error, 'Could not change their role.', who.userId ? NO_SUCH_PERSON : []);
   }
 }
 

@@ -221,6 +221,13 @@ describe('admin navigation by permission', () => {
     ]);
   });
 
+  it('Roles is in the nav for the Owner only', () => {
+    expect(navFor(owner).map((n) => n.href)).toContain('/admin/roles');
+    expect(navFor(reservations).map((n) => n.href)).not.toContain('/admin/roles');
+    expect(navFor(writer).map((n) => n.href)).not.toContain('/admin/roles');
+    expect(allows(reservations, navItemForPath('/admin/roles')!)).toBe(false);
+  });
+
   it('resolves deep paths to their section', () => {
     expect(navItemForPath('/admin/activities/x/edit')?.href).toBe('/admin/activities');
     expect(navItemForPath('/admin')?.href).toBe('/admin');
