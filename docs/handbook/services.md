@@ -179,8 +179,9 @@ Easy to forget, because it lives in a dashboard and nothing in the repo will rem
 - **Auth → Hooks → Send Email** — points at `/api/v1/hooks/send-email`. Order matters (see above).
 - **Auth → Rate Limits** — the default per-hour email cap is restrictive.
 - **Auth → Providers** — Google is enabled and wired into the sign-in dialog.
-- **Roles are data, not config** — `update profiles set role = 'admin' where id = '…'`. The `seo` role is
-  RLS-locked out of bookings and customer PII.
+- **Roles live in /admin/roles** — the owner builds roles and adds people by email; see
+  [operations.md](operations.md#giving-someone-access) "Giving someone access". Only the first Owner of
+  a fresh database is made by SQL.
 
 ### Cloudflare
 

@@ -288,16 +288,72 @@ hand — forward-only, always.
 
 ## Roles
 
+Back-office access is managed in **/admin/roles** (spec: `docs/superpowers/specs/2026-10-25-admin-roles-design.md`,
+migration `20261025140000_admin_roles.sql`). Only the very first Owner of a fresh database is made by
+hand:
+
 ```sql
--- Promote a user. They must have signed up first (so their profiles row exists).
-update profiles set role = 'admin'   -- or 'staff' | 'seo' | 'customer'
+update profiles set role = 'admin'
  where id = (select id from auth.users where email = 'them@example.com');
 ```
 
-There is no UI for this — it is deliberately a raw SQL statement.
-
-- `is_staff()` → `staff | admin`. Gates **all money and PII**.
+- `profiles.role` stays the **data floor**: `admin` = Owner, `staff` = a team-base role, `seo` = a
+  content-base role, `customer`. `profiles.team_role_id` → `team_roles` (the owner's permission bundles).
+- `is_staff()` → `staff | admin`. Gates **money and PII reads** (unchanged).
 - `is_content_editor()` → `staff | admin | seo`. Gates **content tables only**.
+- `is_admin()` → Owner. Gates `team_roles` writes, the team RPCs, **client** profile deletes, and every
+  change of `role` / `team_role_id` (`enforce_profile_role`).
+- `has_permission('<key>')` → Owner, or a member whose role holds the key **and whose base matches**
+  their `profiles.role` (staff ↔ team, seo ↔ content). A key that is not in the catalogue is false for
+  **everyone, the Owner included**, so a typo'd key in a policy fails loudly in tests instead of
+  silently granting. Use it in policies as `(select has_permission('…'))`.
+- The catalogue lives twice — `src/lib/admin/permissions.ts` and `permission_catalogue()` — and
+  `tests/integration/admin-roles.test.ts` pins them equal. Adding a key means a migration that
+  redefines both catalogue functions. **Only ever add keys**: removing one leaves stored
+  `team_roles.permissions` that violate the CHECK, so strip it from the rows in the same migration.
+
+**The profile guard** (`enforce_profile_role`, `enforce_last_owner_delete`) binds every writer:
+
+- `profiles.id` is immutable. Only the Owner changes `role` / `team_role_id` from a client; anyone
+  else's insert is forced to `customer` and their updates keep the old values.
+- The pairing rule: a team role sits only on a `staff` (base `team`) or `seo` (base `content`) profile;
+  an Owner or customer never carries one. The last Owner cannot be demoted or deleted — by a profile
+  delete, by `api_erase_user`, or by deleting their `auth.users` row. Both checks take the same
+  advisory lock, so two Owners cannot demote each other at once.
+- Staff cannot delete or erase a non-customer profile (`profiles_staff` is gone; deletes are
+  Owner-only). `api_erase_user` is `SECURITY DEFINER` and would bypass RLS, so the delete trigger
+  re-checks `auth.uid()`: staff may still erase customers, or themselves.
+
+**The team RPCs** (`p jsonb`, Owner only except the first): `api_my_access` (any signed-in user; returns
+`role`, `teamRoleId`, `teamRoleName`, `base`, `permissions[]`), `api_team_list`, `api_team_assign`,
+`api_team_remove`. `api_team_assign` takes a `userId` **or** an `email`; by email it needs exactly **one
+confirmed** account (`not_found` / `not_confirmed` / `ambiguous_email`), because it can hand out the
+whole back office.
+
+**Money locks** (what the database refuses without the permission):
+
+- The ten price tables and `airport_transfer_hotels` need `money.prices` to write (staff policy =
+  `is_staff() and has_permission('money.prices')`). Reads are unchanged.
+- Price columns on tables that also hold ordinary fields are guarded by `enforce_money_columns(...)`
+  triggers, which compare old and new so an unchanged re-save passes: `private_base_minor`,
+  `private_included`, `private_extra_minor`, `supplement_minor` and the rental `daily_rate_minor` /
+  `deposit_minor` on insert **and** update; `pricing_mode`, `is_airport_transfer`, `is_hotel_transfer`
+  and `activity_options.activity_id` on **update only** (a new tour legitimately sets them on insert).
+  A column whose non-price default is not null/`'0'` must never go on an insert-firing trigger.
+- `business_settings.charge_currency`, `eur_mur_rate`, `eur_mur_rate_updated_at` need `money.currency`.
+  The WhatsApp number on the same row stays editable.
+- `api_mark_refunded` and `api_record_change_refund` need `money.refunds`.
+- §6b of the migration pins a booking's `deposit_minor`, `balance_due_minor`, `transport_minor`,
+  `supplement_minor`, `supplement_qty` and `child_seats` against **any** browser session, the Owner's
+  included (`enforce_booking_admin_update`): a hand-edited `deposit_minor` would make `api_mark_refunded`
+  treat the paid row as a non-refundable deposit.
+- The migration re-declares `enforce_profile_role`, `enforce_booking_admin_update`,
+  `api_mark_refunded` and `api_record_change_refund` from their winning bodies.
+  `tests/integration/resolved-function-bodies.test.ts` pins the permission check in both refund RPCs
+  and every column pin in the booking guard, so a later migration forked from a stale copy fails CI;
+  `tests/integration/admin-roles.test.ts` exercises the profile guard. Read both before touching any of
+  them.
 
 `is_content_editor()` compares `role::text`, not the enum literal, because Postgres forbids _using_ a
-just-added enum value in the same transaction that added it. Don't "clean that up".
+just-added enum value in the same transaction that added it. Don't "clean that up" — and the role
+comparisons in the admin-roles migration do the same, for the same reason.

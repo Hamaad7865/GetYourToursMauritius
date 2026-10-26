@@ -79,24 +79,37 @@ deposit) pays the rest in the same currency; and a rate change only affects paym
 
 ## Giving someone access
 
-They must **sign up on the website first** (so their account exists). Then, in Supabase → SQL Editor:
+They must **sign up on the website first, and confirm their email** (so their account exists). Then,
+signed in as an Owner: **Admin → Roles → Team → Add a member** — type their email, pick a role.
+
+- **Roles tab:** create a role, tick the **sections** it can open and the **money** switches (Reports &
+  exports, Dashboard revenue, Edit prices & fares, Currency & exchange rate, Refunds, Internal notes).
+- **Base access** is chosen when the role is created: **Team** (can work with guests) or **Content
+  only** (never sees guests or money — the old `seo` role is now the built-in "Content" role).
+- **Owner** is built in and sees everything. There is always at least one Owner; the database refuses
+  to remove the last one. That includes deleting their user in the Supabase dashboard ("Database error
+  deleting user") — make someone else an Owner first.
+- **Remove** turns the account back into an ordinary customer.
+- **Adding by email** needs exactly one _confirmed_ account with that address. "No account" means they
+  haven't signed up; "hasn't confirmed" means they never clicked the link in their sign-up email; "more
+  than one account" means the address was registered twice — sort that out in Supabase first.
+- **The Dashboard** opens for everyone in the back office. Its revenue and pending-payment euros need
+  _Dashboard revenue_; its booking lists need _Bookings_; today's departures need _Bookings_ or
+  _Calendar_. Without _Dashboard revenue_, a role with _Bookings_ sees how many payments are pending,
+  not how much.
+
+What is enforced where: the database refuses price, fare, exchange-rate and refund changes from a role
+without the switch, and only an Owner can change anyone's role — so a team member cannot promote
+themselves, erase a colleague or the Owner, or rewrite a booking's deposit or balance. Sections and the
+revenue totals are hidden in the back office but not locked in the database — a technical person with a
+section's data could still query it.
+
+The very first Owner of a fresh database is still made by SQL:
 
 ```sql
 update profiles set role = 'admin'
  where id = (select id from auth.users where email = 'them@example.com');
 ```
-
-| Role      | What they get                                                                    |
-| --------- | -------------------------------------------------------------------------------- |
-| `admin`   | Everything                                                                       |
-| `staff`   | Everything (same as admin in practice)                                           |
-| **`seo`** | **SEO, Blog, Redirects, Tours (text & photos only), Places — and nothing else.** |
-
-The `seo` role is for an **external SEO contractor**. They **cannot see bookings, customers, payments or
-leads** — that's enforced by the database itself, not just by hiding menu items, so it holds even if they
-go poking at URLs directly.
-
-To revoke: set the role back to `'customer'`.
 
 ---
 

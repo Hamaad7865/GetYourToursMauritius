@@ -182,7 +182,7 @@ the single load and the single save; every field lives in a pane beside it:
 | Français          | `FrenchSection.tsx`      | The `fr` translation row                                              |
 
 Add a pane by adding it to `SECTIONS` in `activity/sections.ts` and rendering it in the container's
-switch — `staffOnly: true` hides it from the restricted `seo` role. `?s=<pane-id>` deep-links to one.
+switch — `staffOnly: true` hides it from the content-only role and from any role without `money.prices`. `?s=<pane-id>` deep-links to one.
 
 A rule that would fail the save belongs in `sectionIssues()` in the same file, so the rail can dot the
 offending pane and the save can jump to it — with only one pane on screen, an error about a hidden

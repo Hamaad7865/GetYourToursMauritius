@@ -60,9 +60,9 @@ reason. It is the failure mode that hides the longest.
   where p.role <> 'customer' order by p.role;
   ```
 
-  Revoke by setting the role back to `'customer'`. Pay particular attention to the `seo` role — it
-  exists for an external contractor, and the GDPR argument for it depends on that person still being
-  engaged.
+  The same list is **Admin → Roles → Team**, where **Remove** sets the account back to a customer. Pay
+  particular attention to anyone on a content-only role (`seo`) — it exists for an external
+  contractor, and the GDPR argument for it depends on that person still being engaged.
 
 - **The Peach smoke test.** One real low-value booking, end to end: card charged → booking confirmed →
   invoice email arrives. It exercises the entire money path in a single test, and it is the only check

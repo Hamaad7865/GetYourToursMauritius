@@ -85,6 +85,8 @@ In the **TEST** project's SQL editor:
    update profiles set role = 'admin' where id = (select id from auth.users where email = 'you@example.com');
    ```
 
+   After that, add anyone else from **Admin → Roles**.
+
 ### 5. Point your tooling at TEST
 
 Local dev and the scripts read `.env.local`. To work against TEST, swap these four to the **new**

@@ -243,6 +243,57 @@ arrival after it. Change-of-tour (`apply_booking_change`) has no such rule — i
 Relax that refusal and you must teach `apply_booking_change` the same `return_date` rule first
 (`reschedule-transfer-date.test.ts` goes red to remind you).
 
+### A `SECURITY DEFINER` function that writes `profiles.role` / `team_role_id` must check `is_admin()` itself
+
+**Trap:** "The profile guard will stop a non-Owner anyway."
+
+`enforce_profile_role` §1 (only the Owner changes `role` / `team_role_id`) restricts `anon` and
+`authenticated` — `current_user in ('anon','authenticated')`. A definer function runs as the table
+owner, so it skips that clause and goes straight on to the checks that bind everyone (the pairing rule,
+the last-Owner rule, `id` immutable). Nothing in the trigger asks who the **caller** was. Today only
+`api_team_assign` / `api_team_remove` (both open with an `is_admin()` check that raises `forbidden`) and
+`api_update_profile` (name, phone, date of birth — never the role) write profiles from definer code. A
+new one that forgets the check is a privilege-escalation endpoint with a friendly name.
+
+### `profiles.id` is immutable — a re-keyed profile is a privilege transfer
+
+`profile_id_immutable` (first line of `enforce_profile_role`) refuses `update profiles set id = …` from
+anyone. Staff can update any non-Owner profile, and the role / team-role pin guards a row's **content**,
+not its identity: re-keying a staff member's row onto a spare account would carry their team role to it,
+and a two-row swap would trade two members' roles. Nothing legitimate ever rewrites a profile id.
+
+### Staff cannot erase a team member or an Owner — only a customer, or themselves
+
+`api_erase_user` is `SECURITY DEFINER` and open to any `is_staff()` caller, because GDPR erasure of
+**customers** is a staff job. Being definer, it deletes as the table owner and bypasses
+`profiles_owner_delete`. `enforce_last_owner_delete` therefore re-checks `auth.uid()` (still the
+caller's JWT inside a definer function) and raises `forbidden` when a non-Owner deletes someone else's
+non-customer profile. Erasing a team member or an Owner needs an Owner. `auth.uid()` is null for
+`service_role`, the SQL editor and migrations, which stay unrestricted.
+
+### The last Owner cannot be deleted — not even by deleting their sign-in
+
+A profile delete, `api_erase_user` and deleting the `auth.users` row (which cascades to `profiles`) all
+fire the same trigger and raise `last_owner`. In the Supabase dashboard that surfaces as **"Database
+error deleting user"** — it is the guard working. Make another Owner first (Admin → Roles → Team).
+Owner demotions and deletions share one advisory lock, so two Owners cannot demote each other in the
+same instant and leave none.
+
+### A new price column must join an `enforce_money_columns` trigger
+
+**Trap:** adding a column that changes what a booking costs to `activities`, `activity_options`,
+`rental_vehicles` or any other table a worker without `money.prices` can edit.
+
+RLS cannot split columns, so on those tables the permission is a `before insert or update` trigger
+(`enforce_money_columns('money.prices', '<col>', …)`) that refuses a client who **changes** a guarded
+column. A column not on the list is silently editable. The guard's INSERT rule is crude — any non-null
+value other than `'0'` is a "change" — so a column with a text/boolean default, or a `numeric(18,6)`
+that prints as `'0.000000'`, would break creating a tour: guard it with an update-only trigger
+instead (`pricing_mode`, `is_airport_transfer`, `is_hotel_transfer` and `activity_options.activity_id`
+already are). A whole new price **table** instead needs the staff policy
+`is_staff() and (select has_permission('money.prices'))`. Add the case to
+`tests/integration/admin-roles.test.ts` in the same change.
+
 ---
 
 ## Generated files
@@ -368,11 +419,42 @@ has no way to see why theirs does nothing. Keep owner-managed redirects in the d
 
 ### The admin sidebar is not a security boundary
 
-`AdminShell` filters nav items by role. That's **cosmetic** — an `seo` user can type any `/admin` URL.
-The real boundary is RLS: `is_staff()` for money and PII, `is_content_editor()` for content.
+`AdminShell` filters nav items by the owner-defined role (`/admin/roles`) and shows a "No access"
+panel at a section's URL. That is **cosmetic** — the browser reads most tables straight from Supabase
+with the member's own JWT, so someone who skips the UI can still query a hidden section's data. The
+real boundary is the database: `is_staff()` for money and PII reads, `is_content_editor()` for
+content, `is_admin()` for roles, and `has_permission(…)` for the three money locks (`money.prices`,
+`money.currency`, `money.refunds`). Only those are locked "even outside the UI"; every other section
+and `money.reports` / `money.revenue` / `money.notes` are screen-level. Ten staff API routes that read
+with the service-role key (which bypasses RLS) check their section themselves — `loadCallerAccess`,
+never `requireUser().role`.
 
 **Never** grant the `seo` role access to `activity_options`, `activity_option_prices`, `categories`,
 `session_occurrences`, or any booking / payment / lead / profile table.
+
+### Accepted gaps in the money locks (owner decisions, 2026-10-25)
+
+`money.prices` guards the **fares and price columns**, not every field that picks which fare applies.
+Known, deliberate leftovers — don't "fix" one without asking the owner:
+
+- `activities.pickup_available`, `region`, `lat` and `lng` feed the transport add-on
+  (`transport_fare_minor`) but stay editable by team and content roles: they are logistics and map
+  data. Without `money.prices` a worker can change **which** fare applies to a tour, never the fare.
+- A worker can **delete** an unbooked, unquoted option; its price tiers cascade away with it. Deleting a
+  rental vehicle likewise stays with the Rental section.
+- A downgrade change-of-tour can still create a refund obligation without `money.refunds` — only
+  **recording** the refund needs it.
+- A worker can re-open pickup on a booking (`pickup_pending` / `pickup_location`), which leads to a
+  late-pickup charge offer.
+
+### `activity_supplements` are price items, not tour text
+
+Without `money.prices` a worker can't edit a supplement's name, its French label or its price — the
+database refuses any write to the table, so the tour editor hides the whole supplements block (and its
+French fields) rather than offering fields that cannot save. The "Pricing & options" pane is hidden for
+the same roles, the save path never sends price columns or `pricing_mode`, and a tour **created** by such
+a role starts as a draft and cannot be published until it has a live option. This applies to the
+content-only role as well.
 
 ### `activities.extra` must be merged, not rebuilt
 

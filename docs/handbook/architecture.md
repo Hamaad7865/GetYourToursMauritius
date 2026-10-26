@@ -349,23 +349,31 @@ A recurring waste of effort: hardcoding something the owner can already edit.
 
 ## 8. Roles and the security boundary
 
-| Role       | Sees                                                          |
-| ---------- | ------------------------------------------------------------- |
-| `customer` | Their own bookings only                                       |
-| `staff`    | Everything in `/admin`                                        |
-| `admin`    | Everything in `/admin`                                        |
-| `seo`      | **Content only** — SEO, Blog, Redirects, Tours (copy), Places |
+| Role       | Sees                                                                                      |
+| ---------- | ----------------------------------------------------------------------------------------- |
+| `customer` | Their own bookings only                                                                   |
+| `admin`    | The **Owner**: everything in `/admin`, including `/admin/roles`                           |
+| `staff`    | A member of an owner-defined **team** role: only the sections and money switches it ticks |
+| `seo`      | A member of an owner-defined **content-only** role (SEO, Blog, Redirects, Tours, Places)  |
 
-The `seo` role exists so an external contractor can run SEO **without ever seeing customer data**
-(GDPR). The boundary is enforced by two SQL functions:
+The owner builds roles and adds people in `/admin/roles` (spec:
+`docs/superpowers/specs/2026-10-25-admin-roles-design.md`; the runbook is
+[operations.md](operations.md#giving-someone-access)). A content-only role exists so an external
+contractor can run SEO **without ever seeing customer data** (GDPR). The boundary is enforced by SQL
+functions:
 
-- `is_staff()` → `staff | admin` — gates all money and PII
+- `is_staff()` → `staff | admin` — gates all money and PII reads
 - `is_content_editor()` → `staff | admin | seo` — gates content tables only
+- `is_admin()` → the Owner — gates roles, the team RPCs and profile deletes
+- `has_permission('money.prices' | 'money.currency' | 'money.refunds')` — gates price, currency and
+  refund writes
 
-**The real boundary is RLS, not the sidebar.** The admin nav filtering is cosmetic — an `seo` user can
-type any `/admin` URL they like. What actually stops them is that Postgres returns zero rows from
-`bookings` and `leads` for that role, and refuses their writes to pricing tables. There's an integration
-test that proves it (`tests/integration/seo-module.test.ts`).
+**The real boundary is the database, not the sidebar.** A section is hidden from the nav, shows a "No
+access" panel at its URL, and is checked in the staff API routes — but the browser reads most tables
+directly, so a hidden section's data is locked only where RLS locks it: guest data from a content-only
+role, and prices, the charge currency, refunds and roles from everyone without the permission. Integration
+tests prove the content boundary (`tests/integration/seo-module.test.ts`) and the permissions
+(`tests/integration/admin-roles.test.ts`).
 
 So: **never** add an `seo` grant to `activity_options`, `activity_option_prices`, `categories`,
 `session_occurrences`, or any booking / payment / lead / profile table.
