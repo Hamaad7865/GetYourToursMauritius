@@ -910,6 +910,24 @@ begin
 end;
 $$;
 
+-- ── 6c) Booking line tables are read-only for signed-in clients ─────────────────────────────────
+-- None of these five tables is written from a browser, yet production lets `authenticated` (and
+-- `anon`) write all of them: Supabase's default table privileges hand INSERT / UPDATE / DELETE /
+-- TRUNCATE / REFERENCES / TRIGGER to both roles on every new table, and two migrations granted
+-- `authenticated` writes outright (20260615120800_rls for booking_items, 20260909000000_quotes for
+-- booking_custom_items; 20260930000000_payment_schedule and 20260908000000_multi_supplements_trip_capacity
+-- meant SELECT alone). Each table has a staff policy `for all using (is_staff())`, so once a team
+-- member can hold a role WITHOUT money permissions, that member could rewrite a booking line amount,
+-- an installment (which sizes the real charge in create_payment), a supplement or a late-pickup fee
+-- straight through PostgREST — past every money lock above. Every legitimate write is a SECURITY
+-- DEFINER function (it runs as the table owner, so it is unaffected here) or the service role (granted
+-- separately, untouched); browser code only selects. SELECT is left exactly as it is — this only
+-- removes writes. Idempotent: revoking what is not held is a no-op. A new booking line table needs the
+-- same revoke, or the platform default hands out its writes.
+revoke insert, update, delete, truncate, references, trigger
+  on booking_items, booking_custom_items, booking_pickup_requests, booking_installments, booking_supplements
+  from public, anon, authenticated;
+
 -- ── 7) Backfill: the existing seo account(s) keep exactly what they had ─────────────────────────
 insert into team_roles (name, description, base, permissions)
 select 'Content',

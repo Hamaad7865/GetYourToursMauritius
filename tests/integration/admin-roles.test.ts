@@ -1697,3 +1697,202 @@ describe('the Content role backfill', () => {
     expect(roles).toEqual([{ base: 'team' }]);
   });
 });
+
+describe('booking line tables', () => {
+  /**
+   * The five tables a booking's money is written down in, and a column an UPDATE would rewrite. On the
+   * live project Supabase's default table privileges handed `authenticated` (and `anon`) INSERT /
+   * UPDATE / DELETE on all of them, and each carries a staff policy `for all using (is_staff())` — so a
+   * team member WITHOUT money permissions could rewrite a line amount, an installment (which sizes the
+   * real charge), a supplement or a late-pickup fee straight through PostgREST. Every legitimate write
+   * is a SECURITY DEFINER function or the service role; no browser code writes these tables.
+   */
+  const LINE_TABLES: Array<[string, string]> = [
+    ['booking_items', 'unit_amount_minor'],
+    ['booking_custom_items', 'unit_amount_minor'],
+    ['booking_pickup_requests', 'fee_minor'],
+    ['booking_installments', 'amount_minor'],
+    ['booking_supplements', 'total_minor'],
+  ];
+  const TABLE_LIST = LINE_TABLES.map(([table]) => table).join(', ');
+
+  const migrationText = (): string =>
+    readFileSync(join(process.cwd(), 'supabase/migrations/20261025140000_admin_roles.sql'), 'utf8');
+
+  /** The migration's own §6c text, read from the file so what is tested is what ships. */
+  function section6c(): string {
+    const migration = migrationText();
+    const start = migration.indexOf('-- ── 6c)');
+    expect(start).toBeGreaterThan(-1);
+    const next = migration.indexOf('\n-- ── ', start + 1);
+    return migration.slice(start, next === -1 ? undefined : next);
+  }
+
+  const hasPrivilege = (db: TestDb, role: string, table: string, privilege: string) =>
+    one<boolean>(db, `select has_table_privilege($1, $2, $3) as v`, [
+      role,
+      `public.${table}`,
+      privilege,
+    ]);
+
+  it('pins the revoke in the migration text (PGlite has no default table privileges to show it)', () => {
+    const flat = (text: string): string => text.replace(/\s+/g, ' ');
+    const revoke = flat(
+      `revoke insert, update, delete, truncate, references, trigger on ${TABLE_LIST} from public, anon, authenticated;`,
+    );
+    const migration = flat(migrationText());
+    const at = migration.indexOf(revoke);
+    expect(at).toBeGreaterThan(-1);
+    // ... and nothing later in the file hands a write back on any of the five.
+    const after = migration.slice(at + revoke.length);
+    for (const [table] of LINE_TABLES) {
+      expect(after).not.toMatch(new RegExp(`grant[^;]*\\bon[^;]*\\b${table}\\b`, 'i'));
+    }
+  });
+
+  it('removes the writes Supabase’s default privileges hand out, keeps SELECT, and is idempotent', async () => {
+    const db = await createTestDb();
+    try {
+      await db.asOwner();
+      // Production's starting point (verified on the live project): every write, on every table.
+      await db.pg.exec(`grant all on ${TABLE_LIST} to anon, authenticated;`);
+      for (const [table] of LINE_TABLES) {
+        for (const role of ['authenticated', 'anon']) {
+          expect(await hasPrivilege(db, role, table, 'update'), `${role} ${table} drift`).toBe(
+            true,
+          );
+        }
+      }
+
+      await db.pg.exec(section6c());
+      await db.pg.exec(section6c()); // catch-up.sql re-applies the file: a second run changes nothing
+
+      for (const [table] of LINE_TABLES) {
+        for (const role of ['authenticated', 'anon']) {
+          for (const privilege of [
+            'insert',
+            'update',
+            'delete',
+            'truncate',
+            'references',
+            'trigger',
+          ]) {
+            expect(
+              await hasPrivilege(db, role, table, privilege),
+              `${role} still holds ${privilege} on ${table}`,
+            ).toBe(false);
+          }
+          // This section only takes writes away: reads stay exactly as they were.
+          expect(await hasPrivilege(db, role, table, 'select'), `${role} select ${table}`).toBe(
+            true,
+          );
+        }
+      }
+    } finally {
+      await db.close();
+    }
+  });
+
+  describe('a team member with only section.bookings', () => {
+    let db: TestDb;
+    let bookingId: string;
+
+    beforeAll(async () => {
+      db = await createTestDb();
+      await seedPeople(db);
+      await seedTeamRole(db, WORKER, ['section.bookings']);
+
+      // One booking carrying a row in every line table, all written as the owner (what a definer RPC
+      // or the service role does).
+      await db.asOwner();
+      const { occurrenceId } = await seedOccurrence(db, 5);
+      const { rows: hold } = await db.pg.query<{ id: string }>(
+        `select * from create_hold($1, 1, $2)`,
+        [occurrenceId, 'lines-hold'],
+      );
+      const { rows: booking } = await db.pg.query<{ id: string }>(
+        `select * from create_booking($1, $2, 'Lines Tester', 'lines@example.com', null, 'web'::booking_source, $3::jsonb)`,
+        ['lines-bk', hold[0]!.id, JSON.stringify([{ price_label: 'Adult', quantity: 1 }])],
+      );
+      bookingId = booking[0]!.id;
+      await db.pg.query(
+        `insert into booking_custom_items (booking_id, kind, description, quantity, unit_amount_minor, subtotal_minor, position)
+         values ($1, 'custom', 'Lunch', 1, 900, 900, 0)`,
+        [bookingId],
+      );
+      await db.pg.query(
+        `insert into booking_installments (booking_id, seq, due_on, label, amount_minor)
+         values ($1, 1, current_date + 30, 'Deposit', 1000)`,
+        [bookingId],
+      );
+      await db.pg.query(
+        `insert into booking_supplements (booking_id, name, qty, unit_minor, total_minor)
+         values ($1, 'Child seat', 1, 500, 500)`,
+        [bookingId],
+      );
+      await db.pg.query(
+        `insert into booking_pickup_requests (booking_id, pickup_location, fee_minor)
+         values ($1, 'A hotel', 300)`,
+        [bookingId],
+      );
+    });
+    afterAll(async () => db.close());
+
+    it.each(LINE_TABLES)(
+      '%s: signed-in clients hold SELECT and no write privilege',
+      async (table) => {
+        await db.asOwner();
+        for (const privilege of ['insert', 'update', 'delete']) {
+          expect(await hasPrivilege(db, 'authenticated', table, privilege), privilege).toBe(false);
+          expect(await hasPrivilege(db, 'anon', table, privilege), `anon ${privilege}`).toBe(false);
+        }
+        expect(await hasPrivilege(db, 'authenticated', table, 'select')).toBe(true);
+      },
+    );
+
+    const amountsOf = async (table: string, column: string): Promise<string[]> => {
+      await db.asOwner();
+      const { rows } = await db.pg.query<{ v: string }>(
+        `select ${column}::text as v from ${table} where booking_id = $1 order by 1`,
+        [bookingId],
+      );
+      return rows.map((r) => r.v);
+    };
+
+    it.each(LINE_TABLES)(
+      '%s: the rows are readable but an UPDATE is refused',
+      async (table, column) => {
+        const before = await amountsOf(table, column);
+        expect(before.length).toBeGreaterThan(0);
+        expect(before).not.toContain('1');
+
+        await asUser(db, WORKER);
+        const { rows } = await db.pg.query(`select 1 from ${table} where booking_id = $1`, [
+          bookingId,
+        ]);
+        expect(rows.length).toBeGreaterThan(0); // reading is untouched: the admin screens still work
+        expect(
+          await failure(
+            db.pg.query(`update ${table} set ${column} = 1 where booking_id = $1`, [bookingId]),
+          ),
+        ).toMatch(new RegExp(`permission denied for table ${table}`));
+
+        expect(await amountsOf(table, column)).toEqual(before);
+      },
+    );
+
+    it.each(LINE_TABLES)('%s: DELETE and INSERT are refused too', async (table, column) => {
+      const before = await amountsOf(table, column);
+
+      await asUser(db, WORKER);
+      expect(
+        await failure(db.pg.query(`delete from ${table} where booking_id = $1`, [bookingId])),
+      ).toMatch(new RegExp(`permission denied for table ${table}`));
+      expect(await failure(db.pg.query(`insert into ${table} default values`))).toMatch(
+        new RegExp(`permission denied for table ${table}`),
+      );
+
+      expect(await amountsOf(table, column)).toEqual(before);
+    });
+  });
+});
