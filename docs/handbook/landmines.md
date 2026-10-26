@@ -425,9 +425,8 @@ with the member's own JWT, so someone who skips the UI can still query a hidden 
 real boundary is the database: `is_staff()` for money and PII reads, `is_content_editor()` for
 content, `is_admin()` for roles, and `has_permission(…)` for the three money locks (`money.prices`,
 `money.currency`, `money.refunds`). Only those are locked "even outside the UI"; every other section
-and `money.reports` / `money.revenue` / `money.notes` are screen-level. Ten staff API routes that read
-with the service-role key (which bypasses RLS) check their section themselves — `loadCallerAccess`,
-never `requireUser().role`.
+and `money.reports` / `money.revenue` / `money.notes` are screen-level. Ten staff API routes check
+their section themselves, before reading anything — `loadCallerAccess`, never `requireUser().role`.
 
 **Never** grant the `seo` role access to `activity_options`, `activity_option_prices`, `categories`,
 `session_occurrences`, or any booking / payment / lead / profile table.
@@ -454,7 +453,8 @@ database refuses any write to the table, so the tour editor hides the whole supp
 French fields) rather than offering fields that cannot save. The "Pricing & options" pane is hidden for
 the same roles, the save path never sends price columns or `pricing_mode`, and a tour **created** by such
 a role starts as a draft and cannot be published until it has a live option. This applies to the
-content-only role as well.
+content-only role as well (which, until the follow-up in the spec lands, cannot save a tour at all:
+the editor reads `operators`, which only staff can read).
 
 ### `activities.extra` must be merged, not rebuilt
 

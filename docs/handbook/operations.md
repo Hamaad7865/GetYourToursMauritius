@@ -90,9 +90,10 @@ signed in as an Owner: **Admin → Roles → Team → Add a member** — type th
   to remove the last one. That includes deleting their user in the Supabase dashboard ("Database error
   deleting user") — make someone else an Owner first.
 - **Remove** turns the account back into an ordinary customer.
-- **Adding by email** needs exactly one _confirmed_ account with that address. "No account" means they
-  haven't signed up; "hasn't confirmed" means they never clicked the link in their sign-up email; "more
-  than one account" means the address was registered twice — sort that out in Supabase first.
+- **Adding by email** needs exactly one _confirmed_ account with that address. "No account with that
+  email" means they haven't signed up; "hasn’t confirmed its email yet" means they never clicked the
+  link in their sign-up email; "More than one account uses that email" means the address was registered
+  twice — sort that out in Supabase first.
 - **The Dashboard** opens for everyone in the back office. Its revenue and pending-payment euros need
   _Dashboard revenue_; its booking lists need _Bookings_; today's departures need _Bookings_ or
   _Calendar_. Without _Dashboard revenue_, a role with _Bookings_ sees how many payments are pending,

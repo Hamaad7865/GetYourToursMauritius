@@ -59,8 +59,8 @@ which money features each role gets, and put team members into those roles.
 - **Base access** is chosen when the role is created and cannot be changed afterwards:
   - **Team** — may work with guest data (bookings, quotes, leads…). Members get `profiles.role = 'staff'`.
   - **Content only** — never sees guest data. Members get `profiles.role = 'seo'`. Only the content
-    sections can be ticked; the rest are shown greyed out with "Content-only roles can't open guest
-    data".
+    sections can be ticked; the rest are shown greyed out and disabled, under the note "Content-only
+    roles can’t open guest data or money, so those boxes are off."
 - Each role is a set of ticked boxes from the permission catalogue below: **Sections** and **Money**.
 - Rename, edit boxes, delete. Delete is refused while the role has members.
 
@@ -68,8 +68,9 @@ which money features each role gets, and put team members into those roles.
 
 - Everyone in the back office: name, email, role. The owner's own rows are labelled Owner.
 - **Add member**: email + role. The email must name exactly **one confirmed** account (it signed up on
-  the site and clicked the confirmation link). Otherwise the screen says "No account with that email",
-  "That account hasn't confirmed its email", or "More than one account has that email".
+  the site and clicked the confirmation link). Otherwise the screen says "No account with that email.
+  Ask them to sign up on the website first…", "That account hasn’t confirmed its email yet…", or "More
+  than one account uses that email, so it can’t be added by email…".
 - **Change role** (including to Owner) is an explicit act: the role box only _chooses_; nothing is saved
   until the **Change** button is clicked, and the row says "Not saved — click Change" meanwhile.
   Making someone an Owner, taking Owner access away, and removing anyone (yourself included) each ask
@@ -86,7 +87,7 @@ which money features each role gets, and put team members into those roles.
 
 - The sidebar and the mobile bottom bar show only the sections their role allows (the bottom bar is
   topped up from their other sections when they may open fewer than four of the usual ones).
-- Opening a section's URL directly shows a "No access — ask the owner" panel instead of the screen.
+- Opening a section's URL directly shows a "No access" panel ("Your role doesn’t include this section. Ask the owner if you need it.") instead of the screen.
 - **The Dashboard is open to every back-office member**, and each part of it is shown only to a role
   that can use it: the revenue and pending-payment **euro** cards and the revenue chart need
   `money.revenue` (without it, a role with Bookings sees the pending card as a count of open payments);
@@ -150,13 +151,14 @@ which covers the catalogue only.
 
 ### Where each kind of permission is enforced
 
-| Kind                                            | Enforcement                                                                            | Limit, stated plainly                                                                                       |
-| ----------------------------------------------- | -------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| Sections                                        | Nav filter, the "No access" page guard, and the ten staff API routes (see App changes) | Not RLS: the browser reads tables directly, so a technical member could still query a hidden section's data |
-| `money.reports` / `revenue` / `notes`           | Screen only                                                                            | Totals are sums of rows the member can already read                                                         |
-| `money.prices` / `currency` / `refunds`         | RLS, triggers and RPC checks                                                           | None: refused even outside the UI                                                                           |
-| Assigning roles                                 | Database, owner only                                                                   | None                                                                                                        |
-| A booking's deposit, balance and add-on amounts | Trigger, for every browser session (the Owner's too)                                   | None: only the booking RPCs write them                                                                      |
+| Kind                                                            | Enforcement                                                                            | Limit, stated plainly                                                                                       |
+| --------------------------------------------------------------- | -------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Sections                                                        | Nav filter, the "No access" page guard, and the ten staff API routes (see App changes) | Not RLS: the browser reads tables directly, so a technical member could still query a hidden section's data |
+| `money.reports` / `revenue` / `notes`                           | Screen only                                                                            | Totals are sums of rows the member can already read                                                         |
+| `money.prices` / `currency` / `refunds`                         | RLS, triggers and RPC checks                                                           | None: refused even outside the UI                                                                           |
+| Which fare applies (`pickup_available`, `region`, `lat`, `lng`) | Not locked: logistics and map data                                                     | Accepted residual: a worker can change which fare applies, never the fare (see below)                       |
+| Assigning roles                                                 | Database, owner only                                                                   | None                                                                                                        |
+| A booking's deposit, balance and add-on amounts                 | Trigger, for every browser session (the Owner's too)                                   | None: only the booking RPCs write them                                                                      |
 
 Locking every section in RLS (≈150 `is_staff()` references, including money-path functions) was
 rejected for now; it can be done later one section at a time.
@@ -307,8 +309,8 @@ closed.
   - is per user — a previous user's access is never shown to the next one;
   - seeds the Owner from the profile so an Owner never waits on a loading screen (the call still runs,
     to catch a demotion);
-  - retries a failed `api_my_access` once, reports it, and then shows a visible "We couldn't load your
-    permissions" panel with a retry instead of a misleading "No access"; the fallback is the profile's
+  - retries a failed `api_my_access` once, reports it, and then shows a visible "We couldn’t load your
+    permissions." panel with a retry instead of a misleading "No access"; the fallback is the profile's
     role alone (Owner keeps working, everyone else gets nothing);
   - re-reads access when a tab becomes visible again, so a role change reaches an open tab.
 
