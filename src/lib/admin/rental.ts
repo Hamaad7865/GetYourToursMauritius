@@ -72,10 +72,21 @@ export async function createRentalVehicle(input: RentalVehicleInput): Promise<vo
   if (error) throw error;
 }
 
-export async function updateRentalVehicle(input: RentalVehicleInput): Promise<void> {
+/**
+ * Save a vehicle. `withPrices: false` leaves `daily_rate_minor` and `deposit_minor` OUT of the update:
+ * a person without money.prices cannot change a rate, and the database refuses any write that carries
+ * a rate differing from the stored one — which is exactly what a stale screen sends after the Owner
+ * changed it. Omitting the columns means their other edits still save and the Owner's rate stays.
+ */
+export async function updateRentalVehicle(
+  input: RentalVehicleInput,
+  opts: { withPrices?: boolean } = {},
+): Promise<void> {
+  const { withPrices = true } = opts;
+  const { daily_rate_minor, deposit_minor, ...rest } = toRow(input);
   const { error } = await getBrowserSupabase()
     .from('rental_vehicles')
-    .update(toRow(input))
+    .update(withPrices ? { daily_rate_minor, deposit_minor, ...rest } : rest)
     .eq('slug', input.slug);
   if (error) throw error;
 }

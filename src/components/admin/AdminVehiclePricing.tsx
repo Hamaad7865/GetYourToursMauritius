@@ -165,8 +165,12 @@ export function AdminVehiclePricing() {
   return (
     <div>
       <AdminHeading
-        title="Vehicle pricing"
-        subtitle="Flat per-vehicle prices. The fitting vehicle is chosen by party size; the price is server-authoritative."
+        title={canPrices ? 'Vehicle pricing' : 'Pricing'}
+        subtitle={
+          canPrices
+            ? 'Flat per-vehicle prices. The fitting vehicle is chosen by party size; the price is server-authoritative.'
+            : 'How customers’ cards are charged.'
+        }
       />
 
       {error && <AdminError>{error}</AdminError>}

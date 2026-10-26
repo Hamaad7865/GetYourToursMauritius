@@ -22,6 +22,7 @@ vi.mock('@/lib/supabase/browser', () => ({
 
 const { loadRentalFleet, createRentalVehicle, updateRentalVehicle, deleteRentalVehicle } =
   await import('@/lib/admin/rental');
+const { seedTeamRole } = await import('../db/team');
 
 async function call<T = unknown>(db: TestDb, fn: string, params: unknown): Promise<T> {
   const { rows } = await db.pg.query<{ data: T }>(`select ${fn}($1::jsonb) as data`, [
@@ -133,6 +134,56 @@ describe('rental fleet: public list RPC + admin RLS', () => {
       `select name, daily_rate_minor from rental_vehicles where slug = 'nissan-march'`,
     );
     expect(rows[0]).toMatchObject({ name: 'Nissan March', daily_rate_minor: 3600 }); // unchanged
+  });
+
+  it('lets a worker without money.prices save the other fields from a stale screen; the Owner’s rates stay', async () => {
+    // The worker's fleet screen was loaded; the Owner then changed the rates. The screen still holds the
+    // OLD rates in React state. Sending them back would be a rate change as far as the database is
+    // concerned, and the money guard would refuse every save until the worker reloaded the page.
+    const WORKER = 'b6b6b6b6-b6b6-b6b6-b6b6-b6b6b6b6b6b6';
+    await db.asOwner();
+    await db.pg.query(`insert into auth.users (id) values ($1)`, [WORKER]);
+    await db.pg.query(`insert into profiles (id, full_name, role) values ($1, 'Worker', 'staff')`, [
+      WORKER,
+    ]);
+    await seedTeamRole(db, WORKER, ['section.rental']); // no money.prices
+
+    await db.as({ sub: WORKER, role: 'authenticated' });
+    const stale = (await loadRentalFleet()).find((v) => v.slug === 'haojue-vx')!;
+    expect(stale).toMatchObject({ dailyRateEur: 20, depositEur: 0 });
+
+    await db.as({ sub: STAFF, role: 'authenticated' }); // the Owner
+    await updateRentalVehicle({ ...stale, dailyRateEur: 24.5, depositEur: 50 });
+
+    await db.as({ sub: WORKER, role: 'authenticated' });
+    // Control: sending the stale rates (the default) is a changed rate, and the database refuses it.
+    await expect(updateRentalVehicle({ ...stale, name: 'Haojue VX 125' })).rejects.toThrow(
+      /forbidden/i,
+    );
+
+    // Without prices the same stale row saves: the other fields land, the rates are not sent.
+    await updateRentalVehicle(
+      { ...stale, name: 'Haojue VX 125', sort: 45, active: false },
+      { withPrices: false },
+    );
+
+    await db.asOwner();
+    const { rows } = await db.pg.query<{
+      name: string;
+      sort: number;
+      active: boolean;
+      daily_rate_minor: number;
+      deposit_minor: number;
+    }>(
+      `select name, sort, active, daily_rate_minor, deposit_minor from rental_vehicles where slug = 'haojue-vx'`,
+    );
+    expect(rows[0]).toEqual({
+      name: 'Haojue VX 125',
+      sort: 45,
+      active: false,
+      daily_rate_minor: 2450, // the Owner's rate, untouched by the worker's save
+      deposit_minor: 5000,
+    });
   });
 
   it('explains, instead of leaking Postgres, when a vehicle is still on a booking', async () => {

@@ -23,6 +23,7 @@ import {
 } from '@/components/admin/ui';
 
 const CATEGORY_HINT = 'scooter · economy · family · suv · van';
+const PRICES_LOCKED_HINT = 'Needs Edit prices & fares';
 
 const BLANK: RentalVehicleInput = {
   slug: '',
@@ -105,23 +106,23 @@ function VehicleFields({
           placeholder="automatic"
         />
       </Field>
-      <Field label="Daily rate (€)">
+      <Field label="Daily rate (€)" hint={lockPrices ? PRICES_LOCKED_HINT : undefined}>
         <input
           type="number"
           min={0}
           step="0.01"
-          className={INPUT_CLS}
+          className={`${INPUT_CLS} disabled:cursor-not-allowed disabled:opacity-60`}
           disabled={lockPrices}
           value={v.dailyRateEur}
           onChange={(e) => patch({ dailyRateEur: e.target.value ? Number(e.target.value) : 0 })}
         />
       </Field>
-      <Field label="Deposit (€)" hint="At handover">
+      <Field label="Deposit (€)" hint={lockPrices ? PRICES_LOCKED_HINT : 'At handover'}>
         <input
           type="number"
           min={0}
           step="0.01"
-          className={INPUT_CLS}
+          className={`${INPUT_CLS} disabled:cursor-not-allowed disabled:opacity-60`}
           disabled={lockPrices}
           value={v.depositEur}
           onChange={(e) => patch({ depositEur: e.target.value ? Number(e.target.value) : 0 })}
@@ -297,7 +298,11 @@ export function AdminRentalFleet() {
                   <button
                     type="button"
                     disabled={busy === v.slug}
-                    onClick={() => void run(v.slug, () => updateRentalVehicle(fleet[i]!))}
+                    onClick={() =>
+                      void run(v.slug, () =>
+                        updateRentalVehicle(fleet[i]!, { withPrices: canPrices }),
+                      )
+                    }
                     className={BTN_PRIMARY}
                   >
                     {busy === v.slug ? 'Saving…' : 'Save'}
