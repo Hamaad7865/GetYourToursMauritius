@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/components/auth/AuthProvider';
+import { useAdminAccess } from '@/components/admin/AdminAccessProvider';
+import { can } from '@/lib/admin/permissions';
 import {
   loadRentalFleet,
   createRentalVehicle,
@@ -49,10 +51,13 @@ function VehicleFields({
   v,
   patch,
   lockSlug,
+  lockPrices = false,
 }: {
   v: RentalVehicleInput;
   patch: (p: Partial<RentalVehicleInput>) => void;
   lockSlug: boolean;
+  /** Rates are read-only without money.prices — the database refuses a changed rate anyway. */
+  lockPrices?: boolean;
 }) {
   const [uploading, setUploading] = useState(false);
   const [uploadErr, setUploadErr] = useState<string | null>(null);
@@ -106,6 +111,7 @@ function VehicleFields({
           min={0}
           step="0.01"
           className={INPUT_CLS}
+          disabled={lockPrices}
           value={v.dailyRateEur}
           onChange={(e) => patch({ dailyRateEur: e.target.value ? Number(e.target.value) : 0 })}
         />
@@ -116,6 +122,7 @@ function VehicleFields({
           min={0}
           step="0.01"
           className={INPUT_CLS}
+          disabled={lockPrices}
           value={v.depositEur}
           onChange={(e) => patch({ depositEur: e.target.value ? Number(e.target.value) : 0 })}
         />
@@ -205,6 +212,7 @@ function VehicleFields({
 export function AdminRentalFleet() {
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'admin' || profile?.role === 'staff';
+  const canPrices = can(useAdminAccess(), 'money.prices');
 
   const [fleet, setFleet] = useState<RentalVehicleInput[] | null>(null);
   const [draft, setDraft] = useState<RentalVehicleInput>(BLANK);
@@ -272,7 +280,9 @@ export function AdminRentalFleet() {
         {fleet === null ? (
           <p className="text-sm text-ink-muted">Loading…</p>
         ) : fleet.length === 0 ? (
-          <p className="text-sm text-ink-muted">No vehicles yet — add one below.</p>
+          <p className="text-sm text-ink-muted">
+            {canPrices ? 'No vehicles yet — add one below.' : 'No vehicles yet.'}
+          </p>
         ) : (
           fleet.map((v, i) => (
             <Card key={v.slug}>
@@ -316,28 +326,35 @@ export function AdminRentalFleet() {
                   )}
                 </div>
               </div>
-              <VehicleFields v={fleet[i]!} patch={(p) => patchRow(i, p)} lockSlug />
+              <VehicleFields
+                v={fleet[i]!}
+                patch={(p) => patchRow(i, p)}
+                lockSlug
+                lockPrices={!canPrices}
+              />
             </Card>
           ))
         )}
 
-        {/* Add a vehicle */}
-        <Card title="Add a vehicle" className="border-dashed">
-          <VehicleFields v={draft} patch={(p) => setDraft({ ...draft, ...p })} lockSlug={false} />
-          <div className="mt-4 flex items-center gap-3">
-            <button
-              type="button"
-              disabled={busy === 'new'}
-              onClick={addVehicle}
-              className={BTN_PRIMARY}
-            >
-              {busy === 'new' ? 'Adding…' : 'Add vehicle'}
-            </button>
-            {saved === 'new' && (
-              <span className="text-sm font-semibold text-emerald-700">Added ✓</span>
-            )}
-          </div>
-        </Card>
+        {/* Add a vehicle — a new vehicle needs a rate, so it needs money.prices */}
+        {canPrices && (
+          <Card title="Add a vehicle" className="border-dashed">
+            <VehicleFields v={draft} patch={(p) => setDraft({ ...draft, ...p })} lockSlug={false} />
+            <div className="mt-4 flex items-center gap-3">
+              <button
+                type="button"
+                disabled={busy === 'new'}
+                onClick={addVehicle}
+                className={BTN_PRIMARY}
+              >
+                {busy === 'new' ? 'Adding…' : 'Add vehicle'}
+              </button>
+              {saved === 'new' && (
+                <span className="text-sm font-semibold text-emerald-700">Added ✓</span>
+              )}
+            </div>
+          </Card>
+        )}
       </div>
     </div>
   );
