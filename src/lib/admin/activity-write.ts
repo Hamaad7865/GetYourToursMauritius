@@ -654,12 +654,34 @@ async function nextSortForCategory(category: string): Promise<number> {
   return ((data?.sort as number | null) ?? -1) + 1;
 }
 
+/** True when at least one option is live (not discontinued) — the minimum for a tour to be sold.
+ *  Shared by the save path and the editor, so what the Status control offers matches what a save
+ *  accepts. */
+export function hasActiveOption(options: ReadonlyArray<{ status?: string }>): boolean {
+  return options.some((o) => o.status !== 'archived');
+}
+
+/**
+ * The `activities` payload for a save. A pricing-locked role never sends `pricing_mode`: the form
+ * carries whatever mode it was loaded with, and if the Owner changed it in the meantime a stale form
+ * would "change" it back and trip the database's update-only price guard. Omitting the column leaves
+ * the stored value alone on update and applies the column default on create.
+ */
+function savePayload(v: ActivityFormValues, opId: string, opts: SaveOpts) {
+  const row = activityRow(v, opId);
+  if (!opts.pricingLocked) return row;
+  const { pricing_mode: _pricingMode, ...rest } = row;
+  return rest;
+}
+
 /** Save options.
  *  - `contentOnly` — the restricted content role: skip the option/price reconcile (RLS blocks those
  *    tables) and the staff-gated materialize RPC. Content fields, images and itinerary still save.
  *  - `pricingLocked` — a team role without money.prices: skip the option/price/supplement reconcile
  *    (the database refuses price writes for it, and saving would replace every tier), but still
- *    materialize. The "Pricing & options" pane is hidden for both. */
+ *    materialize. The "Pricing & options" pane is hidden for both. A NEW tour is created as a draft
+ *    (it has no options until someone with money.prices adds them), and an existing tour with no live
+ *    option cannot be published by this save. */
 export interface SaveOpts {
   contentOnly?: boolean;
   pricingLocked?: boolean;
@@ -672,9 +694,12 @@ export async function createActivity(v: ActivityFormValues, opts: SaveOpts = {})
   const sb = getBrowserSupabase();
   const opId = await operatorId();
   const sort = await nextSortForCategory(v.category);
+  // Content now, pricing by someone with the Prices permission: a locked worker's new tour has no
+  // options, so it must not go live as an unbookable page. Mirrors the assistant's create_tour.
+  const status = opts.pricingLocked ? ('draft' as const) : v.status;
   const { data, error } = await sb
     .from('activities')
-    .insert({ ...activityRow(v, opId), sort })
+    .insert({ ...savePayload(v, opId, opts), status, sort })
     .select('id')
     .single();
   if (error) throw error;
@@ -687,6 +712,33 @@ export async function createActivity(v: ActivityFormValues, opts: SaveOpts = {})
   return data.id;
 }
 
+/**
+ * A pricing-locked save may not take a tour live that has nothing to sell. A tour that is ALREADY
+ * published is left alone (this save changes words, not availability); otherwise publishing needs at
+ * least one live option. Checked against the stored options, not the form, so it cannot be argued
+ * with. Throws before any write, with the fix spelled out.
+ */
+async function assertPublishable(id: string): Promise<void> {
+  const sb = getBrowserSupabase();
+  const { data: cur, error: curErr } = await sb
+    .from('activities')
+    .select('status')
+    .eq('id', id)
+    .maybeSingle();
+  if (curErr) throw curErr;
+  if (cur?.status === 'published') return;
+  const { data: options, error } = await sb
+    .from('activity_options')
+    .select('id, status')
+    .eq('activity_id', id);
+  if (error) throw error;
+  if (!hasActiveOption(options ?? [])) {
+    throw new Error(
+      'This tour has no options or prices yet, so it can’t be published. Someone with the “Edit prices & fares” permission needs to add them first — keep it as a draft until then.',
+    );
+  }
+}
+
 /** Update an activity, reconciling its images/options/prices in place (FK-safe for booked activities). */
 export async function updateActivity(
   id: string,
@@ -697,6 +749,7 @@ export async function updateActivity(
   if (writePricing) assertPricingValid(v);
   const sb = getBrowserSupabase();
   const opId = await operatorId();
+  if (opts.pricingLocked && v.status === 'published') await assertPublishable(id);
   // Moving to another category keeps the old `sort` otherwise — a sort-0 tour would jump ahead of
   // the destination category's arranged order. Re-file it at the end, like a newly created tour.
   const { data: cur, error: curErr } = await sb
@@ -705,10 +758,11 @@ export async function updateActivity(
     .eq('id', id)
     .maybeSingle();
   if (curErr) throw curErr;
+  const payload = savePayload(v, opId, opts);
   const row =
     cur && cur.category !== v.category
-      ? { ...activityRow(v, opId), sort: await nextSortForCategory(v.category) }
-      : activityRow(v, opId);
+      ? { ...payload, sort: await nextSortForCategory(v.category) }
+      : payload;
   const { error } = await sb.from('activities').update(row).eq('id', id);
   if (error) throw error;
   await replaceImages(id, v.images);

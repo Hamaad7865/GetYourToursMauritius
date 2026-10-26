@@ -9,8 +9,9 @@ import type { PaneProps } from './sections';
  * Photos and the price-list PDF — the tour's uploaded assets.
  *
  * The PDF sits here rather than in Pricing & options on purpose: the whole Pricing pane is hidden
- * from the restricted 'seo' content role, and that role could always edit the price list (it is
- * page content, not a price the checkout reads). Moving it would have quietly taken it away.
+ * from anyone who may not edit prices (the content role, or a team role without Edit prices &
+ * fares), and those people could always edit the price list (it is page content, not a price the
+ * checkout reads). Moving it would have quietly taken it away.
  */
 export function MediaSection({ v, set }: PaneProps) {
   return (

@@ -28,8 +28,9 @@ export function FrenchSection({
   /** 'machine' | 'human' | undefined (no translation row yet, e.g. a brand-new activity). */
   frSource: string | undefined;
   /** The activity's supplements (same rows the Pricing pane edits) — this pane edits each row's
-   *  FRENCH label (activity_supplements.name_fr). Undefined for the restricted 'seo' content role,
-   *  whose RLS can't write that table — the block is hidden rather than silently losing edits. */
+   *  FRENCH label (activity_supplements.name_fr). Undefined for anyone who may not edit prices (the
+   *  content role, or a team role without Edit prices & fares) — they can't write that table, so the
+   *  block is hidden rather than silently losing edits. */
   supplements?: SupplementInput[];
   setSupplements?: (next: SupplementInput[]) => void;
 }) {

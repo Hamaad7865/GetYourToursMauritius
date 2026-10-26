@@ -30,6 +30,7 @@ import {
   EMPTY_ACTIVITY,
   EMPTY_ACTIVITY_TRANSLATION,
   createActivity,
+  hasActiveOption,
   loadActivityForEdit,
   loadActivityTranslation,
   saveActivityTranslation,
@@ -105,6 +106,16 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
     };
   }, []);
 
+  // A locked worker's NEW tour is saved as a draft (see createActivity): show that on the Status
+  // control instead of a "Published" it would silently not get. Draft is also the safe answer while
+  // access is still loading, and the Status control stays editable once it has.
+  useEffect(() => {
+    if (mode !== 'new' || !pricingLocked) return;
+    setValues((prev) =>
+      prev && prev.status === 'published' ? { ...prev, status: 'draft' } : prev,
+    );
+  }, [mode, pricingLocked]);
+
   // Deep link: /admin/activities/<id>/edit?s=pricing opens straight on that pane. Read AFTER mount,
   // never in a `useState` initialiser — `window` doesn't exist during SSR, so seeding state from it
   // would make the client's first render disagree with the server's.
@@ -154,6 +165,9 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
   if (!values) return <p className="text-sm text-coral">{error ?? 'Not found.'}</p>;
   const v = values;
   const highlightsOverridden = highlightsAreOverridden(v.category, contentDefaults);
+  // Without the Prices permission a tour can only go live once it already has a live option; the
+  // save refuses it otherwise, so the Status control doesn't offer it.
+  const publishLocked = pricingLocked && !hasActiveOption(v.options);
   const sections = visibleSections(pricingLocked);
   // A role that cannot edit prices can arrive on ?s=pricing before its profile or access has loaded,
   // which would leave the rail pointing at a pane that no longer exists once it has.
@@ -249,10 +263,17 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
       />
 
       <div className="flex min-w-0 flex-1 flex-col gap-4">
+        {pricingLocked && (
+          <p className="text-[13px] text-ink-muted">
+            Prices and options are set by someone with the Edit prices &amp; fares permission. New
+            tours you create stay as drafts until then.
+          </p>
+        )}
         {current === 'basics' && (
           <BasicsSection
             v={v}
             set={set}
+            publishLocked={publishLocked}
             categories={categories}
             onTitle={(title) =>
               setValues((prev) =>

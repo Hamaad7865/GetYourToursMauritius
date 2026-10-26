@@ -110,8 +110,8 @@ export function sectionIssues(
   const issues: Partial<Record<SectionId, string>> = {};
   if (!v.title.trim()) issues.basics = 'A title is required.';
   else if (!v.slug.trim()) issues.basics = 'A URL slug is required.';
-  // contentOnly saves skip assertPricingValid (RLS blocks the tables), so flagging it would point
-  // at a pane the role can't even open.
+  // A save by anyone who may not edit prices (the content role, or a team role without Edit prices &
+  // fares) skips assertPricingValid, so flagging it would point at a pane they can't even open.
   if (!contentOnly) {
     try {
       assertPricingValid(v);

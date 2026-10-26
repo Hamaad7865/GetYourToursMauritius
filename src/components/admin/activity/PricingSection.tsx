@@ -5,7 +5,8 @@ import { OptionsEditor } from './OptionsEditor';
 import type { ActivityFormValues } from '@/lib/admin/activity-write';
 import type { PaneProps } from './sections';
 
-/** Staff-only: the restricted 'seo' content role never sees this pane (RLS blocks the tables). */
+/** Hidden from anyone who may not edit prices — the content role (RLS blocks the tables) or a team
+ *  role without Edit prices & fares. */
 export function PricingSection({ v, set }: PaneProps) {
   return (
     <Section

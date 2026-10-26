@@ -11,8 +11,12 @@ export function BasicsSection({
   categories,
   onTitle,
   onSlug,
+  publishLocked = false,
 }: PaneProps & {
   categories: CategoryItem[];
+  /** The person may not edit prices and the tour has no live option, so it cannot be taken live
+   *  yet — "Published" is shown but not selectable. */
+  publishLocked?: boolean;
   /** Retypes the slug from the title until the slug has been edited by hand. */
   onTitle: (title: string) => void;
   onSlug: (slug: string) => void;
@@ -69,7 +73,9 @@ export function BasicsSection({
             value={v.status}
             onChange={(e) => set('status', e.target.value as ActivityFormValues['status'])}
           >
-            <option value="published">Published (visible on the site)</option>
+            <option value="published" disabled={publishLocked}>
+              Published (visible on the site)
+            </option>
             <option value="draft">Draft (hidden)</option>
           </select>
         </Field>

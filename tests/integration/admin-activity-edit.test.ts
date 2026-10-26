@@ -27,7 +27,9 @@ vi.mock('@/lib/supabase/browser', () => ({
   },
 }));
 
-const { EMPTY_ACTIVITY, updateActivity } = await import('@/lib/admin/activity-write');
+const { EMPTY_ACTIVITY, createActivity, loadActivityForEdit, updateActivity } =
+  await import('@/lib/admin/activity-write');
+const { seedTeamRole } = await import('../db/team');
 
 describe('updateActivity preserves option ids on edit', () => {
   let db: TestDb;
@@ -338,48 +340,191 @@ describe('updateActivity preserves option ids on edit', () => {
     ).toBe(true);
   });
 
-  it('a role without money.prices can save the description; prices are left untouched', async () => {
-    const { activityId, optionId } = await seedActivity('locked-pricing');
-    const LOCKED = 'a6a6a6a6-a6a6-a6a6-a6a6-a6a6a6a6a6a6';
+  /** A signed-in worker with a team role holding exactly `permissions`. Leaves the session as owner. */
+  async function seedWorker(id: string, permissions: Parameters<typeof seedTeamRole>[2]) {
     await db.asOwner();
-    await db.pg.query(`insert into auth.users (id) values ($1)`, [LOCKED]);
-    await db.pg.query(`insert into profiles (id, role) values ($1, 'staff')`, [LOCKED]);
-    const { seedTeamRole } = await import('../db/team');
-    await seedTeamRole(db, LOCKED, ['section.tours']);
-    const before = (
-      await db.pg.query<{ id: string }>(
-        `select id from activity_option_prices where activity_option_id = $1`,
+    await db.pg.query(`insert into auth.users (id) values ($1)`, [id]);
+    await db.pg.query(`insert into profiles (id, role) values ($1, 'staff')`, [id]);
+    await seedTeamRole(db, id, permissions);
+  }
+
+  const priceRows = async (optionId: string) => {
+    await db.asOwner();
+    return (
+      await db.pg.query<{ id: string; amount_minor: number }>(
+        `select id, amount_minor from activity_option_prices where activity_option_id = $1`,
         [optionId],
       )
-    ).rows.map((r) => r.id);
+    ).rows;
+  };
+
+  it('a role without money.prices can save the description; prices, options and supplements are left untouched', async () => {
+    const { activityId, optionId } = await seedActivity('locked-pricing');
+    await db.pg.query(
+      `insert into activity_supplements (activity_id, name, price_minor, position) values ($1, 'Lunch', 1500, 0)`,
+      [activityId],
+    );
+    const LOCKED = 'a6a6a6a6-a6a6-a6a6-a6a6-a6a6a6a6a6a6';
+    await seedWorker(LOCKED, ['section.tours']);
+    const before = (await priceRows(optionId)).map((r) => r.id);
 
     await db.as({ sub: LOCKED, role: 'authenticated' });
     const form = {
       ...EMPTY_ACTIVITY,
       slug: 'locked-pricing',
       title: 'New words only',
+      supplements: [], // a reconcile would delete the stored 'Lunch' supplement
       options: [
         {
           id: optionId,
-          name: 'Private group',
+          name: 'Renamed by a locked worker',
           prices: [{ label: 'Adult', amountEur: 1, maxGuests: null }],
         },
       ],
     };
     await updateActivity(activityId, form, { pricingLocked: true });
 
-    await db.asOwner();
-    const after = await db.pg.query<{ id: string; amount_minor: number }>(
-      `select id, amount_minor from activity_option_prices where activity_option_id = $1`,
-      [optionId],
-    );
-    expect(after.rows.map((r) => r.id)).toEqual(before); // not replaced
-    expect(after.rows[0]!.amount_minor).toBe(7000); // the form's €1 was ignored
+    const after = await priceRows(optionId);
+    expect(after.map((r) => r.id)).toEqual(before); // not replaced
+    expect(after[0]!.amount_minor).toBe(7000); // the form's €1 was ignored
+    const optionName = (
+      await db.pg.query<{ name: string }>(`select name from activity_options where id = $1`, [
+        optionId,
+      ])
+    ).rows[0]!.name;
+    expect(optionName).toBe('Private group'); // option rows are not rewritten either
+    const supplements = (
+      await db.pg.query<{ name: string }>(
+        `select name from activity_supplements where activity_id = $1`,
+        [activityId],
+      )
+    ).rows;
+    expect(supplements.map((r) => r.name)).toEqual(['Lunch']);
     const title = (
       await db.pg.query<{ title: string }>(`select title from activities where id = $1`, [
         activityId,
       ])
     ).rows[0]!.title;
     expect(title).toBe('New words only');
+  });
+
+  it('a locked load-then-save never sends the pricing mode, so a mode changed meanwhile survives', async () => {
+    const { activityId } = await seedActivity('locked-mode');
+    await db.pg.query(`update activities set pricing_mode = 'per_group' where id = $1`, [
+      activityId,
+    ]);
+    const LOCKED = 'a7a7a7a7-a7a7-a7a7-a7a7-a7a7a7a7a7a7';
+    await seedWorker(LOCKED, ['section.tours']);
+
+    await db.as({ sub: LOCKED, role: 'authenticated' });
+    const loaded = await loadActivityForEdit(activityId);
+    expect(loaded!.pricingMode).toBe('per_group');
+    // A stale form: the editor was opened when the mode was still per_person.
+    const stale = {
+      ...loaded!,
+      title: 'Words from a stale form',
+      pricingMode: 'per_person' as const,
+    };
+    await expect(updateActivity(activityId, stale, { pricingLocked: true })).resolves.toEqual({
+      keptWithBookings: [],
+    });
+
+    await db.asOwner();
+    const row = (
+      await db.pg.query<{ pricing_mode: string; title: string }>(
+        `select pricing_mode, title from activities where id = $1`,
+        [activityId],
+      )
+    ).rows[0]!;
+    expect(row.pricing_mode).toBe('per_group');
+    expect(row.title).toBe('Words from a stale form');
+  });
+
+  it("a locked worker's new tour is created as a draft with no options", async () => {
+    const LOCKED = 'a8a8a8a8-a8a8-a8a8-a8a8-a8a8a8a8a8a8';
+    await seedWorker(LOCKED, ['section.tours']);
+    await db.as({ sub: LOCKED, role: 'authenticated' });
+    const id = await createActivity(
+      {
+        ...EMPTY_ACTIVITY,
+        slug: 'locked-new-tour',
+        title: 'Locked new tour',
+        category: 'Island tours',
+        status: 'published', // the form default — must not go live
+        options: [{ name: 'Shared', prices: [{ label: 'Adult', amountEur: 1, maxGuests: null }] }],
+      },
+      { pricingLocked: true },
+    );
+
+    await db.asOwner();
+    const act = (
+      await db.pg.query<{ status: string; pricing_mode: string }>(
+        `select status, pricing_mode from activities where id = $1`,
+        [id],
+      )
+    ).rows[0]!;
+    expect(act.status).toBe('draft');
+    expect(act.pricing_mode).toBe('per_person'); // the column default
+    const options = await db.pg.query(`select id from activity_options where activity_id = $1`, [
+      id,
+    ]);
+    expect(options.rows).toHaveLength(0);
+  });
+
+  it('a locked worker cannot publish a tour that has no live option, but can once one exists', async () => {
+    const LOCKED = 'a9a9a9a9-a9a9-a9a9-a9a9-a9a9a9a9a9a9';
+    await seedWorker(LOCKED, ['section.tours']);
+    const { activityId, optionId } = await seedActivity('locked-publish');
+    await db.pg.query(`update activities set status = 'draft' where id = $1`, [activityId]);
+    await db.pg.query(`update activity_options set status = 'archived' where id = $1`, [optionId]);
+    const form = {
+      ...EMPTY_ACTIVITY,
+      slug: 'locked-publish',
+      title: 'Go live',
+      status: 'published' as const,
+    };
+    const storedStatus = async () => {
+      await db.asOwner();
+      return (
+        await db.pg.query<{ status: string }>(`select status from activities where id = $1`, [
+          activityId,
+        ])
+      ).rows[0]!.status;
+    };
+
+    await db.as({ sub: LOCKED, role: 'authenticated' });
+    await expect(updateActivity(activityId, form, { pricingLocked: true })).rejects.toThrow(
+      /Edit prices/,
+    );
+    expect(await storedStatus()).toBe('draft');
+
+    await db.pg.query(`update activity_options set status = 'active' where id = $1`, [optionId]);
+    await db.as({ sub: LOCKED, role: 'authenticated' });
+    await updateActivity(activityId, form, { pricingLocked: true });
+    expect(await storedStatus()).toBe('published');
+  });
+
+  it('a team member WITH money.prices still saves prices (the lock is per permission)', async () => {
+    const { activityId, optionId } = await seedActivity('priced-worker');
+    const PRICER = 'b1b1b1b1-b1b1-b1b1-b1b1-b1b1b1b1b1b1';
+    await seedWorker(PRICER, ['section.tours', 'money.prices']);
+
+    await db.as({ sub: PRICER, role: 'authenticated' });
+    const form = {
+      ...EMPTY_ACTIVITY,
+      slug: 'priced-worker',
+      title: 'Repriced',
+      options: [
+        {
+          id: optionId,
+          name: 'Private group',
+          prices: [{ label: 'Adult', amountEur: 90, maxGuests: null }],
+        },
+      ],
+    };
+    await updateActivity(activityId, form, { pricingLocked: false });
+
+    const after = await priceRows(optionId);
+    expect(after.map((r) => r.amount_minor)).toEqual([9000]);
   });
 });
