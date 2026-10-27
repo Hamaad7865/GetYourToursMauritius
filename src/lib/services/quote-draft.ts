@@ -207,6 +207,7 @@ export async function draftFromExtraction(
           activityOptionId: priceable.activityOptionId,
           sessionOccurrenceId: priceable.occurrenceId,
           startsAt: priceable.startsAt,
+          departureTime: priceable.departureTime,
           tiers: priceable.tiers.map((t) => ({
             label: t.label,
             amountMinor: t.amountMinor,

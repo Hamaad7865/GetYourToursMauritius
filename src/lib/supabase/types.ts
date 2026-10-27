@@ -280,6 +280,8 @@ type SessionOccurrencesRow = {
   capacity: number;
   status: Database['public']['Enums']['occurrence_status'];
   created_at: string;
+  /** Per-departure start time ("HH:MM:SS", Mauritius) overriding the tour's; null = the tour's. */
+  departure_time: string | null;
 };
 type SessionOccurrencesInsert = {
   id?: string;
@@ -290,6 +292,7 @@ type SessionOccurrencesInsert = {
   capacity: number;
   status?: Database['public']['Enums']['occurrence_status'];
   created_at?: string;
+  departure_time?: string | null;
 };
 
 type BookingHoldsRow = {
@@ -1381,6 +1384,7 @@ export interface Database {
       api_reschedule_booking: { Args: { p: Json }; Returns: Json };
       api_weather_cancel_occurrence: { Args: { p: Json }; Returns: Json };
       api_admin_calendar_month: { Args: { p: Json }; Returns: Json };
+      api_admin_set_departure_time: { Args: { p: Json }; Returns: Json };
       api_erase_user: { Args: { p: Json }; Returns: Json };
       set_daily_capacity_atomic: { Args: { p: Json }; Returns: undefined };
       stop_availability_atomic: { Args: { p: Json }; Returns: undefined };

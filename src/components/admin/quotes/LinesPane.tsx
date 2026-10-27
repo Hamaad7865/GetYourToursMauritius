@@ -3,7 +3,7 @@
 import { useEffect, useState, type Dispatch, type SetStateAction } from 'react';
 import { BTN_GHOST, Card, INPUT_CLS } from '@/components/admin/ui';
 import { IconChevron, IconPlus, IconX } from '@/components/ui/icons';
-import { fmtDate, fmtTime } from '@/lib/admin/format';
+import { fmtDate } from '@/lib/admin/format';
 import { TourPicker } from '@/components/admin/quotes/TourPicker';
 import { RentalPicker } from '@/components/admin/quotes/RentalPicker';
 import { LineTransport } from '@/components/admin/quotes/LineTransport';
@@ -151,10 +151,10 @@ export function LinesPane({
                     <span className="rounded-full bg-ink/[0.06] px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-ink-muted">
                       {KIND_LABEL[line.kind] ?? line.kind}
                     </span>
+                    {/* The day alone: the slot's clock is a placeholder, and the tour's start time
+                        already rides in the description. */}
                     {line.kind === 'catalogue' && line.startsAt && (
-                      <span className="text-[12px] text-ink-muted">
-                        {fmtDate(line.startsAt)}, {fmtTime(line.startsAt)}
-                      </span>
+                      <span className="text-[12px] text-ink-muted">{fmtDate(line.startsAt)}</span>
                     )}
                     <span className="ml-auto flex items-center gap-1">
                       <button

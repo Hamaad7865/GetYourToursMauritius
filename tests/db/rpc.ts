@@ -78,6 +78,7 @@ const ALLOWED = new Set([
   'api_team_list',
   'api_team_assign',
   'api_team_remove',
+  'api_admin_set_departure_time',
 ]);
 
 /**

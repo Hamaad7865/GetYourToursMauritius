@@ -298,9 +298,20 @@ export function AdminDashboard() {
                         className="flex items-center gap-3.5 border-b border-[#F4F6F7] px-[18px] py-3.5 last:border-b-0 hover:bg-[#FAFBFC]"
                       >
                         <div className="w-12 shrink-0 text-center">
-                          <div className="text-[15px] font-extrabold tracking-tight text-ink">
-                            {d.time}
-                          </div>
+                          {d.time ? (
+                            <div className="text-[15px] font-extrabold tracking-tight text-ink">
+                              {d.time}
+                            </div>
+                          ) : (
+                            // No start time set on the tour: say so rather than print the slot's
+                            // placeholder clock. Staff set it under Tours → Logistics.
+                            <div
+                              className="text-[11px] font-bold leading-tight text-ink-muted"
+                              title="No start time set on this tour"
+                            >
+                              Time TBC
+                            </div>
+                          )}
                         </div>
                         <div className="h-9 w-px self-stretch bg-[#EEF1F3]" />
                         <div className="min-w-0 flex-1">

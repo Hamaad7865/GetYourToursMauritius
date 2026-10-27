@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { IconX } from '@/components/ui/icons';
 import { inputClass } from '@/components/admin/fields';
+import { departureClock } from '@/lib/catalogue/departure-time';
 import { setOptionStatus, type OptionInput } from '@/lib/admin/activity-write';
 
 export function OptionsEditor({
@@ -141,9 +142,17 @@ export function OptionsEditor({
                 aria-label="Option start time"
                 onChange={(e) => update(i, { startWindow: e.target.value })}
               />
-              <span className="text-ink-muted/70">
-                blank = use the activity’s duration / start time
-              </span>
+              {opt.startWindow?.trim() && !departureClock(opt.startWindow) ? (
+                // Bookings read this as the departure; text that is not a time leaves them dateless
+                // rather than falling back to the activity's, so say so while it can be fixed.
+                <span className="font-semibold text-coral-dark">
+                  not a time — bookings will show the date only
+                </span>
+              ) : (
+                <span className="text-ink-muted/70">
+                  blank = use the activity’s duration / start time
+                </span>
+              )}
             </div>
             {/* Private option: its own trips-per-day pool + base-covers-N + per-extra-head pricing.
                 Replaces the price tiers entirely (the private fields ARE the pricing). */}

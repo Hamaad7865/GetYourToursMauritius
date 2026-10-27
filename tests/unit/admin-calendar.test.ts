@@ -974,10 +974,112 @@ describe('transfer pickup times on the day sheet', () => {
     expect(departureHeaderTime(dep!)).toBe('07:15');
   });
 
-  it('keeps a tour card at its occurrence time, with no per-guest pickup', () => {
-    const [dep] = mapDaySchedule([row([item()])]); // 05:00Z = 09:00 Mauritius
+  it("heads a tour card with the start time set on the tour, not the slot's noon", () => {
+    const [dep] = mapDaySchedule([
+      row([item()], {
+        starts_at: NOON,
+        activity_options: {
+          name: 'Shared tour',
+          start_window: null,
+          activities: { title: 'Ile aux Cerfs', startWindow: '09:00 - 17:00' },
+        },
+      }),
+    ]);
+    expect(dep!.departureTime).toBe('09:00');
     expect(dep!.bookings[0]!.pickupTime).toBeNull();
     expect(departureHeaderTime(dep!)).toBe('09:00');
     expect(guestPickup(dep!.bookings[0]!, dep!)).toBeNull();
+  });
+
+  it("prefers the option's own start time (an afternoon session of a morning tour)", () => {
+    const [dep] = mapDaySchedule([
+      row([item()], {
+        starts_at: NOON,
+        activity_options: {
+          name: 'Afternoon Session',
+          start_window: '16:00',
+          activities: { title: 'Horse riding', startWindow: '09:00' },
+        },
+      }),
+    ]);
+    expect(departureHeaderTime(dep!)).toBe('16:00');
+  });
+
+  it('prints no header time for a tour with no start time set — never the placeholder', () => {
+    const [dep] = mapDaySchedule([row([item()], { starts_at: NOON })]);
+    expect(dep!.departureTime).toBeNull();
+    expect(departureHeaderTime(dep!)).toBeNull();
+  });
+});
+
+/* A departure can leave at its own time (session_occurrences.departure_time), set from the calendar,
+ * and the redesigned calendar sums what each departure is booked for. */
+describe('a departure’s own time and value', () => {
+  it('lets the time staff set win, and keeps the tour’s usual time beside it', () => {
+    const [dep] = mapDaySchedule([
+      row([item()], {
+        departure_time: '08:15:00',
+        activity_options: {
+          name: 'Shared tour',
+          start_window: null,
+          duration_minutes: 300,
+          activities: {
+            title: 'Ile aux Cerfs',
+            startWindow: '09:00',
+            category: 'Catamaran cruises',
+            duration_minutes: 480,
+          },
+        },
+      }),
+    ]);
+    expect(dep).toMatchObject({
+      departureTime: '08:15',
+      timeOverride: '08:15',
+      tourTime: '09:00',
+      durationMinutes: 300,
+      category: 'Catamaran cruises',
+    });
+    expect(departureHeaderTime(dep!)).toBe('08:15');
+  });
+
+  it('counts a booking’s whole total when every line of it is on this departure', () => {
+    const b = booking({
+      total_minor: 20600,
+      itemCount: [{ count: 2 }],
+      customCount: [{ count: 0 }],
+    });
+    const [dep] = mapDaySchedule([
+      row([
+        item({ price_label: 'Adult', subtotal_minor: 14000, bookings: b }),
+        item({ price_label: 'Child', subtotal_minor: 6000, bookings: b }),
+      ]),
+    ]);
+    // Child seats and supplements live only in the total — and the party is counted once.
+    expect(dep!.bookings[0]!.valueEur).toBe(206);
+    expect(dep!.valueEur).toBe(206);
+  });
+
+  it('counts only its lines here when the booking spans other departures', () => {
+    const b = booking({
+      total_minor: 50000,
+      itemCount: [{ count: 3 }],
+      customCount: [{ count: 0 }],
+    });
+    const [dep] = mapDaySchedule([
+      row([item({ subtotal_minor: 14000, transport_fare_minor: 3000, bookings: b })]),
+    ]);
+    expect(dep!.valueEur).toBe(170);
+  });
+
+  it('leaves unpaid parties out of the departure’s value', () => {
+    const [dep] = mapDaySchedule([
+      row([
+        item({
+          subtotal_minor: 9000,
+          bookings: booking({ status: 'payment_pending', itemCount: [{ count: 1 }] }),
+        }),
+      ]),
+    ]);
+    expect(dep!.valueEur).toBe(0);
   });
 });

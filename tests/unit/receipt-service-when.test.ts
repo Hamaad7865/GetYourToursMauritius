@@ -34,6 +34,24 @@ describe('loadBookingForReceipt — pickup time', () => {
     expect(booking.pickupTime).toBe('07:15');
   });
 
+  it("carries a tour's start time as departureTime, read like the admin screens read it", async () => {
+    const { booking } = await loadBookingForReceipt(
+      ctxReturning({ ...base, activityTitle: 'Private Cataspeed', startWindow: '07 00' }),
+      'b-3',
+    );
+    expect(booking.departureTime).toBe('07:00');
+  });
+
+  it('leaves departureTime empty when no start time is set, or on a pre-migration receipt', async () => {
+    const { booking: none } = await loadBookingForReceipt(
+      ctxReturning({ ...base, startWindow: null }),
+      'b-4',
+    );
+    expect(none.departureTime).toBeNull();
+    const { booking: legacy } = await loadBookingForReceipt(ctxReturning(base), 'b-5');
+    expect(legacy.departureTime).toBeNull();
+  });
+
   it('leaves pickupTime empty for an airport transfer — its time rides in the transfer block', async () => {
     const { booking } = await loadBookingForReceipt(
       ctxReturning({ ...base, tripDirection: 'arrival', arrivalTime: '16:00' }),

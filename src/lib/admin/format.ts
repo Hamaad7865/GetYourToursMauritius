@@ -89,12 +89,13 @@ export interface ServiceWhen {
 /**
  * When the guest is collected, for every back-office date/time cell.
  *
- * Every day-slot is materialised at a placeholder NOON (`materialize_availability`), so a transfer's
- * occurrence clock reads 12:00 whatever time the guest lands. Its real pickup is what the guest typed:
- * the first leg from {@link transferLegs} — so a departure-only trip is dated by its return_date, not the
- * slot — or a hotel-to-hotel transfer's `pickupTime`. A transfer with no time captured gets its day
- * alone. Everything else keeps the occurrence's own date and time. The admin twin of the invoice's
- * Date line, so the back-office and the guest's documents agree on when the car comes.
+ * Every day-slot is materialised at a placeholder clock time (`materialize_availability` puts it at
+ * noon; slots made before the July timezone fix sit at 16:00), so an occurrence's clock is never real.
+ * A transfer's pickup is what the guest typed: the first leg from {@link transferLegs} — so a
+ * departure-only trip is dated by its return_date, not the slot — or a hotel-to-hotel transfer's
+ * `pickupTime`. A tour leaves at the start time set on it (`departureTime`, see
+ * `@/lib/catalogue/departure-time`). Anything with no time gets its day alone. The admin twin of the
+ * invoice's Date line, so the back-office and the guest's documents agree on when the car comes.
  */
 export function serviceWhen(b: {
   startsAt: string | null;
@@ -103,6 +104,8 @@ export function serviceWhen(b: {
     'direction' | 'arrivalTime' | 'returnDate' | 'returnTime'
   > | null;
   pickupTime: string | null;
+  /** The tour's departure ("HH:MM") from its option/activity start time; null when none is set. */
+  departureTime: string | null;
 }): ServiceWhen | null {
   // The slot's MAURITIUS day — transferLegs reads the first 10 characters as the date, which on a raw
   // UTC ISO is only right while every slot sits at noon.
@@ -121,8 +124,7 @@ export function serviceWhen(b: {
     return day ? at(day, null) : null;
   }
   if (!b.startsAt || !slotDay) return null;
-  if (b.pickupTime) return at(slotDay, b.pickupTime);
-  return { day: slotDay, time: fmtTime(b.startsAt), at: b.startsAt };
+  return at(slotDay, b.pickupTime || b.departureTime);
 }
 
 function at(day: string, time: string | null): ServiceWhen {

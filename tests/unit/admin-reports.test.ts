@@ -38,6 +38,7 @@ function booking(over: Partial<BookingRow>): BookingRow {
     installments: [],
     transfer: null,
     pickupTime: null,
+    departureTime: null,
     ...over,
   };
 }

@@ -91,6 +91,10 @@ export interface InvoiceBookingInput {
   /** A hotel-to-hotel transfer's pickup time (bookings.arrival_time, "HH:MM"). It has no airport
    *  direction, so no `transfer` block — this is what dates its "Date" line instead of the noon slot. */
   pickupTime?: string | null;
+  /** The headline tour's start time ("HH:MM", from its option's or activity's start window). The
+   *  day-slot `when` sits at a placeholder clock, so this is the only departure time the "Date" line
+   *  may print; absent → the date alone. */
+  departureTime?: string | null;
   items: InvoiceBookingItem[];
   /** The language the guest booked in (bookings.locale, Task 15). Normalized to a valid {@link Locale}
    *  in `buildInvoice` — an absent/unrecognised value falls back to English rather than throwing, since
@@ -171,6 +175,8 @@ export interface InvoiceModel {
     transfer?: TransferDetails | null;
     /** A hotel-to-hotel transfer's pickup time — see {@link InvoiceBookingInput.pickupTime}. */
     pickupTime?: string | null;
+    /** The tour's start time — see {@link InvoiceBookingInput.departureTime}. */
+    departureTime?: string | null;
   };
   lines: InvoiceLine[];
   subtotalNetEur: number;
@@ -340,6 +346,7 @@ export function buildInvoice(
       dropoff: booking.dropoffLocation ?? null,
       transfer: booking.transfer ?? null,
       pickupTime: booking.pickupTime ?? null,
+      departureTime: booking.departureTime ?? null,
     },
     lines,
     subtotalNetEur,

@@ -55,8 +55,8 @@ function addDays(day: string, n: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-/** The Date cell: when the guest is collected — a transfer's own pickup time, never its day-slot's
- *  placeholder noon, and the day alone when the guest gave no time. See `serviceWhen`. */
+/** The Date cell: when the guest is collected — a transfer's own pickup time or a tour's start time,
+ *  never the day-slot's placeholder clock, and the day alone when there is no time. See `serviceWhen`. */
 function ServiceWhenCell({ booking }: { booking: BookingRow }) {
   const when = serviceWhen(booking);
   if (!when) return <>—</>;
@@ -792,6 +792,7 @@ function BookingDrawer({
                               startsAt: it.startsAt,
                               transfer: booking.transfer,
                               pickupTime: booking.pickupTime,
+                              departureTime: it.departureTime,
                             })?.at ?? null,
                           )}
                           <IconUsers width={13} height={13} className="ml-2 text-teal" />{' '}
@@ -993,6 +994,7 @@ function BookingDrawer({
                 bookingId={booking.id}
                 bookingRef={booking.ref}
                 currentStartsAt={booking.items.map((i) => i.startsAt).filter(Boolean)[0] ?? null}
+                currentDepartureTime={booking.items.find((i) => i.startsAt)?.departureTime ?? null}
                 onChanged={() => {
                   void reload();
                   onChanged();

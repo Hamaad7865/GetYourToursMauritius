@@ -543,19 +543,27 @@ export interface TourPick {
   optionName: string;
   activityOptionId: string;
   sessionOccurrenceId: string;
-  /** The departure instant, as stored on `session_occurrences.starts_at`. */
+  /** The departure DAY, as stored on `session_occurrences.starts_at` — its clock is a placeholder. */
   startsAt: string;
+  /** When the tour leaves ("HH:MM"), from the option's or activity's start time; null when unset. */
+  departureTime: string | null;
   tiers: TourTierPick[];
 }
 
 /** "Catamaran cruise — Full day · 23 Aug 2026, 09:00 · Adult", in Mauritius time like the rest of
- *  the back office. Editable afterwards: it is the guest's line, not a system label. */
+ *  the back office. The time is the tour's start time — never the slot's placeholder clock — and is
+ *  left out when the tour has none set. Editable afterwards: it is the guest's line, not a system
+ *  label. */
 export function tourLineDescription(pick: Omit<TourPick, 'tiers'>, tierLabel: string): string {
   const parts = [pick.activityTitle];
   if (pick.optionName && pick.optionName !== pick.activityTitle) {
     parts[0] = `${pick.activityTitle} — ${pick.optionName}`;
   }
-  parts.push(`${fmtDate(pick.startsAt)}, ${fmtTime(pick.startsAt)}`);
+  parts.push(
+    pick.departureTime
+      ? `${fmtDate(pick.startsAt)}, ${pick.departureTime}`
+      : fmtDate(pick.startsAt),
+  );
   if (tierLabel) parts.push(tierLabel);
   return parts.join(' · ');
 }

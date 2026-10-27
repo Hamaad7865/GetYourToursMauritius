@@ -111,8 +111,16 @@ describe('formatServiceWhen', () => {
     );
   });
 
-  it('leaves every other booking on the occurrence date-time', () => {
-    expect(formatServiceWhen({ when: NOON_SLOT })).toBe('2026-10-07 12:00 MUT');
+  it('prints a tour at the start time set on the tour, not the noon slot', () => {
+    expect(formatServiceWhen({ when: NOON_SLOT, departureTime: '09:00' })).toBe(
+      '2026-10-07 09:00 MUT',
+    );
+  });
+
+  it('prints the date alone for a tour with no start time set — never the placeholder clock', () => {
+    expect(formatServiceWhen({ when: NOON_SLOT })).toBe('2026-10-07');
+    expect(formatServiceWhen({ when: NOON_SLOT, departureTime: null })).toBe('2026-10-07');
     expect(formatServiceWhen({ when: '' })).toBe('');
+    expect(formatServiceWhen({ when: '', departureTime: '09:00' })).toBe('');
   });
 });

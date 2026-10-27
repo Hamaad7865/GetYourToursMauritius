@@ -1,7 +1,28 @@
 'use client';
 
 import { Field, Section, inputClass } from '@/components/admin/fields';
+import { departureClock } from '@/lib/catalogue/departure-time';
 import type { PaneProps } from './sections';
+
+/** What bookings will print for this start time, read exactly as they read it — so a typo like
+ *  "Morning" or "9-ish" is caught here, not on a guest's invoice. */
+function DepartureReadout({ text }: { text: string }) {
+  if (!text.trim()) {
+    return (
+      <p className="mt-1 text-[12px] text-ink-muted">
+        No start time: bookings show the date only (“Time TBC” on the dashboard).
+      </p>
+    );
+  }
+  const time = departureClock(text);
+  return time ? (
+    <p className="mt-1 text-[12px] font-semibold text-teal-dark">Bookings will show {time}.</p>
+  ) : (
+    <p className="mt-1 text-[12px] font-semibold text-coral-dark">
+      No time recognised — bookings will show the date only. Start with a time, like 09:00.
+    </p>
+  );
+}
 
 /** How the trip runs: where it meets, when it leaves, who it takes, how it is booked. */
 export function LogisticsSection({ v, set }: PaneProps) {
@@ -32,9 +53,12 @@ export function LogisticsSection({ v, set }: PaneProps) {
             placeholder="e.g. 09:00 or 07:30–09:30"
           />
           <p className="mt-1.5 text-[12px] text-ink-muted">
-            Shown in the “at a glance” facts as the departure time. Leave blank to show “Check
-            availability for start times”.
+            The departure time on every booking of this tour — the dashboard, the calendar, quotes,
+            and the guest’s confirmation email and invoice — and in the “at a glance” facts. Start
+            with the time (an option can set its own below). Leave blank to show “Check availability
+            for start times”.
           </p>
+          <DepartureReadout text={v.startWindow} />
         </Field>
         <Field label="Home region (transport add-on)">
           <select

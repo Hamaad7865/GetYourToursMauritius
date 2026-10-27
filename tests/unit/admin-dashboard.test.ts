@@ -38,6 +38,7 @@ function booking(over: Partial<BookingRow>): BookingRow {
     installments: [],
     transfer: null,
     pickupTime: null,
+    departureTime: null,
     ...over,
   };
 }
@@ -48,11 +49,12 @@ const NOW = new Date('2026-07-18T06:00:00Z');
 describe('computeDashboard', () => {
   it('buckets departures, upcoming, pending and weekly revenue in Mauritius local time', () => {
     const rows: BookingRow[] = [
-      // today's departure (09:00 Mauritius), paid 100
+      // today's departure (a noon day-slot; the tour leaves at 09:00), paid 100
       booking({
         id: 'b1',
         ref: 'BMT-1',
-        startsAt: '2026-07-18T05:00:00Z',
+        startsAt: '2026-07-18T08:00:00Z',
+        departureTime: '09:00',
         netPaidEur: 100,
         paymentState: 'paid',
       }),
@@ -93,6 +95,51 @@ describe('computeDashboard', () => {
     expect(byKey.pending).toBe('€200');
     expect(byKey.upcoming).toBe('2');
     expect(d.spark).toHaveLength(7);
+  });
+
+  it("lists today's departures at the tour's start time, earliest first, untimed last", () => {
+    const NOON_TODAY = '2026-07-18T08:00:00Z'; // where materialize_availability puts every slot
+    const rows: BookingRow[] = [
+      booking({ id: 'late', ref: 'BMT-L', startsAt: NOON_TODAY, departureTime: '16:00' }),
+      booking({ id: 'none', ref: 'BMT-N', startsAt: NOON_TODAY, departureTime: null }),
+      // A slot made before the July timezone fix sits at 16:00 Mauritius, not noon.
+      booking({
+        id: 'early',
+        ref: 'BMT-E',
+        startsAt: '2026-07-18T12:00:00Z',
+        departureTime: '07:15',
+      }),
+      // An airport transfer: the guest's landing time, never the slot's noon.
+      booking({
+        id: 'xfer',
+        ref: 'BMT-X',
+        startsAt: NOON_TODAY,
+        transfer: {
+          direction: 'arrival',
+          roomOrCabin: null,
+          flightNumber: null,
+          arrivalTime: '10:40',
+          returnDate: null,
+          returnTime: null,
+          departureFlightNumber: null,
+          luggageDetails: null,
+          childSeatAge: null,
+          travellerCountry: null,
+          travellerCompany: null,
+          travellerGender: null,
+          specialNotes: null,
+        },
+      }),
+    ];
+
+    const d = computeDashboard(rows, NOW);
+
+    expect(d.departures.map((r) => [r.ref, r.time])).toEqual([
+      ['BMT-E', '07:15'],
+      ['BMT-X', '10:40'],
+      ['BMT-L', '16:00'],
+      ['BMT-N', null],
+    ]);
   });
 
   it('carries pickup/drop-off DTO fields used by the booking drawer', () => {

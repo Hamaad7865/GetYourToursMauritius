@@ -35,6 +35,7 @@ describe('serviceWhen', () => {
         startsAt: NOON_SLOT,
         transfer: transfer({ direction: 'arrival', arrivalTime: '16:00' }),
         pickupTime: null,
+        departureTime: null,
       }),
     ).toEqual({ day: '2026-10-18', time: '16:00', at: '2026-10-18T16:00:00+04:00' });
   });
@@ -50,6 +51,7 @@ describe('serviceWhen', () => {
           returnTime: '18:00',
         }),
         pickupTime: null,
+        departureTime: null,
       }),
     ).toMatchObject({ day: '2026-10-18', time: '09:30' });
   });
@@ -65,38 +67,69 @@ describe('serviceWhen', () => {
           returnTime: '18:30',
         }),
         pickupTime: null,
+        departureTime: null,
       }),
     ).toEqual({ day: '2026-10-15', time: '18:30', at: '2026-10-15T18:30:00+04:00' });
   });
 
   it('gives a transfer with no time captured its day alone — never the noon placeholder', () => {
     expect(
-      serviceWhen({ startsAt: NOON_SLOT, transfer: transfer({}), pickupTime: null }),
+      serviceWhen({
+        startsAt: NOON_SLOT,
+        transfer: transfer({}),
+        pickupTime: null,
+        departureTime: null,
+      }),
     ).toMatchObject({ day: '2026-10-18', time: null });
     expect(
       serviceWhen({
         startsAt: '2026-10-09T08:00:00+00:00',
         transfer: transfer({ direction: 'departure', returnDate: '2026-10-15' }),
         pickupTime: null,
+        departureTime: null,
       }),
     ).toMatchObject({ day: '2026-10-15', time: null });
   });
 
   it('shows a hotel-to-hotel transfer at its pickupTime', () => {
-    expect(serviceWhen({ startsAt: NOON_SLOT, transfer: null, pickupTime: '07:15' })).toEqual({
+    expect(
+      serviceWhen({
+        startsAt: NOON_SLOT,
+        transfer: null,
+        pickupTime: '07:15',
+        departureTime: null,
+      }),
+    ).toEqual({
       day: '2026-10-18',
       time: '07:15',
       at: '2026-10-18T07:15:00+04:00',
     });
   });
 
-  it('keeps a tour at its occurrence date and time', () => {
-    const startsAt = '2026-10-18T05:00:00Z'; // 09:00 Mauritius
-    expect(serviceWhen({ startsAt, transfer: null, pickupTime: null })).toEqual({
-      day: '2026-10-18',
-      time: '09:00',
-      at: startsAt,
-    });
+  it("shows a tour at the start time set on the tour, not the slot's noon", () => {
+    expect(
+      serviceWhen({
+        startsAt: NOON_SLOT,
+        transfer: null,
+        pickupTime: null,
+        departureTime: '09:00',
+      }),
+    ).toEqual({ day: '2026-10-18', time: '09:00', at: '2026-10-18T09:00:00+04:00' });
+  });
+
+  it('gives a tour with no start time set its day alone — never the placeholder clock', () => {
+    expect(
+      serviceWhen({ startsAt: NOON_SLOT, transfer: null, pickupTime: null, departureTime: null }),
+    ).toEqual({ day: '2026-10-18', time: null, at: '2026-10-18T12:00:00+04:00' });
+    // A slot made before the July timezone fix sits at 16:00 Mauritius — just as meaningless.
+    expect(
+      serviceWhen({
+        startsAt: '2026-10-18T12:00:00+00:00',
+        transfer: null,
+        pickupTime: null,
+        departureTime: null,
+      }),
+    ).toMatchObject({ day: '2026-10-18', time: null });
   });
 
   it("reads the slot's MAURITIUS day, not its UTC date", () => {
@@ -106,6 +139,7 @@ describe('serviceWhen', () => {
         startsAt: '2026-10-18T21:00:00Z',
         transfer: transfer({ arrivalTime: '16:00' }),
         pickupTime: null,
+        departureTime: null,
       }),
     ).toMatchObject({ day: '2026-10-19', time: '16:00' });
   });
@@ -116,6 +150,7 @@ describe('serviceWhen', () => {
         startsAt: NOON_SLOT,
         transfer: transfer({ arrivalTime: '4pm' }),
         pickupTime: null,
+        departureTime: null,
       }),
     ).toEqual({ day: '2026-10-18', time: '4pm', at: '2026-10-18T12:00:00+04:00' });
   });
@@ -126,13 +161,23 @@ describe('serviceWhen', () => {
         startsAt: NOON_SLOT,
         transfer: transfer({ arrivalTime: '7:05' }),
         pickupTime: null,
+        departureTime: null,
       })?.at,
     ).toBe('2026-10-18T07:05:00+04:00');
   });
 
   it('returns null with nothing to date', () => {
-    expect(serviceWhen({ startsAt: null, transfer: null, pickupTime: null })).toBeNull();
-    expect(serviceWhen({ startsAt: null, transfer: transfer({}), pickupTime: null })).toBeNull();
+    expect(
+      serviceWhen({ startsAt: null, transfer: null, pickupTime: null, departureTime: null }),
+    ).toBeNull();
+    expect(
+      serviceWhen({
+        startsAt: null,
+        transfer: transfer({}),
+        pickupTime: null,
+        departureTime: null,
+      }),
+    ).toBeNull();
   });
 });
 

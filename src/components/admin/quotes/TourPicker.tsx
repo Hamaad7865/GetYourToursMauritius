@@ -5,7 +5,7 @@ import { useDialog } from '@/lib/a11y/useDialog';
 import { BTN_GHOST, BTN_PRIMARY, Field, INPUT_CLS, SELECT_CLS } from '@/components/admin/ui';
 import { IconX } from '@/components/ui/icons';
 import { DatePicker } from '@/components/ui/DatePicker';
-import { fmtDate, fmtTime, mauDay } from '@/lib/admin/format';
+import { fmtDate, mauDay } from '@/lib/admin/format';
 import {
   loadActivityDepartures,
   loadQuotableActivities,
@@ -102,6 +102,7 @@ export function TourPicker({
       activityOptionId: departure.activityOptionId,
       sessionOccurrenceId: departure.occurrenceId,
       startsAt: departure.startsAt,
+      departureTime: departure.departureTime,
       tiers: departure.tiers.map((tier) => ({
         label: tier.label,
         amountMinor: tier.amountMinor,
@@ -203,7 +204,8 @@ export function TourPicker({
                               : 'border-[#E2E7EA] text-ink hover:border-teal'
                           } disabled:cursor-not-allowed disabled:border-[#EAEEF0] disabled:bg-[#FAFBFC] disabled:text-ink-muted`}
                         >
-                          <span className="font-bold">{fmtTime(d.startsAt)}</span> · {d.optionName}
+                          <span className="font-bold">{d.departureTime ?? 'Time TBC'}</span> ·{' '}
+                          {d.optionName}
                           {d.tiers.length > 0 && (
                             <span className="ml-2 text-[12.5px] text-ink-muted">
                               {d.tiers

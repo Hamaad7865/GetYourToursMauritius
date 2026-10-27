@@ -1,4 +1,5 @@
 import { getBrowserSupabase } from '@/lib/supabase/browser';
+import { occurrenceDepartureTime } from '@/lib/catalogue/departure-time';
 import { catalogueLineRefusal } from '@/components/admin/quotes/state';
 import {
   REGION_DISTANCE_DEFAULT,
@@ -79,7 +80,10 @@ export interface QuoteDeparture {
   occurrenceId: string;
   activityOptionId: string;
   optionName: string;
+  /** The slot instant — its clock is a placeholder, so never print it; see {@link departureTime}. */
   startsAt: string;
+  /** When the tour leaves ("HH:MM"), from the option's or activity's start time; null when unset. */
+  departureTime: string | null;
   tiers: QuoteTier[];
   /** Non-null when this shape cannot become a catalogue line — see `catalogueLineRefusal`. */
   refusal: string | null;
@@ -167,6 +171,7 @@ export async function loadTransportPricing(): Promise<{
 interface OptionWithPrices {
   id: string;
   name: string;
+  start_window: string | null;
   private_base_minor: number | null;
   activity_option_prices: Array<{ label: string; amount_minor: number; position: number }> | null;
 }
@@ -187,15 +192,17 @@ export async function loadActivityDepartures(
   const sb = getBrowserSupabase();
   const { data: activity, error: activityError } = await sb
     .from('activities')
-    .select('pricing_mode')
+    .select('pricing_mode, startWindow:extra->>startWindow')
     .eq('id', activityId)
-    .maybeSingle();
+    .maybeSingle<{ pricing_mode: string | null; startWindow: string | null }>();
   if (activityError) throw activityError;
   const pricingMode = activity?.pricing_mode ?? 'per_person';
 
   const { data: options, error: optionsError } = await sb
     .from('activity_options')
-    .select('id, name, private_base_minor, activity_option_prices(label, amount_minor, position)')
+    .select(
+      'id, name, start_window, private_base_minor, activity_option_prices(label, amount_minor, position)',
+    )
     .eq('activity_id', activityId)
     .order('position', { ascending: true })
     .returns<OptionWithPrices[]>();
@@ -207,7 +214,7 @@ export async function loadActivityDepartures(
   const to = new Date(`${day}T24:00:00.000+04:00`).toISOString();
   const { data: occurrences, error: occurrencesError } = await sb
     .from('session_occurrences')
-    .select('id, activity_option_id, starts_at, status')
+    .select('id, activity_option_id, starts_at, status, departure_time')
     .in('activity_option_id', [...byOption.keys()])
     .eq('status', 'open')
     .gte('starts_at', from)
@@ -227,6 +234,11 @@ export async function loadActivityDepartures(
         activityOptionId: option.id,
         optionName: option.name,
         startsAt: occurrence.starts_at,
+        departureTime: occurrenceDepartureTime(
+          occurrence.departure_time,
+          option.start_window,
+          activity?.startWindow,
+        ),
         tiers,
         refusal: catalogueLineRefusal({
           pricingMode,

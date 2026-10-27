@@ -125,6 +125,7 @@ describe('adding a tour', () => {
     activityOptionId: OPTION,
     sessionOccurrenceId: OCCURRENCE,
     startsAt: DEPARTURE,
+    departureTime: '09:00',
     tiers: [
       { label: 'Adult', amountMinor: 5500, quantity: 2 },
       { label: 'Child', amountMinor: 3000, quantity: 1 },
@@ -146,7 +147,18 @@ describe('adding a tour', () => {
     expect(line!.description).toContain('Full day');
     expect(line!.description).toContain('Adult');
     // Mauritius time, like every other date in the back office — never the operator's own zone.
-    expect(line!.description).toContain(fmtDate(DEPARTURE));
+    expect(line!.description).toContain(`${fmtDate(DEPARTURE)}, 09:00`);
+  });
+
+  it("never writes the slot's placeholder clock into the guest's line", () => {
+    // Every day-slot sits at noon, so a tour with no start time set gets the day alone.
+    const [line] = tourLineDrafts({
+      ...pick,
+      startsAt: '2026-08-23T08:00:00.000Z',
+      departureTime: null,
+    });
+    expect(line!.description).toBe('Catamaran cruise — Full day · 23 Aug 2026 · Adult');
+    expect(line!.description).not.toContain('12:00');
   });
 
   it('keeps the occurrence, the option and the tier label the money path reads', () => {
@@ -187,6 +199,7 @@ describe('an overridden tour price', () => {
     activityOptionId: OPTION,
     sessionOccurrenceId: OCCURRENCE,
     startsAt: DEPARTURE,
+    departureTime: null,
     tiers: [{ label: 'Adult', amountMinor: 5500, quantity: 2 }],
   });
 

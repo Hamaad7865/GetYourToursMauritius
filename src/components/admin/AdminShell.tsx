@@ -84,6 +84,10 @@ function AdminShellInner({ children }: { children: ReactNode }) {
   const role = permissionsFailed ? 'Permissions didn’t load' : roleLabel(access);
   // The PAGE guard: a section the role lacks shows "No access" instead of the screen.
   const pageAllowed = pageAllowedFor(access, pathname);
+  const fullBleed =
+    pageAllowed &&
+    !permissionsFailed &&
+    (pathname === '/admin/calendar' || pathname.startsWith('/admin/calendar/'));
   const canBookings = can(access, 'section.bookings');
   const canAssistant = can(access, 'section.assistant');
   const canTours = can(access, 'section.tours');
@@ -181,7 +185,10 @@ function AdminShellInner({ children }: { children: ReactNode }) {
       {/* ===== Main column ===== */}
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Top bar */}
-        <header className="sticky top-0 z-40 flex items-center gap-3 border-b border-[#E7EBEE] bg-white/90 px-4 py-3 backdrop-blur sm:px-6 print:hidden">
+        <header
+          data-admin-topbar
+          className="sticky top-0 z-40 flex items-center gap-3 border-b border-[#E7EBEE] bg-white/90 px-4 py-3 backdrop-blur sm:px-6 print:hidden"
+        >
           <button
             onClick={() => setDrawer(true)}
             aria-label="Open menu"
@@ -238,8 +245,15 @@ function AdminShellInner({ children }: { children: ReactNode }) {
 
         {/* Screen content. `max-w-[1320px]` is a cap, not a width, so when the assistant column
             opens this simply reflows narrower — nothing is occluded (the owner's note: the centre
-            should diminish, not get covered). */}
-        <main className="mx-auto w-full max-w-[1320px] flex-1 px-4 pb-24 pt-6 sm:px-6 lg:px-8 lg:pb-10">
+            should diminish, not get covered). The calendar is full-bleed: its day panel docks
+            against the right edge, and it pads its own content. */}
+        <main
+          className={
+            fullBleed
+              ? 'w-full min-w-0 flex-1 pb-24 lg:pb-0'
+              : 'mx-auto w-full max-w-[1320px] flex-1 px-4 pb-24 pt-6 sm:px-6 lg:px-8 lg:pb-10'
+          }
+        >
           {permissionsFailed ? (
             <NoAccess loadFailed onRetry={retry} />
           ) : pageAllowed ? (

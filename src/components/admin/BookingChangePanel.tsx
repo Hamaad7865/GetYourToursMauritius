@@ -30,7 +30,7 @@ import {
   type QuotableActivity,
   type QuoteDeparture,
 } from '@/lib/admin/quote-catalogue';
-import { eur, fmtDateTime } from '@/lib/admin/format';
+import { eur, fmtDate, fmtDateTime } from '@/lib/admin/format';
 
 interface Props {
   bookingId: string;
@@ -45,6 +45,8 @@ interface Props {
    * happens by default.
    */
   currentStartsAt?: string | null;
+  /** The current tour's start time ("HH:MM") — the slot's own clock is a placeholder, never printed. */
+  currentDepartureTime?: string | null;
   /** Re-read the booking after anything commits, so the drawer's totals and items refresh. */
   onChanged: () => void;
 }
@@ -64,7 +66,13 @@ function defaultDay(currentStartsAt?: string | null): string {
   return local < todayMu() ? todayMu() : local;
 }
 
-export function BookingChangePanel({ bookingId, bookingRef, currentStartsAt, onChanged }: Props) {
+export function BookingChangePanel({
+  bookingId,
+  bookingRef,
+  currentStartsAt,
+  currentDepartureTime,
+  onChanged,
+}: Props) {
   const canRefund = can(useAdminAccess(), 'money.refunds');
   const [open, setOpen] = useState(false);
   const [activities, setActivities] = useState<QuotableActivity[]>([]);
@@ -228,8 +236,11 @@ export function BookingChangePanel({ bookingId, bookingRef, currentStartsAt, onC
           {currentStartsAt && (
             <p className="rounded-lg bg-ink/[0.04] px-3 py-2 text-[12.5px] text-ink-muted">
               Currently on{' '}
-              <span className="font-semibold text-ink">{fmtDateTime(currentStartsAt)}</span>. The
-              date below starts there — change it only if the guest is moving day too.
+              <span className="font-semibold text-ink">
+                {fmtDate(currentStartsAt)}
+                {currentDepartureTime ? `, ${currentDepartureTime}` : ''}
+              </span>
+              . The date below starts there — change it only if the guest is moving day too.
             </p>
           )}
           <label className="block">
@@ -275,7 +286,8 @@ export function BookingChangePanel({ bookingId, bookingRef, currentStartsAt, onC
                 <option value="">Choose a departure…</option>
                 {departures.map((d) => (
                   <option key={d.occurrenceId} value={d.occurrenceId}>
-                    {d.optionName} · {fmtDateTime(d.startsAt)}
+                    {d.optionName} · {fmtDate(d.startsAt)}
+                    {d.departureTime ? `, ${d.departureTime}` : ''}
                   </option>
                 ))}
               </select>

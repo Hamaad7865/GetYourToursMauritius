@@ -25,6 +25,7 @@ import { ForbiddenError } from '@/lib/services/errors';
 import { resolvePlaceByText } from '@/lib/maps/google-places';
 import { getServerEnv } from '@/lib/config/env';
 import { catalogueLineRefusal } from '@/components/admin/quotes/state';
+import { occurrenceDepartureTime } from '@/lib/catalogue/departure-time';
 import {
   transportFareMinor,
   sightseeingQuote,
@@ -63,8 +64,14 @@ export const runtime = 'edge';
 interface OptionWithPrices {
   id: string;
   name: string;
+  start_window: string | null;
   private_base_minor: number | null;
   activity_option_prices: Array<{ label: string; amount_minor: number; position: number }> | null;
+}
+
+/** "27 Oct 2026, 09:00", or the day with an explicit "no start time" so the model never invents one. */
+function departureLabel(day: string, time: string | null): string {
+  return time ? `${day}, ${time}` : `${day} (no start time set on this tour)`;
 }
 
 /** A jsonb/text[] column as a clean string list — the content columns are stored as arrays. */
@@ -268,21 +275,28 @@ export const POST = apiHandler(async (req) => {
     activityDepartures: async (slug, day) => {
       const activity = (await cataloguePromise).find((a) => a.slug === slug);
       if (!activity) return null;
-      const { data: options } = await sb
-        .from('activity_options')
-        .select(
-          'id, name, private_base_minor, activity_option_prices(label, amount_minor, position)',
-        )
-        .eq('activity_id', activity.id)
-        .order('position', { ascending: true })
-        .returns<OptionWithPrices[]>();
+      const [{ data: options }, { data: startRow }] = await Promise.all([
+        sb
+          .from('activity_options')
+          .select(
+            'id, name, start_window, private_base_minor, activity_option_prices(label, amount_minor, position)',
+          )
+          .eq('activity_id', activity.id)
+          .order('position', { ascending: true })
+          .returns<OptionWithPrices[]>(),
+        sb
+          .from('activities')
+          .select('startWindow:extra->>startWindow')
+          .eq('id', activity.id)
+          .maybeSingle<{ startWindow: string | null }>(),
+      ]);
       const byOption = new Map((options ?? []).map((option) => [option.id, option]));
       if (byOption.size === 0) return [];
       const from = new Date(`${day}T00:00:00.000+04:00`).toISOString();
       const to = new Date(`${day}T24:00:00.000+04:00`).toISOString();
       const { data: occurrences } = await sb
         .from('session_occurrences')
-        .select('id, activity_option_id, starts_at, status')
+        .select('id, activity_option_id, starts_at, status, departure_time')
         .in('activity_option_id', [...byOption.keys()])
         .eq('status', 'open')
         .gte('starts_at', from)
@@ -297,13 +311,20 @@ export const POST = apiHandler(async (req) => {
         return [
           {
             optionName: option.name,
-            // Mauritius local time — the raw ISO instant is UTC, and a model handed "T08:00:00Z"
-            // faithfully tells the operator the 12:00 cruise leaves at 08:00.
-            startsAt: new Date(occurrence.starts_at).toLocaleString('en-GB', {
-              timeZone: 'Indian/Mauritius',
-              dateStyle: 'medium',
-              timeStyle: 'short',
-            }),
+            // The DAY in Mauritius local time (a raw UTC instant gets misread by the model), plus the
+            // tour's own start time. Never the slot's clock: every slot sits at a placeholder noon, so
+            // the model used to tell the operator every cruise leaves at 12:00.
+            startsAt: departureLabel(
+              new Date(occurrence.starts_at).toLocaleDateString('en-GB', {
+                timeZone: 'Indian/Mauritius',
+                dateStyle: 'medium',
+              }),
+              occurrenceDepartureTime(
+                occurrence.departure_time,
+                option.start_window,
+                startRow?.startWindow,
+              ),
+            ),
             tiers,
             refusal: catalogueLineRefusal({
               pricingMode: activity.pricingMode,

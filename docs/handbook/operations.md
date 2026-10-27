@@ -32,6 +32,8 @@ All of this is in `/admin`:
 | Tours: photos, descriptions, options, prices | **Tours** → pick a tour                                                                                |
 | Optional per-person upgrades (e.g. lobster)  | **Tours** → tour → **Optional supplements** (as many as you like, each with a name + price)            |
 | Which dates a tour is bookable, and how big  | **Tours** → tour → **Availability** (trips per day × guests per trip)                                  |
+| A tour's usual departure time                | **Tours** → tour → **Logistics** → **Start time / departure** (an option can set its own)              |
+| One day's departure time                     | **Calendar** → open the day → the departure → **Change time**                                          |
 | Any transfer or vehicle fare                 | **Pricing** (5 sections: sightseeing, road trips, transport add-on, airport transfers, hotel-to-hotel) |
 | Rental cars & scooters                       | **Rental**                                                                                             |
 | The order tour cards appear in               | **Tours** → filter to one category → drag them                                                         |
@@ -61,6 +63,21 @@ are its charters per day and its max group size (the same one its pricing uses).
 tours keep one number — bookings (vehicles) per day — because the vehicle brackets already decide the
 guests. Tours from before this change behave exactly as they did (shown as 1 trip × the old number)
 until you edit the two numbers.
+
+**Departure times.** Every booking shows the tour's start time, from **Logistics → Start time /
+departure** (an option's own start time wins, e.g. a Half day leaving earlier). A tour with none set
+shows **"Time TBC"** — fill it in. To run ONE day at a different time (a tide, a late flight), open that
+day in **Calendar**, expand the departure and use **Change time**: it changes that day only, everywhere
+(dashboard, bookings, the guest's emails and invoice), and **Back to usual** undoes it. Guests are not
+told automatically — message them.
+
+**The Calendar** shows a month or a week of what is booked, coloured by type (tours, sea & boats,
+transfers, car rental, fees). The strip on top counts the period's departures, guests, what it is
+booked for and what **needs attention** (an unpaid booking, a missing pickup or flight) — click that
+figure, or the switch, to see only those. Open a day for each guest's run sheet. From a departure you
+can **move it to another day** (every paid guest is emailed the new date, so there is no undo), move
+one guest at a time, or **call it off** (paid guests are emailed straight away; it cannot be undone).
+The colour type of a quote's bespoke line is a best guess from its wording.
 
 **Card payments** is the switch for what a customer's card is actually charged. Prices are always
 shown in euros. Set to **Rupees (MUR)**, the card is charged the euro price × your rate, rounded to

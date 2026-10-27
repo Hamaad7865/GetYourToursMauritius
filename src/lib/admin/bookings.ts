@@ -1,5 +1,6 @@
 import { childSeatsCost } from '@/lib/services/pricing';
 import { getBrowserSupabase } from '@/lib/supabase/browser';
+import { occurrenceDepartureTime } from '@/lib/catalogue/departure-time';
 
 /* Admin booking reads + lifecycle writes. Staff/admin RLS (`*_staff` policies) grants full
  * read on bookings/booking_items/payments and full write on bookings, so the authenticated
@@ -31,6 +32,10 @@ export interface BookingItemRow {
   activityTitle: string;
   optionName: string;
   startsAt: string | null;
+  /** When the tour leaves ("HH:MM"), from the option's or activity's start time — `startsAt` is a
+   *  placeholder day-slot clock, never a departure. Null when no start time is set. See
+   *  `@/lib/catalogue/departure-time`. */
+  departureTime: string | null;
   /** The line's OWN round-trip transfer add-on in EUR — already inside the booking total, charged ON
    *  this line but with no line of its own (the invoice itemises it as a nested add-on). 0 when the
    *  line carries no transfer. The drawer nests it under the item and {@link bookingExtraCharges}
@@ -123,6 +128,8 @@ export interface BookingRow {
   transfer: AdminTransferDetails | null;
   /** A hotel-to-hotel transfer's pickup time — see {@link hotelPickupTime}. Null on everything else. */
   pickupTime: string | null;
+  /** The headline tour's departure — the first line's {@link BookingItemRow.departureTime}. */
+  departureTime: string | null;
 }
 
 /** Airport-transfer fields surfaced to staff/driver in the admin booking drawer. */
@@ -242,10 +249,23 @@ interface RawItem {
   transport_fare_minor: number | null;
   transport_pickup_label: string | null;
   transport_dropoff_label: string | null;
-  session_occurrences: { starts_at: string } | { starts_at: string }[] | null;
-  activity_options:
-    | { name: string; activities: { title: string } | { title: string }[] | null }
-    | { name: string; activities: { title: string } | { title: string }[] | null }[]
+  session_occurrences: RawItemOccurrence | RawItemOccurrence[] | null;
+  activity_options: RawItemOption | RawItemOption[] | null;
+}
+
+/** The booked departure: its day-slot instant and the time staff set for this departure, if any. */
+interface RawItemOccurrence {
+  starts_at: string;
+  departure_time?: string | null;
+}
+
+/** The booked option + its activity, with both start times (`startWindow` is `extra->>startWindow`). */
+interface RawItemOption {
+  name: string;
+  start_window?: string | null;
+  activities:
+    | { title: string; startWindow?: string | null }
+    | { title: string; startWindow?: string | null }[]
     | null;
 }
 
@@ -307,8 +327,8 @@ const BOOKING_SELECT = `
   booking_items (
     price_label, quantity, pax, unit_amount_minor, subtotal_minor,
     transport_fare_minor, transport_pickup_label, transport_dropoff_label,
-    session_occurrences ( starts_at ),
-    activity_options ( name, activities ( title ) )
+    session_occurrences ( starts_at, departure_time ),
+    activity_options ( name, start_window, activities ( title, startWindow:extra->>startWindow ) )
   ),
   booking_supplements ( name, qty, total_minor, position ),
   booking_custom_items (
@@ -331,6 +351,11 @@ function mapItem(raw: RawItem): BookingItemRow {
     activityTitle: activity?.title ?? 'Activity',
     optionName: option?.name ?? '',
     startsAt: occ?.starts_at ?? null,
+    departureTime: occurrenceDepartureTime(
+      occ?.departure_time,
+      option?.start_window,
+      activity?.startWindow,
+    ),
     transportFareEur: (raw.transport_fare_minor ?? 0) / 100,
     transportPickupLabel: raw.transport_pickup_label ?? null,
     transportDropoffLabel: raw.transport_dropoff_label ?? null,
@@ -380,6 +405,7 @@ function mapBooking(raw: RawBooking): BookingRow {
     items,
     activityTitle: items[0]?.activityTitle ?? '—',
     startsAt: items[0]?.startsAt ?? null,
+    departureTime: items[0]?.departureTime ?? null,
     guests,
     netPaidEur: netPaidMinor / 100,
     grossPaidEur: grossPaidMinor / 100,

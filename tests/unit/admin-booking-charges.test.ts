@@ -12,6 +12,7 @@ function item(over: Partial<BookingItemRow> = {}): BookingItemRow {
     activityTitle: 'Private Full Day Catamaran Ile Aux Cerfs',
     optionName: 'Private Group up to 4 persons',
     startsAt: '2026-08-18T05:00:00Z',
+    departureTime: null,
     transportFareEur: 0,
     transportPickupLabel: null,
     transportDropoffLabel: null,
@@ -67,6 +68,7 @@ function booking(over: Partial<BookingRow> = {}): BookingRow {
     installments: [],
     transfer: null,
     pickupTime: null,
+    departureTime: null,
     ...over,
   };
 }

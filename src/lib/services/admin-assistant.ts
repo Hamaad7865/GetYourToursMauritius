@@ -46,7 +46,8 @@ import {
 /** One departure of one activity on one day, as the chat reports it. */
 export interface AssistantDeparture {
   optionName: string;
-  /** Already formatted in Mauritius local time — a model handed a UTC instant misreports it. */
+  /** Already formatted: the Mauritius day plus the tour's start time — a model handed a UTC instant
+   *  misreports it, and the slot's own clock is a placeholder noon. */
   startsAt: string;
   tiers: Array<{ label: string; eur: number }>;
   /** Non-null when this departure cannot be quoted as a catalogue line. */

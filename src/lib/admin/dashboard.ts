@@ -1,4 +1,5 @@
 import { loadBookings, type BookingRow, type BookingStatus, type PaymentState } from './bookings';
+import { serviceWhen } from './format';
 
 /* Admin dashboard view-model. All figures are DERIVED from the bookings the admin can already
  * read (loadBookings) — no extra queries — and computed in a pure function so they're unit-testable
@@ -18,7 +19,9 @@ export interface DashStat {
 export interface DepartureRow {
   id: string;
   ref: string;
-  time: string; // "08:00"
+  /** "08:00" — the tour's start time or a transfer's pickup, never the day-slot's placeholder clock.
+   *  Null when none is set on the tour (or the guest gave none). */
+  time: string | null;
   tour: string;
   guests: number;
   pickup: string | null;
@@ -97,14 +100,6 @@ const NOT_ACTIVE = new Set<BookingStatus>([
 function mauDay(iso: string | Date): string {
   return new Date(iso).toLocaleDateString('en-CA', { timeZone: TZ });
 }
-/** HH:MM for an instant, in Mauritius local time. */
-function mauTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString('en-GB', {
-    timeZone: TZ,
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
 function addDays(day: string, n: number): string {
   const d = new Date(`${day}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() + n);
@@ -163,24 +158,36 @@ export function computeDashboard(bookings: BookingRow[], now: Date): DashboardDa
 
   const weekStart = addDays(today, -6);
 
-  // Today's departures (active bookings whose trip is today), earliest first.
+  // Today's departures (active bookings whose trip is today), earliest first, untimed last. Dated and
+  // timed by serviceWhen, like the bookings list: every day-slot sits at a placeholder clock, so a
+  // tour leaves at its own start time and a transfer at the guest's pickup.
   const departures: DepartureRow[] = bookings
-    .filter((b) => b.startsAt && mauDay(b.startsAt) === today && !NOT_ACTIVE.has(b.status))
-    .sort((a, b) => (a.startsAt! < b.startsAt! ? -1 : 1))
-    .map((b) => ({
+    .flatMap((b) => {
+      if (NOT_ACTIVE.has(b.status)) return [];
+      const when = serviceWhen(b);
+      return when && when.day === today ? [{ b, when }] : [];
+    })
+    .sort(
+      (x, y) =>
+        Number(x.when.time == null) - Number(y.when.time == null) ||
+        Date.parse(x.when.at) - Date.parse(y.when.at),
+    )
+    .map(({ b, when }) => ({
       id: b.id,
       ref: b.ref,
-      time: mauTime(b.startsAt!),
+      time: when.time,
       tour: b.activityTitle,
       guests: b.guests,
       pickup: b.pickupLocation,
       status: b.status,
     }));
 
+  // Same day rule as today's departures, so the two counts never disagree about a transfer whose
+  // pickup falls on another day than the slot it was booked from.
   const upcoming7 = bookings.filter((b) => {
-    if (!b.startsAt || NOT_ACTIVE.has(b.status)) return false;
-    const d = mauDay(b.startsAt);
-    return d >= today && d <= addDays(today, 6);
+    if (NOT_ACTIVE.has(b.status)) return false;
+    const d = serviceWhen(b)?.day;
+    return d != null && d >= today && d <= addDays(today, 6);
   }).length;
 
   // Recent bookings (loadBookings is already newest-first).

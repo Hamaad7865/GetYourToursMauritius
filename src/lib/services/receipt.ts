@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type { ServiceContext } from './context';
 import { callRpc } from './rpc';
 import type { InvoiceBookingInput, InvoicePaymentInput } from '@/lib/invoice/model';
+import { departureClock } from '@/lib/catalogue/departure-time';
 
 /**
  * Receipt data loader for the notification drain. The `booking_confirmation` row carries only a thin
@@ -50,6 +51,9 @@ const receiptSchema = z.object({
   balanceDueMinor: z.number().nullable().optional(),
   activityTitle: z.string().nullable().optional(),
   when: z.string().nullable().optional(),
+  /** The headline tour's start time AS TYPED (option's, else activity's) — free text, parsed below.
+   *  Absent on a pre-migration receipt RPC, which then prints the date alone. */
+  startWindow: z.string().nullable().optional(),
   pickupLocation: z.string().nullable().optional(),
   dropoffLocation: z.string().nullable().optional(),
   childSeats: z.number().nullable().optional(),
@@ -143,6 +147,8 @@ export async function loadBookingForReceipt(
     // A hotel-to-hotel transfer has no airport direction, but its pickup time still lives in
     // arrival_time — carried so the document's Date line isn't the noon day-slot.
     pickupTime: r.tripDirection ? null : (r.arrivalTime ?? null),
+    // The slot `when` sits at a placeholder clock; the tour leaves at the start time set on it.
+    departureTime: departureClock(r.startWindow),
     items: r.items.map((i) => ({
       priceLabel: i.priceLabel,
       quantity: i.quantity,

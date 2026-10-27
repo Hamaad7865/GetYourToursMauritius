@@ -9,13 +9,14 @@ import {
   type PaymentState,
   type RawTransferFields,
 } from '@/lib/admin/bookings';
-import { fmtDateShort, fmtTime, mauDay, serviceWhen } from '@/lib/admin/format';
+import { occurrenceDepartureTime, tourDepartureTime } from '@/lib/catalogue/departure-time';
+import { fmtDateShort, mauDay, serviceWhen } from '@/lib/admin/format';
 
 /* Admin operations calendar. Staff RLS (occurrences_staff / bookings_staff / booking_items_staff)
- * grants full read on the departure sheet, so the month aggregate is the only thing that needs an
- * RPC — a month across the catalogue is ~1,800 occurrences and aggregating that in the browser is
- * waste. The day drawer reads through PostgREST like the rest of admin. The two mutations go through
- * SECURITY DEFINER RPCs because they must move seats / fan out atomically. */
+ * grants full read on the departure sheet, so the calendar reads a month or a week of BOOKED
+ * departures straight through PostgREST (`loadCalendarRange` — an inner join keeps the ~1,800 empty
+ * materialised slots off the wire). The mutations go through SECURITY DEFINER RPCs because they must
+ * move seats / fan out / validate atomically. */
 
 /** Why a departure was called off. Mirrors the reasons api_weather_cancel_occurrence accepts. */
 export type CallOffReason = 'weather' | 'sea_conditions' | 'safety' | 'min_group';
@@ -26,14 +27,6 @@ export const CALL_OFF_REASONS: Array<{ value: CallOffReason; label: string }> = 
   { value: 'safety', label: 'Safety call' },
   { value: 'min_group', label: 'Too few travellers' },
 ];
-
-export interface CalendarDay {
-  day: string;
-  departures: number;
-  cancelled: number;
-  pax: number;
-  seatsLeft: number;
-}
 
 /** One priced line of a booking on this departure — the age band or seat type actually sold, so the
  *  guide knows they are meeting 2 adults and a child rather than "3 pax". */
@@ -97,6 +90,13 @@ export interface DayBooking {
    *  also enforces a 24h window, which this cannot know, so the RPC stays the authority — this only
    *  stops the UI offering a move that is guaranteed to come back as `not_reschedulable`. */
   reschedulable: boolean;
+  /** What this party is worth on THIS departure, in EUR. A booking whose every line is on this
+   *  departure counts its whole total (child seats, supplements and transport ride in it with no line
+   *  of their own); a booking spread over several departures counts only its lines here, so a day's
+   *  figure never double-counts a multi-day booking. */
+  valueEur: number;
+  /** What the guest still owes (`bookings.balance_due_minor`), in EUR — non-zero on a deposit booking. */
+  balanceDueEur: number;
 }
 
 export interface DayDeparture {
@@ -104,7 +104,22 @@ export interface DayDeparture {
   kind: 'occurrence';
   occurrenceId: string;
   activityOptionId: string;
+  /** The day-slot instant. Its clock is a placeholder (noon, or 16:00 on pre-July slots) — print
+   *  {@link departureTime} instead; this only dates the departure. */
   startsAt: string;
+  /** When this departure leaves ("HH:MM"): its own time when staff set one ({@link timeOverride}),
+   *  else the option's or activity's start time; null when none is set. */
+  departureTime: string | null;
+  /** The time staff set for THIS departure on the calendar (`session_occurrences.departure_time`). */
+  timeOverride: string | null;
+  /** The tour's usual start time (option, else activity) — what {@link timeOverride} replaces. */
+  tourTime: string | null;
+  /** How long it runs, in minutes (option override ?? activity), or null when unknown. */
+  durationMinutes: number | null;
+  /** The activity's category, e.g. "Catamaran cruises" — sorts it into a calendar type. */
+  category: string | null;
+  /** The airport-transfer product (`activities.is_airport_transfer`). */
+  isAirportTransfer: boolean;
   status: string;
   capacity: number;
   /** Effective guests-per-trip for a SHARED option (option override ?? activity default) when one is
@@ -125,6 +140,8 @@ export interface DayDeparture {
   /** Heads on unpaid, still-live bookings. Deliberately outside `pax`: they hold no seat yet, and
    *  folding them in would make this card disagree with the month grid and with used_capacity. */
   pendingPax: number;
+  /** Σ {@link DayBooking.valueEur} over the counted parties — what this departure is booked for. */
+  valueEur: number;
   bookings: DayBooking[];
 }
 
@@ -168,6 +185,10 @@ export interface DayCustomLine {
   /** Confirmed/completed owning booking — kept for styling parity with a counted departure party. */
   counted: boolean;
   subtotalEur: number;
+  /** The line plus its own round-trip transfer add-on, in EUR — what it is booked for. */
+  valueEur: number;
+  /** What the guest still owes on the owning booking, in EUR. */
+  balanceDueEur: number;
   bookingId: string;
   ref: string;
   status: BookingStatus;
@@ -219,6 +240,8 @@ export interface DayReturnLeg {
   flightNumber: string | null;
   roomOrCabin: string | null;
   staffNote: string | null;
+  /** What the guest still owes on the booking, in EUR. */
+  balanceDueEur: number;
 }
 
 /** One row of the day sheet: a real departure, a dated custom/rental line, or a return transfer's
@@ -264,15 +287,6 @@ export function mauritiusDayKey(iso: string): string {
   return `${y}-${m}-${d}`;
 }
 
-/** Per-day load for a month, for the grid. Staff-only RPC. */
-export async function loadCalendarMonth(from: string, to: string): Promise<CalendarDay[]> {
-  const { data, error } = await getBrowserSupabase().rpc('api_admin_calendar_month', {
-    p: { from, to },
-  });
-  if (error) throw error;
-  return (data ?? []) as unknown as CalendarDay[];
-}
-
 interface RawDayBooking extends RawTransferFields {
   id: string;
   ref: string;
@@ -292,6 +306,11 @@ interface RawDayBooking extends RawTransferFields {
   child_seats: number | null;
   booking_supplements: Array<{ name: string; qty: number; position: number }> | null;
   disruption: { resolvedAt?: string | null } | null;
+  balance_due_minor?: number | null;
+  /** PostgREST embedded counts: how many lines the booking has in all, so a departure can tell whether
+   *  it holds the WHOLE booking (and may count its total) or only part of it. */
+  itemCount?: Array<{ count: number }> | null;
+  customCount?: Array<{ count: number }> | null;
 }
 
 /** The activity an option belongs to, as embedded on the occurrence read. `guests_per_trip` is the
@@ -301,6 +320,11 @@ interface RawDayActivity {
   title: string;
   guests_per_trip?: number | null;
   pricing_mode?: string | null;
+  /** `extra->>startWindow` — the activity's start time, as staff typed it. */
+  startWindow?: string | null;
+  category?: string | null;
+  duration_minutes?: number | null;
+  is_airport_transfer?: boolean | null;
 }
 
 /** The booking option embedded on the occurrence read. `guests_per_trip` is the option's own cap
@@ -308,6 +332,9 @@ interface RawDayActivity {
  *  (its pool counts trips, not guests, so the trip re-read must skip it). */
 interface RawDayOption {
   name: string;
+  /** The option's own start time, overriding the activity's. */
+  start_window?: string | null;
+  duration_minutes?: number | null;
   guests_per_trip?: number | null;
   private_base_minor?: number | null;
   activities: RawDayActivity | RawDayActivity[] | null;
@@ -317,6 +344,8 @@ export interface RawDayRow {
   id: string;
   activity_option_id: string;
   starts_at: string;
+  /** The time staff set for this departure ("HH:MM:SS"), overriding the tour's start time. */
+  departure_time?: string | null;
   status: string;
   capacity: number;
   activity_options: RawDayOption | RawDayOption[] | null;
@@ -324,6 +353,8 @@ export interface RawDayRow {
     quantity: number;
     pax: number | null;
     price_label: string | null;
+    subtotal_minor?: number | null;
+    transport_fare_minor?: number | null;
     transport_pickup_label?: string | null;
     transport_dropoff_label?: string | null;
     bookings: RawDayBooking | RawDayBooking[] | null;
@@ -344,6 +375,7 @@ export interface RawDayCustomItem {
   subtotal_minor: number;
   guests?: number | null;
   pickup_label?: string | null;
+  transport_fare_minor?: number | null;
   transport_pickup_label?: string | null;
   transport_dropoff_label?: string | null;
   bookings: RawDayBooking | RawDayBooking[] | null;
@@ -365,8 +397,9 @@ function awaitingChoice(disruption: { resolvedAt?: string | null } | null): bool
 const BOOKING_FIELDS = `
   id, ref, status, payment_state, customer_name, customer_email, customer_phone,
   source, total_minor, notes, created_at, custom_itinerary,
-  pickup_location, dropoff_location, pickup_pending, child_seats, disruption,
+  pickup_location, dropoff_location, pickup_pending, child_seats, disruption, balance_due_minor,
   booking_supplements ( name, qty, position ),
+  itemCount:booking_items ( count ), customCount:booking_custom_items ( count ),
   ${TRANSFER_SELECT}
 `;
 
@@ -375,7 +408,7 @@ const BOOKING_FIELDS = `
  *  (return_time, departure_flight_number, …); the one booking line carries the vehicle + headcount. */
 const RETURN_LEG_SELECT = `
   id, ref, status, payment_state, customer_name, customer_email, customer_phone,
-  source, created_at, notes, pickup_location, dropoff_location, ${TRANSFER_SELECT},
+  source, created_at, notes, pickup_location, dropoff_location, balance_due_minor, ${TRANSFER_SELECT},
   booking_items ( quantity, pax, price_label )
 `;
 
@@ -407,12 +440,19 @@ export function mapDaySchedule(rows: RawDayRow[]): DayDeparture[] {
     const rawGpt = opt?.guests_per_trip ?? act?.guests_per_trip ?? null;
     const guestsPerTrip = !isPrivate && !isVehicle && rawGpt != null && rawGpt > 0 ? rawGpt : null;
     const bookings: DayBooking[] = [];
+    // Per party: how many of its lines sit on THIS departure and what they come to — see `valueEur`.
+    const here = new Map<string, { lines: number; minor: number; raw: RawDayBooking }>();
 
     for (const item of raw.booking_items ?? []) {
       const b = one(item.bookings);
       if (!b) continue;
       const counted = COUNTED_STATUSES.has(b.status);
       if (!counted && !PENDING_STATUSES.has(b.status)) continue;
+
+      const share = here.get(b.id) ?? { lines: 0, minor: 0, raw: b };
+      share.lines += 1;
+      share.minor += (item.subtotal_minor ?? 0) + (item.transport_fare_minor ?? 0);
+      here.set(b.id, share);
 
       const pax = item.pax ?? item.quantity;
       const label = item.price_label ?? opt?.name ?? 'Traveller';
@@ -469,11 +509,17 @@ export function mapDaySchedule(rows: RawDayRow[]): DayDeparture[] {
         notifiable:
           b.status === 'confirmed' && b.payment_state === 'paid' && !awaitingChoice(b.disruption),
         reschedulable: b.status === 'confirmed' && b.payment_state === 'paid',
+        valueEur: 0,
+        balanceDueEur: (b.balance_due_minor ?? 0) / 100,
       });
     }
 
     // Only surface departures that actually have someone on them.
     if (bookings.length === 0) continue;
+    for (const party of bookings) {
+      const share = here.get(party.id)!;
+      party.valueEur = partyValueMinor(share.raw, share.lines, share.minor) / 100;
+    }
     // Paying guests first; the "might still turn up" tail sits underneath.
     bookings.sort((a, b) => Number(b.counted) - Number(a.counted));
 
@@ -482,6 +528,16 @@ export function mapDaySchedule(rows: RawDayRow[]): DayDeparture[] {
       occurrenceId: raw.id,
       activityOptionId: raw.activity_option_id,
       startsAt: raw.starts_at,
+      departureTime: occurrenceDepartureTime(
+        raw.departure_time,
+        opt?.start_window,
+        act?.startWindow,
+      ),
+      timeOverride: occurrenceDepartureTime(raw.departure_time, null, null),
+      tourTime: tourDepartureTime(opt?.start_window, act?.startWindow),
+      durationMinutes: opt?.duration_minutes ?? act?.duration_minutes ?? null,
+      category: act?.category ?? null,
+      isAirportTransfer: act?.is_airport_transfer ?? false,
       status: raw.status,
       capacity: raw.capacity,
       guestsPerTrip,
@@ -495,10 +551,24 @@ export function mapDaySchedule(rows: RawDayRow[]): DayDeparture[] {
         0,
       ),
       pendingPax: bookings.reduce((s, b) => s + (b.counted ? 0 : b.pax), 0),
+      valueEur: bookings.reduce((s, b) => s + (b.counted ? b.valueEur : 0), 0),
       bookings,
     });
   }
   return out;
+}
+
+/**
+ * What one party is worth on one departure, in minor units. A booking whose every line is here (and
+ * which has no quote lines elsewhere) counts its whole total — child seats, supplements and the region
+ * transport add-on ride in `total_minor` with no line of their own. A booking spread over several days
+ * counts only the lines on this one, so summing departures never counts a booking twice. When the
+ * embedded counts are missing, the lines here are all that can be proven.
+ */
+function partyValueMinor(b: RawDayBooking, linesHere: number, linesHereMinor: number): number {
+  const items = b.itemCount?.[0]?.count;
+  const custom = b.customCount?.[0]?.count ?? 0;
+  return items === linesHere && custom === 0 ? b.total_minor : linesHereMinor;
 }
 
 /** A party that is a transfer: an airport transfer, or a hotel-to-hotel one carrying its pickup time. */
@@ -517,7 +587,11 @@ export function guestPickup(
   departure: DayDeparture,
 ): { label: string; time: string | null; otherDay: boolean } | null {
   if (!isTransferParty(booking)) return null;
-  const when = serviceWhen({ ...booking, startsAt: departure.startsAt });
+  const when = serviceWhen({
+    ...booking,
+    startsAt: departure.startsAt,
+    departureTime: departure.departureTime,
+  });
   if (!when) return null;
   const { time } = when;
   const otherDay = when.day !== mauDay(departure.startsAt);
@@ -527,13 +601,13 @@ export function guestPickup(
 }
 
 /**
- * The time a departure card's header prints. A tour's is its occurrence time. A transfer card groups
- * parties landing at different times on one noon day-slot, so it prints a pickup time only when every
- * party is collected that day at the same time, and nothing otherwise — each guest row carries its
- * own. Never the placeholder noon.
+ * The time a departure card's header prints. A tour's is the start time set on it (nothing when none
+ * is). A transfer card groups parties landing at different times on one noon day-slot, so it prints a
+ * pickup time only when every party is collected that day at the same time, and nothing otherwise —
+ * each guest row carries its own. Never the slot's placeholder clock.
  */
 export function departureHeaderTime(departure: DayDeparture): string | null {
-  if (!departure.bookings.some(isTransferParty)) return fmtTime(departure.startsAt);
+  if (!departure.bookings.some(isTransferParty)) return departure.departureTime;
   const times = new Set(
     departure.bookings.map((b) => {
       const p = guestPickup(b, departure);
@@ -588,6 +662,8 @@ export function mapDayCustomLines(rows: RawDayCustomItem[]): DayCustomLine[] {
       transportDropoff: raw.transport_dropoff_label ?? null,
       counted,
       subtotalEur: raw.subtotal_minor / 100,
+      valueEur: (raw.subtotal_minor + (raw.transport_fare_minor ?? 0)) / 100,
+      balanceDueEur: (b.balance_due_minor ?? 0) / 100,
       bookingId: b.id,
       ref: b.ref,
       status: b.status,
@@ -679,6 +755,7 @@ export interface RawReturnLeg extends RawTransferFields {
   notes: string | null;
   pickup_location: string | null;
   dropoff_location: string | null;
+  balance_due_minor?: number | null;
   booking_items: Array<{ quantity: number; pax: number | null; price_label: string | null }> | null;
 }
 
@@ -734,6 +811,7 @@ export function mapReturnLegs(rows: RawReturnLeg[]): DayReturnLeg[] {
       flightNumber: raw.departure_flight_number,
       roomOrCabin: raw.room_or_cabin,
       staffNote: raw.notes,
+      balanceDueEur: (raw.balance_due_minor ?? 0) / 100,
     });
   }
   return out;
@@ -763,126 +841,117 @@ interface CustomItemsQuery {
   gte(column: string, value: string): CustomItemsQuery;
   lt(column: string, value: string): CustomItemsQuery;
   order(column: string, opts: { ascending: boolean }): CustomItemsQuery;
+  range(from: number, to: number): CustomItemsQuery;
   returns<T>(): PromiseLike<{ data: T | null; error: unknown }>;
 }
 
-/**
- * Everything booked on one Mauritius day: the real departures AND the dated custom/rental lines that
- * live on no occurrence (a converted quote can be made entirely of `booking_custom_items`, so those
- * lines are the only place it shows on the calendar). Two reads — the occurrence sheet and the custom
- * lines (the partial `booking_custom_items_starts_idx` was built for exactly this by-day query) —
- * merged into one time-ordered list. Both branches read through staff RLS, like the rest of admin.
- */
-export async function loadDaySchedule(day: string): Promise<DayEntry[]> {
-  const { startUtc, endUtc } = mauritiusDayBounds(day);
-  const supabase = getBrowserSupabase();
-  const customItems = (supabase as unknown as { from(t: 'booking_custom_items'): CustomItemsQuery })
-    .from('booking_custom_items')
-    .select(
-      `id, kind, description, starts_at, ends_at, rental_vehicle_slug,
-       quantity, unit_amount_minor, subtotal_minor, guests, pickup_label,
-       transport_pickup_label, transport_dropoff_label,
-       bookings ( ${BOOKING_FIELDS} )`,
-    )
-    .gte('starts_at', startUtc)
-    .lt('starts_at', endUtc)
-    .order('starts_at', { ascending: true })
-    .returns<RawDayCustomItem[]>();
+const OCCURRENCE_SELECT = `id, activity_option_id, starts_at, departure_time, status, capacity,
+   activity_options ( name, start_window, duration_minutes, guests_per_trip, private_base_minor,
+                      activities ( title, category, duration_minutes, is_airport_transfer,
+                                   guests_per_trip, pricing_mode, startWindow:extra->>startWindow ) ),
+   booking_items!inner ( quantity, pax, price_label, subtotal_minor, transport_fare_minor,
+                         transport_pickup_label, transport_dropoff_label,
+                         bookings ( ${BOOKING_FIELDS} ) )`;
 
-  // A RETURN transfer's departure leg lives only on `bookings.return_date` — it has NO occurrence, so
-  // it is read straight off bookings by that date and folded in beside the occurrence departures.
-  const returnLegs = supabase
-    .from('bookings')
-    .select(RETURN_LEG_SELECT)
-    .eq('trip_direction', 'return')
-    .eq('return_date', day)
-    .returns<RawReturnLeg[]>();
+const CUSTOM_ITEM_SELECT = `id, kind, description, starts_at, ends_at, rental_vehicle_slug,
+   quantity, unit_amount_minor, subtotal_minor, guests, pickup_label,
+   transport_fare_minor, transport_pickup_label, transport_dropoff_label,
+   bookings ( ${BOOKING_FIELDS} )`;
 
-  const [occurrences, custom, legs] = await Promise.all([
-    supabase
-      .from('session_occurrences')
-      .select(
-        `id, activity_option_id, starts_at, status, capacity,
-         activity_options ( name, guests_per_trip, private_base_minor,
-                            activities ( title, guests_per_trip, pricing_mode ) ),
-         booking_items ( quantity, pax, price_label, transport_pickup_label, transport_dropoff_label,
-                         bookings ( ${BOOKING_FIELDS} ) )`,
-      )
-      .gte('starts_at', startUtc)
-      .lt('starts_at', endUtc)
-      .order('starts_at', { ascending: true })
-      .returns<RawDayRow[]>(),
-    customItems,
-    returnLegs,
-  ]);
-  if (occurrences.error) throw occurrences.error;
-  if (custom.error) throw custom.error;
-  if (legs.error) throw legs.error;
+/** PostgREST caps a response (1,000 rows on Supabase) and truncates SILENTLY, so a busy six-week
+ *  window would quietly lose departures. Read page by page until a short page says there is no more. */
+const PAGE = 500;
 
-  const entries: DayEntry[] = [
-    ...mapDaySchedule(occurrences.data ?? []),
-    ...mapDayCustomLines(custom.data ?? []),
-    ...mapReturnLegs(legs.data ?? []),
-  ];
-  // Read the day in time order — a rental sitting between two departures reads where it belongs.
-  entries.sort((a, b) => a.startsAt.localeCompare(b.startsAt));
-  return entries;
+async function readAll<T>(
+  page: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: unknown }>,
+): Promise<T[]> {
+  const out: T[] = [];
+  for (let offset = 0; ; offset += PAGE) {
+    const { data, error } = await page(offset, offset + PAGE - 1);
+    if (error) throw error;
+    out.push(...(data ?? []));
+    if ((data?.length ?? 0) < PAGE) return out;
+  }
 }
 
 /**
- * The visible custom/rental lines across a month, keyed by Mauritius day — the month-wide companion
- * to `loadCalendarMonth`. It makes a converted-quote-only day clickable (see `customLineDays` for why
- * the month RPC alone can't) AND gives the grid the line names to print on the cell.
+ * Everything booked between two Mauritius days, inclusive: the real departures, the dated custom/rental
+ * lines that live on no occurrence (a converted quote can be made entirely of `booking_custom_items`,
+ * so those lines are the only place it shows on the calendar), and return transfers' departure legs.
+ * One read per kind, merged into one time-ordered list. All three read through staff RLS.
  *
- * `from`..`to` are the grid's inclusive first and last day keys; the query spans the same window in
- * UTC (`from`'s day start to the day AFTER `to`), one cheap read served by the partial
- * `booking_custom_items_starts_idx`. Reads through staff RLS like the rest of admin. The selected
- * columns are unchanged — `description` was always fetched, and only ever discarded.
+ * The occurrence read embeds `booking_items!inner`, so only departures with someone booked on them come
+ * back — availability is materialised for every option every day, and a six-week window is ~1,900
+ * empty slots. (`mapDaySchedule` drops an empty departure anyway; this keeps it off the wire.)
  */
-export async function loadCustomLinesByDay(
-  from: string,
-  to: string,
-): Promise<Map<string, DayCustomLine[]>> {
+export async function loadCalendarRange(from: string, to: string): Promise<DayEntry[]> {
   const { startUtc } = mauritiusDayBounds(from);
   const { endUtc } = mauritiusDayBounds(to);
   const supabase = getBrowserSupabase();
-  const { data, error } = await (
-    supabase as unknown as { from(t: 'booking_custom_items'): CustomItemsQuery }
-  )
-    .from('booking_custom_items')
-    .select(
-      `id, kind, description, starts_at, ends_at, rental_vehicle_slug,
-       quantity, unit_amount_minor, subtotal_minor, guests, pickup_label,
-       transport_pickup_label, transport_dropoff_label,
-       bookings ( ${BOOKING_FIELDS} )`,
-    )
-    .gte('starts_at', startUtc)
-    .lt('starts_at', endUtc)
-    .order('starts_at', { ascending: true })
-    .returns<RawDayCustomItem[]>();
-  if (error) throw error;
-  return customLinesByDay(data ?? []);
+  const customItems = () =>
+    (supabase as unknown as { from(t: 'booking_custom_items'): CustomItemsQuery }).from(
+      'booking_custom_items',
+    );
+
+  const [occurrences, custom, legs] = await Promise.all([
+    readAll<RawDayRow>((lo, hi) =>
+      supabase
+        .from('session_occurrences')
+        .select(OCCURRENCE_SELECT)
+        .gte('starts_at', startUtc)
+        .lt('starts_at', endUtc)
+        .order('starts_at', { ascending: true })
+        .order('id', { ascending: true })
+        .range(lo, hi)
+        .returns<RawDayRow[]>(),
+    ),
+    readAll<RawDayCustomItem>((lo, hi) =>
+      customItems()
+        .select(CUSTOM_ITEM_SELECT)
+        .gte('starts_at', startUtc)
+        .lt('starts_at', endUtc)
+        .order('starts_at', { ascending: true })
+        .order('id', { ascending: true })
+        .range(lo, hi)
+        .returns<RawDayCustomItem[]>(),
+    ),
+    // A RETURN transfer's departure leg lives only on `bookings.return_date` — it has NO occurrence,
+    // so it is read straight off bookings by that date and folded in beside the departures.
+    readAll<RawReturnLeg>((lo, hi) =>
+      supabase
+        .from('bookings')
+        .select(RETURN_LEG_SELECT)
+        .eq('trip_direction', 'return')
+        .gte('return_date', from)
+        .lte('return_date', to)
+        .order('id', { ascending: true })
+        .range(lo, hi)
+        .returns<RawReturnLeg[]>(),
+    ),
+  ]);
+
+  const entries: DayEntry[] = [
+    ...mapDaySchedule(occurrences),
+    ...mapDayCustomLines(custom),
+    ...mapReturnLegs(legs),
+  ];
+  // Read the day in time order — a rental sitting between two departures reads where it belongs.
+  entries.sort((a, b) => Date.parse(entryAt(a)) - Date.parse(entryAt(b)));
+  return entries;
 }
 
-/**
- * The visible return-transfer departure legs across a month, keyed by Mauritius day — the month-wide
- * companion to `loadCalendarMonth`, exactly like `loadCustomLinesByDay`. The month RPC counts only
- * session_occurrences, so a return leg (whose departure date has none) would leave that day a dead
- * cell; unioning these keys into the grid's clickable set makes it openable and names it.
- */
-export async function loadReturnLegsByDay(
-  from: string,
-  to: string,
-): Promise<Map<string, DayReturnLeg[]>> {
-  const { data, error } = await getBrowserSupabase()
-    .from('bookings')
-    .select(RETURN_LEG_SELECT)
-    .eq('trip_direction', 'return')
-    .gte('return_date', from)
-    .lte('return_date', to)
-    .returns<RawReturnLeg[]>();
-  if (error) throw error;
-  return returnLegsByDay(data ?? []);
+/** Everything booked on one Mauritius day — {@link loadCalendarRange} for a single day. */
+export async function loadDaySchedule(day: string): Promise<DayEntry[]> {
+  return loadCalendarRange(day, day);
+}
+
+/** Where an entry sits in the day: a tour at its start time (its slot's clock is a placeholder), every
+ *  other entry at its own instant. */
+function entryAt(entry: DayEntry): string {
+  if (entry.kind === 'occurrence' && entry.departureTime) {
+    return `${mauDay(entry.startsAt)}T${entry.departureTime}:00+04:00`;
+  }
+  return entry.startsAt;
 }
 
 interface RawTargetRow {
@@ -934,6 +1003,32 @@ export async function loadMoveTargets(
     out.push({ occurrenceId: raw.id, startsAt: raw.starts_at, seatsLeft });
   }
   return out;
+}
+
+/**
+ * Set — or with `null`, clear — the time ONE departure leaves at, overriding its tour's start time on
+ * every surface (calendar, dashboard, bookings, the guest's email + invoice). Staff-only RPC; guests are
+ * not notified, so the calendar tells staff to let them know.
+ */
+export async function setDepartureTime(
+  occurrenceId: string,
+  time: string | null,
+): Promise<{ departureTime: string | null }> {
+  const { data, error } = await getBrowserSupabase().rpc('api_admin_set_departure_time', {
+    p: { occurrenceId, time },
+  });
+  if (error) throw error;
+  return (data ?? { departureTime: time }) as { departureTime: string | null };
+}
+
+/** Plain-language reasons api_admin_set_departure_time refuses, keyed by its error token. */
+export function describeTimeError(err: unknown): string {
+  const raw = rpcErrorText(err);
+  if (/occurrence_in_past/.test(raw)) return 'This departure has already happened.';
+  if (/occurrence_cancelled/.test(raw)) return 'This departure was called off.';
+  if (/invalid_request/.test(raw)) return 'Use a 24-hour time, like 08:30.';
+  if (/forbidden/.test(raw)) return 'You do not have permission to change departure times.';
+  return 'Could not change the time.';
 }
 
 /** Call a departure off. Cancels it and stamps + mails every guest on it. Not reversible from the UI. */

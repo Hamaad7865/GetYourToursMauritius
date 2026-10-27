@@ -254,16 +254,36 @@ cannot reach the money RPCs.
 Not UTC. This has caused three separate off-by-one-day availability bugs. Copy the pattern from
 `20260718120000_availability_mauritius_tz.sql`.
 
-### A day-slot's clock time is a placeholder noon — never print it as a pickup time
+### A day-slot's clock time is a placeholder — never print it as a pickup or departure time
 
-`materialize_availability` puts every day-slot at 12:00 Mauritius. The guest picks a date, not a time.
-So `session_occurrences.starts_at` tells you the date only. A transfer's real pickup time is what the
-guest typed (`arrival_time`, `return_date` + `return_time`), and a departure-only transfer's date is
-`return_date`, not the slot's date. Invoices printed "12:00 MUT" for a 16:00 landing
-(BMTA0D8CBF245973) until the Date line went through `formatServiceWhen()`
-(`src/lib/invoice/mauritius-time.ts`). Use it, or `transferLegs()`, wherever a booking's time is shown.
-The back-office has its own twin, `serviceWhen()` (`src/lib/admin/format.ts`), behind the bookings
-table and the calendar's transfer cards. Reuse one of the two; don't write a third.
+`materialize_availability` puts every day-slot at 12:00 Mauritius, and slots made before
+`20260718120000` sit at noon UTC (16:00 Mauritius); about 750 of those were still in the future in
+October 2026. The guest picks a date, not a time. So `session_occurrences.starts_at` tells you the date
+only. A transfer's real pickup time is what the guest typed (`arrival_time`, `return_date` +
+`return_time`), and a departure-only transfer's date is `return_date`, not the slot's date. Invoices
+printed "12:00 MUT" for a 16:00 landing (BMTA0D8CBF245973) until the Date line went through
+`formatServiceWhen()` (`src/lib/invoice/mauritius-time.ts`). Use it, or `transferLegs()`, wherever a
+booking's time is shown. The back-office has its own twin, `serviceWhen()` (`src/lib/admin/format.ts`),
+behind the dashboard, the bookings table and the calendar's transfer cards. Reuse one of the two; don't
+write a third.
+
+A **tour** has the same problem. Its departure is the start time staff type on the activity
+(Logistics → "Start time / departure", `extra.startWindow`) or on one option
+(`activity_options.start_window`, which wins). Both are free text ("09:00", "07 00", "09:00 - 17:00"),
+so read them only through `tourDepartureTime()` / `departureClock()` (`src/lib/catalogue/departure-time.ts`).
+A tour with no start time shows its date alone ("Time TBC" on the dashboard), never the slot's clock. The
+dashboard, the calendar, the quote builder and the admin AI assistant printed 12:00/16:00 for every tour
+until October 2026, and so did the guest's confirmation email and invoice. `api_booking_receipt` returns the start time as
+`startWindow` (`20261027120000_receipt_departure_time.sql`). The slots were deliberately **not**
+re-timed: `utcDayKey()` on the booking calendar and the per-day de-dupe both assume a mid-day slot, and
+a later edit to a tour's start time would not move slots that already exist.
+
+ONE departure can leave at its own time: `session_occurrences.departure_time` (a Mauritius wall-clock
+`time`, NULL = the tour's), set from the calendar through `api_admin_set_departure_time`
+(`20261027130000_departure_time_override.sql`). It wins over the option and the activity everywhere —
+read it with `occurrenceDepartureTime()`, never `tourDepartureTime()`, on any surface that has an
+occurrence, and select `departure_time` alongside `starts_at`. It is still NOT folded into `starts_at`,
+for the reasons above.
 
 The day-slot is also the **only** date the booking has for its first leg, so checkout must never edit
 it. The transfer widget picks the direction (arrival / departure / return) and reserves that leg's

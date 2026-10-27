@@ -56,18 +56,19 @@ export function formatMauritiusDate(iso: string | null | undefined): string {
 /**
  * The booking's "Date" line on the invoice PDF + confirmation email: when the guest is collected.
  *
- * Every catalogue day-slot is materialised at a placeholder NOON (`materialize_availability`), so a
- * transfer's occurrence clock time is meaningless — the real pickup is the time the guest typed. A
- * transfer therefore prints its first leg from {@link transferLegs} (the same legs the e-voucher and
- * the confirmation page show, so a departure-only trip is dated by its returnDate, not the slot), and
- * the date ALONE when no time was captured — never the noon placeholder. A hotel-to-hotel transfer
- * has no airport direction, so its pickup time arrives as `pickupTime`. Every other booking keeps the
- * occurrence date-time.
+ * Every catalogue day-slot is materialised at a placeholder clock time (`materialize_availability`
+ * puts it at noon; slots made before the July timezone fix sit at 16:00), so an occurrence's clock is
+ * never real. A transfer prints its first leg from {@link transferLegs} (the same legs the e-voucher
+ * and the confirmation page show, so a departure-only trip is dated by its returnDate, not the slot).
+ * A hotel-to-hotel transfer has no airport direction, so its pickup time arrives as `pickupTime`. A
+ * tour prints the start time set on it (`departureTime`). Anything with no time prints the date
+ * ALONE — never the placeholder clock.
  */
 export function formatServiceWhen(booking: {
   when: string | null | undefined;
   transfer?: TransferDetails | null;
   pickupTime?: string | null;
+  departureTime?: string | null;
 }): string {
   const tr = booking.transfer;
   if (tr) {
@@ -83,9 +84,7 @@ export function formatServiceWhen(booking: {
       ? tr.returnDate
       : formatMauritiusDate(booking.when);
   }
-  if (booking.pickupTime) {
-    const ymd = formatMauritiusDate(booking.when);
-    return ymd ? `${ymd} ${booking.pickupTime} MUT` : '';
-  }
-  return formatMauritiusDateTime(booking.when);
+  const ymd = formatMauritiusDate(booking.when);
+  const time = booking.pickupTime || booking.departureTime;
+  return ymd && time ? `${ymd} ${time} MUT` : ymd;
 }
