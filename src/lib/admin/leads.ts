@@ -1,4 +1,5 @@
 import { getBrowserSupabase } from '@/lib/supabase/browser';
+import { readAll, uniqueById } from '@/lib/admin/read-all';
 
 /* Admin leads inbox. Staff RLS (leads_staff) grants full read/write on leads, so the authenticated
  * admin reads + moves leads through their pipeline directly via the browser client — no RPC. */
@@ -41,18 +42,22 @@ interface RawLead {
   activities: { title: string } | { title: string }[] | null;
 }
 
-/** All leads, newest first. Staff RLS returns every row. */
-export async function loadLeads(limit = 300): Promise<LeadRow[]> {
-  const { data, error } = await getBrowserSupabase()
-    .from('leads')
-    .select(
-      'id, name, contact, status, source, message, page_url, preferred_date, party_size, created_at, activities ( title )',
-    )
-    .order('created_at', { ascending: false })
-    .limit(limit)
-    .returns<RawLead[]>();
-  if (error) throw error;
-  return (data ?? []).map((raw) => ({
+/** All leads, newest first. Staff RLS returns every row — ALL of them, paged past PostgREST's silent
+ *  row cap (see read-all.ts). */
+export async function loadLeads(): Promise<LeadRow[]> {
+  const supabase = getBrowserSupabase();
+  const rows = await readAll<RawLead>((lo, hi) =>
+    supabase
+      .from('leads')
+      .select(
+        'id, name, contact, status, source, message, page_url, preferred_date, party_size, created_at, activities ( title )',
+      )
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: true })
+      .range(lo, hi)
+      .returns<RawLead[]>(),
+  );
+  return uniqueById(rows).map((raw) => ({
     id: raw.id,
     name: raw.name,
     contact: raw.contact,

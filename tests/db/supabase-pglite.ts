@@ -25,9 +25,9 @@ class QueryBuilder implements PromiseLike<Result> {
   private op: 'select' | 'insert' | 'update' | 'delete' = 'select';
   private cols = '*';
   private filters: Filter[] = [];
-  private orderBy: string | null = null;
-  private orderAsc = true;
+  private orderBy: Array<{ col: string; asc: boolean }> = [];
   private limitN: number | null = null;
+  private offsetN: number | null = null;
   private payload: Record<string, unknown> | Record<string, unknown>[] | null = null;
   private returning: string | null = null;
   private rowMode: RowMode = 'many';
@@ -81,13 +81,20 @@ class QueryBuilder implements PromiseLike<Result> {
     this.filters.push({ col, op: 'is', val });
     return this;
   }
+  /** Each call adds a sort key after the previous ones, as PostgREST's `order=a.desc,b.asc` does —
+   *  the paged readers (src/lib/admin/read-all.ts) need the `id` tiebreak to survive. */
   order(col: string, opts?: { ascending?: boolean }): this {
-    this.orderBy = col;
-    this.orderAsc = opts?.ascending ?? true;
+    this.orderBy.push({ col, asc: opts?.ascending ?? true });
     return this;
   }
   limit(n: number): this {
     this.limitN = n;
+    return this;
+  }
+  /** PostgREST's inclusive `range(from, to)`: rows from..to of the ordered result. */
+  range(from: number, to: number): this {
+    this.offsetN = from;
+    this.limitN = to - from + 1;
     return this;
   }
   single(): this {
@@ -168,11 +175,12 @@ class QueryBuilder implements PromiseLike<Result> {
       }
 
       if (this.op === 'select') {
-        const order = this.orderBy
-          ? ` order by ${this.orderBy} ${this.orderAsc ? 'asc' : 'desc'}`
+        const order = this.orderBy.length
+          ? ` order by ${this.orderBy.map((o) => `${o.col} ${o.asc ? 'asc' : 'desc'}`).join(', ')}`
           : '';
         const limit = this.limitN !== null ? ` limit ${this.limitN}` : '';
-        sql = `select ${this.cols} from ${this.table}${this.buildWhere(params)}${order}${limit}`;
+        const offset = this.offsetN !== null ? ` offset ${this.offsetN}` : '';
+        sql = `select ${this.cols} from ${this.table}${this.buildWhere(params)}${order}${limit}${offset}`;
       } else if (this.op === 'insert') {
         const rows = Array.isArray(this.payload) ? this.payload : [this.payload ?? {}];
         const cols = Object.keys(rows[0] ?? {});

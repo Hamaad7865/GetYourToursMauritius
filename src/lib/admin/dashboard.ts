@@ -337,7 +337,7 @@ export function computeDashboard(bookings: BookingRow[], now: Date): DashboardDa
 
 /** Load bookings and compute the dashboard. */
 export async function loadDashboard(now: Date = new Date()): Promise<DashboardData> {
-  const bookings = await loadBookings(300);
+  const bookings = await loadBookings();
   return computeDashboard(bookings, now);
 }
 

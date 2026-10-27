@@ -1,5 +1,6 @@
 import { childSeatsCost } from '@/lib/services/pricing';
 import { getBrowserSupabase } from '@/lib/supabase/browser';
+import { readAll, uniqueById } from '@/lib/admin/read-all';
 import { occurrenceDepartureTime } from '@/lib/catalogue/departure-time';
 
 /* Admin booking reads + lifecycle writes. Staff/admin RLS (`*_staff` policies) grants full
@@ -560,37 +561,40 @@ export function bookingExtraCharges(booking: BookingRow): BookingChargeLine[] {
   return lines;
 }
 
-/** All bookings, newest first. Staff RLS returns every row. */
-export async function loadBookings(limit = 300): Promise<BookingRow[]> {
-  const { data, error } = await getBrowserSupabase()
-    .from('bookings')
-    .select(`${BOOKING_SELECT}, payments ( paid_minor, refunded_minor )`)
-    .order('created_at', { ascending: false })
-    .limit(limit)
-    .returns<RawBooking[]>();
-  if (error) throw error;
-  return (data ?? []).map(mapBooking);
+/** All bookings, newest first. Staff RLS returns every row — ALL of them, paged past PostgREST's
+ *  silent row cap (see read-all.ts). The order is load-bearing: the dashboard's "recent" and
+ *  "pending" panels take the head of this list. */
+export async function loadBookings(): Promise<BookingRow[]> {
+  const supabase = getBrowserSupabase();
+  const rows = await readAll<RawBooking>((lo, hi) =>
+    supabase
+      .from('bookings')
+      .select(`${BOOKING_SELECT}, payments ( paid_minor, refunded_minor )`)
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: true })
+      .range(lo, hi)
+      .returns<RawBooking[]>(),
+  );
+  return uniqueById(rows).map(mapBooking);
 }
 
 /** Bookings created within [fromISO, toISO) — the reports module's per-year fetch. Same staff RLS +
- *  mapper as loadBookings, but bounded by created_at instead of a small newest-first cap. The high
- *  limit is a safety backstop; at current volume a year is well under it. If it's ever exceeded the
- *  reports should move to a SQL aggregate RPC. */
-export async function loadBookingsInRange(
-  fromISO: string,
-  toISO: string,
-  limit = 10000,
-): Promise<BookingRow[]> {
-  const { data, error } = await getBrowserSupabase()
-    .from('bookings')
-    .select(`${BOOKING_SELECT}, payments ( paid_minor, refunded_minor )`)
-    .gte('created_at', fromISO)
-    .lt('created_at', toISO)
-    .order('created_at', { ascending: false })
-    .limit(limit)
-    .returns<RawBooking[]>();
-  if (error) throw error;
-  return (data ?? []).map(mapBooking);
+ *  mapper as loadBookings, bounded by created_at. Paged like it, too: a year outgrows PostgREST's
+ *  1,000-row cap long before it would make a client-side report slow. */
+export async function loadBookingsInRange(fromISO: string, toISO: string): Promise<BookingRow[]> {
+  const supabase = getBrowserSupabase();
+  const rows = await readAll<RawBooking>((lo, hi) =>
+    supabase
+      .from('bookings')
+      .select(`${BOOKING_SELECT}, payments ( paid_minor, refunded_minor )`)
+      .gte('created_at', fromISO)
+      .lt('created_at', toISO)
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: true })
+      .range(lo, hi)
+      .returns<RawBooking[]>(),
+  );
+  return uniqueById(rows).map(mapBooking);
 }
 
 interface RawPaymentEvent {

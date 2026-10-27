@@ -1,4 +1,5 @@
 import { getBrowserSupabase } from '@/lib/supabase/browser';
+import { readAll } from '@/lib/admin/read-all';
 import { rpcErrorText } from '@/lib/admin/rpc-error';
 import {
   hotelPickupTime,
@@ -857,22 +858,6 @@ const CUSTOM_ITEM_SELECT = `id, kind, description, starts_at, ends_at, rental_ve
    quantity, unit_amount_minor, subtotal_minor, guests, pickup_label,
    transport_fare_minor, transport_pickup_label, transport_dropoff_label,
    bookings ( ${BOOKING_FIELDS} )`;
-
-/** PostgREST caps a response (1,000 rows on Supabase) and truncates SILENTLY, so a busy six-week
- *  window would quietly lose departures. Read page by page until a short page says there is no more. */
-const PAGE = 500;
-
-async function readAll<T>(
-  page: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: unknown }>,
-): Promise<T[]> {
-  const out: T[] = [];
-  for (let offset = 0; ; offset += PAGE) {
-    const { data, error } = await page(offset, offset + PAGE - 1);
-    if (error) throw error;
-    out.push(...(data ?? []));
-    if ((data?.length ?? 0) < PAGE) return out;
-  }
-}
 
 /**
  * Everything booked between two Mauritius days, inclusive: the real departures, the dated custom/rental

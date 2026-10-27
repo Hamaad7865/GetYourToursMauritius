@@ -2,6 +2,7 @@ import { lineSubtotalMinor, quoteTotalMinor, type PricedLine } from '@/lib/quote
 import { assertQuoteStillValid, defaultValidUntil, quoteTodayUtc } from '@/lib/quotes/validity';
 import { ValidationError } from '@/lib/services/errors';
 import { getBrowserSupabase } from '@/lib/supabase/browser';
+import { readAll, uniqueById } from '@/lib/admin/read-all';
 import type { DraftFromEmailResponse } from '@/lib/validation/quote-extraction';
 
 /* Staff-side quotes: draft, re-price, withdraw, send. Mirrors src/lib/admin/bookings.ts — the
@@ -312,7 +313,7 @@ type Row = Record<string, unknown>;
 interface SelectBuilder extends PromiseLike<{ data: Row[] | null; error: unknown }> {
   eq(column: string, value: string): SelectBuilder;
   order(column: string, opts: { ascending: boolean }): SelectBuilder;
-  limit(n: number): SelectBuilder;
+  range(from: number, to: number): SelectBuilder;
   maybeSingle(): PromiseLike<{ data: Row | null; error: unknown }>;
 }
 
@@ -551,15 +552,18 @@ async function session(): Promise<{ accessToken: string; userId: string } | null
   }
 }
 
-/** All quotes, newest first. Staff RLS returns every row. */
-export async function loadQuotes(limit = 300): Promise<QuoteRow[]> {
-  const { data, error } = await db()
-    .from('quotes')
-    .select(QUOTE_COLUMNS)
-    .order('created_at', { ascending: false })
-    .limit(limit);
-  if (error) throw error;
-  return (data ?? []).map(mapQuote);
+/** All quotes, newest first. Staff RLS returns every row — ALL of them, paged past PostgREST's
+ *  silent row cap (see read-all.ts). */
+export async function loadQuotes(): Promise<QuoteRow[]> {
+  const rows = await readAll<Row>((lo, hi) =>
+    db()
+      .from('quotes')
+      .select(QUOTE_COLUMNS)
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: true })
+      .range(lo, hi),
+  );
+  return uniqueById(rows as Array<Row & { id: string }>).map(mapQuote);
 }
 
 /** One quote with its lines, in the owner's order. Null when there is no such quote. */

@@ -405,7 +405,7 @@ describe('admin quote service (RLS + real schema)', () => {
     expect(detail!.items.map((item) => item.description)).toEqual(['First', 'Second', 'Third']);
     expect(detail!.items.map((item) => item.subtotalMinor)).toEqual([1000, 4000, 3000]);
 
-    const list = await loadQuotes(50);
+    const list = await loadQuotes();
     expect(list.some((quote) => quote.id === id)).toBe(true);
     // Newest first — the list is what the owner scans for the quote they just drafted.
     const created = list.map((quote) => quote.createdAt);
@@ -777,7 +777,7 @@ describe('admin quote service (RLS + real schema)', () => {
     // (docs/handbook/landmines.md), so the read side is asserted rather than inferred from the
     // write side.
     await db.as({ sub: CUSTOMER, role: 'authenticated' });
-    expect(await loadQuotes(50), 'a signed-in guest can list every quote in the business').toEqual(
+    expect(await loadQuotes(), 'a signed-in guest can list every quote in the business').toEqual(
       [],
     );
 

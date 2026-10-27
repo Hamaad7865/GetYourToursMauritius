@@ -479,6 +479,25 @@ Check `src/lib/seo/page-registry.ts`, the `posts` table, `seo_redirects`, and th
 Related: a build-time redirect in `next.config.mjs` always wins over an admin-managed one, and the owner
 has no way to see why theirs does nothing. Keep owner-managed redirects in the database only.
 
+### A staff list that means "all of them" must read through `readAll`
+
+PostgREST caps every response (Supabase's API "Max rows", 1,000 by default) and truncates **silently**:
+no error, just fewer rows. A `.limit(n)` read is a quiet ceiling too. The Bookings screen once loaded the
+newest 300 and printed "300 of 300 bookings" while prod held 466. Its filters, search and CSV export
+all ran over those 300, and the dashboard's "Departures today" missed every guest who had booked more
+than about six weeks ahead. Leads were cut the same way.
+
+`loadBookings`, `loadBookingsInRange`, `loadLeads`, `loadQuotes` and the calendar page through
+`readAll` in `src/lib/admin/read-all.ts` (500 rows a page). Two rules come with it:
+
+- End the ORDER BY on a unique column (`.order('id')`). Offset paging over a sort key with ties can
+  skip a row or repeat it.
+- Pass the result through `uniqueById`. A row inserted mid-read shifts a newest-first list down by
+  one, so the next page repeats a row.
+
+`PAGE` must stay **below** the project's API "Max rows". If it were higher, every page would come
+back short and `readAll` would stop after the first one.
+
 ### The admin sidebar is not a security boundary
 
 `AdminShell` filters nav items by the owner-defined role (`/admin/roles`) and shows a "No access"
