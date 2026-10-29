@@ -2004,13 +2004,13 @@ export function Checkout({ chargeCurrency }: { chargeCurrency: ChargeCurrency })
                 {t('Where should we send your booking confirmation?')}
               </h1>
               <p className="mt-2 text-sm text-ink-muted">
-                {t(
-                  'Sign in or create an account — by email, Google, Apple or Facebook — to continue.',
-                )}
+                {t('Create an account or sign in — with Google or your email — to continue.')}
               </p>
+              {/* Opens on "Create account": ~4 in 5 web bookings come from an account made at checkout,
+                  and new guests typing into "Sign in" got "Invalid login credentials" (2026-10-29). */}
               <button
                 type="button"
-                onClick={() => openAuth('signin')}
+                onClick={() => openAuth('signup')}
                 className="mt-5 hidden rounded-full bg-teal-dark px-7 py-3 text-sm font-bold text-white hover:bg-teal-dark/90 lg:inline-flex"
               >
                 {t('Sign in / Create account')}
@@ -2335,7 +2335,7 @@ export function Checkout({ chargeCurrency }: { chargeCurrency: ChargeCurrency })
         {step === 2 && !session && (
           <button
             type="button"
-            onClick={() => openAuth('signin')}
+            onClick={() => openAuth('signup')}
             className="flex w-full items-center justify-center rounded-full bg-teal-dark px-7 py-3.5 text-sm font-bold text-white hover:bg-teal-dark/90"
           >
             {t('Sign in / Create account')}

@@ -852,8 +852,8 @@ export const fr: Record<string, string> = {
   'Next: Personal details': 'Suivant : coordonnées',
   'Where should we send your booking confirmation?':
     'Où devons-nous envoyer votre confirmation de réservation ?',
-  'Sign in or create an account — by email, Google, Apple or Facebook — to continue.':
-    'Connectez-vous ou créez un compte — par e-mail, Google, Apple ou Facebook — pour continuer.',
+  'Create an account or sign in — with Google or your email — to continue.':
+    'Créez un compte ou connectez-vous — avec Google ou votre e-mail — pour continuer.',
   'Sign in / Create account': 'Se connecter / Créer un compte',
   'Your details': 'Vos coordonnées',
   Country: 'Pays',
@@ -1103,8 +1103,24 @@ export const fr: Record<string, string> = {
   'Already have an account?': 'Vous avez déjà un compte ?',
   'New to Belle Mare Tours?': 'Nouveau sur Belle Mare Tours ?',
   'Create one': 'Créez-en un',
-  'Check your inbox to confirm your email. Already have an account? Just sign in.':
-    'Consultez votre boîte de réception pour confirmer votre e-mail. Vous avez déjà un compte ? Connectez-vous simplement.',
+  'Check your inbox (and spam folder) and tap the link to confirm your email. It brings you back here.':
+    'Consultez votre boîte de réception (et vos spams) et appuyez sur le lien pour confirmer votre e-mail. Il vous ramène ici.',
+  'I already have an account — sign in': 'J’ai déjà un compte — me connecter',
+  'That email and password don’t match. New here? Create an account instead.':
+    'Cet e-mail et ce mot de passe ne correspondent pas. Nouveau ici ? Créez plutôt un compte.',
+  'Please confirm your email first: open the link we sent you, then sign in here.':
+    'Confirmez d’abord votre e-mail : ouvrez le lien que nous vous avons envoyé, puis connectez-vous ici.',
+  'We’ve just sent you an email. Check your inbox and spam folder; you can ask for another one in a minute.':
+    'Nous venons de vous envoyer un e-mail. Consultez votre boîte de réception et vos spams ; vous pourrez en demander un autre dans une minute.',
+  'This email already has an account. Sign in instead.':
+    'Un compte existe déjà avec cet e-mail. Connectez-vous plutôt.',
+  'That password is too weak. Please choose a longer one.':
+    'Ce mot de passe est trop faible. Choisissez-en un plus long.',
+  'Please check your email address.': 'Vérifiez votre adresse e-mail.',
+  'Too many attempts. Please wait a minute and try again.':
+    'Trop de tentatives. Patientez une minute, puis réessayez.',
+  'We couldn’t reach the sign-in service. Check your connection and try again.':
+    'Impossible de joindre le service de connexion. Vérifiez votre connexion et réessayez.',
   'Forgot password?': 'Mot de passe oublié ?',
   'Keep me signed in': 'Rester connecté',
   'Uncheck this on a shared or public computer.':

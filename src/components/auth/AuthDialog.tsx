@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Provider } from '@supabase/supabase-js';
 import { getAuthPersistence, getBrowserSupabase, setAuthPersistence } from '@/lib/supabase/browser';
 import { useDialog } from '@/lib/a11y/useDialog';
+import { friendlyAuthError } from '@/lib/auth/auth-error';
 import { usePreferences, useT } from '@/components/site/PreferencesProvider';
 import {
   IconEye,
@@ -81,6 +82,8 @@ export function AuthDialog({
   const [remember, setRemember] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // When the fix for `error` is the OTHER mode (a new guest typing into "Sign in"), offer it as a button.
+  const [suggest, setSuggest] = useState<AuthMode | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   // On a successful email sign-in / sign-up-with-session, swap the card to a brief success animation
   // (checkmark) before the modal closes — instead of it just vanishing. Holds the heading to show.
@@ -119,10 +122,20 @@ export function AuthDialog({
     return () => window.clearTimeout(id);
   }, [done, onClose]);
 
+  // Email and password stay in state across the switch, so a guest who typed into the wrong mode
+  // doesn't have to type them again.
+  function switchTo(next: AuthMode) {
+    setError(null);
+    setSuggest(null);
+    setNotice(null);
+    onSwitch(next);
+  }
+
   async function submitEmail(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
     setError(null);
+    setSuggest(null);
     setNotice(null);
     // Record the choice BEFORE the call: the session is written to storage inside it.
     setAuthPersistence(remember);
@@ -143,12 +156,14 @@ export function AuthDialog({
         // Email confirmation on → no session yet; otherwise we're signed straight in.
         // The message is deliberately identical whether or not the email already has an account:
         // Supabase returns the same session-less success for a duplicate signup (anti-enumeration —
-        // never reveal which addresses are registered). The "Already have an account? Just sign in."
-        // half nudges a returning customer who forgot they signed up, WITHOUT confirming to a stranger
-        // that the address exists.
+        // never reveal which addresses are registered). The notice's "I already have an account — sign
+        // in" button nudges a returning customer who forgot they signed up, WITHOUT confirming to a
+        // stranger that the address exists.
         if (!data.session) {
           setNotice(
-            t('Check your inbox to confirm your email. Already have an account? Just sign in.'),
+            t(
+              'Check your inbox (and spam folder) and tap the link to confirm your email. It brings you back here.',
+            ),
           );
           return;
         }
@@ -159,7 +174,9 @@ export function AuthDialog({
       // Success → play the checkmark animation; the effect above closes the modal once it has run.
       setDone(signup ? t('Welcome aboard!') : t('You’re in!'));
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('Something went wrong. Please try again.'));
+      const f = friendlyAuthError(err, t);
+      setError(f.message);
+      setSuggest(f.suggest);
     } finally {
       setBusy(false);
     }
@@ -193,6 +210,7 @@ export function AuthDialog({
   async function oauth(provider: Provider) {
     setBusy(true);
     setError(null);
+    setSuggest(null);
     // Must be set before the redirect: the PKCE verifier is written on the way out and read
     // back at /auth/callback, and both have to land in the same store.
     setAuthPersistence(remember);
@@ -205,7 +223,9 @@ export function AuthDialog({
       // Success redirects the browser away; nothing more to do here.
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : t('Could not continue with {provider}.', { provider }),
+        err instanceof Error
+          ? friendlyAuthError(err, t).message
+          : t('Could not continue with {provider}.', { provider }),
       );
       setBusy(false);
     }
@@ -476,6 +496,18 @@ export function AuthDialog({
                     className="rounded-lg bg-coral/10 px-3 py-2 text-[13px] font-medium text-coral-dark"
                   >
                     {error}
+                    {suggest && (
+                      <>
+                        {' '}
+                        <button
+                          type="button"
+                          onClick={() => switchTo(suggest)}
+                          className="font-bold underline underline-offset-2 hover:text-coral-dark/80"
+                        >
+                          {suggest === 'signup' ? t('Create an account') : t('Sign in')}
+                        </button>
+                      </>
+                    )}
                   </p>
                 )}
                 {notice && (
@@ -484,6 +516,20 @@ export function AuthDialog({
                     className="rounded-lg bg-teal/10 px-3 py-2 text-[13px] font-medium text-teal-dark"
                   >
                     {notice}
+                    {/* The notice is identical for a new and an existing address (anti-enumeration), so
+                        a returning customer who opened "Create account" needs a way out of it. */}
+                    {signup && (
+                      <>
+                        {' '}
+                        <button
+                          type="button"
+                          onClick={() => switchTo('signin')}
+                          className="font-bold underline underline-offset-2 hover:text-teal-dark/80"
+                        >
+                          {t('I already have an account — sign in')}
+                        </button>
+                      </>
+                    )}
                   </p>
                 )}
 
@@ -514,11 +560,7 @@ export function AuthDialog({
                 {signup ? t('Already have an account?') : t('New to Belle Mare Tours?')}{' '}
                 <button
                   type="button"
-                  onClick={() => {
-                    setError(null);
-                    setNotice(null);
-                    onSwitch(signup ? 'signin' : 'signup');
-                  }}
+                  onClick={() => switchTo(signup ? 'signin' : 'signup')}
                   className="font-bold text-teal-dark hover:text-teal-dark/80"
                 >
                   {signup ? t('Sign in') : t('Create one')}
