@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createTestDb, type TestDb } from '../db/pglite';
+import { CHECKOUT_FUNNEL_EVENTS, CHECKOUT_STEP_EVENTS } from '@/lib/validation/telemetry';
 
 /**
  * checkout_funnel_events (20261017000000) — what the card-payment page saw. Fed by an UNAUTHENTICATED
@@ -70,6 +71,35 @@ describe('checkout_funnel_events', () => {
     expect(rows[0]).toMatchObject({ event: 'cancelled', device: 'unknown', ms_since_mount: null });
     expect(String(rows[0]!.checkout_id)).toHaveLength(64);
     expect(String(rows[0]!.browser)).toHaveLength(30);
+  });
+
+  // 20261029120000: the checkout steps ride the same table, keyed by hold or visit id. The writer's
+  // list, the table CHECK and the Zod enum are three copies of one list — this pins all of them.
+  it('accepts every checkout-step event, keyed by hold or visit id', async () => {
+    for (const event of CHECKOUT_STEP_EVENTS) {
+      expect((await logEvent({ checkoutId: `hold:${event}`, event, device: 'mobile' })).ok).toBe(
+        true,
+      );
+    }
+    expect((await logEvent({ checkoutId: 'visit:abc', event: 'step_1' })).ok).toBe(true);
+    const { rows } = await db.pg.query<{ n: number }>(
+      'select count(*)::int as n from checkout_funnel_events',
+    );
+    expect(rows[0]!.n).toBe(CHECKOUT_STEP_EVENTS.length + 1);
+  });
+
+  it('keeps the table CHECK in step with the Zod event list', async () => {
+    for (const event of CHECKOUT_FUNNEL_EVENTS) {
+      await db.pg.query(
+        "insert into checkout_funnel_events (checkout_id, event, device, browser) values ('direct', $1, 'desktop', 'other')",
+        [event],
+      );
+    }
+    await expect(
+      db.pg.query(
+        "insert into checkout_funnel_events (checkout_id, event, device, browser) values ('direct', 'step_9', 'desktop', 'other')",
+      ),
+    ).rejects.toThrow(/checkout_funnel_events_event_check/);
   });
 
   it('purges rows past the retention window', async () => {

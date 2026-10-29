@@ -11,12 +11,14 @@ import { log } from '@/lib/log';
 export const runtime = 'edge';
 
 /**
- * POST /api/v1/payments/funnel — one pay-page funnel event (widget ready, first input, cancelled,
- * page hidden…). Unauthenticated on purpose: it is sent with navigator.sendBeacon as the page unloads,
- * which cannot carry a bearer token. It writes nothing but a diagnostic row keyed by the Peach checkout
- * id, the device is derived HERE from the request's User-Agent (reduced to a class — the raw UA is
- * never stored), and it is per-IP rate limited. Always 202: telemetry must never surface an error to
- * a customer who is paying.
+ * POST /api/v1/payments/funnel — one funnel event: the pay page's (widget ready, first input,
+ * cancelled, page hidden…) or a checkout step's (step shown, account box opened, Pay tapped —
+ * 20261029120000). Unauthenticated on purpose: it is sent with navigator.sendBeacon as the page
+ * unloads, which cannot carry a bearer token, and a signed-out guest on step ② is exactly who the step
+ * events are about. It writes nothing but a diagnostic row keyed by a Peach checkout id, a hold id or a
+ * random visit id; the device is derived HERE from the request's User-Agent (reduced to a class — the
+ * raw UA is never stored), and it is per-IP rate limited. Always 202: telemetry must never surface an
+ * error to a customer who is paying.
  */
 export const POST = apiHandler(async (req) => {
   await rateLimit(req, 'checkout_funnel', 60, 60);

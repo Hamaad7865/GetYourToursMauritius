@@ -5,6 +5,7 @@ import type { Provider } from '@supabase/supabase-js';
 import { getAuthPersistence, getBrowserSupabase, setAuthPersistence } from '@/lib/supabase/browser';
 import { useDialog } from '@/lib/a11y/useDialog';
 import { friendlyAuthError } from '@/lib/auth/auth-error';
+import { announceAuthResult } from '@/lib/auth/auth-result';
 import { usePreferences, useT } from '@/components/site/PreferencesProvider';
 import {
   IconEye,
@@ -160,6 +161,7 @@ export function AuthDialog({
         // in" button nudges a returning customer who forgot they signed up, WITHOUT confirming to a
         // stranger that the address exists.
         if (!data.session) {
+          announceAuthResult('signup_email_sent');
           setNotice(
             t(
               'Check your inbox (and spam folder) and tap the link to confirm your email. It brings you back here.',
@@ -177,6 +179,7 @@ export function AuthDialog({
       const f = friendlyAuthError(err, t);
       setError(f.message);
       setSuggest(f.suggest);
+      announceAuthResult('auth_failed');
     } finally {
       setBusy(false);
     }
@@ -227,6 +230,7 @@ export function AuthDialog({
           ? friendlyAuthError(err, t).message
           : t('Could not continue with {provider}.', { provider }),
       );
+      announceAuthResult('auth_failed');
       setBusy(false);
     }
   }

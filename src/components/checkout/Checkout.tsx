@@ -28,6 +28,9 @@ import { useGoogleMaps } from '@/lib/maps/useGoogleMaps';
 import type { TransportBands, RegionDistances } from '@/lib/validation/tours';
 import { canAdvanceStep1, isVehiclePriced } from '@/lib/checkout/pickup';
 import { reportClientError } from '@/lib/client-error-report';
+import { sendFunnelEvent } from '@/lib/checkout/funnel-beacon';
+import { AUTH_RESULT_EVENT } from '@/lib/auth/auth-result';
+import type { CheckoutStepEvent } from '@/lib/validation/telemetry';
 import {
   DEFAULT_DIAL_CODE,
   composePhone,
@@ -181,7 +184,7 @@ function ReservedDay({
  */
 export function Checkout({ chargeCurrency }: { chargeCurrency: ChargeCurrency }) {
   const params = useSearchParams();
-  const { user, profile, session, openAuth } = useAuth();
+  const { user, profile, session, loading: authLoading, openAuth } = useAuth();
   const t = useT();
   const money = useMoney();
   // Mirror the active checkout hold into the cart as an on-hold line (see the mount effect below), and
@@ -421,6 +424,51 @@ export function Checkout({ chargeCurrency }: { chargeCurrency: ChargeCurrency })
   // once even under StrictMode's double-invoke; the state flag is what gates saving.
   const hydratedRef = useRef(false);
   const [hydrated, setHydrated] = useState(false);
+
+  // ── Step telemetry (20261029120000) ──────────────────────────────────────────────────────────
+  // Which step a guest leaves on — the 2026-10-29 question nothing could answer. Keyed by the hold the
+  // widget or cart reserved ('hold:<id>': joins to booking_holds and, once api_book consumes it, to the
+  // booking; survives the same-tab Google round trip), else one random id per page load. Stores nothing
+  // new in the browser. Each event goes once per page load, so a re-render or StrictMode's double
+  // effect never double-counts.
+  const stepKeyRef = useRef('');
+  const stepSentRef = useRef(new Set<CheckoutStepEvent>());
+  const mountedAtRef = useRef(0);
+  const logStep = useCallback(
+    (event: CheckoutStepEvent) => {
+      if (stepSentRef.current.has(event)) return;
+      stepSentRef.current.add(event);
+      if (!stepKeyRef.current) {
+        stepKeyRef.current = holdId ? `hold:${holdId}` : `visit:${crypto.randomUUID()}`;
+      }
+      sendFunnelEvent(
+        stepKeyRef.current,
+        event,
+        mountedAtRef.current ? performance.now() - mountedAtRef.current : undefined,
+      );
+    },
+    [holdId],
+  );
+  // After the draft restore (`hydrated`), so a guest back from Google lands on step ② without first
+  // logging a step ① they never saw; step ② waits for the session check so signed-in/out is right.
+  useEffect(() => {
+    if (!hydrated) return;
+    if (!mountedAtRef.current) mountedAtRef.current = performance.now();
+    if (step === 1) logStep('step_1');
+    else if (step === 2 && !authLoading)
+      logStep(session ? 'step_2_signed_in' : 'step_2_signed_out');
+    else if (step === 3) logStep('step_3');
+  }, [hydrated, step, authLoading, session, logStep]);
+  // The account dialog is global; it announces its outcome on the window (src/lib/auth/auth-result.ts).
+  useEffect(() => {
+    const onResult = (e: Event) => {
+      const r = (e as CustomEvent<unknown>).detail;
+      if (r === 'signup_email_sent' || r === 'auth_failed') logStep(r);
+    };
+    window.addEventListener(AUTH_RESULT_EVENT, onResult);
+    return () => window.removeEventListener(AUTH_RESULT_EVENT, onResult);
+  }, [logStep]);
+
   // "Do you want pickup?" — ALWAYS defaults to Yes (this operator picks customers up by default). The
   // customer can still switch to "No, I'll make my own way". A pickup default needs an address (or
   // "I don't know yet") to advance — see canAdvanceStep1.
@@ -957,6 +1005,7 @@ export function Checkout({ chargeCurrency }: { chargeCurrency: ChargeCurrency })
       return;
     }
     if (!session) return openAuth('signin');
+    logStep('pay_clicked');
     setBusy(true);
     // Stage 1 of the ring: everything up to and including having a confirmed, priced booking.
     setPayStage('booking');
@@ -2010,7 +2059,10 @@ export function Checkout({ chargeCurrency }: { chargeCurrency: ChargeCurrency })
                   and new guests typing into "Sign in" got "Invalid login credentials" (2026-10-29). */}
               <button
                 type="button"
-                onClick={() => openAuth('signup')}
+                onClick={() => {
+                  logStep('auth_opened');
+                  openAuth('signup');
+                }}
                 className="mt-5 hidden rounded-full bg-teal-dark px-7 py-3 text-sm font-bold text-white hover:bg-teal-dark/90 lg:inline-flex"
               >
                 {t('Sign in / Create account')}
@@ -2335,7 +2387,10 @@ export function Checkout({ chargeCurrency }: { chargeCurrency: ChargeCurrency })
         {step === 2 && !session && (
           <button
             type="button"
-            onClick={() => openAuth('signup')}
+            onClick={() => {
+              logStep('auth_opened');
+              openAuth('signup');
+            }}
             className="flex w-full items-center justify-center rounded-full bg-teal-dark px-7 py-3.5 text-sm font-bold text-white hover:bg-teal-dark/90"
           >
             {t('Sign in / Create account')}

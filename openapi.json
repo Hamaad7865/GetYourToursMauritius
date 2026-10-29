@@ -9217,7 +9217,7 @@
     "/payments/funnel": {
       "post": {
         "operationId": "reportCheckoutFunnelEvent",
-        "summary": "Record a pay-page funnel event keyed by checkout id (telemetry; unauthenticated, per-IP rate limited)",
+        "summary": "Record a checkout-step or pay-page funnel event keyed by checkout, hold or visit id (telemetry; unauthenticated, per-IP rate limited)",
         "tags": [
           "Payments"
         ],
@@ -9242,7 +9242,15 @@
                       "expired",
                       "load_failed",
                       "page_hidden",
-                      "page_shown"
+                      "page_shown",
+                      "step_1",
+                      "step_2_signed_out",
+                      "step_2_signed_in",
+                      "step_3",
+                      "auth_opened",
+                      "signup_email_sent",
+                      "auth_failed",
+                      "pay_clicked"
                     ]
                   },
                   "msSinceMount": {

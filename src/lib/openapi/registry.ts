@@ -640,7 +640,7 @@ export const apiPaths: ZodOpenApiPathsObject = {
     post: {
       operationId: 'reportCheckoutFunnelEvent',
       summary:
-        'Record a pay-page funnel event keyed by checkout id (telemetry; unauthenticated, per-IP rate limited)',
+        'Record a checkout-step or pay-page funnel event keyed by checkout, hold or visit id (telemetry; unauthenticated, per-IP rate limited)',
       tags: ['Payments'],
       requestBody: jsonBody(checkoutFunnelEventSchema),
       responses: {

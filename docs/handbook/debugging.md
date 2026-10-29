@@ -423,6 +423,32 @@ The long version of the table on the [handbook front page](../HANDBOOK.md).
 | Totals don't add up in admin/invoice                  | A charge added to `total_minor` without a `booking_items` row   |
 | Tests fail with `unknown rpc <fn>`                    | Add it to `ALLOWED` in `tests/db/rpc.ts`                        |
 | CI red but local green                                | `format:check` — or an uncommitted file from a parallel session |
+| "Bookings are down this week — is it SEO?"            | Usually neither: read the checkout funnel below first           |
+
+### "Bookings are down" — read the funnel before blaming anything
+
+Compare like for like (same weekdays, same hour cut-off). Never compare against a record week. Then
+walk the stages in the database, all in `Indian/Mauritius` time:
+
+1. **Checkout opens.** Count `booking_holds` rows. This overstates visitors: a cart line or a re-hold
+   is its own row.
+2. **Steps reached.** `checkout_funnel_events` where `checkout_id ~ '^(hold|visit):'`, available from
+   `20261029120000`. Count `step_1`, `step_2_signed_out`/`step_2_signed_in`, `auth_opened`,
+   `signup_email_sent`, `auth_failed`, `step_3` and `pay_clicked` per distinct `checkout_id`. This is
+   the only place that says whether guests leave on the pickup step or at the account wall.
+3. **Accounts.** New customer rows in `auth.users`. A guest who makes an account books about 9 times in
+   10 (2026-10).
+4. **Pay tapped.** `bookings` with `source='web'`, any status.
+5. **Paid.** `confirmed`/`completed`. About 30% of created web bookings never get paid; the pay-page
+   rows in the same table cover that part.
+
+For organic search, use Search Console (OpenSEO), where dates are Pacific and the last 2–3 days are
+provisional. For auth trouble, use `auth_logs` through the Supabase log explorer. `auth.audit_log_entries`
+is empty on this project.
+
+**TRAP: a hold's `created_by` is not "signed in".** The widget's Continue posts `/api/v1/holds` without
+a token, so every hold starts ownerless. `api_book` stamps the buyer onto the hold it consumes. "Holds
+with an owner" therefore means "holds that became bookings", not "guests who signed in".
 
 ---
 

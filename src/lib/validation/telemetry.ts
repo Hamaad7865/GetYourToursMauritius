@@ -18,7 +18,24 @@ export const clientErrorReportSchema = z.object({
 });
 export type ClientErrorReportInput = z.infer<typeof clientErrorReportSchema>;
 
-/** The pay-page funnel steps the browser reports (see 20261017000000_checkout_funnel_events.sql). */
+/** The checkout steps the browser reports (20261029120000) — keyed 'hold:<id>' or 'visit:<random>'. */
+export const CHECKOUT_STEP_EVENTS = [
+  'step_1',
+  'step_2_signed_out',
+  'step_2_signed_in',
+  'step_3',
+  'auth_opened',
+  'signup_email_sent',
+  'auth_failed',
+  'pay_clicked',
+] as const;
+export type CheckoutStepEvent = (typeof CHECKOUT_STEP_EVENTS)[number];
+
+/**
+ * Every funnel event the browser reports: the pay-page ones (20261017000000_checkout_funnel_events.sql,
+ * keyed by Peach checkout id) and the checkout steps above. Mirrors the table's CHECK and
+ * api_log_checkout_event's own list — all three change together.
+ */
 export const CHECKOUT_FUNNEL_EVENTS = [
   'widget_ready',
   'first_input',
@@ -28,12 +45,13 @@ export const CHECKOUT_FUNNEL_EVENTS = [
   'load_failed',
   'page_hidden',
   'page_shown',
+  ...CHECKOUT_STEP_EVENTS,
 ] as const;
 
 /**
- * One pay-page funnel event POSTed to /api/v1/payments/funnel (usually by navigator.sendBeacon). No
- * personal data: the checkout id joins to the booking server-side, and the device is derived from the
- * request's own User-Agent header by the route, never sent by the client.
+ * One funnel event POSTed to /api/v1/payments/funnel (usually by navigator.sendBeacon). No personal
+ * data: the checkout id is a Peach checkout id, a hold id or a random visit id, and the device is
+ * derived from the request's own User-Agent header by the route, never sent by the client.
  */
 export const checkoutFunnelEventSchema = z.object({
   checkoutId: z.string().min(1).max(64),
