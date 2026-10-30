@@ -243,6 +243,15 @@ export function toursForPost(slug: string): readonly string[] {
   return POST_TOURS[slug] ?? DEFAULT_POST_TOURS;
 }
 
+/**
+ * The topic a blog post records as the reader's interest (see RecordInterest) — or null when the post
+ * has no tours of its own: the DEFAULT_POST_TOURS fallback is the same for every reader, so it says
+ * nothing about what this one wants.
+ */
+export function postInterestTopic(slug: string): string | null {
+  return POST_TOURS[slug] ? `post:${slug}` : null;
+}
+
 export interface HubLink {
   href: string;
   /** English and French link text — a phrase searchers type, not "click here". */

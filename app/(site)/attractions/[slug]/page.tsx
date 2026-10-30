@@ -5,6 +5,7 @@ import { InfoPage, EnquireRow } from '@/components/site/InfoPage';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { AttractionCard } from '@/components/attractions/AttractionCard';
 import { ActivityGrid } from '@/components/catalogue/ActivityGrid';
+import { RecordInterest } from '@/components/gyg/RecordInterest';
 import { LocationMap } from '@/components/maps/LocationMap';
 import { getPlace, loadPlaces } from '@/lib/catalogue/places';
 import {
@@ -251,6 +252,7 @@ export default async function AttractionDetailPage({
             <div className="mt-5">
               <ActivityGrid activities={tours} />
             </div>
+            <RecordInterest topic={`attraction:${slug}`} slugs={tours.map((a) => a.slug)} />
           </section>
         )}
 

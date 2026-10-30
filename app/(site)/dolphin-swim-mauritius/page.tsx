@@ -3,6 +3,7 @@ import { overrideMetadata } from '@/lib/seo/override';
 import { InfoPage, EnquireRow } from '@/components/site/InfoPage';
 import { Breadcrumb } from '@/components/catalogue/Breadcrumb';
 import { JsonLd } from '@/components/seo/JsonLd';
+import { RecordInterest } from '@/components/gyg/RecordInterest';
 import {
   ContentSection,
   InlineLink,
@@ -190,6 +191,7 @@ export default async function DolphinSwimMauritiusPage() {
           )}
           activities={featured}
         />
+        <RecordInterest topic="hub:/dolphin-swim-mauritius" slugs={featured.map((a) => a.slug)} />
 
         <ContentSection id="responsible" title={t('Doing it responsibly')}>
           {locale === 'fr' ? (

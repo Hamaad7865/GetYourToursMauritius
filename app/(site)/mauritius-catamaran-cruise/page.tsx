@@ -4,6 +4,7 @@ import { InfoPage, EnquireRow } from '@/components/site/InfoPage';
 import { Breadcrumb } from '@/components/catalogue/Breadcrumb';
 import { ReviewList } from '@/components/catalogue/ReviewList';
 import { JsonLd } from '@/components/seo/JsonLd';
+import { RecordInterest } from '@/components/gyg/RecordInterest';
 import {
   ContentSection,
   InlineLink,
@@ -246,6 +247,10 @@ export default async function MauritiusCatamaranCruisePage() {
             'Live dates and prices from our catalogue — tap a cruise to reserve online with instant confirmation.',
           )}
           activities={catamarans}
+        />
+        <RecordInterest
+          topic="hub:/mauritius-catamaran-cruise"
+          slugs={catamarans.map((a) => a.slug)}
         />
 
         {catamarans.length > 0 && (
