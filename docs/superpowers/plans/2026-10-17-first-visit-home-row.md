@@ -1,5 +1,12 @@
 # First-Visit Homepage Row Implementation Plan
 
+> **As built (2026-10-30, Tasks 1–9).** The code on the branch wins over this plan where they differ:
+> the migration is `20261030140000_home_picks`, not `20261017130000`; locality and picks settle
+> independently; the browser checks picks by hand, without zod; tiles use `responsiveImage`; tiles reserve
+> two price lines and the tablet grid two rows; the French guides heading is "D’après vos lectures"; the
+> `/cookies` lines and the landmines shipped with the behaviour, not in Task 8. Migrations are applied by
+> the owner before the push: the release never applies them, whatever Task 10 implies.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Make the row under the homepage hero show each visitor tours they are likely to want — the tours of guides they read, tours still free tomorrow if they are in Mauritius, otherwise our real most-booked tours — without ever changing the row's height.
