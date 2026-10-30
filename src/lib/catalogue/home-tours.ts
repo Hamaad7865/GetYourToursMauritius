@@ -9,8 +9,14 @@ export interface HomeTour {
   image: TourImage;
 }
 
+/** A tour with the photo its tile shows, or null when it has none — a tile is never shown empty. */
+export function homeTile(tour: TourSummary): HomeTour | null {
+  const image = tour.heroImage ?? tour.images[0];
+  return image ? { tour, image } : null;
+}
+
 /**
- * The tours for the homepage's first row: our private day tours — North, South, South East and the
+ * The tours for the homepage's fallback row: our private day tours — North, South, South East and the
  * rest of the sightseeing category — each with the photo its tile will show.
  *
  * Nothing here is a hand-kept list. Which tours appear, their names, their prices and their order all
@@ -28,9 +34,8 @@ export function pickHomeTours(
   for (const tour of activities) {
     if (out.length >= max) break;
     if (!isSightseeingCategory(tour.category)) continue;
-    const image = tour.heroImage ?? tour.images[0];
-    if (!image) continue;
-    out.push({ tour, image });
+    const tile = homeTile(tour);
+    if (tile) out.push(tile);
   }
   return out;
 }
