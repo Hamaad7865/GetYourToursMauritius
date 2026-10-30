@@ -20,6 +20,25 @@ const SEO = 'e3e3e3e3-e3e3-4e3e-8e3e-e3e3e3e3e3e3';
 interface Tour extends SeedResult {
   slug: string;
 }
+type TourName =
+  | 'top'
+  | 'second'
+  | 'tieLow'
+  | 'tieHigh'
+  | 'multiItem'
+  | 'cancelledOnly'
+  | 'oldOnly'
+  | 'staffOnly'
+  | 'draft'
+  | 'open'
+  | 'full'
+  | 'closed'
+  | 'notice'
+  | 'inquiry'
+  | 'draftSlot'
+  | 'earlyTomorrow'
+  | 'dayAfter'
+  | 'today';
 interface Picks {
   date: string;
   mostBooked: string[];
@@ -34,7 +53,7 @@ describe('api_home_picks', () => {
   let db: TestDb;
   let picks: Picks;
   let tomorrow: string;
-  const t: Record<string, Tour> = {};
+  const t = {} as Record<TourName, Tour>;
 
   /** A published tour with no slots yet. */
   async function tour(
