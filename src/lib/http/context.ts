@@ -11,23 +11,10 @@ import { getServerEnv } from '@/lib/config/env';
 import { getPaymentProvider } from '@/lib/payments';
 import { getAiProvider } from '@/lib/ai';
 import { getBearerToken } from './auth';
-import { DEFAULT_LOCALE, LANG_COOKIE, isLocale, type Locale } from '@/lib/i18n/config';
+import { DEFAULT_LOCALE, type Locale } from '@/lib/i18n/config';
+import { localeFromCookieHeader } from './request-locale';
 
-/**
- * The visitor's locale from a raw Cookie header. Used instead of next/headers `cookies()` because
- * `cookies()` opts a route into dynamic rendering, which would be wrong for app/sitemap.ts.
- */
-export function localeFromCookieHeader(header: string | null): Locale {
-  if (!header) return DEFAULT_LOCALE;
-  for (const part of header.split(';')) {
-    const [name, ...rest] = part.trim().split('=');
-    if (name === LANG_COOKIE) {
-      const value = rest.join('=');
-      return isLocale(value) ? value : DEFAULT_LOCALE;
-    }
-  }
-  return DEFAULT_LOCALE;
-}
+export { localeFromCookieHeader };
 
 /**
  * Builds a ServiceContext with a LAZY payment provider: it is constructed on first access and
@@ -113,15 +100,15 @@ export function publicServiceContext(locale: Locale = DEFAULT_LOCALE): ServiceCo
  * with no Supabase configured (mirrors selectDb), so local flows keep working without a service key.
  * Deliberately omits the raw admin client so a route can't accidentally issue arbitrary admin reads.
  */
-export function serviceRoleRpcContext(): ServiceContext {
+export function serviceRoleRpcContext(locale: Locale = DEFAULT_LOCALE): ServiceContext {
   const env = getServerEnv();
   const configured = Boolean(env.NEXT_PUBLIC_SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY);
   const previewFallback =
     process.env.NODE_ENV !== 'production' || process.env.ENABLE_PREVIEW_FALLBACK === 'true';
   if (!configured && previewFallback) {
-    return makeContext(seedRpc());
+    return makeContext(seedRpc(), undefined, locale);
   }
-  return makeContext(supabaseRpc(createServiceRoleClient()));
+  return makeContext(supabaseRpc(createServiceRoleClient()), undefined, locale);
 }
 
 /**

@@ -140,8 +140,28 @@ export const createBookingInputSchema = z.object({
   source: bookingSourceSchema.optional(),
   /** Client-supplied idempotency key; the service generates one if absent. */
   idempotencyKey: z.string().min(8).max(200).optional(),
+  /** Cloudflare Turnstile response. Required only of a guest (anonymous) caller when configured. */
+  turnstileToken: z.string().min(1).max(4096).optional(),
 });
 export type CreateBookingInput = z.infer<typeof createBookingInputSchema>;
+
+/** POST /bookings/{ref}/adopt. A web client sends nothing: its proof rides in the httpOnly cookie. */
+export const adoptGuestBookingInputSchema = z.object({
+  token: z
+    .string()
+    .regex(/^[0-9a-f]{64}$/)
+    .optional(),
+});
+
+/** POST /bookings/lookup ("Find my booking"). */
+export const guestBookingLookupInputSchema = z.object({
+  ref: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .regex(/^[A-Z0-9]{1,32}$/),
+  email: z.string().trim().email().max(254),
+});
 
 export const bookingItemSchema = z.object({
   priceLabel: z.string(),

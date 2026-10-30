@@ -32,6 +32,7 @@ const API = join(process.cwd(), 'app', 'api', 'v1');
 const GATED: Record<string, string> = {
   'admin/assistant/route.ts': 'section.assistant',
   'admin/bookings/[ref]/installments/[seq]/remind/route.ts': 'section.bookings',
+  'admin/bookings/[ref]/guest-link/reset/route.ts': 'section.bookings',
   'admin/quotes/send/route.ts': 'section.quotes',
   'admin/quotes/[ref]/balance/route.ts': 'section.quotes',
   'admin/quotes/draft-from-email/route.ts': 'section.quotes',

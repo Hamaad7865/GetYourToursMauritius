@@ -37,7 +37,9 @@ import {
   bookingSchema,
   bookingSummarySchema,
   captureLeadInputSchema,
+  adoptGuestBookingInputSchema,
   createBookingInputSchema,
+  guestBookingLookupInputSchema,
   createHoldInputSchema,
   createPaymentInputSchema,
   holdResultSchema,
@@ -202,6 +204,19 @@ export const apiPaths: ZodOpenApiPathsObject = {
       summary: 'The active browse categories',
       tags: ['Catalogue'],
       responses: { '200': okJson(z.array(categorySummarySchema), 'Categories') },
+    },
+  },
+  '/account/claim-guest-bookings': {
+    post: {
+      operationId: 'claimGuestBookings',
+      summary: 'Add the paid guest bookings made with this account’s confirmed email',
+      tags: ['Account'],
+      security: [{ bearerAuth: [] }],
+      responses: {
+        '200': okJson(z.object({ claimed: z.number().int() }), 'How many bookings were added'),
+        '401': errorResponse('Authentication required'),
+        '403': errorResponse('Guest sessions have no account to add them to'),
+      },
     },
   },
   '/account/reviews': {
@@ -421,12 +436,67 @@ export const apiPaths: ZodOpenApiPathsObject = {
     post: {
       operationId: 'createBooking',
       summary: 'Create a payment_pending booking (prices come from the DB)',
+      description:
+        'Needs a Supabase JWT. A guest sends the JWT of an anonymous sign-in, and owns the booking ' +
+        'like anyone else; they also need `turnstileToken` when Turnstile is configured.',
       tags: ['Bookings'],
+      security: [{ bearerAuth: [] }],
       requestBody: jsonBody(createBookingInputSchema),
       responses: {
         '201': okJson(bookingSchema, 'Booking created'),
         '400': errorResponse('Invalid request'),
+        '401': errorResponse('Authentication required'),
+        '403': errorResponse('Guest checkout is off, or the security check failed'),
         '409': errorResponse('Not enough availability'),
+        '429': errorResponse('Too many bookings, or too many unpaid guest bookings'),
+      },
+    },
+  },
+  '/bookings/lookup': {
+    post: {
+      operationId: 'requestGuestBookingLink',
+      summary: '"Find my booking": email a fresh manage link to the address on a guest booking',
+      description:
+        'Always 202, and shows nothing. A link is sent only when the ref and email match a guest ' +
+        'booking, and only ever to the address already on that booking.',
+      tags: ['Bookings'],
+      requestBody: jsonBody(guestBookingLookupInputSchema),
+      responses: {
+        '202': okJson(z.object({ received: z.boolean() }), 'Request received'),
+        '400': errorResponse('Invalid request'),
+        '429': errorResponse('Too many requests'),
+      },
+    },
+  },
+  '/bookings/{ref}/open': {
+    get: {
+      operationId: 'openGuestBookingLink',
+      summary: 'The target of a guest manage link: moves the token into a cookie and redirects',
+      description: 'Changes nothing and reads nothing, because mail scanners fetch emailed links.',
+      tags: ['Bookings'],
+      requestParams: { path: refParam },
+      responses: {
+        '302': { description: 'To the booking page' },
+        '404': errorResponse('Not a booking reference'),
+      },
+    },
+  },
+  '/bookings/{ref}/adopt': {
+    post: {
+      operationId: 'adoptGuestBooking',
+      summary: 'Move a guest booking into the caller’s guest session, on proof of the manage link',
+      description:
+        'Anonymous callers only. The proof is the httpOnly cookie GET /open set, or `token` in the ' +
+        'body for a mobile client. Every refusal is the same 404.',
+      tags: ['Bookings'],
+      security: [{ bearerAuth: [] }],
+      requestParams: { path: refParam },
+      requestBody: jsonBody(adoptGuestBookingInputSchema),
+      responses: {
+        '200': okJson(z.object({ ref: z.string() }), 'Booking adopted'),
+        '401': errorResponse('Authentication required'),
+        '404': errorResponse('Not found'),
+        '429': errorResponse('Too many requests'),
       },
     },
   },
@@ -1185,6 +1255,21 @@ export const apiPaths: ZodOpenApiPathsObject = {
         '409': errorResponse('No booking yet, the booking is not confirmed, or nothing is owed'),
         '429': errorResponse('Too many requests'),
         '500': errorResponse('Site URL is not configured'),
+      },
+    },
+  },
+  '/admin/bookings/{ref}/guest-link/reset': {
+    post: {
+      operationId: 'resetGuestBookingLink',
+      summary: 'Revoke every guest manage link already emailed for this booking',
+      tags: ['Bookings'],
+      security: [{ bearerAuth: [] }],
+      requestParams: { path: refParam },
+      responses: {
+        '200': okJson(z.object({ ref: z.string(), version: z.number().int() }), 'Link reset'),
+        '401': errorResponse('Authentication required'),
+        '403': errorResponse('Needs the Bookings section'),
+        '404': errorResponse('Booking not found'),
       },
     },
   },

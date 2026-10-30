@@ -34,7 +34,9 @@ function render(message: NotificationMessage): { subject: string; text: string }
   const p = message.payload;
   const ref = typeof p.ref === 'string' ? p.ref : '';
   const name = typeof p.customerName === 'string' && p.customerName ? p.customerName : 'there';
-  const bookingUrl = `${SITE.url}/bookings/${ref}`;
+  // The drain sets this on a guest's booking: the signed manage link instead of a sign-in page.
+  const bookingUrl =
+    typeof p.bookingUrl === 'string' && p.bookingUrl ? p.bookingUrl : `${SITE.url}/bookings/${ref}`;
 
   if (message.template === 'booking_confirmation') {
     const currency = typeof p.currency === 'string' ? p.currency : 'EUR';

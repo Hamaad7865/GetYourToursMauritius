@@ -233,6 +233,30 @@ copy free to drift. If you edit the lease, the reuse window or the FX pin, you a
 keep it that way, and keep `tests/integration/quote-checkout-entry.test.ts` (which claims the lease
 through one entry point and asserts the other is told `checkoutPending`) passing.
 
+### The other customer who has no account — guests
+
+A web guest books and pays without an account, and unlike a quote guest they DO have an owner: a Supabase
+**anonymous sign-in**, created when they tap Pay. The server sees an ordinary JWT with `is_anonymous: true`,
+`api_book` stamps that user as the owner, and so `create_payment`'s identity check, `/payments/sync`, cancel,
+reschedule, pickup and the rest all run unchanged. Nothing above is relaxed. It is switched on and off by
+`business_settings.guest_checkout_enabled_at`.
+
+What the anonymous session cannot do is follow the guest to another device. Every booking email therefore
+carries a **signed manage link** (`src/lib/guest/link-token.ts`, an HMAC recomputed at send time, never stored):
+
+```
+email → GET /bookings/{ref}/open?t=…   moves the token to an httpOnly cookie, changes nothing
+      → /bookings/{ref}?link=1         "View my booking", and nothing happens until the tap
+      → POST /bookings/{ref}/adopt     Bearer (a guest session) + the link proof
+      → adoptGuestBooking()            compare-and-swap of bookings.user_id
+```
+
+The rule: **the link moves a booking between guest sessions; only a confirmed mailbox moves it into an
+account** (`claimGuestBookings()`, paid bookings only, through `quote_owner_for_email`).
+
+The guest logic is TypeScript (`src/lib/services/guest.ts`), by the owner's choice. Spec:
+`docs/superpowers/specs/2026-10-29-guest-checkout-design.md`.
+
 ### The one activity type that skips this whole path
 
 `activities.extra.inquiryOnly` (e.g. skydiving) opts an activity **out of every step above** — no hold,

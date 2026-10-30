@@ -49,6 +49,10 @@ import {
 } from '@/lib/checkout/pay-progress';
 import { saveChargeHandoff } from '@/lib/checkout/charge-handoff';
 import type { ChargeCurrency } from '@/lib/settings/charge-currency';
+import type { GuestCheckoutConfig } from '@/lib/settings/guest-checkout';
+import { getBrowserSupabase } from '@/lib/supabase/browser';
+import { suggestEmailFix } from '@/lib/guest/email-key';
+import { TurnstileWidget, type TurnstileHandle } from '@/components/checkout/TurnstileWidget';
 import {
   detailsHash,
   isBookingPayable,
@@ -77,6 +81,8 @@ const STEPS = ['Trip & pickup', 'Contact', 'Payment'];
 // the same element (the hint is an aria-live region that announces WHY the Next/Pay CTA is disabled).
 const PICKUP_HINT_ID = 'checkout-pickup-hint';
 const PHONE_HINT_ID = 'checkout-phone-hint';
+/** Enough to catch a slip before Pay. The server's Zod check is the real one. */
+const GUEST_EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 // The tel input is no longer wrapped by its <label> (the dial-code select sits beside it), so the
 // label points at it by id instead.
 const PHONE_INPUT_ID = 'checkout-phone';
@@ -182,9 +188,22 @@ function ReservedDay({
  * "charged in Mauritian rupees" lines show — prices here are EUR either way, and the charge itself is
  * pinned server-side.
  */
-export function Checkout({ chargeCurrency }: { chargeCurrency: ChargeCurrency }) {
+export function Checkout({
+  chargeCurrency,
+  guestCheckout,
+}: {
+  chargeCurrency: ChargeCurrency;
+  guestCheckout: GuestCheckoutConfig;
+}) {
   const params = useSearchParams();
   const { user, profile, session, loading: authLoading, openAuth } = useAuth();
+  // Book without an account. Keyed on `user`, never `session`: a guest session left in this browser is
+  // not a signed-in customer, so with the switch off it must get the account gate, not this form.
+  // Never while the session is still loading: a real customer could otherwise be taken for a guest.
+  const guestMode = !authLoading && !user && guestCheckout.enabled;
+  const canFillDetails = Boolean(user) || guestMode;
+  const turnstileRef = useRef<TurnstileHandle>(null);
+  const [guestEmail, setGuestEmail] = useState('');
   const t = useT();
   const money = useMoney();
   // Mirror the active checkout hold into the cart as an on-hold line (see the mount effect below), and
@@ -455,10 +474,9 @@ export function Checkout({ chargeCurrency }: { chargeCurrency: ChargeCurrency })
     if (!hydrated) return;
     if (!mountedAtRef.current) mountedAtRef.current = performance.now();
     if (step === 1) logStep('step_1');
-    else if (step === 2 && !authLoading)
-      logStep(session ? 'step_2_signed_in' : 'step_2_signed_out');
+    else if (step === 2 && !authLoading) logStep(user ? 'step_2_signed_in' : 'step_2_signed_out');
     else if (step === 3) logStep('step_3');
-  }, [hydrated, step, authLoading, session, logStep]);
+  }, [hydrated, step, authLoading, user, logStep]);
   // The account dialog is global; it announces its outcome on the window (src/lib/auth/auth-result.ts).
   useEffect(() => {
     const onResult = (e: Event) => {
@@ -750,6 +768,7 @@ export function Checkout({ chargeCurrency }: { chargeCurrency: ChargeCurrency })
     if (d.childSeatWanted != null) setChildSeatWanted(d.childSeatWanted);
     if (d.childSeatAge != null) setChildSeatAge(d.childSeatAge);
     if (d.name != null) setName(d.name);
+    if (d.email != null) setGuestEmail(d.email);
     if (d.phone != null) {
       // A restored draft is the customer's own entry — mark it touched so the profile prefill,
       // whose effect runs again when the profile finally loads, cannot overwrite it.
@@ -791,6 +810,7 @@ export function Checkout({ chargeCurrency }: { chargeCurrency: ChargeCurrency })
       childSeatWanted,
       childSeatAge,
       name,
+      email: guestEmail,
       phone,
       country,
       gender,
@@ -824,6 +844,7 @@ export function Checkout({ chargeCurrency }: { chargeCurrency: ChargeCurrency })
     childSeatWanted,
     childSeatAge,
     name,
+    guestEmail,
     phone,
     country,
     gender,
@@ -949,7 +970,11 @@ export function Checkout({ chargeCurrency }: { chargeCurrency: ChargeCurrency })
   // as a pickup, since the driver needs to reach the customer to arrange it. A transfer always needs one
   // (the driver meets/collects the traveller). No pickup → optional.
   const phoneRequired = isAirport || isHotelTransfer || wantsPickup;
-  const canAdvanceDetails = !phoneRequired || phone.trim().length > 0;
+  const guestEmailValid = GUEST_EMAIL_SHAPE.test(guestEmail.trim());
+  // A guest has no account to fall back on: the name goes on the booking, and the email is the way back.
+  const guestDetailsComplete = !guestMode || (name.trim().length > 0 && guestEmailValid);
+  const canAdvanceDetails = guestDetailsComplete && (!phoneRequired || phone.trim().length > 0);
+  const guestEmailFix = guestMode ? suggestEmailFix(guestEmail) : null;
 
   function continueFromTransport() {
     // Authoritative gate: pickup wanted needs an address (or "I don't know yet"). The CTA is also
@@ -1004,7 +1029,12 @@ export function Checkout({ chargeCurrency }: { chargeCurrency: ChargeCurrency })
       setError(t('Your hold expired — please pick your date again.'));
       return;
     }
-    if (!session) return openAuth('signin');
+    if (!canFillDetails) return openAuth('signup');
+    // A draft can restore step ③ with the guest's details gone.
+    if (!guestDetailsComplete) {
+      setStep(2);
+      return;
+    }
     logStep('pay_clicked');
     setBusy(true);
     // Stage 1 of the ring: everything up to and including having a confirmed, priced booking.
@@ -1014,9 +1044,29 @@ export function Checkout({ chargeCurrency }: { chargeCurrency: ChargeCurrency })
     clearPayHandoff();
     setError(null);
     try {
+      // A guest's session starts here, on the Pay tap, so anonymous users track real attempts and not
+      // every checkout visit. From this line on a guest is an ordinary signed-in caller.
+      let accessToken = session?.access_token ?? null;
+      if (!accessToken) {
+        const { data, error: guestError } = await getBrowserSupabase().auth.signInAnonymously();
+        if (guestError) {
+          reportClientError({ kind: 'guest-session-failed', message: guestError.message });
+        }
+        accessToken = data.session?.access_token ?? null;
+      }
+      // Never a dead end. Anonymous sign-ins switched off in Supabase, or the per-IP limit on a shared
+      // connection, must not leave a visitor unable to book: the account route still works.
+      if (!accessToken) {
+        setError(t('We couldn’t continue as a guest. Please create an account to finish booking.'));
+        setBusy(false);
+        setPayStage(null);
+        logStep('auth_opened');
+        openAuth('signup');
+        return;
+      }
       const headers = {
         'content-type': 'application/json',
-        authorization: `Bearer ${session.access_token}`,
+        authorization: `Bearer ${accessToken}`,
       };
       // The selection hash scopes the persisted booking identity to the FULL price-relevant config, so
       // a later re-checkout of the same occurrence with a different party can't rehydrate this ref. The
@@ -1093,7 +1143,7 @@ export function Checkout({ chargeCurrency }: { chargeCurrency: ChargeCurrency })
       };
       const opCustomer = {
         name: name.trim() || profile?.fullName || user?.email || 'Guest',
-        email: user?.email,
+        email: user?.email ?? guestEmail.trim(),
         phone: phone.trim() || profile?.phone || null,
         country: country || null,
         ...(isAirport || isHotelTransfer
@@ -1107,6 +1157,7 @@ export function Checkout({ chargeCurrency }: { chargeCurrency: ChargeCurrency })
       const det = detailsHash({
         ...opDetails,
         customerName: opCustomer.name,
+        customerEmail: opCustomer.email,
         customerPhone: opCustomer.phone,
         customerCountry: opCustomer.country,
         gender: 'gender' in opCustomer ? opCustomer.gender : null,
@@ -1246,10 +1297,15 @@ export function Checkout({ chargeCurrency }: { chargeCurrency: ChargeCurrency })
         } catch {
           /* sessionStorage unavailable — the key is still stable for the lifetime of this mount */
         }
+        const turnstileToken =
+          guestMode && guestCheckout.turnstileSiteKey
+            ? await turnstileRef.current?.getToken()
+            : undefined;
         const bookingRes = await fetch('/api/v1/bookings', {
           method: 'POST',
           headers,
           body: JSON.stringify({
+            turnstileToken: turnstileToken ?? undefined,
             occurrenceId: occ,
             expectedSlug: slug,
             party: partyMap ?? { [label]: qty },
@@ -1461,6 +1517,7 @@ export function Checkout({ chargeCurrency }: { chargeCurrency: ChargeCurrency })
         throw new Error(t('Could not start payment.'));
       }
     } catch (err) {
+      turnstileRef.current?.reset(); // a token works once, and the next tap needs its own
       const msg = err instanceof Error ? err.message : t('Something went wrong.');
       setError(
         /capacity/i.test(msg)
@@ -2047,7 +2104,7 @@ export function Checkout({ chargeCurrency }: { chargeCurrency: ChargeCurrency })
             </section>
           )}
 
-          {step === 2 && !session && (
+          {step === 2 && !canFillDetails && (
             <section>
               <h1 className="font-display text-2xl font-semibold text-ink">
                 {t('Where should we send your booking confirmation?')}
@@ -2070,9 +2127,24 @@ export function Checkout({ chargeCurrency }: { chargeCurrency: ChargeCurrency })
             </section>
           )}
 
-          {step === 2 && session && (
+          {step === 2 && canFillDetails && (
             <section>
               <h1 className="font-display text-2xl font-semibold text-ink">{t('Your details')}</h1>
+              {guestMode && (
+                <p className="mt-2 text-sm text-ink-muted">
+                  {t('No account needed.')}{' '}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      logStep('auth_opened');
+                      openAuth('signin');
+                    }}
+                    className="font-bold text-teal-dark underline"
+                  >
+                    {t('Have an account? Sign in')}
+                  </button>
+                </p>
+              )}
               <div className="mt-5 grid gap-4 sm:max-w-md">
                 <label className="block text-[13px] font-semibold text-ink">
                   {t('Full name')}
@@ -2084,20 +2156,44 @@ export function Checkout({ chargeCurrency }: { chargeCurrency: ChargeCurrency })
                     className="mt-1 w-full rounded-xl border border-ink/15 px-3.5 py-2.5 text-sm font-normal outline-none focus:border-teal"
                   />
                 </label>
-                <label className="block text-[13px] font-semibold text-ink">
-                  {t('Email address')}
-                  <input
-                    value={user?.email ?? ''}
-                    readOnly
-                    autoComplete="email"
-                    // Explain to a screen-reader user why this field is read-only.
-                    aria-describedby="checkout-email-hint"
-                    className="mt-1 w-full cursor-not-allowed rounded-xl border border-ink/15 bg-ink/[0.03] px-3.5 py-2.5 text-sm font-normal text-ink-muted outline-none"
-                  />
-                  <span id="checkout-email-hint" className="sr-only">
-                    {t('This is your account email.')}
-                  </span>
-                </label>
+                {guestMode ? (
+                  <label className="block text-[13px] font-semibold text-ink">
+                    {t('Email address')}
+                    <input
+                      type="email"
+                      value={guestEmail}
+                      onChange={(e) => setGuestEmail(e.target.value)}
+                      autoComplete="email"
+                      inputMode="email"
+                      placeholder={t('We’ll send your confirmation here')}
+                      className="mt-1 w-full rounded-xl border border-ink/15 px-3.5 py-2.5 text-sm font-normal outline-none focus:border-teal"
+                    />
+                    {guestEmailFix && (
+                      <button
+                        type="button"
+                        onClick={() => setGuestEmail(guestEmailFix)}
+                        className="mt-1.5 block text-left text-[13px] font-medium text-teal-dark underline"
+                      >
+                        {t('Did you mean {email}?', { email: guestEmailFix })}
+                      </button>
+                    )}
+                  </label>
+                ) : (
+                  <label className="block text-[13px] font-semibold text-ink">
+                    {t('Email address')}
+                    <input
+                      value={user?.email ?? ''}
+                      readOnly
+                      autoComplete="email"
+                      // Explain to a screen-reader user why this field is read-only.
+                      aria-describedby="checkout-email-hint"
+                      className="mt-1 w-full cursor-not-allowed rounded-xl border border-ink/15 bg-ink/[0.03] px-3.5 py-2.5 text-sm font-normal text-ink-muted outline-none"
+                    />
+                    <span id="checkout-email-hint" className="sr-only">
+                      {t('This is your account email.')}
+                    </span>
+                  </label>
+                )}
                 <label className="block text-[13px] font-semibold text-ink">
                   {t('Country')}
                   <select
@@ -2224,7 +2320,11 @@ export function Checkout({ chargeCurrency }: { chargeCurrency: ChargeCurrency })
                 aria-live="polite"
                 className="mt-2 text-[12.5px] text-ink-muted lg:text-[13px]"
               >
-                {!canAdvanceDetails ? t('Add a phone number so your driver can reach you.') : ''}
+                {!guestDetailsComplete
+                  ? t('Add your name and email so we can send your confirmation.')
+                  : !canAdvanceDetails
+                    ? t('Add a phone number so your driver can reach you.')
+                    : ''}
               </p>
             </section>
           )}
@@ -2233,8 +2333,15 @@ export function Checkout({ chargeCurrency }: { chargeCurrency: ChargeCurrency })
             <section>
               <h1 className="font-display text-2xl font-semibold text-ink">{t('Review & pay')}</h1>
               <p className="mt-2 text-sm text-ink-muted">
-                {t('Signed in as {email}.', { email: user?.email ?? '' })}
+                {guestMode
+                  ? t('Booking as a guest. We’ll send your confirmation to {email}.', {
+                      email: guestEmail.trim(),
+                    })
+                  : t('Signed in as {email}.', { email: user?.email ?? '' })}
               </p>
+              {guestMode && guestCheckout.turnstileSiteKey && (
+                <TurnstileWidget ref={turnstileRef} siteKey={guestCheckout.turnstileSiteKey} />
+              )}
               {error && (
                 <p role="alert" className="mt-3 text-[13px] font-medium text-coral-dark">
                   {error}
@@ -2384,7 +2491,7 @@ export function Checkout({ chargeCurrency }: { chargeCurrency: ChargeCurrency })
             {busy ? <Spinner label={t('Loading')} /> : t('Next: Personal details')}
           </button>
         )}
-        {step === 2 && !session && (
+        {step === 2 && !canFillDetails && (
           <button
             type="button"
             onClick={() => {
@@ -2396,7 +2503,7 @@ export function Checkout({ chargeCurrency }: { chargeCurrency: ChargeCurrency })
             {t('Sign in / Create account')}
           </button>
         )}
-        {step === 2 && session && (
+        {step === 2 && canFillDetails && (
           <button
             type="button"
             onClick={continueFromDetails}

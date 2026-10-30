@@ -49,6 +49,30 @@ function representativeModel() {
 }
 
 describe('renderConfirmationEmail', () => {
+  it('gives a guest the manage link and tells them it is private; nobody else sees it', () => {
+    const url = 'https://example.test/api/v1/bookings/BMT1/open?t=abc';
+    const guest = renderConfirmationEmail(representativeModel(), url, undefined, true);
+    expect(guest.html).toContain('View or manage your booking');
+    expect(guest.html).toContain(url);
+    expect(guest.text).toContain(url);
+    expect(guest.text).toContain('anyone who has it can manage this booking');
+
+    const account = renderConfirmationEmail(representativeModel(), url);
+    expect(account.html).not.toContain('View or manage your booking');
+  });
+
+  it('gives a guest transfer one button, not two to the same page', () => {
+    const model = representativeModel();
+    model.booking.transfer = { direction: 'arrival', flightNumber: 'BA123', arrivalTime: '13:40' };
+    const url = 'https://example.test/api/v1/bookings/BMT1/open?t=abc';
+    const { html, text } = renderConfirmationEmail(model, url, undefined, true);
+    expect(html).toContain('View &amp; download your e-voucher');
+    expect(html).toContain('anyone who has it can manage this booking');
+    expect(html).not.toContain('View or manage your booking');
+    expect(text).not.toContain('View or manage your booking');
+    expect(text).toContain(url);
+  });
+
   it('puts the booking ref (invoice number) in the subject', () => {
     const { subject } = renderConfirmationEmail(representativeModel());
     expect(subject).toContain('BMT-1042');

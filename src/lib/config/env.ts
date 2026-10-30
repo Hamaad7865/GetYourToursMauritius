@@ -37,6 +37,16 @@ const ServerEnvSchema = z.object({
   // Optional: falls back to SUPABASE_JWT_SECRET / the service-role key so no new config is needed —
   // set a dedicated value only to rotate installment links without rotating auth. Never client-exposed.
   PAYMENT_LINK_SECRET: z.string().min(1).optional(),
+  // HMAC key for the signed manage link in guest booking emails (src/lib/guest/link-token.ts). Optional:
+  // falls back like PAYMENT_LINK_SECRET. To rotate, move the old value to GUEST_LINK_SECRET_PREVIOUS so
+  // links already in inboxes keep working. Never client-exposed.
+  GUEST_LINK_SECRET: z.string().trim().min(1).optional(),
+  GUEST_LINK_SECRET_PREVIOUS: z.string().trim().min(1).optional(),
+  // Cloudflare Turnstile on guest bookings (src/lib/guest/turnstile.ts). Both are required before the
+  // guest form can show on a production-like runtime. The site key is public, but it is read at request
+  // time and handed to the page, so changing it needs no rebuild.
+  TURNSTILE_SITE_KEY: z.string().trim().min(1).optional(),
+  TURNSTILE_SECRET_KEY: z.string().trim().min(1).optional(),
 
   // Legacy HS256 (symmetric) access tokens are REJECTED by default. The project now signs
   // ES256 via JWKS, so HS256 should never appear in production; accepting it means anyone

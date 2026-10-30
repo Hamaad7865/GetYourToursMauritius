@@ -712,6 +712,17 @@ export async function eraseCustomerData(email: string): Promise<EraseResult> {
   };
 }
 
+/** Kill every guest manage link already emailed for this booking (services/guest.ts). */
+export async function resetGuestBookingLink(ref: string): Promise<void> {
+  const { data } = await getBrowserSupabase().auth.getSession();
+  const accessToken = data.session?.access_token ?? null;
+  const res = await fetch(`/api/v1/admin/bookings/${encodeURIComponent(ref)}/guest-link/reset`, {
+    method: 'POST',
+    headers: accessToken ? { authorization: `Bearer ${accessToken}` } : {},
+  });
+  if (!res.ok) throw new Error('Could not reset the guest link.');
+}
+
 /** Save the internal staff note on a booking. */
 export async function saveBookingNotes(id: string, notes: string): Promise<void> {
   const { error } = await getBrowserSupabase()

@@ -21,8 +21,16 @@ export interface Profile {
 export type AuthMode = 'signin' | 'signup';
 
 interface AuthContextValue {
+  /**
+   * A real account, or null. A GUEST (a Supabase anonymous sign-in) is null here on purpose: the header,
+   * the account pages and everything else that means "signed in" treat them as signed out by default,
+   * and only the surfaces that work for a guest opt in, by reading `session` or `isGuest`.
+   */
   user: User | null;
+  /** Any live session, a guest's included. This is what the booking and payment calls send. */
   session: Session | null;
+  /** The session is a guest checkout's anonymous user. */
+  isGuest: boolean;
   profile: Profile | null;
   /** True until the initial session check resolves — guard UI flicker with this. */
   loading: boolean;
@@ -63,6 +71,43 @@ async function claimGuestQuoteBookings(): Promise<void> {
 }
 
 /**
+ * Attach the paid bookings this person made as a guest with the same confirmed address. The rules live
+ * server-side (services/guest.ts). Best-effort and idempotent, like the quote claim above: it can never
+ * block a session, and it runs again on the next sign-in.
+ */
+async function claimPaidGuestBookings(
+  userId: string,
+  accessToken: string,
+  freshLogin: boolean,
+): Promise<number> {
+  // Unlike the quote claim this is several server round trips, and this runs on every page load. So
+  // once per tab per account, and always on a real sign-in, which is when a guest booking can appear.
+  const claimedKey = `gytm:guest-claim:${userId}`;
+  try {
+    if (!freshLogin && window.sessionStorage.getItem(claimedKey)) return 0;
+  } catch {
+    /* sessionStorage unavailable — just run the claim */
+  }
+  try {
+    const res = await fetch('/api/v1/account/claim-guest-bookings', {
+      method: 'POST',
+      headers: { authorization: `Bearer ${accessToken}` },
+    });
+    const body = (await res.json().catch(() => null)) as { data?: { claimed?: number } } | null;
+    if (res.ok) {
+      try {
+        window.sessionStorage.setItem(claimedKey, '1');
+      } catch {
+        /* sessionStorage unavailable — the next page load claims again, harmlessly */
+      }
+    }
+    return body?.data?.claimed ?? 0;
+  } catch {
+    return 0; /* never block sign-in on this; the next sign-in retries it */
+  }
+}
+
+/**
  * App-wide auth state backed by the Supabase browser client. Exposes the current user +
  * profile, controls the sign-in/up modal, and ensures a `profiles` row exists on first
  * sign-in (the schema has no auth.users trigger). Wrap the app once in the root layout.
@@ -70,6 +115,7 @@ async function claimGuestQuoteBookings(): Promise<void> {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+  const [isGuest, setIsGuest] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [dialogMode, setDialogMode] = useState<AuthMode | null>(null);
@@ -194,7 +240,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const apply = (nextSession: Session | null) => {
       if (!active) return;
       setSession(nextSession);
-      const u = nextSession?.user ?? null;
+      // A guest is a session without a user (see AuthContextValue): no profile row, no welcome toast,
+      // no claim, and a later real sign-in still counts as a fresh login below.
+      const guest = nextSession?.user.is_anonymous === true;
+      setIsGuest(guest);
+      const u = guest ? null : (nextSession?.user ?? null);
       setUser(u);
       const nextId = u?.id ?? null;
 
@@ -233,6 +283,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // they had an account has an ownerless booking the RLS policy cannot match; this is what
           // hands it to them. Idempotent, so running it on every sign-in costs one no-op statement.
           void claimGuestQuoteBookings();
+          if (nextSession) {
+            void claimPaidGuestBookings(u.id, nextSession.access_token, greet).then((claimed) => {
+              if (!active || claimed === 0) return;
+              showToast({
+                title:
+                  claimed === 1
+                    ? t('We added your booking to your account')
+                    : t('We added your bookings to your account'),
+                description: t('It was made as a guest with this email address.'),
+              });
+            });
+          }
         }
       } else {
         loadedFor = null;
@@ -266,8 +328,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user, loadProfile]);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, session, profile, loading, openAuth, closeAuth, signOut, refreshProfile }),
-    [user, session, profile, loading, openAuth, closeAuth, signOut, refreshProfile],
+    () => ({
+      user,
+      session,
+      isGuest,
+      profile,
+      loading,
+      openAuth,
+      closeAuth,
+      signOut,
+      refreshProfile,
+    }),
+    [user, session, isGuest, profile, loading, openAuth, closeAuth, signOut, refreshProfile],
   );
 
   return (

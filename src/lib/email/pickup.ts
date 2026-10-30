@@ -26,8 +26,8 @@ export interface RenderedEmail {
   text: string;
 }
 
-function shell(bodyHtml: string): string {
-  return `<!-- ${OPERATOR} pickup -->
+export function shell(bodyHtml: string, label = 'pickup'): string {
+  return `<!-- ${OPERATOR} ${label} -->
 <div style="margin:0;padding:0;background:#f3f4f6;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:24px 0;">
     <tr>
@@ -55,7 +55,7 @@ ${bodyHtml}
 </div>`;
 }
 
-function button(href: string, label: string): string {
+export function button(href: string, label: string): string {
   return `
               <table role="presentation" cellpadding="0" cellspacing="0" style="display:inline-block;margin:0 8px 8px 0;">
                 <tr>

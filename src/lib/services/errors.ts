@@ -8,6 +8,7 @@
 export type ServiceErrorCode =
   | 'validation_error'
   | 'unauthorized'
+  | 'account_required'
   | 'forbidden'
   | 'not_found'
   | 'conflict'
@@ -44,6 +45,13 @@ export class ValidationError extends ServiceError {
 export class UnauthorizedError extends ServiceError {
   constructor(message = 'Authentication required') {
     super('unauthorized', message, 401);
+  }
+}
+
+/** A guest session (a Supabase anonymous user) reached something that needs a real account. */
+export class AccountRequiredError extends ServiceError {
+  constructor(message = 'Please sign in or create an account to continue.') {
+    super('account_required', message, 403);
   }
 }
 

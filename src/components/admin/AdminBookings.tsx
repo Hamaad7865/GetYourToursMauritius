@@ -11,6 +11,7 @@ import {
   setBookingStatus,
   markBookingRefunded,
   eraseCustomerData,
+  resetGuestBookingLink,
   saveBookingNotes,
   sendInstallmentReminder,
   bookingExtraCharges,
@@ -1105,6 +1106,32 @@ function BookingDrawer({
                 className="rounded-full border border-coral/40 px-4 py-2 text-[13px] font-bold text-coral hover:bg-coral/10 disabled:opacity-50"
               >
                 {busy === 'erase' ? 'Erasing…' : 'Erase customer data'}
+              </button>
+              {/* For a leaked manage link. Harmless on an account's booking, which has no link. */}
+              <button
+                type="button"
+                disabled={busy === 'guest-link'}
+                onClick={() => {
+                  const msg =
+                    'Reset the guest link? Every link already emailed for this booking stops working. The guest can get a new one at /bookings/find.';
+                  if (!window.confirm(msg)) return;
+                  setBusy('guest-link');
+                  setError(null);
+                  setErasedMsg(null);
+                  void (async () => {
+                    try {
+                      await resetGuestBookingLink(booking.ref);
+                      setErasedMsg('Guest link reset. Links already emailed no longer work.');
+                    } catch (err) {
+                      setError(err instanceof Error ? err.message : 'Action failed.');
+                    } finally {
+                      setBusy(null);
+                    }
+                  })();
+                }}
+                className="ml-2 rounded-full border border-ink/15 px-4 py-2 text-[13px] font-bold text-ink hover:bg-cream disabled:opacity-50"
+              >
+                {busy === 'guest-link' ? 'Resetting…' : 'Reset guest link'}
               </button>
             </section>
             {erasedMsg && (

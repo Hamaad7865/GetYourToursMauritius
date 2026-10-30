@@ -120,6 +120,32 @@ That order is load-bearing. Flip the first two, and a customer who paid at minut
 window gets auto-cancelled _before_ the sweep sees their payment. You'd be refunding valid bookings.
 There's a test guarding it.
 
+### A guest's JWT is a valid JWT
+
+Guest checkout means anyone can get an `authenticated` token with no email, so **"has a JWT" no longer
+means "has an account"**. Anything meant for account holders calls `requireAccount`, not `requireUser`, and
+`tests/unit/route-access.test.ts` makes every route choose. On the client, `useAuth().user` is null for a
+guest; read `session` or `isGuest` only where a guest should get through. Note `user.role === 'authenticated'`
+is true for a guest too, which is why `/api/v1/payments` had to stop offering them save-card.
+
+### A GET on an emailed link must never change anything
+
+Mail scanners fetch every link in an email (Microsoft's 104.47.x hit our `/verify`), and some run JavaScript.
+`GET /bookings/{ref}/open` only sets a cookie, and the booking page waits for a tap before it signs in or
+adopts. Make either automatic and a scanner creates an anonymous user and takes the booking off the guest's
+device.
+
+### Never turn off Supabase "Confirm email"
+
+`claimGuestBookings` hands paid bookings to the account holding the same **confirmed** address. With
+confirmation off, signing up with a stranger's email would hand you their booking, name, phone and pickup.
+
+### Never let a guest link reach a real account
+
+`adoptGuestBooking` only moves a booking between anonymous users, and refuses a booking a real account owns.
+Keep both halves: otherwise a forwarded email can put a booking in a stranger's account, or take one out of
+somebody's.
+
 ---
 
 ## Email

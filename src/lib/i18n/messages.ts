@@ -3075,4 +3075,57 @@ export const fr: Record<string, string> = {
   'Customize this tour with ZilAi': 'Personnalisez cette excursion avec ZilAi',
   'Add, drop or swap stops with our AI assistant, and see the price of your version.':
     'Ajoutez, retirez ou remplacez des étapes avec notre assistant IA, et voyez le prix de votre version.',
+  'No account needed.': 'Aucun compte nécessaire.',
+  'Have an account? Sign in': 'Vous avez un compte ? Connectez-vous',
+  'We’ll send your confirmation here': 'Nous enverrons votre confirmation ici',
+  'Did you mean {email}?': 'Vouliez-vous dire {email} ?',
+  'Booking as a guest. We’ll send your confirmation to {email}.':
+    'Réservation en tant qu’invité. Nous enverrons votre confirmation à {email}.',
+  'We couldn’t continue as a guest. Please create an account to finish booking.':
+    'Impossible de continuer en tant qu’invité. Veuillez créer un compte pour finaliser votre réservation.',
+  'Add your name and email so we can send your confirmation.':
+    'Ajoutez votre nom et votre e-mail pour recevoir votre confirmation.',
+  'This booking isn’t linked to your account. Sign in with the email address it was booked with to add it, or sign out to open it as a guest.':
+    'Cette réservation n’est pas liée à votre compte. Connectez-vous avec l’adresse e-mail utilisée pour la réservation afin de l’ajouter, ou déconnectez-vous pour l’ouvrir en tant qu’invité.',
+  'We couldn’t open your booking — please try again.':
+    'Nous n’avons pas pu ouvrir votre réservation — veuillez réessayer.',
+  'We can’t open this booking here. If you’ve added it to an account, sign in to see it. Otherwise, use Find my booking to get a fresh link.':
+    'Nous ne pouvons pas ouvrir cette réservation ici. Si vous l’avez ajoutée à un compte, connectez-vous pour la voir. Sinon, utilisez « Retrouver ma réservation » pour recevoir un nouveau lien.',
+  'Booking {ref}': 'Réservation {ref}',
+  'Tap below to open your booking on this device.':
+    'Appuyez ci-dessous pour ouvrir votre réservation sur cet appareil.',
+  'Opening…': 'Ouverture…',
+  'View my booking': 'Voir ma réservation',
+  'Find my booking': 'Retrouver ma réservation',
+  'Check your inbox and tap the link to confirm your email. Already have an account? Just sign in.':
+    'Consultez votre boîte de réception et appuyez sur le lien pour confirmer votre e-mail. Vous avez déjà un compte ? Connectez-vous simplement.',
+  'Booked as a guest?': 'Vous avez réservé en tant qu’invité ?',
+  'This booking was opened on another device. Open the link in your booking email to view it here.':
+    'Cette réservation a été ouverte sur un autre appareil. Ouvrez le lien de votre e-mail de réservation pour la voir ici.',
+  'Save your booking to an account': 'Enregistrez votre réservation dans un compte',
+  'You booked as a guest. Confirm your email and you can see this booking from any device. It’s free and optional.':
+    'Vous avez réservé en tant qu’invité. Confirmez votre e-mail pour voir cette réservation depuis n’importe quel appareil. C’est gratuit et facultatif.',
+  'Save my booking': 'Enregistrer ma réservation',
+  'Too many tries — please wait a while and try again.':
+    'Trop de tentatives — veuillez patienter un moment puis réessayer.',
+  'Please check your booking reference and email address.':
+    'Veuillez vérifier votre référence de réservation et votre adresse e-mail.',
+  'If that matches a booking, we’ve emailed a link to the address on it. It can take a few minutes to arrive.':
+    'Si ces informations correspondent à une réservation, nous avons envoyé un lien à l’adresse indiquée sur celle-ci. Il peut mettre quelques minutes à arriver.',
+  'Booking reference': 'Référence de réservation',
+  'Email me a link': 'M’envoyer un lien',
+  'Booked as a guest? Enter your booking reference and the email you booked with, and we’ll email you a link. Your reference is in your confirmation email.':
+    'Vous avez réservé en tant qu’invité ? Saisissez votre référence de réservation et l’e-mail utilisé, et nous vous enverrons un lien. Votre référence figure dans votre e-mail de confirmation.',
+  'We added your booking to your account': 'Nous avons ajouté votre réservation à votre compte',
+  'We added your bookings to your account': 'Nous avons ajouté vos réservations à votre compte',
+  'It was made as a guest with this email address.':
+    'Elle a été faite en tant qu’invité avec cette adresse e-mail.',
+  'View or manage your booking': 'Voir ou gérer votre réservation',
+  'This private link opens your booking. Keep it to yourself: anyone who has it can manage this booking.':
+    'Ce lien privé ouvre votre réservation. Gardez-le pour vous : toute personne qui le détient peut gérer cette réservation.',
+  'Your link to booking {ref}': 'Votre lien vers la réservation {ref}',
+  'Hi {name}, here is the link you asked for. It opens your booking on this device.':
+    'Bonjour {name}, voici le lien demandé. Il ouvre votre réservation sur cet appareil.',
+  'Keep this link private: anyone who has it can manage this booking. If you did not ask for it, you can ignore this email.':
+    'Gardez ce lien privé : toute personne qui le détient peut gérer cette réservation. Si vous ne l’avez pas demandé, vous pouvez ignorer cet e-mail.',
 };

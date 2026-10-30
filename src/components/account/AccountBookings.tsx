@@ -155,12 +155,14 @@ function BookingCard({ b }: { b: BookingRow }) {
 
 export function AccountBookings() {
   const t = useT();
-  const { user, loading: authLoading } = useAuth();
+  // `session`, not `user`: this is the one account screen a guest can use. Their bookings are theirs.
+  const { session, loading: authLoading } = useAuth();
+  const ownerId = session?.user.id ?? null;
   const [bookings, setBookings] = useState<BookingRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) return;
+    if (!ownerId) return;
     let active = true;
     (async () => {
       const { data, error } = await getBrowserSupabase()
@@ -171,7 +173,7 @@ export function AccountBookings() {
         // Filter to the SIGNED-IN user's OWN bookings explicitly. For a customer this just matches RLS;
         // for a staff/admin it stops "My bookings" (a personal view) from listing every booking in the
         // system via the staff RLS branch — that belongs on the admin screen, not here.
-        .eq('user_id', user.id)
+        .eq('user_id', ownerId)
         .order('created_at', { ascending: false })
         .returns<BookingRow[]>();
       if (!active) return;
@@ -186,10 +188,10 @@ export function AccountBookings() {
     return () => {
       active = false;
     };
-  }, [user]);
+  }, [ownerId]);
 
   if (authLoading) return <AccountSpinner />;
-  if (!user) return <SignedOutPrompt message={t('Sign in to see your booking history.')} />;
+  if (!session) return <SignedOutPrompt message={t('Sign in to see your booking history.')} />;
 
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);

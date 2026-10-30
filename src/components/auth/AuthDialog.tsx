@@ -29,7 +29,7 @@ const OAUTH: Array<{ provider: Provider; label: string; icon: React.ReactNode }>
  * landing on the account page. The path also rides `sessionStorage` as a same-tab
  * fallback in case the provider strips the query string on the round-trip.
  */
-function authCallbackUrl(): string {
+export function authCallbackUrl(): string {
   const url = new URL('/auth/callback', window.location.origin);
   const { pathname, search } = window.location;
   // Never bounce the user back to the callback page itself.

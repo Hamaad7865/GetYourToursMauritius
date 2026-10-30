@@ -37,6 +37,7 @@ export const POST = apiHandler(async (req) => {
   }
 
   const returnUrl = `${env.NEXT_PUBLIC_SITE_URL}/bookings/${input.bookingRef}`;
+  const canSaveCard = user.role === 'authenticated' && !user.isAnonymous;
   // ctx (the signed-in caller) authorizes api_create_payment; the service-role port performs the two
   // server-fact writes (recorded charge + checkout id), whose RPCs are locked to service_role.
   const link = await createPaymentLink(
@@ -48,11 +49,13 @@ export const POST = apiHandler(async (req) => {
       // 'pickup_addon' re-opens the transport supplement for a pickup added after the booking was
       // paid (the amount lives on the open booking_pickup_requests row, never on this request).
       purpose: input.purpose,
-      // Offer "save card" only to a signed-in caller (a guest has no account to attach a token to).
-      // The widget shows the opt-in; the token is harvested on confirm only if the customer ticks it.
-      saveCard: user.role === 'authenticated',
+      // Offer "save card" only to a signed-in account. An anonymous guest's JWT also has the role
+      // 'authenticated', but they have no account to attach a token to, and the purge deletes their
+      // user. The widget shows the opt-in; the token is harvested on confirm only if the customer
+      // ticks it.
+      saveCard: canSaveCard,
       // Their saved cards are surfaced in the widget for one-click reuse (fetched server-side).
-      userId: user.role === 'authenticated' ? user.id : undefined,
+      userId: canSaveCard ? user.id : undefined,
     },
     serviceRoleRpcContext(),
   );

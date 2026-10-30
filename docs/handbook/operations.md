@@ -156,6 +156,34 @@ safe. Don't do step 5 until it has run cleanly.
 
 # Troubleshooting
 
+## Guest checkout
+
+Visitors can book without an account once it is switched on. Turn it on, in this order:
+
+1. Cloudflare Turnstile: set `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY` in Pages and redeploy. Until both
+   exist the guest form stays hidden.
+2. Supabase → Authentication: allow anonymous sign-ins, and raise their hourly limit to about 100. Keep
+   "Confirm email" on.
+3. `update business_settings set guest_checkout_enabled_at = now();`
+
+**To turn it off:** `update business_settings set guest_checkout_enabled_at = null;` Existing guest bookings
+keep working. Do not disable anonymous sign-ins to do this: guests would lose access from new devices.
+
+**A guest can't get back to their booking:** they can use `/bookings/find`, which emails a link to the address
+on the booking. **A link has leaked:** Bookings → the booking → **Reset guest link**. Every earlier link stops
+working.
+
+**Is someone testing stolen cards?** Look for clusters of guest bookings that expired after the card form was
+touched, and turn guest checkout off if you see them:
+
+```sql
+select date_trunc('hour', b.created_at) as hour, count(*) as guest_bookings,
+       count(*) filter (where b.status = 'expired') as expired
+  from bookings b join auth.users u on u.id = b.user_id
+ where u.is_anonymous and b.created_at > now() - interval '3 days'
+ group by 1 order by 1 desc;
+```
+
 ## A customer paid but the booking is not confirmed
 
 Usually the settlement notification from Peach didn't arrive. **There is an automatic safety net** — the

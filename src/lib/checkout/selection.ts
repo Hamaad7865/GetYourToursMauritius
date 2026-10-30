@@ -158,6 +158,7 @@ export function routeDrift(args: {
  *  fields (airport vs sightseeing) hash identically across mounts. */
 export type DetailsInput = {
   customerName: string;
+  customerEmail?: string | null;
   customerPhone: string | null;
   customerCountry: string | null;
   gender?: string | null;
@@ -186,6 +187,7 @@ export function detailsHash(input: DetailsInput): string {
   const s = (v: string | null | undefined): string | null => (v == null || v === '' ? null : v);
   const normalized = {
     customerName: s(input.customerName) ?? '',
+    customerEmail: s(input.customerEmail),
     customerPhone: s(input.customerPhone),
     customerCountry: s(input.customerCountry),
     gender: s(input.gender),
