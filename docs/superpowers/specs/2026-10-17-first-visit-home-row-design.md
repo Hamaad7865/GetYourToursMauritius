@@ -62,7 +62,8 @@ the first that fits wins.
 **Fixed footprint.** Swapping tiles must not change the row's height. Today it can: the title is
 `line-clamp-2` (one or two lines) and the price line is omitted when `fromPriceEur` is null, and on
 desktop the tallest tile sets the row height. So every tile reserves two title lines (`min-h` of two
-line-heights) and always renders its price line, reading "On request" when there is no price. The
+line-heights) and two price lines, because "à partir de 120 € par véhicule" wraps on a phone, and always
+renders the price, reading "On request" when there is none. The tablet grid reserves its two rows. The
 placeholder tiles use exactly that footprint.
 
 **Every heading must be true of every tile under it.** No row tops up with tours the heading does not
@@ -85,8 +86,9 @@ describe; a row that cannot fill itself truthfully falls through instead.
    order) under "Private day tours with your own driver". Used when rule 3 cannot fill, or when the
    picks cannot be loaded at all.
 
-French headings (curly apostrophes, exact-match `messages.ts` keys): "D’après les guides que vous avez
-lus", "Encore des places demain", "Les plus réservés par nos clients".
+French headings (curly apostrophes, exact-match `messages.ts` keys): "D’après vos lectures", "Encore des
+places demain", "Les plus réservés par nos clients". The first is short on purpose: on a 360 px phone it
+shares its line with two links and may take two lines at most, or the row moves.
 
 ## Architecture
 

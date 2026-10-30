@@ -423,8 +423,9 @@ brand renders as _"Contact Belle Mare Tours | Belle Mare Tours"_.
 country. The first row (`src/components/gyg/home/HomeToursRow.tsx`) renders the shared "Most booked"
 row on the server and swaps to the guides-read or on-island row after hydration, using `chooseHomeRow`
 (`src/lib/catalogue/home-row.ts`), localStorage, and the uncached `/api/planner/locality`. Every tile
-keeps a fixed footprint (two title lines, a price line that reads "On request"), and the tablet grid
-always reserves its two rows, so a swap never moves the page; a new tile field must keep that.
+keeps a fixed footprint (two title lines, two price lines, "On request" when there is no price), and
+the tablet grid always reserves its two rows, so a swap never moves the page; a new tile field must
+keep that. The price needs its second line: "à partir de 120 € par véhicule" wraps on a phone.
 
 ### A homepage row heading is a claim
 

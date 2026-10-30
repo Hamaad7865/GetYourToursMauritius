@@ -48,10 +48,10 @@ async function getData(url: string, signal: AbortSignal): Promise<unknown> {
  * may swap the tiles for the guides this visitor read or, if they are in Mauritius, the tours still free
  * tomorrow.
  *
- * FOOTPRINT: a swap must never move the page. Every tile reserves two title lines and always has a price
- * line ("On request" when there is no price); on phones the heading always reserves two lines; on a
- * tablet the grid always reserves its two rows, however few tiles it holds; and a row the pre-paint
- * script marked shows same-size placeholders instead of tiles until the client has chosen.
+ * FOOTPRINT: a swap must never move the page. Every tile reserves two title lines and two price lines
+ * ("On request" when there is no price); on phones the heading always reserves two lines; on a tablet
+ * the grid always reserves its two rows, however few tiles it holds; and a row the pre-paint script
+ * marked shows same-size placeholders instead of tiles until the client has chosen.
  */
 export function HomeToursRow({
   serverVariant,
@@ -223,11 +223,12 @@ function HomeTourTile({ tour, image }: HomeTour) {
           className="h-full w-full object-cover transition-transform duration-500 ease-out motion-safe:group-hover:scale-[1.04]"
         />
       </div>
-      {/* Always two lines tall (2 × leading-snug) and always a price line: see FOOTPRINT above. */}
+      {/* Always two title lines (2 × leading-snug) and two price lines: "à partir de 120 € par
+          véhicule" wraps on a phone, and so does the English on a narrow tile. See FOOTPRINT above. */}
       <p className="mt-3 line-clamp-2 min-h-[2.75em] text-[16px] font-extrabold leading-snug tracking-[-0.01em] text-ink decoration-2 underline-offset-4 group-hover:underline">
         {tour.title}
       </p>
-      <p className="mt-1 text-[13px] text-ink-muted">
+      <p className="mt-1 min-h-[41px] text-[13px] text-ink-muted">
         {tour.fromPriceEur != null ? (
           <>
             {t('from')} <Price eur={tour.fromPriceEur} className="text-[14px] font-bold text-ink" />

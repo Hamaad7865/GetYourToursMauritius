@@ -3072,7 +3072,7 @@ export const fr: Record<string, string> = {
   'Highest rated': 'La mieux notée',
   'What it is': 'Ce que c’est',
   'Private day tours with your own driver': 'Excursions privées à la journée, avec votre chauffeur',
-  'Picked from the guides you’ve read': 'D’après les guides que vous avez lus',
+  'Picked from the guides you’ve read': 'D’après vos lectures',
   'Still free tomorrow': 'Encore des places demain',
   'Most booked by our guests': 'Les plus réservés par nos clients',
   'Clear these suggestions': 'Effacer ces suggestions',
