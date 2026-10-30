@@ -1,7 +1,7 @@
 import { apiHandler } from '@/lib/http/handler';
 import { jsonOk } from '@/lib/http/envelope';
 import { preflightResponse } from '@/lib/http/cors';
-import { requireUser } from '@/lib/http/auth';
+import { requireAccount } from '@/lib/http/auth';
 import { buildServiceContext } from '@/lib/http/context';
 import { createServiceRoleClient } from '@/lib/supabase/admin';
 import { eraseAccountData } from '@/lib/services/account';
@@ -16,7 +16,7 @@ export const runtime = 'edge';
  * (the data-protection obligation is complete). Ports the web `deleteMyAccount` Server Action.
  */
 export const POST = apiHandler(async (req) => {
-  const user = await requireUser(req);
+  const user = await requireAccount(req);
   const ctx = buildServiceContext(req);
 
   // 1. Erase the data first (as the user, so api_erase_user's auth.uid() self-guard passes).

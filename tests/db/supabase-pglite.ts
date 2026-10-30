@@ -15,7 +15,7 @@ import type { PGlite } from '@electric-sql/pglite';
  * `throw error` themselves). Only the operations the helpers actually use are implemented.
  */
 
-type Filter = { col: string; op: 'eq' | 'in' | 'is'; val: unknown };
+type Filter = { col: string; op: 'eq' | 'in' | 'is' | 'gte' | 'ilike'; val: unknown };
 type RowMode = 'many' | 'single' | 'maybeSingle';
 type Result = { data: unknown; error: unknown; count?: number | null };
 /** PostgREST's `select(cols, { count, head })`: `count` asks for the row count, `head` drops the rows. */
@@ -81,6 +81,14 @@ class QueryBuilder implements PromiseLike<Result> {
     this.filters.push({ col, op: 'is', val });
     return this;
   }
+  gte(col: string, val: unknown): this {
+    this.filters.push({ col, op: 'gte', val });
+    return this;
+  }
+  ilike(col: string, val: string): this {
+    this.filters.push({ col, op: 'ilike', val });
+    return this;
+  }
   /** Each call adds a sort key after the previous ones, as PostgREST's `order=a.desc,b.asc` does —
    *  the paged readers (src/lib/admin/read-all.ts) need the `id` tiebreak to survive. */
   order(col: string, opts?: { ascending?: boolean }): this {
@@ -124,7 +132,12 @@ class QueryBuilder implements PromiseLike<Result> {
       // `is` takes a literal, never a parameter: `col is $1` is not valid SQL.
       if (f.op === 'is') return `${f.col} is ${f.val === null ? 'null' : String(f.val)}`;
       params.push(f.val);
-      return f.op === 'eq' ? `${f.col} = $${params.length}` : `${f.col} = any($${params.length})`;
+      if (f.op === 'gte') return `${f.col} >= $${params.length}`;
+      if (f.op === 'ilike') return `${f.col} ilike $${params.length}`;
+      if (f.op === 'eq') return `${f.col} = $${params.length}`;
+      // Compared as text so `.in()` works on an enum column: PGlite cannot infer an enum array param.
+      params[params.length - 1] = (f.val as unknown[]).map(String);
+      return `${f.col}::text = any($${params.length}::text[])`;
     });
     return ` where ${parts.join(' and ')}`;
   }
@@ -218,9 +231,50 @@ class QueryBuilder implements PromiseLike<Result> {
   }
 }
 
+type AuthRow = {
+  id: string;
+  email: string | null;
+  email_confirmed_at: Date | string | null;
+  is_anonymous: boolean;
+  created_at: Date | string;
+};
+
+const toAuthUser = (row: AuthRow) => ({
+  ...row,
+  created_at: new Date(row.created_at).toISOString(),
+  email_confirmed_at: row.email_confirmed_at
+    ? new Date(row.email_confirmed_at).toISOString()
+    : null,
+});
+
 export interface SupabaseShim {
   from(table: string): QueryBuilder;
   rpc(fn: string, args?: Record<string, unknown>): Promise<Result>;
+}
+
+/** The GoTrue admin calls the guest service makes, over the shim's `auth.users` table. */
+export function makeAuthAdminShim(pg: PGlite) {
+  return {
+    admin: {
+      async getUserById(id: string) {
+        const { rows } = await pg.query<AuthRow>(`select * from auth.users where id = $1`, [id]);
+        return rows[0]
+          ? { data: { user: toAuthUser(rows[0]) }, error: null }
+          : { data: { user: null }, error: { message: 'User not found' } };
+      },
+      async listUsers({ page = 1, perPage = 50 }: { page?: number; perPage?: number } = {}) {
+        const { rows } = await pg.query<AuthRow>(
+          `select * from auth.users order by created_at desc, id limit $1 offset $2`,
+          [perPage, (page - 1) * perPage],
+        );
+        return { data: { users: rows.map(toAuthUser) }, error: null };
+      },
+      async deleteUser(id: string) {
+        await pg.query(`delete from auth.users where id = $1`, [id]);
+        return { data: {}, error: null };
+      },
+    },
+  };
 }
 
 /** Build a Supabase-browser-shaped client over a PGlite instance for tests. */

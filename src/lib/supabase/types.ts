@@ -1150,11 +1150,27 @@ type BusinessSettingsRow = {
   eur_mur_rate_updated_at: string | null;
   /** 20261017000100 — NULL = checkout-recovery emails off; else only checkouts after this qualify. */
   checkout_recovery_enabled_at: string | null;
+  /** 20261030120000 — NULL = guest checkout off; set = visitors may book without an account. */
+  guest_checkout_enabled_at: string | null;
   updated_at: string;
   updated_by: string | null;
 };
+/** 20261030120000 — the version signed into a guest manage link. No row = version 1. */
+type BookingGuestLinksRow = {
+  booking_id: string;
+  version: number;
+  reset_at: string | null;
+  reset_by: string | null;
+};
+type BookingGuestLinksInsert = {
+  booking_id: string;
+  version?: number;
+  reset_at?: string | null;
+  reset_by?: string | null;
+};
 type BusinessSettingsInsert = {
   checkout_recovery_enabled_at?: string | null;
+  guest_checkout_enabled_at?: string | null;
   id?: boolean;
   whatsapp_number?: string | null;
   charge_currency?: 'MUR' | 'EUR';
@@ -1323,6 +1339,7 @@ export interface Database {
       checkout_recovery_emails: TableDef<CheckoutRecoveryEmailsRow, CheckoutRecoveryEmailsInsert>;
       email_suppressions: TableDef<EmailSuppressionsRow, EmailSuppressionsInsert>;
       business_settings: TableDef<BusinessSettingsRow, BusinessSettingsInsert>;
+      booking_guest_links: TableDef<BookingGuestLinksRow, BookingGuestLinksInsert>;
       document_clients: TableDef<DocumentClientsRow, DocumentClientsInsert>;
       documents: TableDef<DocumentsRow, DocumentsInsert>;
       document_counters: TableDef<DocumentCountersRow, DocumentCountersInsert>;
@@ -1333,6 +1350,7 @@ export interface Database {
       is_staff: { Args: Record<string, never>; Returns: boolean };
       is_admin: { Args: Record<string, never>; Returns: boolean };
       has_permission: { Args: { p_key: string }; Returns: boolean };
+      quote_owner_for_email: { Args: { p_email: string }; Returns: string | null };
       api_my_access: { Args: { p: Json }; Returns: Json };
       api_team_list: { Args: { p: Json }; Returns: Json };
       api_team_assign: { Args: { p: Json }; Returns: Json };

@@ -1,11 +1,13 @@
 import { createRemoteJWKSet, decodeProtectedHeader, jwtVerify, type JWTPayload } from 'jose';
 import { getServerEnv } from '@/lib/config/env';
-import { ConfigError, UnauthorizedError } from '@/lib/services/errors';
+import { AccountRequiredError, ConfigError, UnauthorizedError } from '@/lib/services/errors';
 
 export interface AuthUser {
   id: string;
   email: string | null;
   role: string | null;
+  /** A guest session: a Supabase anonymous sign-in, with no email and no account behind it. */
+  isAnonymous: boolean;
 }
 
 // Cache the remote JWKS per project (jose fetches + caches the keys internally).
@@ -120,6 +122,7 @@ export async function verifyAccessToken(token: string): Promise<AuthUser> {
     id: sub,
     email: typeof payload.email === 'string' ? payload.email : null,
     role: typeof payload.role === 'string' ? payload.role : null,
+    isAnonymous: payload.is_anonymous === true,
   };
 }
 
@@ -128,6 +131,17 @@ export async function requireUser(req: Request): Promise<AuthUser> {
   const token = getBearerToken(req);
   if (!token) throw new UnauthorizedError();
   return verifyAccessToken(token);
+}
+
+/**
+ * For anything that means "a person with an account". A guest's anonymous JWT is a valid JWT, so it
+ * passes {@link requireUser}; this is the check that stops it. tests/unit/route-access.test.ts
+ * makes every route choose one or the other.
+ */
+export async function requireAccount(req: Request): Promise<AuthUser> {
+  const user = await requireUser(req);
+  if (user.isAnonymous) throw new AccountRequiredError();
+  return user;
 }
 
 /** Returns the user if a valid token is present, otherwise null (never throws on auth). */

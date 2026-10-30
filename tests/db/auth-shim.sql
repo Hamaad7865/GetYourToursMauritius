@@ -12,6 +12,9 @@ create table if not exists auth.users (
   id uuid primary key default gen_random_uuid(),
   email text,
   email_confirmed_at timestamptz,
+  -- Supabase's own column, true for a guest's anonymous sign-in. services/guest.ts reads it (through
+  -- the auth admin API) before moving any booking, so a shim without it could not prove that rule.
+  is_anonymous boolean not null default false,
   created_at timestamptz not null default now()
 );
 

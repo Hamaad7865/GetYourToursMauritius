@@ -48,7 +48,12 @@ describe('verifyAccessToken — asymmetric (JWKS) path', () => {
 
   it('verifies an ES256 token and extracts the user', async () => {
     const user = await verifyAccessToken(await token(signingKey));
-    expect(user).toEqual({ id: 'user-abc', email: 'traveller@example.com', role: 'authenticated' });
+    expect(user).toEqual({
+      id: 'user-abc',
+      email: 'traveller@example.com',
+      role: 'authenticated',
+      isAnonymous: false,
+    });
   });
 
   it('rejects a token signed by a different key', async () => {

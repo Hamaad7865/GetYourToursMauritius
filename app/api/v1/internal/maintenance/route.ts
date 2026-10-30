@@ -15,6 +15,7 @@ import {
   purgeErrorLogs,
   purgeCheckoutFunnelEvents,
 } from '@/lib/services/maintenance';
+import { purgeAnonymousUsers } from '@/lib/services/guest';
 import { recordError, describeThrown } from '@/lib/error-log';
 
 export const runtime = 'edge';
@@ -174,6 +175,20 @@ export const POST = apiHandler(async (req) => {
     await log('checkout funnel purge', err);
   }
 
+  // Once an hour, inside one 5-minute cron tick: delete a small batch of anonymous users nobody needs.
+  // Housekeeping on the same footing as the two purges above. It walks the whole user list, so not on
+  // every tick, and a failure is retried next hour.
+  let anonymousUsersPurged: Awaited<ReturnType<typeof purgeAnonymousUsers>> | { skipped: true } = {
+    skipped: true,
+  };
+  if (new Date().getUTCMinutes() < 5) {
+    try {
+      anonymousUsersPurged = await purgeAnonymousUsers(ctx);
+    } catch (err) {
+      await log('anonymous user purge', err);
+    }
+  }
+
   // HONEST STATUS (review item 7): every job above ran regardless (each isolated in its own
   // try/catch), but a failed one used to be reported inside a 200 — the cron Worker treats any 2xx
   // as success, so a persistently broken sweep looked healthy on the Cloudflare dashboard forever.
@@ -218,6 +233,7 @@ export const POST = apiHandler(async (req) => {
         fundedPickupsApplied,
         errorLogsPurged,
         funnelEventsPurged,
+        anonymousUsersPurged,
         erroredJobs,
       },
     );
@@ -232,6 +248,7 @@ export const POST = apiHandler(async (req) => {
     fundedPickupsApplied,
     errorLogsPurged,
     funnelEventsPurged,
+    anonymousUsersPurged,
   });
 });
 

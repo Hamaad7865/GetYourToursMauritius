@@ -26,7 +26,7 @@ function linkSecret(): string {
   return s;
 }
 
-async function hmacHex(key: string, message: string): Promise<string> {
+export async function hmacHex(key: string, message: string): Promise<string> {
   const cryptoKey = await crypto.subtle.importKey(
     'raw',
     new TextEncoder().encode(key),

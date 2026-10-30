@@ -51,6 +51,8 @@ export interface CheckoutDraft {
   childSeatAge?: string;
   // Lead traveller (step 2).
   name?: string;
+  /** A guest's typed address. An account's email is read from the session and never stored. */
+  email?: string;
   phone?: string;
   country?: string;
   gender?: string;
@@ -139,6 +141,7 @@ export function parseDraft(raw: string | null, now: number): CheckoutDraft | nul
       'luggageDetails',
       'childSeatAge',
       'name',
+      'email',
       'phone',
       'country',
       'gender',

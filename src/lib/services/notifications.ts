@@ -20,6 +20,8 @@ import { renderCheckoutRecoveryEmail } from '@/lib/email/checkout-recovery';
 import { localiseHref } from '@/lib/i18n/routing';
 import { isLocale } from '@/lib/i18n/config';
 import { renderPickupConfirmedEmail, renderPickupReminderEmail } from '@/lib/email/pickup';
+import { renderGuestLinkEmail } from '@/lib/email/guest-link';
+import { guestBookingUrl } from './guest';
 import {
   renderInstallmentReminderEmail,
   renderOwnerInstallmentOverdueEmail,
@@ -135,8 +137,9 @@ async function enrichBookingConfirmation(
     }
   }
 
-  const bookingUrl = `${SITE.url}/bookings/${model.booking.ref}`;
-  const email = renderConfirmationEmail(model, bookingUrl, change);
+  const guestUrl = await guestBookingUrl(ctx, model.booking.ref);
+  const bookingUrl = guestUrl ?? `${SITE.url}/bookings/${model.booking.ref}`;
+  const email = renderConfirmationEmail(model, bookingUrl, change, guestUrl !== null);
   message.subject = email.subject;
   message.html = email.html;
   message.text = email.text;
@@ -504,7 +507,7 @@ function enrichPickupEmail(message: NotificationMessage): void {
   const p = message.payload;
   const str = (v: unknown): string => (typeof v === 'string' ? v : '');
   const ref = str(p.ref);
-  const bookingUrl = `${SITE.url}/bookings/${ref}`;
+  const bookingUrl = str(p.bookingUrl) || `${SITE.url}/bookings/${ref}`;
   const customerName = str(p.customerName) || 'there';
   const activityTitle = str(p.activityTitle) || 'your trip';
   const locale = typeof p.locale === 'string' ? p.locale : null;
@@ -529,6 +532,50 @@ function enrichPickupEmail(message: NotificationMessage): void {
   message.subject = email.subject;
   message.html = email.html;
   message.text = email.text;
+}
+
+/**
+ * The answer to "Find my booking". The link is the one attachGuestBookingUrl put on the message; if the
+ * booking stopped being a guest's between the request and this send, the plain page is the right one.
+ */
+function enrichGuestBookingLink(message: NotificationMessage): void {
+  const p = message.payload;
+  const str = (v: unknown): string => (typeof v === 'string' ? v : '');
+  const ref = str(p.ref);
+  const email = renderGuestLinkEmail({
+    customerName: str(p.customerName) || 'there',
+    ref,
+    bookingUrl: str(p.bookingUrl) || `${SITE.url}/bookings/${ref}`,
+    locale: typeof p.locale === 'string' ? p.locale : null,
+  });
+  message.subject = email.subject;
+  message.html = email.html;
+  message.text = email.text;
+}
+
+/**
+ * The templates that link a customer to their booking, apart from the invoice family, which resolves
+ * the link itself in enrichBookingConfirmation. A guest cannot sign in, so theirs must carry the signed
+ * manage link. Minted here at send time and held on the in-memory message only: mark_notification never
+ * writes the payload back, so no link token reaches notification_outbox.
+ */
+const BOOKING_LINK_TEMPLATES = new Set([
+  'pickup_reminder',
+  'pickup_confirmed',
+  'booking_weather_disrupted',
+  'booking_rescheduled',
+  'booking_change_offer',
+  'guest_booking_link',
+]);
+
+async function attachGuestBookingUrl(
+  ctx: ServiceContext,
+  message: NotificationMessage,
+): Promise<void> {
+  const ref = message.payload.ref;
+  if (typeof ref !== 'string' || !ref) return;
+  const bookingUrl = await guestBookingUrl(ctx, ref);
+  if (bookingUrl) message.payload = { ...message.payload, bookingUrl };
 }
 
 /**
@@ -610,6 +657,7 @@ export async function drainNotifications(
   for (const message of messages) {
     try {
       resolveOwnerRecipient(message);
+      if (BOOKING_LINK_TEMPLATES.has(message.template)) await attachGuestBookingUrl(ctx, message);
       if (
         message.template === 'booking_confirmation' ||
         message.template === 'deposit_receipt' ||
@@ -643,6 +691,8 @@ export async function drainNotifications(
         message.template === 'pickup_confirmed'
       ) {
         enrichPickupEmail(message);
+      } else if (message.template === 'guest_booking_link') {
+        enrichGuestBookingLink(message);
       } else if (message.template === 'installment_reminder') {
         await enrichInstallmentReminder(message);
       } else if (message.template === 'owner_installment_overdue') {

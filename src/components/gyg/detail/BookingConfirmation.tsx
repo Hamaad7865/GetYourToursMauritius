@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from '@/components/site/LocaleLink';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthProvider';
@@ -25,6 +25,8 @@ import {
   shouldKeepPollingPickup,
 } from '@/lib/checkout/confirm-poll';
 import { LatePickupPanel } from './LatePickupPanel';
+import { GuestLinkGate } from './GuestLinkGate';
+import { SaveBookingBanner } from './SaveBookingBanner';
 
 interface BookingItem {
   priceLabel: string;
@@ -36,6 +38,7 @@ interface BookingItem {
 }
 interface Booking {
   ref: string;
+  customerEmail: string;
   status: string;
   paymentState: string;
   customerName: string;
@@ -162,8 +165,10 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
   const t = useT();
   const waNumber = useWhatsAppNumber();
   const money = useMoney();
-  const { user, session, loading: authLoading, openAuth } = useAuth();
+  const { session, isGuest, loading: authLoading, openAuth } = useAuth();
   const params = useSearchParams();
+  // Arrived from the emailed manage link: without ownership yet, offer "View my booking".
+  const viaGuestLink = params.get('link') != null;
   const isStubReturn = params.get('stub_session') != null;
   const justPaid = params.get('just_paid') != null;
   const [booking, setBooking] = useState<Booking | null>(null);
@@ -175,32 +180,48 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
   // so we show a Refresh affordance instead of a cold dead-end.
   const [confirming, setConfirming] = useState(justPaid);
   const [pollExhausted, setPollExhausted] = useState(false);
+  // This session cannot see the booking: not its own, or moved to another device by the link.
+  const [notOurs, setNotOurs] = useState(false);
+  // The guest tapped "View my booking". Their first tap creates the session that would otherwise end
+  // the gate's condition below, and unmounting it mid-flight would lose any refusal it has to show.
+  const [gateInUse, setGateInUse] = useState(false);
+  // Only the newest fetch may write. Signing in as a guest re-runs the effect below while adopt is in
+  // flight, and that older "not found" must not land on top of the booking adopt just opened.
+  const fetchSeqRef = useRef(0);
 
   // Fetch the booking and return it so callers (the poll loop) can decide whether to keep going.
-  const fetchBooking = useCallback(async (): Promise<Booking | null> => {
-    if (!session) return null;
-    try {
-      const res = await fetch(`/api/v1/bookings/${bookingRef}`, {
-        headers: { authorization: `Bearer ${session.access_token}` },
-      }).then((r) => r.json());
-      if (res.ok) {
-        const next = res.data as Booking;
-        setBooking(next);
-        setError(null); // clear any prior transient error once a fetch succeeds
+  const fetchBooking = useCallback(
+    async (accessToken?: string): Promise<Booking | null> => {
+      const token = accessToken ?? session?.access_token;
+      if (!token) return null;
+      const seq = (fetchSeqRef.current += 1);
+      try {
+        const res = await fetch(`/api/v1/bookings/${bookingRef}`, {
+          headers: { authorization: `Bearer ${token}` },
+        }).then((r) => r.json());
+        if (seq !== fetchSeqRef.current) return res.ok ? (res.data as Booking) : null;
+        if (res.ok) {
+          const next = res.data as Booking;
+          setBooking(next);
+          setError(null); // clear any prior transient error once a fetch succeeds
+          setNotOurs(false);
+          setLoading(false);
+          return next;
+        }
+        setError(res.error?.message ?? t('Could not load your booking.'));
+        setNotOurs(res.error?.code === 'not_found');
         setLoading(false);
-        return next;
+        return null;
+      } catch {
+        // A network failure / non-JSON body used to reject unhandled, leaving `loading` true forever
+        // (a perpetual "Loading your booking…" spinner). Surface a retryable error instead.
+        setError(t('Could not load your booking. Please check your connection and try again.'));
+        setLoading(false);
+        return null;
       }
-      setError(res.error?.message ?? t('Could not load your booking.'));
-      setLoading(false);
-      return null;
-    } catch {
-      // A network failure / non-JSON body used to reject unhandled, leaving `loading` true forever
-      // (a perpetual "Loading your booking…" spinner). Surface a retryable error instead.
-      setError(t('Could not load your booking. Please check your connection and try again.'));
-      setLoading(false);
-      return null;
-    }
-  }, [bookingRef, session, t]);
+    },
+    [bookingRef, session, t],
+  );
 
   useEffect(() => {
     if (session) void fetchBooking();
@@ -468,7 +489,17 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
     return <p className="py-16 text-center text-sm text-ink-muted">{t('Loading your booking…')}</p>;
   }
 
-  if (!user) {
+  if (viaGuestLink && !booking && (!session || notOurs || gateInUse)) {
+    return (
+      <GuestLinkGate
+        bookingRef={bookingRef}
+        onStart={() => setGateInUse(true)}
+        onOpened={async (accessToken) => Boolean(await fetchBooking(accessToken))}
+      />
+    );
+  }
+
+  if (!session) {
     return (
       <div className="py-16 text-center">
         <p className="text-sm text-ink-muted">
@@ -481,6 +512,31 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
         >
           {t('Sign in')}
         </button>
+        <p className="mt-5 text-[13px] text-ink-muted">
+          {t('Booked as a guest?')}{' '}
+          <Link href="/bookings/find" className="font-bold text-teal-dark underline">
+            {t('Find my booking')}
+          </Link>
+        </p>
+      </div>
+    );
+  }
+
+  // A guest session whose booking moved to another device: "latest device wins" (services/guest.ts).
+  if (isGuest && notOurs && !booking) {
+    return (
+      <div className="py-16 text-center">
+        <p className="mx-auto max-w-sm text-sm text-ink-muted">
+          {t(
+            'This booking was opened on another device. Open the link in your booking email to view it here.',
+          )}
+        </p>
+        <Link
+          href="/bookings/find"
+          className="mt-4 inline-block text-sm font-bold text-teal-dark underline"
+        >
+          {t('Find my booking')}
+        </Link>
       </div>
     );
   }
@@ -1189,6 +1245,8 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
             {t('This booking is awaiting payment.')}
           </p>
         )}
+
+        {isGuest && paid && <SaveBookingBanner email={booking.customerEmail} />}
 
         <div className="mt-5 flex justify-between text-sm font-bold">
           <Link href="/account/bookings" className="text-teal hover:text-teal-dark">

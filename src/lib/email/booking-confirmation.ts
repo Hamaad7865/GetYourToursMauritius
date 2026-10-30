@@ -61,6 +61,8 @@ export function renderConfirmationEmail(
   model: InvoiceModel,
   bookingUrl?: string,
   change?: ConfirmationChangeSummary,
+  /** A guest booking: `bookingUrl` is the signed manage link, their only way back to it. */
+  guest = false,
 ): RenderedEmail {
   const locale = model.locale;
   const t = (key: string, vars?: Record<string, string | number>) => translate(locale, key, vars);
@@ -185,6 +187,28 @@ export function renderConfirmationEmail(
   const supportPhone = escapeHtml(model.business.phone);
   const vatPct = String(model.vatRatePct);
 
+  // A guest has no account to sign in to, so every guest confirmation carries the link, not only a
+  // transfer's. It is a credential for this one booking, and the email says so.
+  const guestManageLabel = t('View or manage your booking');
+  const guestLinkNote = t(
+    'This private link opens your booking. Keep it to yourself: anyone who has it can manage this booking.',
+  );
+  const guestLinkNoteHtml = `
+              <p style="margin:0 0 20px 0;color:${INK};font-size:14px;line-height:1.5;">${escapeHtml(guestLinkNote)}</p>`;
+  const guestManageHtml =
+    !guest || !bookingUrl
+      ? ''
+      : tr
+        ? guestLinkNoteHtml
+        : `
+              <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 14px 0;">
+                <tr>
+                  <td style="border-radius:6px;background:${ACCENT};">
+                    <a href="${escapeHtml(bookingUrl)}" style="display:inline-block;padding:12px 22px;color:#ffffff;font-size:14px;font-weight:bold;text-decoration:none;border-radius:6px;">${escapeHtml(guestManageLabel)}</a>
+                  </td>
+                </tr>
+              </table>${guestLinkNoteHtml}`;
+
   // Airport-transfer e-voucher: offered as a SECURE LINK to the (auth-gated) booking page, not attached —
   // so mail-scanners have no PDF to false-positive on. A bulletproof, table-wrapped button for client support.
   const voucherHtml =
@@ -294,6 +318,7 @@ ${changeFragment ? changeFragment.html : ''}
                 ${chargedRowHtml}
               </table>
               <p style="margin:4px 0 20px 0;color:${MUTED};font-size:12px;">${escapeHtml(t('(incl. {vatPct}% VAT)', { vatPct }))}</p>
+${guestManageHtml}
 ${voucherHtml}
               <p style="margin:0 0 20px 0;color:${INK};font-size:14px;line-height:1.5;">
                 ${escapeHtml(
@@ -379,6 +404,10 @@ ${voucherHtml}
   }
   if (chargedStr) textLines.push(`${t('Charged to your card')}: ${chargedStr}`);
   textLines.push('');
+  if (guest && bookingUrl) {
+    if (!tr) textLines.push(`${guestManageLabel}: ${bookingUrl}`);
+    textLines.push(guestLinkNote, '');
+  }
   if (tr && bookingUrl) {
     textLines.push(
       t('Your airport-transfer e-voucher (show this to your driver) is in your booking:'),
