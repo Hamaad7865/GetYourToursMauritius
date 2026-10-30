@@ -26,6 +26,19 @@ export function applyConsent(choice: ConsentChoice): void {
   }
 }
 
+/**
+ * Pushes a custom event onto GTM's dataLayer. Tags in the container act on it only within the visitor's
+ * consent (Consent Mode), like every other tag. No-op on the server; never throws.
+ */
+export function pushDataLayerEvent(data: Record<string, unknown>): void {
+  if (typeof window === 'undefined') return;
+  try {
+    (window.dataLayer ??= []).push(data);
+  } catch {
+    // A blocked or broken container must never break the page.
+  }
+}
+
 /** Reopens the consent banner from anywhere (e.g. the "Change cookie settings" button). */
 export function openConsentSettings(): void {
   if (typeof window === 'undefined') return;

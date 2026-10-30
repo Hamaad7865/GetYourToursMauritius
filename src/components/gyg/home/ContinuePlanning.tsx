@@ -8,6 +8,7 @@ import { Price } from '@/components/site/Price';
 import { activityRating } from '@/lib/content/activity-reviews';
 import { dropExpiredHolds } from '@/lib/cart/cart-holds';
 import type { CartItem } from '@/lib/cart/useCart';
+import { clearInterest } from '@/lib/recent/interest';
 import { RECENT_VIEWS_EVENT, clearRecentViews, readRecentViews } from '@/lib/recent/views';
 import { IconCart, IconStar } from '@/components/ui/icons';
 import { useHomeActivities } from '../HomeShowcaseContext';
@@ -50,6 +51,12 @@ function readSnapshot(): Snapshot {
     wished: readList(WISHLIST_KEY).filter((s): s is string => typeof s === 'string'),
     cart,
   };
+}
+
+/** Every slug "Continue planning" draws from — the first row below leaves these out (chooseHomeRow). */
+export function readContinuingSlugs(): string[] {
+  const snap = readSnapshot();
+  return [...snap.cart.keys(), ...snap.recent, ...snap.wished];
 }
 
 /**
@@ -128,7 +135,11 @@ export function ContinuePlanning() {
         {snap && snap.recent.length > 0 && (
           <button
             type="button"
-            onClick={clearRecentViews}
+            onClick={() => {
+              clearRecentViews();
+              // The guides read feed the row below; "clear what you looked at" means those too.
+              clearInterest();
+            }}
             aria-label={t('Clear viewed')}
             className="shrink-0 rounded-md text-[13.5px] font-semibold text-ink-muted underline decoration-ink/25 underline-offset-4 transition-colors hover:text-ink hover:decoration-ink"
           >

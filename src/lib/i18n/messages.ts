@@ -3075,6 +3075,7 @@ export const fr: Record<string, string> = {
   'Picked from the guides you’ve read': 'D’après les guides que vous avez lus',
   'Still free tomorrow': 'Encore des places demain',
   'Most booked by our guests': 'Les plus réservés par nos clients',
+  'Clear these suggestions': 'Effacer ces suggestions',
   'Recently viewed tours and guides': 'Excursions et guides consultés récemment',
   ' — remembers the tours you opened and the guides you read, so the homepage can suggest tours. It stays in your browser and is never sent to us; the “Clear” buttons on the homepage remove it.':
     ' — mémorise les excursions que vous avez ouvertes et les guides que vous avez lus, pour que la page d’accueil vous suggère des excursions. Ces données restent dans votre navigateur et ne nous sont jamais envoyées ; les boutons « Effacer » de la page d’accueil les suppriment.',
