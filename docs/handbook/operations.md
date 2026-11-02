@@ -154,6 +154,38 @@ safe. Don't do step 5 until it has run cleanly.
 
 ---
 
+## Google Analytics
+
+The site loads one Google Tag Manager container (`GTM-5F8BVWJL`), which sends to the Google Analytics
+property `G-3XYCC71MGT`. OpenSEO reads that property. Its data starts on 29 Sep 2026, so ignore any comparison
+that reaches back before October.
+
+- **The back office is never tracked.** Tag Manager does not load on `/admin` pages, so staff work stays out
+  of the numbers. Staff browsing the public site are still counted.
+- **New website bookings send a `purchase` event.** Checkout, and "Complete payment" on a booking that is still
+  unpaid, send the customer back to `/bookings/{ref}?new_booking=1`. That page sends the event once the
+  booking reads back paid and confirmed. It carries the booking reference as the transaction ID and the
+  booking total in euros, nothing personal. Balance, late-pickup and tour-change payments, quotes paid on the
+  quote pages, staff viewing a booking and later visits from the email link send nothing. Google Analytics
+  only counts visitors who accept analytics cookies, so it shows fewer bookings than the admin does. The
+  admin is the real count.
+
+**One-time setup in Tag Manager, or no booking reaches Google Analytics.** The site only puts the event on the
+page. In Tag Manager → Workspace:
+
+1. **Triggers → New → Custom Event**, event name `purchase`. Save it as "purchase".
+2. **Tags → New → Google Analytics: GA4 Event**. Measurement ID `G-3XYCC71MGT`, event name `purchase`. Under
+   **More settings → Ecommerce**, tick **Send Ecommerce data** with data source **Data Layer**. Firing
+   trigger: the "purchase" trigger from step 1.
+3. **Submit → Publish**. Check it with **Preview** on a real booking, then in Google Analytics → Reports →
+   Realtime.
+
+**Also in Google Analytics, once:** Admin → Data streams → the stream → Configure tag settings → **List
+unwanted referrals** → add `accounts.google.com`. Without it, a visitor who signs in with Google is recorded as
+a new visit from `accounts.google.com`, and their booking loses the search or ad that brought them.
+
+---
+
 # Troubleshooting
 
 ## Guest checkout

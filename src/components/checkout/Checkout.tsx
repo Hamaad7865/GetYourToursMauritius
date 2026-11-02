@@ -48,6 +48,7 @@ import {
   type PayStage,
 } from '@/lib/checkout/pay-progress';
 import { saveChargeHandoff } from '@/lib/checkout/charge-handoff';
+import { newBookingPayPath } from '@/lib/analytics/purchase';
 import type { ChargeCurrency } from '@/lib/settings/charge-currency';
 import type { GuestCheckoutConfig } from '@/lib/settings/guest-checkout';
 import { getBrowserSupabase } from '@/lib/supabase/browser';
@@ -1509,7 +1510,8 @@ export function Checkout({
             totalEurMinor: displayTotalNum != null ? Math.round(displayTotalNum * 100) : undefined,
           });
         }
-        window.location.href = `/bookings/${ref}/pay?cid=${encodeURIComponent(link.checkoutId)}`;
+        // Marked as a new booking, so its page reports the sale to Google Analytics once it is paid.
+        window.location.href = newBookingPayPath(ref, link.checkoutId);
       } else if (link.redirectUrl) {
         // Hosted redirect (and the dev stub) — a third-party page we don't render, so no hand-off.
         window.location.href = link.redirectUrl;

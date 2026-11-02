@@ -11,6 +11,8 @@ import { IconDownload } from '@/components/ui/icons';
 import { useT, useMoney } from '@/components/site/PreferencesProvider';
 import { childSeatsCost } from '@/lib/services/pricing';
 import { isStaffViewing } from '@/lib/booking/staff-view';
+import { NEW_BOOKING_PARAM, purchaseEvent } from '@/lib/analytics/purchase';
+import { pushDataLayerEvent } from '@/lib/consent/gtag';
 import { balanceIsOutstanding } from '@/lib/quotes/deposit';
 import { whatsappUrl } from '@/lib/seo/site';
 import { useWhatsAppNumber } from '@/components/site/WhatsAppNumberProvider';
@@ -171,6 +173,7 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
   const viaGuestLink = params.get('link') != null;
   const isStubReturn = params.get('stub_session') != null;
   const justPaid = params.get('just_paid') != null;
+  const newBooking = params.get(NEW_BOOKING_PARAM) != null;
   const [booking, setBooking] = useState<Booking | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -321,6 +324,25 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
     // request must not restart the loop, but it clearing must stop it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, Boolean(booking?.pendingPickup), justPaid, fetchBooking]);
+
+  // Tell Google Analytics about the sale, once, when the new booking this visit paid for reads back paid
+  // and confirmed (at once, or after the poll above). purchaseEvent decides; see it for what never sends.
+  const purchaseSentRef = useRef(false);
+  useEffect(() => {
+    if (!booking || purchaseSentRef.current) return;
+    const event = purchaseEvent({
+      ref: booking.ref,
+      status: booking.status,
+      paymentState: booking.paymentState,
+      totalEur: booking.totalEur,
+      newBooking,
+      staffView: isStaffViewing(booking),
+    });
+    if (!event) return;
+    purchaseSentRef.current = true;
+    pushDataLayerEvent({ ecommerce: null }); // Google's rule: clear the previous ecommerce object first
+    pushDataLayerEvent(event);
+  }, [booking, newBooking]);
 
   // Manual "Refresh status" — re-fetch on demand after the auto-poll window has elapsed.
   const [refreshing, setRefreshing] = useState(false);

@@ -10,6 +10,7 @@ import {
   savePayHandoff,
 } from '@/lib/checkout/pay-progress';
 import { saveChargeHandoff } from '@/lib/checkout/charge-handoff';
+import { newBookingPayPath } from '@/lib/analytics/purchase';
 
 /**
  * Resume payment for an existing, unpaid booking — the recovery path for a customer who returns via
@@ -118,7 +119,12 @@ export function useResumePayment(
             ...depositFields,
           });
         }
-        window.location.href = `/bookings/${bookingRef}/pay?cid=${encodeURIComponent(link.checkoutId)}`;
+        // The booking's own first payment is a new sale for Google Analytics (see newBookingPayPath);
+        // a pickup or tour-change add-on is more money on a sale already counted.
+        window.location.href =
+          !purpose || purpose === 'booking'
+            ? newBookingPayPath(bookingRef, link.checkoutId)
+            : `/bookings/${bookingRef}/pay?cid=${encodeURIComponent(link.checkoutId)}`;
       } else if (link.redirectUrl) {
         // Hosted redirect (and the dev stub).
         window.location.href = link.redirectUrl;

@@ -1,4 +1,5 @@
 import Script from 'next/script';
+import { UNTRACKED_PATH } from '@/lib/analytics/untracked-paths';
 import {
   CONSENT_DENIED,
   NOTICE_KEY,
@@ -24,14 +25,21 @@ import {
  * loader are one inline script instead of three tags whose relative order Next does not guarantee.
  * The stored choice is restored SYNCHRONOUSLY here (not from the React banner, which mounts later)
  * so a returning visitor who already opted in is measured from their very first pageview.
+ *
+ * The whole bootstrap is skipped on the back office (`UNTRACKED_PATH`): no container, no consent pings,
+ * no dataLayer. `applyConsent` and `pushDataLayerEvent` already no-op or stay local without it. Inside
+ * that `if`, `gtag` is assigned to `window` explicitly: a function DECLARATION in a block only becomes
+ * global through sloppy-mode leniency, and `applyConsent` calls `window.gtag`.
  */
 
 /** Public container id. Overridable so a preview/staging deploy can point elsewhere or set it empty. */
 const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID ?? 'GTM-5F8BVWJL';
 
-const bootstrap = `
+/** Exported for tests only: they run it against a fake page to prove /admin loads nothing. */
+export const bootstrap = `
+if (!new RegExp(${JSON.stringify(UNTRACKED_PATH.source)}).test(location.pathname)) {
 window.dataLayer = window.dataLayer || [];
-function gtag(){dataLayer.push(arguments);}
+window.gtag = function gtag(){dataLayer.push(arguments);};
 gtag('consent', 'default', ${JSON.stringify(consentModePayload(CONSENT_DENIED))});
 try {
   var raw = localStorage.getItem(${JSON.stringify(NOTICE_KEY)});
@@ -57,6 +65,7 @@ try {
 var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';
 j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
 })(window,document,'script','dataLayer',${JSON.stringify(GTM_ID)});
+}
 `.trim();
 
 /** The loader + consent bootstrap. Render inside <body>; runs after hydration starts. */
