@@ -680,6 +680,19 @@ The rule: when a gate is refusing runs it should never have been handed, fix wha
 `resolve-provenance` to let those runs pass would have turned a noise problem into a deploy-safety one.
 `tests/unit/release-trigger.test.ts` pins both the trigger filter and the in-job assertions.
 
+### CI's `verify` and `e2e` jobs are pinned to `ubuntu-24.04`
+
+`ubuntu-latest` became Ubuntu 26.04 on 2026-10-24, and it has broken two jobs. First Playwright refused it,
+so `e2e` was pinned. Then, from 2026-11-02, every `next build` in `verify` failed inside next/font's Google
+loader with `Cannot read properties of null (reading '1')`: a font file URL came back with no `.woff2` on
+the end. The image version was the same one that built cleanly on 30 Oct, and the same commit built fine
+in `e2e` on 24.04 during the same run. So `verify` is pinned too.
+
+Re-running does not help. It failed three times in a row. A red `verify` silently skips the Release, so
+nothing deploys and the live site keeps the previous version. If a build fails in `next/font`, check
+which runner image the job used before you suspect the code. Move both jobs back to `ubuntu-latest` only
+after a 26.04 run is green.
+
 ### `MUR_PER_EUR` is a dead environment variable
 
 Documented in `.env.example`; read by no code. Tuning it does nothing.
