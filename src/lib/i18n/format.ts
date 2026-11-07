@@ -19,6 +19,27 @@ export function formatLocaleDate(
   return date.toLocaleDateString(BCP47[locale], opts);
 }
 
+/**
+ * "2 min ago", "Yesterday", "3 days ago" — how long ago something happened, in the visitor's language
+ * (Intl.RelativeTimeFormat, so no translation keys). Older than a week reads as a date ("8 Nov").
+ */
+export function formatRelativeTime(then: number, now: number, locale: Locale): string {
+  const seconds = Math.round((then - now) / 1000);
+  const abs = Math.abs(seconds);
+  const rtf = new Intl.RelativeTimeFormat(BCP47[locale], { numeric: 'auto', style: 'short' });
+  const out =
+    abs < 60
+      ? rtf.format(0, 'second')
+      : abs < 3600
+        ? rtf.format(Math.round(seconds / 60), 'minute')
+        : abs < 86_400
+          ? rtf.format(Math.round(seconds / 3600), 'hour')
+          : abs < 7 * 86_400
+            ? rtf.format(Math.round(seconds / 86_400), 'day')
+            : formatLocaleDate(new Date(then), locale, { day: 'numeric', month: 'short' });
+  return out.charAt(0).toUpperCase() + out.slice(1);
+}
+
 /** The island's clock. Every departure happens here, whatever timezone the guest's browser is in. */
 export const TRIP_TIME_ZONE = 'Indian/Mauritius';
 

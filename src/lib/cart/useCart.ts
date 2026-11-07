@@ -187,6 +187,19 @@ function write(items: CartItem[]): void {
   window.dispatchEvent(new Event(EVENT));
 }
 
+/** The hold ids still held in the cart right now. The Updates panel checks a "spots secured" note
+ *  against this before offering Pay now: a booked, removed or released line is no longer here. */
+export function heldHoldIds(): Set<string> {
+  return new Set(
+    read()
+      .filter((i) => i.status === 'held' && i.holdId)
+      .map((i) => i.holdId as string),
+  );
+}
+
+/** The same-tab event the cart store fires on every write (cross-tab writes arrive as `storage`). */
+export const CART_EVENT = EVENT;
+
 /**
  * Client-side cart of configured activity slots, persisted in localStorage and shared across
  * components (same-tab event + cross-tab storage). Saved lines (no hold) persist indefinitely;
@@ -210,10 +223,14 @@ export function useCart(opts?: { withPending?: boolean }) {
         'expired',
         `${i.title} — your held spot expired`,
         `expired:${i.holdId ?? i.id}`,
+        { subject: i.title, href: `/activities/${i.slug}` },
       );
     }
     for (const i of unavailable) {
-      pushNotification('unavailable', `${i.title} — no longer available`, `unavail:${i.id}`);
+      pushNotification('unavailable', `${i.title} — no longer available`, `unavail:${i.id}`, {
+        subject: i.title,
+        href: `/activities/${i.slug}`,
+      });
     }
     write(kept);
   }, []);
@@ -269,6 +286,7 @@ export function useCart(opts?: { withPending?: boolean }) {
             'expired',
             `${i.title} — your held spot expired`,
             `expired:${i.holdId ?? i.id}`,
+            { subject: i.title, href: `/activities/${i.slug}` },
           );
           write(read().filter((x) => x.id !== i.id));
         }

@@ -8,7 +8,7 @@ import { useZilAiOptional } from '@/components/planner/assistant/ZilAiProvider';
 import { opensInPlace } from '@/components/planner/assistant/open-in-place';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { useInbox } from '@/lib/notifications/inbox';
-import { NotificationsList } from '@/components/site/NotificationsList';
+import { UpdatesInbox } from '@/components/site/NotificationsList';
 import {
   usePreferences,
   LANGUAGE_LABELS,
@@ -194,12 +194,8 @@ export function MobileMenu({ light = false }: { light?: boolean }) {
                   </div>
                   <button
                     type="button"
-                    onClick={() =>
-                      setShowUpdates((s) => {
-                        if (!s) markAllRead();
-                        return !s;
-                      })
-                    }
+                    // The inbox marks what it shows as read itself.
+                    onClick={() => setShowUpdates((s) => !s)}
                     aria-expanded={showUpdates}
                     className="flex w-full items-center gap-3 rounded-2xl px-2 py-2.5 text-left active:bg-cream"
                   >
@@ -217,8 +213,15 @@ export function MobileMenu({ light = false }: { light?: boolean }) {
                     <IconChevronRight width={18} height={18} className="text-ink-muted" />
                   </button>
                   {showUpdates && (
-                    <div className="px-2 pb-1">
-                      <NotificationsList notes={notes} />
+                    <div className="px-1 pb-2">
+                      <UpdatesInbox
+                        notes={notes}
+                        unread={unread}
+                        markAllRead={markAllRead}
+                        onNavigate={close}
+                        seeAllHref="/account/notifications"
+                        showTitle={false}
+                      />
                     </div>
                   )}
                   <MenuRow

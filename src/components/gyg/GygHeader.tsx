@@ -13,13 +13,12 @@ import { MobileMenu } from './MobileMenu';
 import { PlanWithAiButton } from '@/components/planner/assistant/PlanWithAiButton';
 import { MobileSearch } from './MobileSearch';
 import { HERO_SEARCH_ID } from './home/anchors';
-import { NotificationsList } from '@/components/site/NotificationsList';
+import { UpdatesInbox } from '@/components/site/NotificationsList';
 import {
   IconArrowRight,
   IconBell,
   IconBookings,
   IconCart,
-  IconChevronLeft,
   IconChevronRight,
   IconGlobe,
   IconHeart,
@@ -79,10 +78,8 @@ function ProfileMenu() {
   const firstName = profile?.fullName?.trim().split(/\s+/)[0];
   const label = user && firstName ? firstName : t('Profile');
   const showBadge = !!user && unread > 0;
-  const openUpdates = () => {
-    markAllRead();
-    setView('updates');
-  };
+  // The inbox marks what it shows as read itself (and keeps those grouped under "New").
+  const openUpdates = () => setView('updates');
 
   const itemClass =
     'flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium hover:bg-cream hover:text-teal';
@@ -112,21 +109,22 @@ function ProfileMenu() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-2 w-72 rounded-2xl border border-ink/10 bg-white p-2 text-ink shadow-[0_24px_50px_-22px_rgba(10,46,54,0.4)]">
+        <div
+          className={`absolute right-0 top-full z-50 mt-2 rounded-2xl border border-ink/10 bg-white text-ink shadow-[0_24px_50px_-22px_rgba(10,46,54,0.4)] ${
+            view === 'updates' ? 'w-[22rem] max-w-[calc(100vw-1.5rem)] p-2.5' : 'w-72 p-2'
+          }`}
+        >
           {loading ? (
             <div className="px-3 py-3 text-sm text-ink-muted">{t('Loading…')}</div>
           ) : view === 'updates' ? (
-            <>
-              <button
-                type="button"
-                onClick={() => setView('menu')}
-                className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm font-bold text-ink hover:bg-cream"
-              >
-                <IconChevronLeft width={18} height={18} /> {t('Updates')}
-              </button>
-              <div className="my-1 h-px bg-ink/10" />
-              <NotificationsList notes={notes} />
-            </>
+            <UpdatesInbox
+              notes={notes}
+              unread={unread}
+              markAllRead={markAllRead}
+              onBack={() => setView('menu')}
+              onNavigate={() => setOpen(false)}
+              seeAllHref="/account/notifications"
+            />
           ) : user ? (
             <>
               <div className="px-3 pb-1 pt-2">

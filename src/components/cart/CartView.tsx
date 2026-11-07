@@ -374,7 +374,19 @@ export function CartView() {
           ),
         );
       if (anyHeld) {
-        pushNotification('secured', t('Spots secured — pay within 30 minutes.'));
+        // Carry the holds + their deadline, so the Updates panel can count down and offer Pay now
+        // only while one of them is still held in the cart.
+        const heldNow = outcomes.filter((o) => o.ok && o.holdId && o.expiresAt);
+        const deadlines = heldNow
+          .map((o) => new Date(o.expiresAt as string).getTime())
+          .filter(Number.isFinite);
+        pushNotification('secured', t('Spots secured — pay within 30 minutes.'), undefined, {
+          subject:
+            heldNow.length === 1 ? saved.find((i) => i.id === heldNow[0]!.id)?.title : undefined,
+          expiresAt: deadlines.length ? Math.min(...deadlines) : undefined,
+          holdIds: heldNow.map((o) => o.holdId as string),
+          href: '/cart',
+        });
         // The clicked line is sold out — don't navigate into a checkout for a spot we couldn't hold.
         const clicked = outcomes.find((o) => o.id === line.id);
         if (clicked?.ok) window.location.href = checkoutHref(line);

@@ -3189,4 +3189,33 @@ export const fr: Record<string, string> = {
   'Your trip has a new date: {date}': 'Votre sortie a une nouvelle date : {date}',
   'It was moved here after we called off the original departure.':
     'Elle a été déplacée ici après l’annulation du départ initial.',
+
+  // The Updates inbox (src/components/site/NotificationsList.tsx) — profile dropdown, mobile menu and
+  // /account/notifications.
+  Back: 'Retour',
+  new: 'nouvelles',
+  Show: 'Afficher',
+  Earlier: 'Plus tôt',
+  'See all updates': 'Voir toutes les mises à jour',
+  'No updates yet': 'Aucune mise à jour pour l’instant',
+  'We’ll let you know here when we hold places for you, and if a hold runs out.':
+    'Nous vous prévenons ici quand nous bloquons des places pour vous, et si un blocage expire.',
+  'Nothing needs you right now.': 'Rien ne requiert votre attention pour l’instant.',
+  'No booking updates yet.': 'Aucune mise à jour de réservation pour l’instant.',
+  'Spots secured': 'Places bloquées',
+  'Hold ending soon': 'Blocage bientôt terminé',
+  'Your places are held. Pay before the timer runs out to confirm the booking.':
+    'Vos places sont bloquées. Payez avant la fin du minuteur pour confirmer la réservation.',
+  'Your places were held for 30 minutes.': 'Vos places ont été bloquées pendant 30 minutes.',
+  'Hold ended': 'Blocage terminé',
+  '{time} left': '{time} restantes',
+  'Held spot expired': 'Place bloquée expirée',
+  'payment wasn’t completed in time.': 'le paiement n’a pas été finalisé à temps.',
+  'A held spot expired before payment was completed.':
+    'Une place bloquée a expiré avant la fin du paiement.',
+  'it sold out or is no longer on sale.': 'complet ou retiré de la vente.',
+  'Find another date': 'Trouver une autre date',
+  'Couldn’t reach the server': 'Impossible de joindre le serveur',
+  'Your cart is safe. Check your connection and try again.':
+    'Votre panier est conservé. Vérifiez votre connexion et réessayez.',
 };
