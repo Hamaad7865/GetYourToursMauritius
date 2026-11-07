@@ -3,8 +3,11 @@ import {
   isAwaitingDisruptionChoice,
   pickRescheduleDates,
   rescheduleAvailabilityUrl,
+  rescheduleOutcome,
+  wasRescheduled,
   type AvailabilitySlot,
 } from '@/lib/booking/reschedule-dates';
+import { formatTripDate } from '@/lib/i18n/format';
 
 const OPT = 'opt-standard';
 const OTHER = 'opt-private';
@@ -135,5 +138,67 @@ describe('isAwaitingDisruptionChoice', () => {
     expect(isAwaitingDisruptionChoice({ resolvedAt: null })).toBe(true);
     expect(isAwaitingDisruptionChoice({})).toBe(true);
     expect(isAwaitingDisruptionChoice({ resolvedAt: '2026-07-20T10:00:00Z' })).toBe(false);
+  });
+});
+
+describe('wasRescheduled', () => {
+  it('is true only once the guest answered a call-off by moving', () => {
+    expect(wasRescheduled(null)).toBe(false);
+    expect(wasRescheduled({ resolvedAt: null, resolution: null })).toBe(false);
+    expect(wasRescheduled({ resolvedAt: '2026-11-07T10:00:00Z', resolution: 'refunded' })).toBe(
+      false,
+    );
+    expect(wasRescheduled({ resolvedAt: '2026-11-07T10:00:00Z', resolution: 'rescheduled' })).toBe(
+      true,
+    );
+  });
+});
+
+describe('rescheduleOutcome', () => {
+  it('names the new date and the old one from the server answer', () => {
+    expect(
+      rescheduleOutcome(
+        { startsAt: '2026-11-15T12:00:00Z', previousStartsAt: '2026-11-08T12:00:00Z' },
+        '2026-11-14T12:00:00Z',
+      ),
+    ).toEqual({ kind: 'moved', to: '2026-11-15T12:00:00Z', from: '2026-11-08T12:00:00Z' });
+  });
+
+  it('still says "moved" when the server did not know the old date', () => {
+    expect(rescheduleOutcome({ startsAt: '2026-11-15T12:00:00Z' })).toEqual({
+      kind: 'moved',
+      to: '2026-11-15T12:00:00Z',
+      from: null,
+    });
+  });
+
+  it('never calls an idempotent replay a move (that answer carries no date)', () => {
+    expect(rescheduleOutcome({ alreadyOnDate: true }, '2026-11-15T12:00:00Z')).toEqual({
+      kind: 'same',
+      to: '2026-11-15T12:00:00Z',
+    });
+  });
+
+  it('announces nothing when no real date is known', () => {
+    expect(rescheduleOutcome(null)).toBeNull();
+    expect(rescheduleOutcome({ alreadyOnDate: true })).toBeNull();
+    expect(rescheduleOutcome({ startsAt: 'not a date' })).toBeNull();
+  });
+});
+
+describe('formatTripDate', () => {
+  it('reads the day on the island clock, not the browser clock', () => {
+    // 21:30 UTC on the 14th is already 01:30 on the 15th in Mauritius (UTC+4).
+    expect(formatTripDate('2026-11-14T21:30:00Z', 'en')).toBe('Sun, 15 Nov 2026');
+    // A noon-UTC day slot stays on its own day.
+    expect(formatTripDate('2026-11-08T12:00:00Z', 'en')).toBe('Sun, 8 Nov 2026');
+  });
+
+  it('speaks French to a French visitor', () => {
+    expect(formatTripDate('2026-11-08T12:00:00Z', 'fr')).toBe('dim. 8 nov. 2026');
+  });
+
+  it('returns an empty string for a value that is not a date', () => {
+    expect(formatTripDate('nope', 'en')).toBe('');
   });
 });

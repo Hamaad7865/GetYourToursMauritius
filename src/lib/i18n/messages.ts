@@ -3128,4 +3128,65 @@ export const fr: Record<string, string> = {
     'Bonjour {name}, voici le lien demandé. Il ouvre votre réservation sur cet appareil.',
   'Keep this link private: anyone who has it can manage this booking. If you did not ask for it, you can ignore this email.':
     'Gardez ce lien privé : toute personne qui le détient peut gérer cette réservation. Si vous ne l’avez pas demandé, vous pouvez ignorer cet e-mail.',
+  // My bookings redesign + the "moved to a new date" notice (src/components/account/AccountBookings.tsx,
+  // AccountChrome.tsx, src/components/gyg/detail/RescheduledNotice.tsx).
+  'Bonjour, {name}': 'Bonjour, {name}',
+  Bonjour: 'Bonjour',
+  'Every trip you’ve booked with Belle Mare Tours, all in one place.':
+    'Toutes vos sorties réservées avec Belle Mare Tours, réunies au même endroit.',
+  'Your account': 'Votre compte',
+  'Need a hand?': 'Besoin d’un coup de main ?',
+  'Our team can help with changes, refunds and pick-ups.':
+    'Notre équipe peut vous aider pour les modifications, les remboursements et les prises en charge.',
+  booking: 'réservation',
+  bookings: 'réservations',
+  Upcoming: 'À venir',
+  'Past & cancelled': 'Passées et annulées',
+  '1 trip': '1 sortie',
+  '{n} trips': '{n} sorties',
+  '1 booking': '1 réservation',
+  '{n} bookings': '{n} réservations',
+  'Your next island day is waiting': 'Votre prochaine journée sur l’île vous attend',
+  'No trips coming up. Once you book an activity, tour or transfer, it’ll show up here with everything you need on the day.':
+    'Aucune sortie à venir. Dès que vous réservez une activité, une excursion ou un transfert, elle apparaît ici avec tout ce qu’il vous faut le jour J.',
+  'Plan a day with AI': 'Planifier une journée avec l’IA',
+  'To pay': 'À payer',
+  'Action needed': 'Action requise',
+  'New date': 'Nouvelle date',
+  'We called this trip off. Choose a new date or a full refund — both are free.':
+    'Nous avons annulé cette sortie. Choisissez une nouvelle date ou un remboursement intégral — les deux sont gratuits.',
+  'View details': 'Voir le détail',
+  'Choose a new date or refund': 'Choisir une nouvelle date ou un remboursement',
+  'Book again': 'Réserver à nouveau',
+  'Ask about this refund': 'Une question sur ce remboursement',
+  'Hi Belle Mare Tours! Could I have an update on the refund for booking {ref}?':
+    'Bonjour Belle Mare Tours ! Pourriez-vous me donner des nouvelles du remboursement de la réservation {ref} ?',
+  'Ask a question': 'Poser une question',
+  'Hi Belle Mare Tours! I have a question about my booking {ref}.':
+    'Bonjour Belle Mare Tours ! J’ai une question sur ma réservation {ref}.',
+  Copied: 'Copié',
+  'Copy reference': 'Copier la référence',
+  'Copy reference {ref}': 'Copier la référence {ref}',
+  // The card's progress tracker (src/lib/booking/booking-progress.ts) — passed to t() by variable.
+  Reserved: 'Réservée',
+  Booked: 'Réservée',
+  'Deposit paid': 'Acompte payé',
+  'Trip day': 'Jour J',
+  'Refund processing': 'Remboursement en cours',
+  done: 'fait',
+  'in progress': 'en cours',
+  'not yet': 'pas encore',
+  'Trip date': 'Date de la sortie',
+  'You’re all set — your trip has moved': 'C’est fait — votre sortie a été déplacée',
+  Was: 'Avant',
+  'We’re emailing the new details to {email}.': 'Nous envoyons les nouveaux détails à {email}.',
+  'We’re emailing you the new details.': 'Nous vous envoyons les nouveaux détails par e-mail.',
+  'Nothing else on your booking changes, and there is nothing to pay.':
+    'Rien d’autre ne change dans votre réservation, et il n’y a rien à payer.',
+  'Your trip is already on {date}': 'Votre sortie est déjà le {date}',
+  'Nothing has changed, so there is nothing more to do.':
+    'Rien n’a changé, vous n’avez donc rien d’autre à faire.',
+  'Your trip has a new date: {date}': 'Votre sortie a une nouvelle date : {date}',
+  'It was moved here after we called off the original departure.':
+    'Elle a été déplacée ici après l’annulation du départ initial.',
 };

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { getBrowserSupabase } from '@/lib/supabase/browser';
 import { useT } from '@/components/site/PreferencesProvider';
-import { SignedOutPrompt, AccountSpinner } from './AccountChrome';
+import { AccountPanel, SignedOutPrompt, AccountSpinner } from './AccountChrome';
 import { PhoneField } from '@/components/phone/PhoneField';
 import { DatePicker } from '@/components/ui/DatePicker';
 
@@ -61,13 +61,9 @@ export function AccountProfile() {
   }
 
   return (
-    <div className="max-w-xl">
-      <h1 className="font-display text-2xl font-semibold text-ink">{t('Personal details')}</h1>
-      <p className="mt-1 text-sm text-ink-muted">
-        {t('Manage your contact details for bookings.')}
-      </p>
-
-      <form onSubmit={save} className="mt-6 flex flex-col gap-4">
+    // The page title and its intro live in the account hero (AccountChrome), which owns the h1.
+    <AccountPanel>
+      <form onSubmit={save} className="flex max-w-xl flex-col gap-4">
         <label className="flex flex-col gap-1.5">
           <span className="text-[13px] font-bold text-ink">{t('Email')}</span>
           <input
@@ -126,6 +122,6 @@ export function AccountProfile() {
           </button>
         </div>
       </form>
-    </div>
+    </AccountPanel>
   );
 }

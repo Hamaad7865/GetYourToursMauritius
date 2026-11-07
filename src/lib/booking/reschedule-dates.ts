@@ -80,3 +80,40 @@ export function isAwaitingDisruptionChoice(
 ): boolean {
   return disruption != null && disruption.resolvedAt == null;
 }
+
+/** True when the guest answered a call-off by moving to another date (not by taking the refund). */
+export function wasRescheduled(
+  disruption: { resolvedAt?: string | null; resolution?: string | null } | null | undefined,
+): boolean {
+  return disruption?.resolvedAt != null && disruption.resolution === 'rescheduled';
+}
+
+/** What POST /api/v1/bookings/:ref/reschedule answers with (`data` of the envelope). */
+export interface RescheduleResponse {
+  startsAt?: string | null;
+  previousStartsAt?: string | null;
+  alreadyOnDate?: boolean;
+}
+
+/**
+ * What the guest is told the moment a move lands. `moved` names the new date (and the old one when
+ * the server knew it); `same` is the idempotent replay, where the booking was already on that date and
+ * nothing changed — telling them "moved" there would be untrue.
+ *
+ * The server's `startsAt` wins. `picked` (the slot the guest tapped) only fills in for the replay,
+ * whose answer carries no date at all. Null when neither gives a real date, so the screen never
+ * announces a date it cannot back up.
+ */
+export type RescheduleOutcome =
+  | { kind: 'moved'; to: string; from: string | null }
+  | { kind: 'same'; to: string };
+
+export function rescheduleOutcome(
+  response: RescheduleResponse | null | undefined,
+  picked?: string | null,
+): RescheduleOutcome | null {
+  const to = response?.startsAt ?? picked ?? null;
+  if (!to || Number.isNaN(new Date(to).getTime())) return null;
+  if (response?.alreadyOnDate) return { kind: 'same', to };
+  return { kind: 'moved', to, from: response?.previousStartsAt ?? null };
+}

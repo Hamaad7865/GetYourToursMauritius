@@ -5,7 +5,7 @@ import { useAuth } from '@/components/auth/AuthProvider';
 import { useInbox } from '@/lib/notifications/inbox';
 import { useT } from '@/components/site/PreferencesProvider';
 import { NotificationsList } from '@/components/site/NotificationsList';
-import { SignedOutPrompt, AccountSpinner } from './AccountChrome';
+import { AccountPanel, SignedOutPrompt, AccountSpinner } from './AccountChrome';
 
 /**
  * The full-page notifications view (the "Updates" popover's permanent home). Reads the same in-app
@@ -25,25 +25,20 @@ export function AccountNotifications() {
   if (!user) return <SignedOutPrompt message={t('Sign in to see your notifications.')} />;
 
   return (
-    <div className="max-w-xl">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="font-display text-2xl font-semibold text-ink">{t('Notifications')}</h1>
-        {notes.length > 0 && (
+    // The page title and its intro live in the account hero (AccountChrome), which owns the h1.
+    <AccountPanel className="!p-3 sm:!p-4">
+      {notes.length > 0 && (
+        <div className="flex justify-end px-2 pb-1 pt-1">
           <button
             type="button"
             onClick={clear}
-            className="text-[13px] font-bold text-teal hover:text-teal-dark"
+            className="text-[13px] font-bold text-teal-dark hover:text-ink"
           >
             {t('Clear all')}
           </button>
-        )}
-      </div>
-      <p className="mt-1 text-sm text-ink-muted">
-        {t('Updates about your cart holds and bookings.')}
-      </p>
-      <div className="mt-5 rounded-2xl border border-ink/10 bg-white p-2">
-        <NotificationsList notes={notes} />
-      </div>
-    </div>
+        </div>
+      )}
+      <NotificationsList notes={notes} />
+    </AccountPanel>
   );
 }

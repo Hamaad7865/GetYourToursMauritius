@@ -228,14 +228,10 @@ export function AccountPrivacy() {
   const confirmReady = confirmText.trim().toUpperCase() === CONFIRM_WORD;
 
   return (
-    <div className="max-w-xl">
-      <h1 className="font-display text-2xl font-semibold text-ink">{t('Data & privacy')}</h1>
-      <p className="mt-1 text-sm text-ink-muted">
-        {t('Download a copy of your data, or permanently delete your account.')}
-      </p>
-
+    // The page title and its intro live in the account hero (AccountChrome), which owns the h1.
+    <div className="max-w-2xl [&>*:first-child]:mt-0">
       {/* Download my data */}
-      <section className="mt-8 rounded-2xl border border-ink/10 bg-white p-6">
+      <section className="mt-8 rounded-3xl border border-ink/10 bg-white p-6 sm:p-7">
         <h2 className="font-display text-lg font-semibold text-ink">{t('Download my data')}</h2>
         <p className="mt-1 text-sm text-ink-muted">
           {t('Export your profile and booking history as a JSON file.')}
@@ -256,7 +252,7 @@ export function AccountPrivacy() {
       </section>
 
       {/* Delete my account */}
-      <section className="mt-6 rounded-2xl border border-coral/30 bg-white p-6">
+      <section className="mt-6 rounded-3xl border border-coral/30 bg-white p-6 sm:p-7">
         <h2 className="font-display text-lg font-semibold text-ink">{t('Delete my account')}</h2>
         <p className="mt-1 text-sm text-ink-muted">
           {t(

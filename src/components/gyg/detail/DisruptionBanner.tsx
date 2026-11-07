@@ -2,15 +2,18 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useT, usePreferences } from '@/components/site/PreferencesProvider';
-import { formatLocaleDate } from '@/lib/i18n/format';
+import { formatTripDate } from '@/lib/i18n/format';
 import { whatsappUrl } from '@/lib/seo/site';
 import { useWhatsAppNumber } from '@/components/site/WhatsAppNumberProvider';
 import {
   pickRescheduleDates,
   rescheduleAvailabilityUrl,
   RESCHEDULE_PAGE_SIZE,
+  rescheduleOutcome,
   type AvailabilitySlot,
   type RescheduleDate,
+  type RescheduleOutcome,
+  type RescheduleResponse,
 } from '@/lib/booking/reschedule-dates';
 
 /** Completes "…because of {reason}". Keys mirror the SQL check constraint on disruption.reason. */
@@ -44,10 +47,17 @@ export function DisruptionBanner({
   booking,
   accessToken,
   onResolved,
+  onRescheduled,
 }: {
   booking: DisruptionBannerBooking;
   accessToken: string;
   onResolved: () => Promise<unknown> | void;
+  /**
+   * The move landed. This banner unmounts the moment the refetch marks the call-off resolved, so it
+   * cannot be the thing that says "you're moved to …" — the page above it has to. Fired BEFORE the
+   * refetch, so there is never a frame with the banner gone and nothing in its place.
+   */
+  onRescheduled?: (outcome: RescheduleOutcome | null) => void;
 }) {
   const t = useT();
   const waNumber = useWhatsAppNumber();
@@ -102,7 +112,12 @@ export function DisruptionBanner({
   }, [mode, dates, slug, booking.activityOptionId, booking.unitsNeeded, currentOccurrence]);
 
   const post = useCallback(
-    async (path: string, body: unknown, fallback: string): Promise<boolean> => {
+    async (
+      path: string,
+      body: unknown,
+      fallback: string,
+      onSuccess?: (data: unknown) => void,
+    ): Promise<boolean> => {
       setError(null);
       try {
         const res = await fetch(path, {
@@ -123,6 +138,15 @@ export function DisruptionBanner({
           }
           throw new Error(msg);
         }
+        if (onSuccess) {
+          let data: unknown = null;
+          try {
+            data = ((await res.json()) as { data?: unknown })?.data ?? null;
+          } catch {
+            /* a 2xx without a JSON body still succeeded — the notice just has less to say */
+          }
+          onSuccess(data);
+        }
         await onResolved(); // the server is the authority — refetch rather than guessing
         return true;
       } catch (err) {
@@ -134,16 +158,17 @@ export function DisruptionBanner({
   );
 
   const move = useCallback(
-    async (occurrenceId: string) => {
-      setBusy(occurrenceId);
+    async (date: RescheduleDate) => {
+      setBusy(date.occurrenceId);
       await post(
         `/api/v1/bookings/${booking.ref}/reschedule`,
-        { occurrenceId },
+        { occurrenceId: date.occurrenceId },
         t('Could not move your booking. Please try again.'),
+        (data) => onRescheduled?.(rescheduleOutcome(data as RescheduleResponse, date.startsAt)),
       );
       setBusy(null);
     },
-    [booking.ref, post, t],
+    [booking.ref, post, t, onRescheduled],
   );
 
   const refund = useCallback(async () => {
@@ -156,7 +181,7 @@ export function DisruptionBanner({
     setBusy(null);
   }, [booking.ref, post, t]);
 
-  const when = booking.serviceDate ? formatLocaleDate(booking.serviceDate, language) : null;
+  const when = booking.serviceDate ? formatTripDate(booking.serviceDate, language) : null;
   const reason = t(REASON_COPY[booking.disruption?.reason ?? 'weather'] ?? 'the conditions');
   const visible = dates && !showAll ? dates.slice(0, RESCHEDULE_PAGE_SIZE) : (dates ?? []);
 
@@ -247,16 +272,13 @@ export function DisruptionBanner({
                     type="button"
                     disabled={busy != null}
                     aria-busy={busy === d.occurrenceId}
-                    onClick={() => void move(d.occurrenceId)}
+                    onClick={() => void move(d)}
                     className="flex w-full items-center justify-between gap-3 rounded-xl border border-ink/15 bg-white px-4 py-3 text-left text-sm hover:border-teal/50 hover:bg-teal/5 disabled:opacity-60"
                   >
+                    {/* The same formatter as the "moved to" notice, so the date tapped here is the
+                        date the guest is then told — never a day apart. */}
                     <span className="font-bold text-ink">
-                      {formatLocaleDate(d.startsAt, language, {
-                        weekday: 'short',
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric',
-                      })}
+                      {formatTripDate(d.startsAt, language)}
                     </span>
                     <span className="shrink-0 text-[12px] text-ink-muted">
                       {busy === d.occurrenceId

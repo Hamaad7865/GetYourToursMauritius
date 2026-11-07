@@ -8,7 +8,7 @@ import { ResumePaymentButton } from '@/components/checkout/ResumePaymentButton';
 import { Price } from '@/components/site/Price';
 import { Confetti } from '@/components/site/Confetti';
 import { IconDownload } from '@/components/ui/icons';
-import { useT, useMoney } from '@/components/site/PreferencesProvider';
+import { useT, useMoney, usePreferences } from '@/components/site/PreferencesProvider';
 import { childSeatsCost } from '@/lib/services/pricing';
 import { isStaffViewing } from '@/lib/booking/staff-view';
 import { NEW_BOOKING_PARAM, purchaseEvent } from '@/lib/analytics/purchase';
@@ -18,7 +18,13 @@ import { whatsappUrl } from '@/lib/seo/site';
 import { useWhatsAppNumber } from '@/components/site/WhatsAppNumberProvider';
 import { transferLegs } from '@/lib/transfers/leg-times';
 import { DisruptionBanner } from './DisruptionBanner';
-import { isAwaitingDisruptionChoice } from '@/lib/booking/reschedule-dates';
+import { RescheduledNotice } from './RescheduledNotice';
+import {
+  isAwaitingDisruptionChoice,
+  wasRescheduled,
+  type RescheduleOutcome,
+} from '@/lib/booking/reschedule-dates';
+import { formatTripDate } from '@/lib/i18n/format';
 import {
   CONFIRM_POLL_INTERVAL_MS,
   CONFIRM_POLL_MAX_MS,
@@ -142,7 +148,12 @@ interface Booking {
   /** The booking's occurrence date (ISO) — the transfer's arrival/service date, for the run-sheet. */
   serviceDate?: string | null;
   /** Set only when WE called the departure off; a null resolvedAt means the guest still owes a choice. */
-  disruption?: { reason?: string | null; resolvedAt?: string | null } | null;
+  disruption?: {
+    reason?: string | null;
+    resolvedAt?: string | null;
+    /** How the guest answered: 'rescheduled' (moved to another date) or a refund. */
+    resolution?: string | null;
+  } | null;
   /** Slug + option of the booked line, and the headcount — what the reschedule date list needs. */
   activitySlug?: string | null;
   activityOptionId?: string | null;
@@ -167,6 +178,7 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
   const t = useT();
   const waNumber = useWhatsAppNumber();
   const money = useMoney();
+  const { language } = usePreferences();
   const { session, isGuest, loading: authLoading, openAuth } = useAuth();
   const params = useSearchParams();
   // Arrived from the emailed manage link: without ownership yet, offer "View my booking".
@@ -188,6 +200,10 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
   // The guest tapped "View my booking". Their first tap creates the session that would otherwise end
   // the gate's condition below, and unmounting it mid-flight would lose any refusal it has to show.
   const [gateInUse, setGateInUse] = useState(false);
+  // The guest just moved their called-off trip. Held HERE, not in DisruptionBanner: the refetch that
+  // follows the move resolves the call-off and unmounts the banner, and the guest was left looking at
+  // a page that showed no sign anything had happened.
+  const [moved, setMoved] = useState<RescheduleOutcome | null>(null);
   // Only the newest fetch may write. Signing in as a guest re-runs the effect below while adopt is in
   // flight, and that older "not found" must not land on top of the booking adopt just opened.
   const fetchSeqRef = useRef(0);
@@ -624,6 +640,10 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
   // A staff account on another guest's booking (RLS admits no one else non-own). Flag it loudly,
   // skip the celebration (it's the guest's, not ours), and de-personalise the cancel copy.
   const staffView = isStaffViewing(booking);
+  // The day the trip runs, on the island's clock — the same formatter the reschedule list uses, so
+  // the date a guest picked there is the date this page then shows.
+  const tripAt = booking.firstActivityAt ?? booking.serviceDate ?? null;
+  const tripWhen = tripAt ? formatTripDate(tripAt, language) : '';
 
   return (
     <div className="mx-auto max-w-xl py-10">
@@ -664,7 +684,17 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
             </span>
           </span>
         )}
-        {awaitingChoice && session && (
+        {moved ? (
+          <RescheduledNotice state={moved} email={booking.customerEmail} />
+        ) : (
+          // Back later (a reload, the emailed link): the booking remembers it was moved.
+          !awaitingChoice &&
+          wasRescheduled(booking.disruption) &&
+          tripAt && <RescheduledNotice state={{ kind: 'earlier', to: tripAt }} />
+        )}
+        {/* `!moved`: if the refetch after a successful move fails, the stale booking still reads as
+            awaiting a choice — never show "you're all set" and "pick a new date" together. */}
+        {awaitingChoice && session && !moved && (
           // First thing in the card: WE called this departure off and the guest owes us a choice.
           // Above the <h1> deliberately — the status title still reads "Booking confirmed", which is
           // technically true (status is untouched) but is not the headline that matters here.
@@ -672,6 +702,7 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
             booking={booking}
             accessToken={session.access_token}
             onResolved={fetchBooking}
+            onRescheduled={setMoved}
           />
         )}
         <h1
@@ -682,6 +713,11 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
         <p className="mt-1 text-sm text-ink-muted">
           {t('Reference')} <span className="font-bold text-ink">{booking.ref}</span>
         </p>
+        {tripWhen && (
+          <p className="mt-0.5 text-sm text-ink-muted">
+            {t('Trip date')} <span className="font-bold text-ink">{tripWhen}</span>
+          </p>
+        )}
 
         <dl className="mt-6 flex flex-col gap-2 border-t border-ink/10 pt-4 text-sm">
           {booking.items.map((it, i) => (
