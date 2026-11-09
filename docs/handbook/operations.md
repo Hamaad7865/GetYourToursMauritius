@@ -43,6 +43,7 @@ All of this is in `/admin`:
 | Approve or reject a customer review          | **Reviews**                                                                                            |
 | Charge cards in rupees or in euros           | **Pricing** → **Card payments**                                                                        |
 | The euro → rupee rate rupee charges use      | **Pricing** → **Card payments** (1 EUR = … MUR; must be between 40 and 70)                             |
+| Tell visitors ZilAi is under maintenance     | **Dashboard** → **ZilAi maintenance notice** (on / off)                                                |
 
 Prices are typed in euros and take effect immediately — the server prices every new quote from those
 rows.
@@ -88,6 +89,12 @@ to euros for the first time, make one small real payment in euros to prove Peach
 if it doesn't, every checkout fails. Three things don't follow the switch, on purpose: a payment a
 customer has already opened keeps its currency and amount; a booking that already paid part (a
 deposit) pays the rest in the same currency; and a rate change only affects payments started after it.
+
+**The ZilAi maintenance notice** puts one small line at the top of the ZilAi assistant: "ZilAi is under
+maintenance right now. Contact us" (in French on French pages). Use it while ZilAi can't answer, for
+example when the Google AI bill is unpaid. It only shows the line: visitors can still type, so when ZilAi
+works again it answers even before you switch the notice off. A visitor sees the change the next time they
+open ZilAi, with no redeploy.
 
 > **A note for developers reading this:** because all of the above is in the database, **do not hardcode
 > it in the code.** If you do, the owner's edit is silently ignored.

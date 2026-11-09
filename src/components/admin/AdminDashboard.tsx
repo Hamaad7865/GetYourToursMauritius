@@ -18,6 +18,7 @@ import {
 import type { BookingStatus } from '@/lib/admin/bookings';
 import { RevenueChart } from '@/components/admin/RevenueChart';
 import { WhatsAppNumberCard } from '@/components/admin/WhatsAppNumberCard';
+import { ZilAiMaintenanceCard } from '@/components/admin/ZilAiMaintenanceCard';
 import {
   IconBookings,
   IconWallet,
@@ -478,9 +479,10 @@ export function AdminDashboard() {
             </Card>
           )}
 
-          {/* Settings — the editable "Chat on WhatsApp" number. (How cards are charged, MUR/EUR +
-              the rate, lives on the Pricing page.) */}
+          {/* Settings — the editable "Chat on WhatsApp" number and ZilAi's maintenance notice. (How
+              cards are charged, MUR/EUR + the rate, lives on the Pricing page.) */}
           <WhatsAppNumberCard />
+          <ZilAiMaintenanceCard />
         </div>
       </div>
     </div>

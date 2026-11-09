@@ -598,6 +598,7 @@ export const fr: Record<string, string> = {
   'How ZilAi works': 'Comment fonctionne ZilAi',
   'ZilAi is AI — it can be inaccurate. Don’t share personal data.':
     'ZilAi, c’est de l’IA — elle peut se tromper. Ne partagez pas de données personnelles.',
+  'ZilAi is under maintenance right now.': 'ZilAi est en maintenance pour le moment.',
   Terms: 'Conditions',
   Privacy: 'Confidentialité',
   Cookies: 'Cookies',

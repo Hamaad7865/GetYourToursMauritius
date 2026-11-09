@@ -200,3 +200,75 @@ describe('business_settings — charge currency + EUR→MUR rate', () => {
     expect(Number((await read()).eur_mur_rate)).toBe(70);
   });
 });
+
+/**
+ * ZilAi's maintenance notice switch on the same singleton (20261109120000): NULL = off. Every visitor's
+ * assistant panel reads it, so it must be world-readable; only staff may flip it.
+ */
+describe('business_settings — ZilAi maintenance notice', () => {
+  let db: TestDb;
+
+  const since = async () => {
+    await db.asOwner();
+    const { rows } = await db.pg.query<{ zilai_maintenance_since: Date | null }>(
+      `select zilai_maintenance_since from business_settings`,
+    );
+    return rows[0]!.zilai_maintenance_since;
+  };
+
+  beforeAll(async () => {
+    db = await createTestDb();
+    await db.asOwner();
+    await db.pg.query(`insert into auth.users (id) values ($1), ($2)`, [STAFF, CUSTOMER]);
+    await db.pg.query(`insert into profiles (id, full_name, role) values ($1, 'Owner', 'admin')`, [
+      STAFF,
+    ]);
+    await db.pg.query(
+      `insert into profiles (id, full_name, role) values ($1, 'Guest', 'customer')`,
+      [CUSTOMER],
+    );
+  });
+
+  afterAll(async () => {
+    await db.close();
+  });
+
+  it('is off by default', async () => {
+    expect(await since()).toBeNull();
+  });
+
+  it('is readable by an anonymous visitor (the panel reads it with the anon key)', async () => {
+    await db.as(null);
+    const { rows } = await db.pg.query(`select zilai_maintenance_since from business_settings`);
+    expect(rows).toHaveLength(1);
+  });
+
+  it('lets staff switch it on and off again', async () => {
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    await db.pg.query(
+      `update business_settings set zilai_maintenance_since = now() where id = true`,
+    );
+    expect(await since()).not.toBeNull();
+
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    await db.pg.query(
+      `update business_settings set zilai_maintenance_since = null where id = true`,
+    );
+    expect(await since()).toBeNull();
+  });
+
+  it('does NOT let a signed-in customer switch it (RLS matches no row)', async () => {
+    await db.as({ sub: CUSTOMER, role: 'authenticated' });
+    await db.pg.query(
+      `update business_settings set zilai_maintenance_since = now() where id = true`,
+    );
+    expect(await since()).toBeNull();
+  });
+
+  it('does NOT let an anonymous visitor switch it (no update grant)', async () => {
+    await db.as(null);
+    await expect(
+      db.pg.query(`update business_settings set zilai_maintenance_since = now() where id = true`),
+    ).rejects.toThrow();
+  });
+});

@@ -1152,6 +1152,8 @@ type BusinessSettingsRow = {
   checkout_recovery_enabled_at: string | null;
   /** 20261030120000 — NULL = guest checkout off; set = visitors may book without an account. */
   guest_checkout_enabled_at: string | null;
+  /** 20261109120000 — NULL = ZilAi maintenance notice off; set = shown in the assistant panel. */
+  zilai_maintenance_since: string | null;
   updated_at: string;
   updated_by: string | null;
 };
@@ -1171,6 +1173,7 @@ type BookingGuestLinksInsert = {
 type BusinessSettingsInsert = {
   checkout_recovery_enabled_at?: string | null;
   guest_checkout_enabled_at?: string | null;
+  zilai_maintenance_since?: string | null;
   id?: boolean;
   whatsapp_number?: string | null;
   charge_currency?: 'MUR' | 'EUR';

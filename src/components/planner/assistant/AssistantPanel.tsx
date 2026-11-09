@@ -26,6 +26,7 @@ import { useVoiceInput } from '../useVoiceInput';
 import { PanelMenu, type MenuSection } from './PanelMenu';
 import { focusStopCard, nameKey } from './focus-stop';
 import { CarGlyph, IconList, IconMic, IconReply, IconSend } from './icons';
+import { MaintenanceNotice } from './MaintenanceNotice';
 
 /** Openers for a first message. Mauritius days people actually ask for, not generic travel prompts. */
 const SUGGESTIONS = [
@@ -327,6 +328,10 @@ export function AssistantPanel({
           </button>
         </div>
       </header>
+
+      {/* Outside the started/invitation switch on purpose: the notice matters most right after the
+          first message, which is exactly when that switch flips. */}
+      <MaintenanceNotice open={open} />
 
       {started ? (
         <>
