@@ -28,7 +28,10 @@ jobs:
     # the same one that passed on 2026-10-30) died in next/font's Google loader with "Cannot read
     # properties of null (reading '1')" (a font file URL with no extension). The same commit built clean
     # in the e2e job on ubuntu-24.04 that same run, and Google returns normal .woff2 URLs from elsewhere.
-    # Move back to ubuntu-latest once a 26.04 build is green again.
+    # The same error later hit 24.04 builds as well, though a re-run passed. Since 2026-11-09 the fonts
+    # are self-hosted (app/fonts, next/font/local), so no build contacts Google any more and this pin's
+    # reason is gone. Moving back to ubuntu-latest is now a separate change, to make once a 26.04 run
+    # is green.
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:

@@ -1,21 +1,36 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
-import { Plus_Jakarta_Sans } from 'next/font/google';
+import localFont from 'next/font/local';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { GoogleTagManager, GoogleTagManagerNoScript } from '@/components/site/GoogleTagManager';
 import { IMAGE_FALLBACK_SCRIPT } from '@/lib/images/fallback';
 import { resizingEnabled } from '@/lib/images/resize';
 import { organizationJsonLd, websiteJsonLd } from '@/lib/seo/jsonld';
 import './globals.css';
+import './fonts/fonts.css';
 
 // The brand serif (Fraunces) was retired on request: the app uses ONE sans everywhere now. Tailwind's
 // `font-display` token is aliased to this same body font (see tailwind.config.ts), so every heading
 // renders Plus Jakarta Sans and no `font-display`/`italic` usage needs touching.
-const body = Plus_Jakarta_Sans({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
+// Self-hosted, never next/font/google: fetching from Google at build time failed CI builds. The latin
+// file is loaded here, so it gets a preload tag. ./fonts/fonts.css holds the other character subsets
+// under the same family name, plus the fallback face; it also explains the weight range.
+// next/font requires literal options, so the unicode-range cannot be a shared constant.
+const body = localFont({
+  src: './fonts/plus-jakarta-sans-latin.woff2',
+  weight: '400 700',
   variable: '--font-body',
   display: 'swap',
+  adjustFontFallback: false,
+  fallback: ['Plus Jakarta Sans Fallback'],
+  declarations: [
+    { prop: 'font-family', value: 'Plus Jakarta Sans' },
+    {
+      prop: 'unicode-range',
+      value:
+        'U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD',
+    },
+  ],
 });
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';

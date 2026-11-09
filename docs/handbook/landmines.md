@@ -728,10 +728,27 @@ loader with `Cannot read properties of null (reading '1')`: a font file URL came
 the end. The image version was the same one that built cleanly on 30 Oct, and the same commit built fine
 in `e2e` on 24.04 during the same run. So `verify` is pinned too.
 
-Re-running does not help. It failed three times in a row. A red `verify` silently skips the Release, so
-nothing deploys and the live site keeps the previous version. If a build fails in `next/font`, check
-which runner image the job used before you suspect the code. Move both jobs back to `ubuntu-latest` only
-after a 26.04 run is green.
+On 26.04, re-running did not help: it failed three times in a row. Later the same error hit 24.04
+builds in `verify` and `e2e` too, where a re-run did pass. Either way a red `verify` silently skips the
+Release, so nothing deploys and the live site keeps the previous version.
+
+**Fixed at the root on 2026-11-09: the fonts are self-hosted.** The three families (Plus Jakarta Sans,
+Bricolage Grotesque, Hanken Grotesk) live in `app/fonts/`. They are the exact files the live site served
+that day, licensed under the OFL (`app/fonts/OFL.txt`). `next/font/local` loads them, so no build fetches
+from Google any more. `tests/unit/self-hosted-fonts.test.ts` fails if `next/font/google` comes back. The
+setup has three traps, all explained in `app/fonts/fonts.css`:
+
+- Each family's latin file goes through `localFont()`. Its other character subsets (latin-ext,
+  vietnamese, cyrillic-ext) are plain `@font-face` rules in `fonts.css` under the same family name, set
+  through `declarations`. Turbopack ignores `declarations`, so under `next dev --turbopack` those
+  subsets don't join the font; webpack (`npm run dev`, production) is fine.
+- The weight ranges are `400 700`, and `500 800` for Bricolage: the weights the site loaded before.
+  Declaring the files' full `200 800` makes every `font-extrabold` heading visibly heavier.
+- The size-matched Arial fallbacks are pinned in `fonts.css` with `adjustFontFallback: false`. Computed
+  from the file, Bricolage's came out 7% larger, and the headings jumped when the font swapped in.
+
+The pins on `verify` and `e2e` no longer have a font reason. Move them back to `ubuntu-latest` as a
+separate change, once a 26.04 run is green (`e2e` still needs Playwright to support 26.04).
 
 ### `MUR_PER_EUR` is a dead environment variable
 
