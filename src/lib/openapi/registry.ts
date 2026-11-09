@@ -63,6 +63,7 @@ import {
   wishlistRemoveResultSchema,
 } from '@/lib/validation/wishlist';
 import { savedCardSchema, deleteSavedCardResultSchema } from '@/lib/validation/saved-cards';
+import { homePicksSchema } from '@/lib/validation/home-picks';
 import {
   markAllReadResultSchema,
   markReadResultSchema,
@@ -148,6 +149,14 @@ export const apiPaths: ZodOpenApiPathsObject = {
       tags: ['Catalogue'],
       requestParams: { query: facetsQuerySchema },
       responses: { '200': okJson(facetsSchema, 'Filter bounds') },
+    },
+  },
+  '/activities/picks': {
+    get: {
+      operationId: 'getHomePicks',
+      summary: 'Homepage picks: most-booked tours and tours with a free seat tomorrow',
+      tags: ['Catalogue'],
+      responses: { '200': okJson(homePicksSchema, 'Home picks') },
     },
   },
   '/activities/{slug}/availability': {

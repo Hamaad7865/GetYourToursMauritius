@@ -40,6 +40,13 @@ export function seedRpc(): DbRpc {
           return (SEED_DETAILS[String(params.slug)] ?? null) as T;
         case 'api_list_availability':
           return [] as T;
+        case 'api_home_picks':
+          // No bookings or seats to rank here: the homepage shows its private-tours fallback row.
+          return {
+            date: new Date(Date.now() + 28 * 3_600_000).toISOString().slice(0, 10),
+            mostBooked: [],
+            freeTomorrow: [],
+          } as T;
         default:
           throw new Error(
             `Preview mode has no Supabase project: "${fn}" is unavailable. ` +

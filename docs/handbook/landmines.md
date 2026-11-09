@@ -483,6 +483,24 @@ trustworthy gate. Don't spend an afternoon assuming your code broke it.
 The root layout applies the template `%s | Belle Mare Tours`. A plain string title that already names the
 brand renders as _"Contact Belle Mare Tours | Belle Mare Tours"_.
 
+### The homepage is the same HTML for everyone — personal rows are decided in the browser
+
+`/` is cached for every visitor, so the page itself must never read cookies, headers or the visitor's
+country. The first row (`src/components/gyg/home/HomeToursRow.tsx`) renders the shared "Most booked"
+row on the server and swaps to the guides-read or on-island row after hydration, using `chooseHomeRow`
+(`src/lib/catalogue/home-row.ts`), localStorage, and the uncached `/api/planner/locality`. Every tile
+keeps a fixed footprint (two title lines, two price lines, "On request" when there is no price), and
+the tablet grid always reserves its two rows, so a swap never moves the page; a new tile field must
+keep that. The price needs its second line: "à partir de 120 € par véhicule" wraps on a phone.
+
+### A homepage row heading is a claim
+
+"Most booked by our guests" and "Still free tomorrow" are statements of fact about every tile under
+them. Never top a row up with tours the heading does not describe — `chooseHomeRow` falls through to the
+next rule instead. "Most booked" comes from `api_home_picks` (confirmed + completed bookings, last 90
+days, team test bookings excluded); "Still free tomorrow" from real seats, Mauritius date. Its
+free-seat rules copy `api_list_availability`: change one and you must change the other.
+
 ### Don't add a cached route without `Vary: Cookie`
 
 Language and currency live in **cookies** and are rendered into the server HTML. A CDN cache without

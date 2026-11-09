@@ -3,6 +3,7 @@ import { overrideMetadata } from '@/lib/seo/override';
 import { InfoPage, EnquireRow } from '@/components/site/InfoPage';
 import { Breadcrumb } from '@/components/catalogue/Breadcrumb';
 import { JsonLd } from '@/components/seo/JsonLd';
+import { RecordInterest } from '@/components/gyg/RecordInterest';
 import {
   ContentSection,
   InlineLink,
@@ -191,6 +192,7 @@ export default async function IleAuxCerfsToursPage() {
           )}
           activities={featured}
         />
+        <RecordInterest topic="hub:/ile-aux-cerfs-tours" slugs={featured.map((a) => a.slug)} />
 
         <ContentSection id="do" title={t('What to do on the island')}>
           {locale === 'fr' ? (

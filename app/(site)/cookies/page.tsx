@@ -88,6 +88,18 @@ export default async function CookiesPage() {
                 {t(' — shows your latest searches in the search box for convenience.')}
               </>,
               <>
+                <strong>{t('Recently viewed tours and guides')}</strong>
+                {t(
+                  ' — remembers the tours you opened and the guides you read, so the homepage can suggest tours. It stays in your browser and is never sent to us; the “Clear” buttons on the homepage remove it.',
+                )}
+              </>,
+              <>
+                <strong>{t('Browsing from Mauritius')}</strong>
+                {t(
+                  ' — for this visit only, remembers whether you are browsing from Mauritius, so the homepage can show tours still free tomorrow. A yes or no, never your country.',
+                )}
+              </>,
+              <>
                 <strong>{t('In-app notifications')}</strong>
                 {t(' — stores booking and cart alerts (for example, a hold about to expire).')}
               </>,

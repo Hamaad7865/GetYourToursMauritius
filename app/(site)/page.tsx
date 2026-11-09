@@ -13,8 +13,11 @@ import { FeaturedReviews } from '@/components/site/FeaturedReviews';
 import { PopularSearches } from '@/components/site/PopularSearches';
 import { publicServiceContext } from '@/lib/http/context';
 import { searchActivities } from '@/lib/services/activities';
+import { homePicks } from '@/lib/services/home-picks';
 import { getLocale } from '@/lib/i18n/server';
+import type { Locale } from '@/lib/i18n/config';
 import { SITE, OG_IMAGE } from '@/lib/seo/site';
+import type { HomePicks } from '@/lib/validation/home-picks';
 import type { TourSummary } from '@/lib/validation/tours';
 
 export const runtime = 'edge';
@@ -51,9 +54,9 @@ const DEFAULT_METADATA: Metadata = {
   },
 };
 
-async function getActivities(): Promise<TourSummary[]> {
+async function getActivities(locale: Locale): Promise<TourSummary[]> {
   try {
-    const { items } = await searchActivities(publicServiceContext(await getLocale()), {
+    const { items } = await searchActivities(publicServiceContext(locale), {
       page: 1,
       pageSize: 100,
     });
@@ -66,17 +69,29 @@ async function getActivities(): Promise<TourSummary[]> {
   }
 }
 
+/** The first row's shared picks. A failure renders today's private-tours row, never an error page. */
+async function getPicks(locale: Locale): Promise<HomePicks | null> {
+  try {
+    return await homePicks(publicServiceContext(locale));
+  } catch (error) {
+    console.error('[home] picks fetch failed', error);
+    return null;
+  }
+}
+
 /**
  * The homepage, in GetYourGuide's order: header, a hero that is just a line and a search field,
  * then what the visitor is most likely to want next.
  *
- * It has two states, and the server only ever renders the first. A first-time visitor gets our
- * private day tours straight under the hero. A returning one gets "Continue planning your trip" above them —
- * resolved in the browser from what they viewed, saved or left in their cart, because this page is
- * edge-cached and identical for everyone (see ContinuePlanning).
+ * It has two states, and the server only ever renders the first. Under the hero, every visitor gets
+ * the row chooseHomeRow picks for them (most booked by default). A returning one gets "Continue
+ * planning your trip" above it — resolved in the browser from what they viewed, saved or left in
+ * their cart, because this page is edge-cached and identical for everyone (see ContinuePlanning).
  */
 export default async function HomePage() {
-  const activities = await getActivities();
+  const locale = await getLocale();
+  // Together, not one after the other: each is a round trip to the database.
+  const [activities, picks] = await Promise.all([getActivities(locale), getPicks(locale)]);
 
   return (
     <HomeShowcaseProvider activities={activities}>
@@ -86,7 +101,7 @@ export default async function HomePage() {
         <ContinuePlanning />
         {/* Must directly follow the rail it reserves space for. */}
         <ContinuePlanningReserve />
-        <HomeTours activities={activities} />
+        <HomeTours activities={activities} picks={picks} />
         <HomeRails />
         <WhyDirect />
         <FeaturedReviews />

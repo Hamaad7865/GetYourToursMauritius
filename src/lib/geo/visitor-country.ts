@@ -25,6 +25,21 @@ export function localityFromCountry(country: string | null | undefined): Visitor
 }
 
 /**
+ * `next dev` only: `?as=island` / `?as=abroad` stands in for Cloudflare's header, which never reaches a
+ * local server, so the homepage's location-based row can be checked without a VPN. Returns null — "no
+ * override" — for anything else and in every non-development build.
+ */
+export function devLocalityOverride(
+  param: string | null,
+  nodeEnv: string | undefined,
+): VisitorLocality | null {
+  if (nodeEnv !== 'development') return null;
+  if (param === 'island') return 'mauritius';
+  if (param === 'abroad') return 'abroad';
+  return null;
+}
+
+/**
  * The current request's locality. Safe to call from a server component; returns 'unknown' rather
  * than throwing if headers aren't available.
  *

@@ -6,9 +6,15 @@ import { JsonLd } from '@/components/seo/JsonLd';
 import { renderBlocks } from '@/components/content/RichText';
 import { formatPostDate, POST_META_FR } from '@/lib/content/blog';
 import { loadPost, loadRelatedPosts } from '@/lib/content/blog-live';
-import { MAX_POST_TOURS, POST_HUBS, toursForPost } from '@/lib/content/tour-links';
+import {
+  MAX_POST_TOURS,
+  POST_HUBS,
+  postInterestTopic,
+  toursForPost,
+} from '@/lib/content/tour-links';
 import { activitiesBySlug } from '@/lib/seo/landing';
 import { ActivityGrid } from '@/components/catalogue/ActivityGrid';
+import { RecordInterest } from '@/components/gyg/RecordInterest';
 import { articleJsonLd, breadcrumbListJsonLd, faqPageJsonLd } from '@/lib/seo/jsonld';
 import { SITE, OG_IMAGE } from '@/lib/seo/site';
 import { fitSnippet } from '@/lib/seo/snippet';
@@ -69,6 +75,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   ]);
   if (!p) notFound();
   const hub = POST_HUBS[p.slug];
+  const interestTopic = postInterestTopic(slug);
   const t = await getT();
 
   return (
@@ -185,6 +192,9 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
             <div className="mt-5">
               <ActivityGrid activities={tours} />
             </div>
+            {interestTopic && (
+              <RecordInterest topic={interestTopic} slugs={tours.map((a) => a.slug)} />
+            )}
           </section>
         )}
 

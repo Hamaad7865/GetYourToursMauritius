@@ -38,7 +38,10 @@ above this row, and the catalogue rails have a "For you" tab. This design does n
 - **Most booked, last 90 days (confirmed + completed):** Catamaran Île aux Cerfs 30, Airport transfer
   28, Catamaran 3 Northern Islands 20, South Tour 15, Blue Cruise 5 Islands 14, North Tour 14. No
   confirmed booking in that window belongs to a staff/admin/seo account, but test bookings have existed
-  (they were among the expired ones), so the ranking excludes them anyway.
+  (they were among the expired ones), so the ranking excludes them anyway. The airport transfer is
+  booked through its own flow and is excluded from every tour list (`CATALOGUE_HIDDEN_SLUGS`), so it
+  never appears in this row. On 2026-10-30 the six were Catamaran Île aux Cerfs, Catamaran 3 Northern
+  Islands, Blue Cruise, North Tour, South Tour and the Bénitier dolphin swim.
 - **Guide pages already name their tours.** `src/lib/content/tour-links.ts` maps 69 attraction pages
   (`ATTRACTION_TOURS`) and most blog posts (`POST_TOURS`) to tours; posts without their own entry fall
   back to `DEFAULT_POST_TOURS`, which says nothing about the reader. The three topic pages
@@ -59,7 +62,8 @@ the first that fits wins.
 **Fixed footprint.** Swapping tiles must not change the row's height. Today it can: the title is
 `line-clamp-2` (one or two lines) and the price line is omitted when `fromPriceEur` is null, and on
 desktop the tallest tile sets the row height. So every tile reserves two title lines (`min-h` of two
-line-heights) and always renders its price line, reading "On request" when there is no price. The
+line-heights) and two price lines, because "à partir de 120 € par véhicule" wraps on a phone, and always
+renders the price, reading "On request" when there is none. The tablet grid reserves its two rows. The
 placeholder tiles use exactly that footprint.
 
 **Every heading must be true of every tile under it.** No row tops up with tours the heading does not
@@ -82,8 +86,9 @@ describe; a row that cannot fill itself truthfully falls through instead.
    order) under "Private day tours with your own driver". Used when rule 3 cannot fill, or when the
    picks cannot be loaded at all.
 
-French headings (curly apostrophes, exact-match `messages.ts` keys): "Sélectionnés d’après les guides
-que vous avez lus", "Encore des places demain", "Les plus réservés par nos clients".
+French headings (curly apostrophes, exact-match `messages.ts` keys): "D’après vos lectures", "Encore des
+places demain", "Les plus réservés par nos clients". The first is short on purpose: on a 360 px phone it
+shares its line with two links and may take two lines at most, or the row moves.
 
 ## Architecture
 
@@ -154,8 +159,9 @@ No table, column or enum change, so `types.ts` is untouched.
 
 ### Failure handling
 
-- Either fetch fails or takes longer than 1.5 s → keep the server row (unmark the placeholders if they
-  were shown). Never leave placeholders on screen.
+- A fetch that fails or takes longer than 1.5 s leaves what it would have answered as it was: a late
+  locality means the visitor is treated as not on the island, late picks mean the ones in the page are
+  used. With neither, the server row stays. Never leave placeholders on screen.
 - `picks.date` is not tomorrow in Mauritius time (a cached answer straddling midnight) → treat
   `freeTomorrow` as empty, so rule 2 falls through to rule 3.
 - An interest or picks slug no longer in the catalogue silently drops out.
@@ -174,8 +180,8 @@ No table, column or enum change, so `types.ts` is untouched.
 - Unit: `chooseHomeRow` — each rule, the 3-tour thresholds, no top-up under "Most booked", the rule-4
   fallback, dedupe, Continue-planning exclusion, photo-less tours skipped, island ordering inside the
   guide row, the midnight `date` check.
-- Unit/DOM: the row's height is identical across variants when titles take one or two lines and a
-  tile has no price.
+- Browser (preview pane): the row's height is identical across variants at 375 px, 768 px and 1280 px,
+  including titles of one and two lines and a tile without a price (the unit suite runs without a DOM).
 - Unit: `interest.ts` — cap, dedupe by topic, newest first, malformed storage, clear.
 - Unit: `<RecordInterest>` is rendered for a post with its own pairing and not for the fallback.
 - Unit: locality `onIsland` mapping (`MU` → true; other, `XX`, missing → false).
@@ -188,10 +194,10 @@ No table, column or enum change, so `types.ts` is untouched.
 
 ## Rollout
 
-Build and run the gate now. Push to `main` after the ~22 Oct homepage re-measure so the measurement is
-not muddied a second time (the homepage already changed on 10 Oct). The database function ships with
-the same push (`supabase db push` in the release pipeline). Update the homepage section of the handbook
-in the implementation commit.
+Built 2026-10-30 after the SEO re-measure finished, so that block is cleared. The release never applies
+a migration: the owner runs `20261030140000_home_picks.sql` on production, verifies it and inserts its
+ledger row before the code is pushed (`docs/handbook/database.md`, "Shipping a new migration"). The
+homepage row's two landmines are in `docs/handbook/landmines.md`; the handbook has no homepage section.
 
 ## Out of scope
 

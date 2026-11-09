@@ -16,6 +16,13 @@ export const PHOTO_CARD = {
   widths: [400, 800],
 } as const;
 
+/** A square tile in the homepage's first row: six across on a desktop (~190 px), three on a tablet,
+ *  a little under half the viewport on a phone. */
+export const HOME_TILE = {
+  sizes: '(min-width: 1024px) 190px, (min-width: 640px) 31vw, 44vw',
+  widths: [400, 800],
+} as const;
+
 /** The lead photo of a tour page's gallery: the wide left tile on desktop, the full width on a
  *  phone. This is the page's largest paint. */
 export const GALLERY_LEAD = {

@@ -3072,6 +3072,16 @@ export const fr: Record<string, string> = {
   'Highest rated': 'La mieux notée',
   'What it is': 'Ce que c’est',
   'Private day tours with your own driver': 'Excursions privées à la journée, avec votre chauffeur',
+  'Picked from the guides you’ve read': 'D’après vos lectures',
+  'Still free tomorrow': 'Encore des places demain',
+  'Most booked by our guests': 'Les plus réservés par nos clients',
+  'Clear these suggestions': 'Effacer ces suggestions',
+  'Recently viewed tours and guides': 'Excursions et guides consultés récemment',
+  ' — remembers the tours you opened and the guides you read, so the homepage can suggest tours. It stays in your browser and is never sent to us; the “Clear” buttons on the homepage remove it.':
+    ' — mémorise les excursions que vous avez ouvertes et les guides que vous avez lus, pour que la page d’accueil vous suggère des excursions. Ces données restent dans votre navigateur et ne nous sont jamais envoyées ; les boutons « Effacer » de la page d’accueil les suppriment.',
+  'Browsing from Mauritius': 'Navigation depuis l’île Maurice',
+  ' — for this visit only, remembers whether you are browsing from Mauritius, so the homepage can show tours still free tomorrow. A yes or no, never your country.':
+    ' — pour cette visite uniquement, mémorise si vous naviguez depuis l’île Maurice, afin que la page d’accueil affiche les excursions encore disponibles demain. Un oui ou un non, jamais votre pays.',
   'Customize this tour with ZilAi': 'Personnalisez cette excursion avec ZilAi',
   'Add, drop or swap stops with our AI assistant, and see the price of your version.':
     'Ajoutez, retirez ou remplacez des étapes avec notre assistant IA, et voyez le prix de votre version.',
