@@ -133,7 +133,7 @@ export const HANDWRITTEN_POSTS: (PostContent & { datePublished: string; dateModi
           heading: 'What the weather really does in December',
           paragraphs: [
             'December is high summer. The days are hot and humid, the lagoons are as warm as they get all year, and you can snorkel for an hour without a wetsuit. Nights stay warm, so pack light clothes for evenings too.',
-            'Rain comes as short, heavy showers rather than grey days. The central plateau around Curepipe gets the most of it. The west and north coasts, around Flic en Flac and Grand Baie, are the driest. On the east coast near Belle Mare, mornings are often clear and a shower may pass through in the afternoon, so we run boat trips early in the day.',
+            'Rain comes as short, heavy showers rather than grey days. The central plateau around Curepipe gets the most of it. The west and north coasts, around Flic en Flac and Grand Baie, are the driest. On the east coast near [Belle Mare](/belle-mare), mornings are often clear and a shower may pass through in the afternoon, so we run boat trips early in the day.',
             'The sun is strong. With the sun almost overhead at midday, you burn fast even under cloud. Use reef-safe sunscreen, wear a rash vest or T-shirt for snorkelling, and drink more water than you think you need.',
           ],
         },
@@ -242,7 +242,7 @@ export const HANDWRITTEN_POSTS: (PostContent & { datePublished: string; dateModi
           heading: 'What the weather is like in November',
           paragraphs: [
             'November is the turn from winter to summer, and for many visitors it is the best month of the year. The days are warm and sunny without the heavy humidity of January, the evenings are pleasant, and rain is light compared with the summer months that follow.',
-            'The winter trade winds ease off in November. The east coast near Belle Mare still gets a fresh breeze, which keeps the heat comfortable, while the west and north coasts are often flat calm. That makes it a good month for boat trips on every side of the island.',
+            'The winter trade winds ease off in November. The east coast near [Belle Mare](/belle-mare) still gets a fresh breeze, which keeps the heat comfortable, while the west and north coasts are often flat calm. That makes it a good month for boat trips on every side of the island.',
             'The sea warms up week by week. Early in the month it is cool enough that some swimmers like a shortie wetsuit for a long snorkel; by the end of November it is pleasant for everyone. Underwater visibility is usually good.',
             'The sun is strong already. Use reef-safe sunscreen, wear a hat at midday, and cover up for long boat days.',
           ],
@@ -346,7 +346,7 @@ export const HANDWRITTEN_POSTS: (PostContent & { datePublished: string; dateModi
           paragraphs: [
             'Christmas is a public holiday in Mauritius, and it is celebrated well beyond the island’s Christian community. Shopping centres put up their trees, the Caudan Waterfront in Port Louis is lit up, and the supermarkets fill with toys, cakes and gift hampers.',
             'On Christmas Eve, churches hold midnight mass. The little red-roofed church at Cap Malheureux in the north, with Coin de Mire island behind it, is one of the most photographed on the island. Hotels stage gala dinners on the 24th, often with a band and a buffet.',
-            'Christmas Day itself is a family day. Many Mauritian families share a big lunch, where a biryani or a curry is as likely as a roast, and then spend the afternoon at the beach. Public beaches such as Belle Mare, Mont Choisy and Flic en Flac are lively from late morning, so arrive early if you want shade.',
+            'Christmas Day itself is a family day. Many Mauritian families share a big lunch, where a biryani or a curry is as likely as a roast, and then spend the afternoon at the beach. Public beaches such as [Belle Mare](/belle-mare), Mont Choisy and Flic en Flac are lively from late morning, so arrive early if you want shade.',
           ],
         },
         {
@@ -449,7 +449,7 @@ export const HANDWRITTEN_POSTS: (PostContent & { datePublished: string; dateModi
           paragraphs: [
             'January is high summer. The days are hot and humid, the winds are light, and the lagoons are at their warmest. Nights stay warm, so a fan or air conditioning matters more than a jumper.',
             'Rain usually comes as short, heavy showers, or a thunderstorm that builds over the hills in the afternoon and then clears. Mornings are often bright. The central plateau around Curepipe is by far the wettest part of the island. The west coast, from Flic en Flac to Le Morne, is the driest, and the north is drier than the east.',
-            'On the east coast near Belle Mare, showers come in off the sea and move on, and most pass in under an hour. That is why our boat trips leave early: the morning is usually the calmest, clearest part of the day.',
+            'On the east coast near [Belle Mare](/belle-mare), showers come in off the sea and move on, and most pass in under an hour. That is why our boat trips leave early: the morning is usually the calmest, clearest part of the day.',
             'The sun is at its strongest. Use reef-safe sunscreen, wear a hat and a rash vest, and drink plenty of water. Mosquitoes are more active in the wet season, so pack repellent for the evenings.',
           ],
         },
@@ -737,7 +737,7 @@ export const HANDWRITTEN_POSTS_FR: Record<string, PostTranslation> = {
         heading: 'Ce que fait vraiment la météo en décembre',
         paragraphs: [
           'Décembre, c’est le plein été. Les journées sont chaudes et humides, les lagons atteignent leur température la plus haute de l’année, et l’on peut faire une heure de snorkeling sans combinaison. Les nuits restent chaudes : prévoyez aussi des vêtements légers pour le soir.',
-          'La pluie tombe en averses courtes et fortes plutôt qu’en journées grises. C’est le plateau central, autour de Curepipe, qui en reçoit le plus. Les côtes ouest et nord, autour de Flic en Flac et Grand Baie, sont les plus sèches. Sur la côte est, près de Belle Mare, les matinées sont souvent dégagées et une averse peut passer l’après-midi : c’est pour cela que nos sorties en mer partent tôt.',
+          'La pluie tombe en averses courtes et fortes plutôt qu’en journées grises. C’est le plateau central, autour de Curepipe, qui en reçoit le plus. Les côtes ouest et nord, autour de Flic en Flac et Grand Baie, sont les plus sèches. Sur la côte est, près de [Belle Mare](/fr/belle-mare), les matinées sont souvent dégagées et une averse peut passer l’après-midi : c’est pour cela que nos sorties en mer partent tôt.',
           'Le soleil tape fort. À midi il est presque à la verticale, et l’on brûle vite même sous les nuages. Utilisez une crème solaire respectueuse des coraux, portez un lycra ou un t-shirt pour le snorkeling, et buvez plus d’eau que vous ne le pensez.',
         ],
       },
@@ -836,7 +836,7 @@ export const HANDWRITTEN_POSTS_FR: Record<string, PostTranslation> = {
         heading: 'Quel temps fait-il en novembre ?',
         paragraphs: [
           'Novembre marque le passage de l’hiver à l’été, et pour beaucoup de voyageurs c’est le meilleur mois de l’année. Les journées sont chaudes et ensoleillées sans la lourde humidité de janvier, les soirées sont agréables, et la pluie reste faible par rapport aux mois d’été qui suivent.',
-          'Les alizés de l’hiver faiblissent en novembre. La côte est, près de Belle Mare, garde une brise fraîche qui rend la chaleur agréable, tandis que les côtes ouest et nord sont souvent d’huile. C’est donc un bon mois pour les sorties en mer, de tous les côtés de l’île.',
+          'Les alizés de l’hiver faiblissent en novembre. La côte est, près de [Belle Mare](/fr/belle-mare), garde une brise fraîche qui rend la chaleur agréable, tandis que les côtes ouest et nord sont souvent d’huile. C’est donc un bon mois pour les sorties en mer, de tous les côtés de l’île.',
           'La mer se réchauffe de semaine en semaine. En début de mois, certains apprécient un shorty pour un long snorkeling ; à la fin de novembre, elle est agréable pour tout le monde. La visibilité sous l’eau est en général bonne.',
           'Le soleil tape déjà fort. Utilisez une crème solaire respectueuse des coraux, portez un chapeau à midi et couvrez-vous pour les longues journées en bateau.',
         ],
@@ -929,7 +929,7 @@ export const HANDWRITTEN_POSTS_FR: Record<string, PostTranslation> = {
         paragraphs: [
           'Noël est un jour férié à Maurice, et on le fête bien au-delà de la communauté chrétienne de l’île. Les centres commerciaux installent leurs sapins, le Caudan Waterfront à Port-Louis s’illumine, et les supermarchés se remplissent de jouets, de gâteaux et de paniers garnis.',
           'La veille de Noël, les églises célèbrent la messe de minuit. La petite église au toit rouge du Cap Malheureux, dans le nord, avec l’île du Coin de Mire en arrière-plan, est l’une des plus photographiées de l’île. Les hôtels organisent des dîners de gala le 24, souvent avec orchestre et buffet.',
-          'Le jour de Noël est un jour de famille. Beaucoup de familles mauriciennes partagent un grand déjeuner, où un briani ou un cari est aussi probable qu’une volaille rôtie, puis passent l’après-midi à la plage. Les plages publiques comme Belle Mare, Mont Choisy et Flic en Flac sont animées dès la fin de matinée : arrivez tôt si vous voulez de l’ombre.',
+          'Le jour de Noël est un jour de famille. Beaucoup de familles mauriciennes partagent un grand déjeuner, où un briani ou un cari est aussi probable qu’une volaille rôtie, puis passent l’après-midi à la plage. Les plages publiques comme [Belle Mare](/fr/belle-mare), Mont Choisy et Flic en Flac sont animées dès la fin de matinée : arrivez tôt si vous voulez de l’ombre.',
         ],
       },
       {
@@ -1020,7 +1020,7 @@ export const HANDWRITTEN_POSTS_FR: Record<string, PostTranslation> = {
         paragraphs: [
           'Janvier, c’est le plein été. Les journées sont chaudes et humides, le vent est faible et les lagons atteignent leur température la plus haute. Les nuits restent chaudes : un ventilateur ou la climatisation comptent plus qu’un pull.',
           'La pluie tombe en général en averses courtes et fortes, ou en orage qui se forme sur les hauteurs l’après-midi avant de se dissiper. Les matinées sont souvent lumineuses. Le plateau central, autour de Curepipe, est de loin la région la plus arrosée. La côte ouest, de Flic en Flac au Morne, est la plus sèche, et le nord est plus sec que l’est.',
-          'Sur la côte est, près de Belle Mare, les averses arrivent de la mer et repartent, et la plupart passent en moins d’une heure. C’est pour cela que nos sorties en mer partent tôt : la matinée est en général le moment le plus calme et le plus dégagé de la journée.',
+          'Sur la côte est, près de [Belle Mare](/fr/belle-mare), les averses arrivent de la mer et repartent, et la plupart passent en moins d’une heure. C’est pour cela que nos sorties en mer partent tôt : la matinée est en général le moment le plus calme et le plus dégagé de la journée.',
           'Le soleil est à son maximum. Utilisez une crème solaire respectueuse des coraux, portez un chapeau et un lycra, et buvez beaucoup d’eau. Les moustiques sont plus actifs pendant la saison humide : prévoyez un répulsif pour les soirées.',
         ],
       },

@@ -50,8 +50,11 @@ const TOUR_TITLES: Record<string, Partial<Record<Locale, string>>> = {
     en: 'Skydiving in Mauritius: 10,000 ft Tandem Jump',
     fr: 'Saut en parachute à l’île Maurice (tandem)',
   },
-  // "parc casela ile maurice" — 113 impressions at #7.1, no clicks.
+  // "parc casela ile maurice" — 113 impressions at #7.1, no clicks. English, Search Console 12 Oct–
+  // 8 Nov 2026: "casela world of adventures tickets" — 153 impressions at #7.8, no clicks. The tour's
+  // one option IS the park entrance fee, so "Tickets" is what the guest actually buys.
   'casela-world-of-adventures': {
+    en: 'Casela World of Adventures Tickets, Mauritius',
     fr: 'Parc Casela, île Maurice : World of Adventures',
   },
   // Search Console 19 Sep–16 Oct 2026: "mauritius north island tour" #8 and "north tour mauritius"

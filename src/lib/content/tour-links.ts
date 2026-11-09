@@ -184,6 +184,7 @@ export const POST_TOURS: Readonly<Record<string, readonly string[]>> = {
     'catamaran-sunset-cruise',
     'seaplane',
     'private-full-day-catamaran-ile-aux-cerfs',
+    'skydive',
   ],
   'mauritius-with-kids': [
     'casela-world-of-adventures',
@@ -218,6 +219,7 @@ export const POST_TOURS: Readonly<Record<string, readonly string[]>> = {
     'catamaran-cruise-3-northern-island-adventure',
     'north-tour',
     'north-beaches-tour',
+    'catamaran-sunset-cruise',
   ],
   'day-trips-from-flic-en-flac': [
     'swimming-with-dolphins',
