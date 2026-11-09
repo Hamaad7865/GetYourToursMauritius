@@ -115,10 +115,50 @@ booking-level fact from one child row is the same mistake as the sticky `payment
 
 ### Don't reorder the maintenance steps
 
-`/api/v1/internal/maintenance` runs: **payment-reconcile → expire bookings → materialize availability.**
-That order is load-bearing. Flip the first two, and a customer who paid at minute 29 of a 30-minute grace
-window gets auto-cancelled _before_ the sweep sees their payment. You'd be refunding valid bookings.
-There's a test guarding it.
+`/api/v1/internal/maintenance` runs: **payment-reconcile → expire bookings → late-capture sweep →
+materialize availability.** That order is load-bearing. Flip the first two, and a customer who paid at
+minute 29 of a 30-minute grace window gets auto-cancelled _before_ the sweep sees their payment. You'd be
+refunding valid bookings. The late-capture sweep (next entry) goes after expiry, so a booking expired on
+this tick is checked on this tick. It only ever records money, so unlike expiry it still runs when the
+first step failed. There's a test guarding it.
+
+### Money can arrive after the booking stopped waiting for it
+
+**Production 2026-10-30, `BMT41EDB8E4EA1D4`.** The hold lapsed while the guest still had the payment
+widget open, the cron expired the booking, and 90 seconds later Peach captured MUR 7,020 on the
+still-open session. **Nothing recorded it.** The guest rebooked, paid again, travelled once, and had to
+email us to find out she'd been charged twice. A tour-change difference (`change_addon`, 5 Sep) was
+stranded the same way. All three settlement doors were shut:
+
+- **`/payments/sync` looked the booking up by the parsed ref.** A generated merchant id parses to the
+  opaque id itself, not null, so every sync 404'd from the day generated ids shipped. Always go through
+  `resolveBookingRef(admin, merchantTransactionId, bookingRef)`, which tries `payment_merchant_refs`
+  first.
+- **The webhook's re-query fallback returned unless the booking was `payment_pending`.** That gate is
+  right for a legacy derived id, which is the booking ref and therefore guessable. It is wrong for a
+  generated id, which names one payment row and carries 65 random bits. `processPaymentWebhook`
+  (`src/lib/payments/webhook.ts`) re-queries a mapped row's current AND retired session whatever the
+  booking's status. Don't put the status gate back on that path.
+- **No sweep enumerated those rows.** `api_pending_payment_checkouts` sees `booking` rows only while
+  the booking is `payment_pending`, and never `change_addon` rows. `reconcileLateCaptures` (in
+  `services/maintenance.ts`) covers both, records only a `paid` answer, and leaves the rest to
+  `append_payment_event`: a booking that is no longer live goes to `refund_pending`, and the owner and
+  guest are told.
+
+Its window reads **`payments.updated_at`, on purpose**, the opposite of the reuse-window entry above.
+That window needs an upper bound that no-op writes can't push back. This one needs a lower bound on
+"a session here could still capture". Retiring a session nulls `checkout_created_at`, yet the retired
+session stays payable at Peach for about 30 minutes. Every mint and every retire stamps `updated_at`.
+The sweep writes nothing on a non-paid answer, so it never re-arms itself.
+
+**Still open, by decision:** `api_create_payment` will still mint a session on a booking whose hold
+lapsed minutes ago, if the cron hasn't expired it yet. A capture on that session now becomes an
+automatic `refund_pending` instead of vanishing, but it is still a refund, not a booking.
+
+**Never credit an old `change_addon` row by hand.** The `payments_apply_booking_change` trigger fires
+on that status change and applies the change request (moves the booking, emails the guest) without
+checking the request's age. The sweep only looks at rows touched in the last 3 hours, so the change it
+applies is one the guest has just paid for. A capture you find weeks later needs a decision first.
 
 ### A guest's JWT is a valid JWT
 

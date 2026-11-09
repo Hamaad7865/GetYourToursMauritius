@@ -217,3 +217,119 @@ export async function reconcilePaymentsPending(
 
   return result;
 }
+
+export interface LateCaptureSweepResult {
+  /** Payment rows whose sessions were re-queried this run. */
+  queried: number;
+  /** Rows where the provider reported a capture that is now on the ledger. */
+  recorded: number;
+  /** A provider query or ledger write threw, or the capture was quarantined. Retried next run. */
+  errored: number;
+}
+
+export interface ReconcileLateCapturesOptions {
+  /** Only look at rows touched within this window (default 180 = 3h). */
+  windowMinutes?: number;
+  /** Cap rows per run to bound Peach status calls (default 50). */
+  limit?: number;
+}
+
+/** A booking in these states is still waiting for its money; reconcilePaymentsPending owns it. */
+const STILL_WAITING = new Set(['draft', 'held', 'payment_pending']);
+
+/**
+ * Catch money that arrives where no other sweep looks.
+ *
+ * reconcilePaymentsPending only enumerates bookings still `payment_pending`, plus pickup and balance
+ * rows. Two kinds of payment row fall outside it:
+ *  - a `booking` row whose booking stopped waiting (expired, cancelled, failed) while a Peach session
+ *    on it was still open. Production 2026-10-30, BMT41EDB8E4EA1D4: the cron expired the booking and the
+ *    guest paid on the open session 90 seconds later. Nothing recorded it.
+ *  - a `change_addon` row (the difference for a staff-proposed tour change), which no sweep covered.
+ *
+ * Only a `paid` answer is recorded. Anything else writes nothing, so a row nobody paid adds no ledger
+ * noise and stops being looked at once the window passes. append_payment_event then does what it
+ * always does with a capture: a booking that is no longer live goes to refund_pending (the owner and
+ * guest are told), a confirmed booking's tour-change payment applies the change.
+ *
+ * The window reads `updated_at`, not `checkout_created_at`: retiring a session nulls
+ * checkout_created_at, yet the retired session stays payable at Peach for about 30 minutes. Every mint
+ * and every retire stamps updated_at, so it is never earlier than the last moment a session on the
+ * row could still capture.
+ */
+export async function reconcileLateCaptures(
+  ctx: ServiceContext,
+  opts: ReconcileLateCapturesOptions = {},
+): Promise<LateCaptureSweepResult> {
+  const admin = ctx.admin;
+  if (!admin) {
+    throw new Error('reconcileLateCaptures requires a service-role context (ctx.admin is missing)');
+  }
+  const windowMinutes = opts.windowMinutes ?? 180;
+  const since = new Date(ctx.now().getTime() - windowMinutes * 60_000).toISOString();
+
+  const { data: rows, error } = await admin
+    .from('payments')
+    .select('id, booking_id, purpose, provider_checkout_id, prev_provider_checkout_id')
+    .gte('updated_at', since)
+    .eq('paid_minor', 0)
+    .in('purpose', ['booking', 'change_addon'])
+    .order('updated_at', { ascending: false })
+    // Wider than the call cap: rows still waiting are dropped below, and must not crowd out late ones.
+    .limit(500);
+  if (error) throw new Error(error.message);
+
+  const withSessions = (rows ?? []).filter(
+    (row) => row.provider_checkout_id || row.prev_provider_checkout_id,
+  );
+  const bookingIds = [
+    ...new Set(withSessions.filter((r) => r.purpose === 'booking').map((r) => r.booking_id)),
+  ];
+  const waiting = new Set<string>();
+  if (bookingIds.length > 0) {
+    const { data: bookings, error: bookingsErr } = await admin
+      .from('bookings')
+      .select('id, status')
+      .in('id', bookingIds);
+    if (bookingsErr) throw new Error(bookingsErr.message);
+    for (const b of bookings ?? []) if (STILL_WAITING.has(b.status)) waiting.add(b.id);
+  }
+  const candidates = withSessions
+    .filter((row) => row.purpose !== 'booking' || !waiting.has(row.booking_id))
+    .slice(0, opts.limit ?? 50);
+
+  const result: LateCaptureSweepResult = { queried: candidates.length, recorded: 0, errored: 0 };
+  for (const row of candidates) {
+    try {
+      const sessions = [row.provider_checkout_id, row.prev_provider_checkout_id].filter(
+        (id, i, all): id is string => Boolean(id) && all.indexOf(id) === i,
+      );
+      for (const checkoutId of sessions) {
+        const event = await ctx.payments.getCheckoutStatus(checkoutId);
+        if (event.outcome !== 'paid') continue;
+        const reconciled = await reconcilePaymentEvent(admin, event);
+        if (reconciled.outcome.startsWith('quarantined:') || !reconciled.found) {
+          result.errored += 1;
+          console.error('late capture sweep: capture not recorded', {
+            paymentId: row.id,
+            outcome: reconciled.found ? reconciled.outcome : 'payment_not_found',
+          });
+        } else {
+          result.recorded += 1;
+          console.warn('late capture sweep: recorded a capture no other path caught', {
+            paymentId: row.id,
+            purpose: row.purpose,
+          });
+        }
+        break;
+      }
+    } catch (err) {
+      result.errored += 1;
+      console.error('late capture sweep: candidate failed', {
+        paymentId: row.id,
+        error: err instanceof Error ? err.message : 'unknown error',
+      });
+    }
+  }
+  return result;
+}

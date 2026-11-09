@@ -4,8 +4,7 @@ import { jsonOk } from '@/lib/http/envelope';
 import { preflightResponse } from '@/lib/http/cors';
 import { getPaymentProvider } from '@/lib/payments';
 import { extractWebhookFields } from '@/lib/payments/peach';
-import { bookingRefFromMerchantTransactionId } from '@/lib/payments/merchant-ref';
-import { reconcilePaymentEvent, resolveBookingRef } from '@/lib/payments/reconcile';
+import { processPaymentWebhook } from '@/lib/payments/webhook';
 import { createServiceRoleClient } from '@/lib/supabase/admin';
 
 export const runtime = 'edge';
@@ -43,76 +42,13 @@ export const POST = apiHandler(async (req) => {
 
   if (merchantTransactionId || headers['x-webhook-signature']) {
     try {
-      after(async () => {
-        const admin = createServiceRoleClient();
-        const provider = getPaymentProvider();
-
-        // 1) HMAC fast-path: a verified signature authenticates the body — confirm straight from it.
-        try {
-          const event = await provider.verifyWebhook({
-            rawBody,
-            signature: headers['x-webhook-signature'] ?? null,
-            headers,
-          });
-          const reconciled = await reconcilePaymentEvent(admin, event);
-          if (reconciled.outcome.startsWith('quarantined:')) {
-            // Nothing was written (incomplete settled payload) — the sync poll / sweep will re-query
-            // the status endpoint, whose payload is complete. Still ACK 200: a provider retry would
-            // resend the same incomplete body.
-            console.error('[webhook] settled event quarantined', {
-              merchantTransactionId,
-              outcome: reconciled.outcome,
-            });
-          }
-          return;
-        } catch (hmacErr) {
-          // Only worth a log when a signature WAS present (HMAC was attempted and failed → likely a
-          // PEACH_WEBHOOK_SECRET / PEACH_WEBHOOK_URL mismatch). An unsigned webhook just uses path 2.
-          if (headers['x-webhook-signature']) {
-            console.warn(
-              '[webhook] HMAC verify failed, falling back to re-query:',
-              hmacErr instanceof Error ? hmacErr.message : hmacErr,
-            );
-          }
-        }
-
-        // 2) Re-query fallback (works without HMAC). The id in the webhook body 404s at the status
-        //    endpoint, so we use the checkout id we stored at create time, found by the booking ref.
-        try {
-          const bookingRef = await resolveBookingRef(
-            admin,
-            merchantTransactionId,
-            bookingRefFromMerchantTransactionId(merchantTransactionId),
-          );
-          if (!bookingRef) return;
-          const { data: booking } = await admin
-            .from('bookings')
-            .select('id, status')
-            .eq('ref', bookingRef)
-            .maybeSingle();
-          // Only re-query Peach for a booking still awaiting payment. A terminal/confirmed booking never
-          // needs it, and this stops the endpoint being driven as a Peach status-query amplifier with
-          // guessed refs (a duplicate webhook for an already-confirmed booking is also a no-op here).
-          if (!booking || booking.status !== 'payment_pending') return;
-          const { data: payment } = await admin
-            .from('payments')
-            .select('provider_checkout_id')
-            .eq('booking_id', booking.id)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-          const checkoutId = payment?.provider_checkout_id;
-          if (!checkoutId) return;
-
-          const event = await provider.getCheckoutStatus(checkoutId);
-          await reconcilePaymentEvent(admin, event);
-        } catch (err) {
-          console.warn(
-            '[webhook] background reconcile failed:',
-            err instanceof Error ? err.message : err,
-          );
-        }
-      });
+      after(() =>
+        processPaymentWebhook(createServiceRoleClient(), getPaymentProvider(), {
+          rawBody,
+          headers,
+          merchantTransactionId,
+        }),
+      );
     } catch (err) {
       console.warn(
         '[webhook] could not schedule background reconcile:',

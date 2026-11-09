@@ -14,6 +14,7 @@ const {
   purgeErrors,
   checkoutRecovery,
   purgeFunnel,
+  lateCaptures,
 } = vi.hoisted(() => {
   const calls: string[] = [];
   return {
@@ -33,6 +34,10 @@ const {
     reconcile: vi.fn(async () => {
       calls.push('reconcile');
       return { queried: 0, confirmed: 0, pending: 0, failed: 0, errored: 0 };
+    }),
+    lateCaptures: vi.fn(async () => {
+      calls.push('lateCaptures');
+      return { queried: 0, recorded: 0, errored: 0 };
     }),
     expire: vi.fn(async () => {
       calls.push('expire');
@@ -63,6 +68,7 @@ const {
 
 vi.mock('@/lib/services/maintenance', () => ({
   reconcilePaymentsPending: reconcile,
+  reconcileLateCaptures: lateCaptures,
   runBookingMaintenance: expire,
   materializeAvailability: materialize,
   enqueueReviewInvites: reviewInvites,
@@ -87,6 +93,7 @@ const req = () =>
 beforeEach(() => {
   calls.length = 0;
   reconcile.mockClear();
+  lateCaptures.mockClear();
   expire.mockClear();
   materialize.mockClear();
   reviewInvites.mockClear();
@@ -128,6 +135,8 @@ describe('maintenance route ordering (money-safety)', () => {
     // …while isolation is preserved for everything that cannot lose money by running.
     expect(calls).toContain('materialize');
     expect(calls).toContain('reviewInvites');
+    // The late-capture sweep only ever RECORDS money, so it runs even now.
+    expect(calls).toContain('lateCaptures');
 
     // The failure is not buried inside a 200 (review item 7): the cron Worker treats any 2xx as
     // success, so a persistently broken sweep looked healthy on the dashboard forever. A 503 makes
@@ -194,6 +203,48 @@ describe('maintenance route ordering (money-safety)', () => {
     reconcile.mockImplementationOnce(async () => {
       calls.push('reconcile');
       return { queried: 2, confirmed: 2, pending: 0, failed: 0, errored: 0 };
+    });
+    const res = await POST(req());
+    expect(res.status).toBe(200);
+  });
+});
+
+describe('maintenance route: the late-capture sweep', () => {
+  // Captures that land on a booking that already stopped waiting (expired, cancelled) or on a
+  // tour-change payment: no other sweep enumerates those rows. Production 2026-10-30, BMT41EDB8E4EA1D4.
+  it('runs after the expiry sweep, so a booking expired on this tick is checked on this tick', async () => {
+    const res = await POST(req());
+    expect(res.status).toBe(200);
+    expect(calls.indexOf('lateCaptures')).toBeGreaterThan(calls.indexOf('expire'));
+  });
+
+  it('turns the cron red when it fails wholesale, without starving the steps after it', async () => {
+    lateCaptures.mockImplementationOnce(async () => {
+      throw new Error('provider unreachable');
+    });
+    const res = await POST(req());
+    expect(calls).toContain('expire');
+    expect(calls).toContain('materialize');
+    expect(res.status).toBe(503);
+    const body = (await res.json()) as { error: { details?: { erroredJobs?: string[] } } };
+    expect(body.error.details?.erroredJobs).toEqual(['lateCaptures']);
+  });
+
+  it('turns the cron red when a capture could not be recorded (errored count > 0)', async () => {
+    lateCaptures.mockImplementationOnce(async () => {
+      calls.push('lateCaptures');
+      return { queried: 2, recorded: 1, errored: 1 };
+    });
+    const res = await POST(req());
+    expect(res.status).toBe(503);
+    const body = (await res.json()) as { error: { details?: { erroredJobs?: string[] } } };
+    expect(body.error.details?.erroredJobs).toEqual(['lateCaptures']);
+  });
+
+  it('stays green when it recorded a capture cleanly (the money is on the ledger now)', async () => {
+    lateCaptures.mockImplementationOnce(async () => {
+      calls.push('lateCaptures');
+      return { queried: 1, recorded: 1, errored: 0 };
     });
     const res = await POST(req());
     expect(res.status).toBe(200);

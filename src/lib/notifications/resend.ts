@@ -67,14 +67,20 @@ function render(message: NotificationMessage): { subject: string; text: string }
       text: `${name} cancelled booking ${ref}${total}. It is now refund_pending and the seat has been released.\n\nRefund it in the Peach dashboard, then mark it refunded in admin.\n\nBelle Mare Tours (internal alert)`,
     };
   }
+  // Fires for three reasons and is told none of them: the last spots went as the payment completed,
+  // the departure was called off, or the payment arrived after the booking had already expired. Keep
+  // every sentence true for all three. Production 2026-10-30 was the third: the guest had rebooked and
+  // paid again, so a line about the last spots was false and an invitation to rebook was alarming.
   if (message.template === 'booking_refund_pending') {
     return {
       subject: `Your Belle Mare Tours booking ${ref} — refund on its way`,
       text: `Hi ${name},
 
-We couldn't confirm your booking ${ref} (the last spots were taken as your payment completed), so we're refunding you in full. You don't need to do anything — the refund is being processed and will appear on your statement within a few days.
+Your payment for booking ${ref} came through after we could no longer hold that booking for you, so we couldn't confirm it and we're refunding you in full. You don't need to do anything: the refund is being processed and will appear on your statement within a few days.
 
-Sorry for the inconvenience — we'd love to host you on another date.
+If you've already booked again, that booking is not affected. This refund is only for the payment on ${ref}.
+
+Sorry for the inconvenience. If you'd still like to join us, just reply to this email and we'll help you find a date.
 
 Belle Mare Tours`,
     };

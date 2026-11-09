@@ -75,8 +75,11 @@ export interface PaymentEvent {
   outcome: PaymentOutcome;
   /**
    * The booking ref as PARSED OUT of the provider's echoed merchantTransactionId — correct only for
-   * the two derived id shapes (`BMTxxx` and `BMTxxx-abcd1234`). A generated id carries no ref, so this
-   * is null for those; {@link merchantTransactionId} is what resolves them, via `payment_merchant_refs`.
+   * the two derived id shapes (`BMTxxx` and `BMTxxx-abcd1234`). A GENERATED id (`BMT` + 13 base32)
+   * has the same shape as a derived one, so it parses to the opaque id itself, NOT null, and looking
+   * that up as a booking ref finds nothing. Never use this alone: resolve through
+   * `resolveBookingRef(admin, merchantTransactionId, bookingRef)`, which tries `payment_merchant_refs`
+   * first. /payments/sync skipped that and 404'd every generated id until 2026-11-09.
    * Kept as the fallback so every session minted under the old schemes stays confirmable.
    */
   bookingRef: string | null;

@@ -6,7 +6,7 @@ import { buildServiceContext } from '@/lib/http/context';
 import { rateLimit } from '@/lib/http/rate-limit';
 import { syncPaymentInputSchema } from '@/lib/validation/booking';
 import { createServiceRoleClient } from '@/lib/supabase/admin';
-import { reconcilePaymentEvent } from '@/lib/payments/reconcile';
+import { reconcilePaymentEvent, resolveBookingRef } from '@/lib/payments/reconcile';
 
 export const runtime = 'edge';
 
@@ -29,15 +29,19 @@ export const POST = apiHandler(async (req) => {
   const { checkoutId } = await parseJsonBody(req, syncPaymentInputSchema);
 
   const event = await ctx.payments.getCheckoutStatus(checkoutId);
-  if (!event.bookingRef) {
+  const admin = createServiceRoleClient();
+  // Resolve through payment_merchant_refs FIRST. Since merchant ids are generated per session, the ref
+  // parsed out of one is the opaque id itself, so looking that up as a booking ref 404'd every sync and
+  // left confirmation to the webhook and the cron alone.
+  const bookingRef = await resolveBookingRef(admin, event.merchantTransactionId, event.bookingRef);
+  if (!bookingRef) {
     return jsonError(404, 'not_found', 'No booking is linked to this checkout');
   }
 
-  const admin = createServiceRoleClient();
   const { data: booking, error: bookingErr } = await admin
     .from('bookings')
     .select('id, user_id')
-    .eq('ref', event.bookingRef)
+    .eq('ref', bookingRef)
     .maybeSingle();
   if (bookingErr) throw new Error(bookingErr.message);
   if (!booking) return jsonError(404, 'not_found', 'Booking not found');
@@ -47,6 +51,11 @@ export const POST = apiHandler(async (req) => {
   }
 
   const result = await reconcilePaymentEvent(admin, event);
+  // `confirmed` means THIS PAYMENT is fully paid, so stop syncing. It is not the booking's status: a
+  // capture on a booking that had already expired is fully paid AND routed to refund_pending. The
+  // client only uses it to skip its confirmation poll, then renders the booking's real status (the
+  // "refund on its way" view). Reporting false there would leave the guest on a 90-second spinner,
+  // since refund_pending is not a status the poll treats as final.
   return jsonOk({ outcome: event.outcome, confirmed: result.confirmed });
 });
 

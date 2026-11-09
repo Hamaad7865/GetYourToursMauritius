@@ -407,6 +407,7 @@ The long version of the table on the [handbook front page](../HANDBOOK.md).
 | "No dates available" across many tours                | Cron dead — availability stopped rolling forward                |
 | Review-request emails stopped                         | Cron dead                                                       |
 | Paid but still `payment_pending` after 10 min         | Settlement never ingested; check reconcile + cron               |
+| Guest says "charged twice", one booking `expired`     | Paid after expiry; see landmines → "Money can arrive after"     |
 | Booking paid the wrong amount / marked paid ~54× over | The MUR↔EUR settlement pin was bypassed                         |
 | A customer can't pay, ever, on one booking            | A dead Peach checkout session being handed back                 |
 | Nobody can pay at all                                 | `NEXT_PUBLIC_SITE_URL` — payments fail closed                   |

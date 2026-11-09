@@ -246,4 +246,29 @@ describe('ResendNotificationProvider.send — HTML + attachments', () => {
     expect(String(body.subject).toLowerCase()).toContain('expired');
     expect(String(body.text)).toContain('Noor');
   });
+
+  // The template fires for three different reasons and carries none of them: the last spots went as
+  // the payment completed, the departure was called off, or the payment arrived after the booking had
+  // expired. Production 2026-10-30 was the third: the guest had already rebooked and paid again, so
+  // "the last spots were taken" was false and "another date" invited a third booking.
+  it('words booking_refund_pending so it is true whatever made the booking unable to stand', async () => {
+    const { calls } = mockFetch();
+
+    await new ResendNotificationProvider(CONFIG).send({
+      id: 'n5',
+      channel: 'email',
+      recipient: 'guest@example.com',
+      template: 'booking_refund_pending',
+      payload: { ref: 'BMT-43', customerName: 'Laurine' },
+    });
+
+    const { body } = onlyCall(calls);
+    const text = String(body.text);
+    expect(String(body.subject)).toContain('BMT-43');
+    expect(text).toContain('Laurine');
+    expect(text).toContain('refunding you in full');
+    expect(text).not.toMatch(/last spots/i);
+    // A guest who already booked again must not wonder whether THAT booking is the one being undone.
+    expect(text).toMatch(/already booked again/i);
+  });
 });

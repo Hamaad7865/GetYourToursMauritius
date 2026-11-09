@@ -8,6 +8,7 @@ import {
   runBookingMaintenance,
   materializeAvailability,
   reconcilePaymentsPending,
+  reconcileLateCaptures,
   enqueueReviewInvites,
   enqueueCheckoutRecovery,
   enqueuePickupReminders,
@@ -99,6 +100,20 @@ export const POST = apiHandler(async (req) => {
     } catch (err) {
       await log('booking maintenance sweep', err);
     }
+  }
+
+  // 2b) Money that landed where step 1 never looks: a capture on a booking that already stopped
+  //     waiting (expired, cancelled), or on a tour-change payment. Production 2026-10-30: the guest paid
+  //     on a still-open session 90 seconds after step 2 expired her booking, and nothing recorded it.
+  //     AFTER step 2 so a booking expired on this tick is checked on this tick. It only ever RECORDS a
+  //     capture, so unlike step 2 it is safe to run whatever step 1 did.
+  let lateCaptures: Awaited<ReturnType<typeof reconcileLateCaptures>> | { errored: true } = {
+    errored: true,
+  };
+  try {
+    lateCaptures = await reconcileLateCaptures(ctx);
+  } catch (err) {
+    await log('late capture sweep', err);
   }
 
   // 3) Roll the open-ended availability window forward (now that the read path no longer fills it).
@@ -203,15 +218,14 @@ export const POST = apiHandler(async (req) => {
   // numeric `errored` COUNT instead (reconcilePaymentsPending). Those are only ever surfaced through a
   // non-2xx response (the cron treats any 2xx as healthy), so a positive count must fail the run too,
   // not just the boolean whole-step marker — otherwise a payment stuck un-reconciled looks fine forever.
-  const paymentsErroredCount =
-    typeof payments === 'object' &&
-    payments !== null &&
-    typeof (payments as { errored?: unknown }).errored === 'number'
-      ? (payments as { errored: number }).errored
+  const erroredCount = (x: unknown): number =>
+    typeof x === 'object' && x !== null && typeof (x as { errored?: unknown }).errored === 'number'
+      ? (x as { errored: number }).errored
       : 0;
   const erroredJobs = [
-    ...(failedJob(payments) || paymentsErroredCount > 0 ? ['payments'] : []),
+    ...(failedJob(payments) || erroredCount(payments) > 0 ? ['payments'] : []),
     ...(failedJob(result) ? ['bookingMaintenance'] : []),
+    ...(failedJob(lateCaptures) || erroredCount(lateCaptures) > 0 ? ['lateCaptures'] : []),
     ...(failedJob(slotsCreated) ? ['availability'] : []),
     ...(failedJob(reviewInvitesCreated) ? ['reviewInvites'] : []),
     ...(failedJob(checkoutRecoveryQueued) ? ['checkoutRecovery'] : []),
@@ -227,6 +241,7 @@ export const POST = apiHandler(async (req) => {
         ...result,
         slotsCreated,
         payments,
+        lateCaptures,
         reviewInvitesCreated,
         checkoutRecoveryQueued,
         pickupRemindersEnqueued,
@@ -242,6 +257,7 @@ export const POST = apiHandler(async (req) => {
     ...result,
     slotsCreated,
     payments,
+    lateCaptures,
     reviewInvitesCreated,
     checkoutRecoveryQueued,
     pickupRemindersEnqueued,
