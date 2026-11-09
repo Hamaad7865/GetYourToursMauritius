@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { HOME_TOURS_MAX, pickHomeTours } from '@/lib/catalogue/home-tours';
+import { HOME_TOURS_MAX, pickHomeTours, pickPrivateCruises } from '@/lib/catalogue/home-tours';
+import { isPrivateCruiseCategory } from '@/lib/categories/categories';
 import type { TourImage, TourSummary } from '@/lib/validation/tours';
 
 /* The homepage's first row shows our private day tours. Which ones, and in what order, has to follow
@@ -93,5 +94,47 @@ describe('pickHomeTours', () => {
   it('returns nothing when the catalogue has no day tours (the row then disappears)', () => {
     expect(pickHomeTours([])).toEqual([]);
     expect(pickHomeTours([tour('x', { category: 'Catamaran cruises' })])).toEqual([]);
+  });
+});
+
+/* The second homepage row: our private boat trips (owner, 2026-11-09: "emphasize on private things
+ * like private cruises"). Same rules as the day tours: catalogue order, photo-less tours skipped. */
+describe('pickPrivateCruises', () => {
+  const cruise = (slug: string, over: Partial<TourSummary> = {}) =>
+    tour(slug, {
+      category: 'Private Cruises',
+      pricingMode: 'per_group',
+      fromPriceEur: 850,
+      fromPriceIncluded: 4,
+      ...over,
+    });
+
+  it('keeps the private boat trips, in catalogue order, and nothing else', () => {
+    const picked = pickPrivateCruises([
+      cruise('cataspeed-5-islands'),
+      tour('shared-catamaran', { category: 'Catamaran cruises', pricingMode: 'per_person' }),
+      tour('north-tour'),
+      cruise('private-dolphins'),
+    ]);
+    expect(slugs(picked)).toEqual(['cataspeed-5-islands', 'private-dolphins']);
+  });
+
+  it('survives a rename of the category in /admin', () => {
+    for (const name of ['Private Cruises', 'Private boat trips', 'Private catamaran & speedboat']) {
+      expect(isPrivateCruiseCategory(name), name).toBe(true);
+    }
+    for (const name of ['Catamaran cruises', 'Speedboat Tours', 'Taxi Sightseeing tours', null]) {
+      expect(isPrivateCruiseCategory(name), String(name)).toBe(false);
+    }
+  });
+
+  it('skips a trip with no photo and stops at one row', () => {
+    const many = [
+      cruise('no-photo', { heroImage: null, images: [] }),
+      ...Array.from({ length: 9 }, (_, i) => cruise(`c${i}`)),
+    ];
+    const picked = pickPrivateCruises(many);
+    expect(picked).toHaveLength(HOME_TOURS_MAX);
+    expect(slugs(picked)[0]).toBe('c0');
   });
 });

@@ -208,7 +208,8 @@ export function HomeToursRow({
   );
 }
 
-function HomeTourTile({ tour, image }: HomeTour) {
+/** One homepage tile. Also drawn by HomeCategoryRow (the private rows), so all rows look alike. */
+export function HomeTourTile({ tour, image }: HomeTour) {
   const t = useT();
   return (
     <Link href={`/activities/${tour.slug}`} className="group block rounded-2xl">
@@ -232,7 +233,11 @@ function HomeTourTile({ tour, image }: HomeTour) {
         {tour.fromPriceEur != null ? (
           <>
             {t('from')} <Price eur={tour.fromPriceEur} className="text-[14px] font-bold text-ink" />
-            {tour.pricingMode === 'vehicle' && ` ${t('per vehicle')}`}
+            {/* A private charter's from-price covers a group, as on the grid card (ActivityCard):
+                a bare "from €850" would read as per person. */}
+            {tour.fromPriceIncluded != null
+              ? ` ${t('up to {n} people', { n: tour.fromPriceIncluded })}`
+              : tour.pricingMode === 'vehicle' && ` ${t('per vehicle')}`}
           </>
         ) : (
           // Same 14px inline as the price, so this line is exactly as tall.

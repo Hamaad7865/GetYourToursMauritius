@@ -16,6 +16,13 @@ export function isSightseeingCategory(name: string | null | undefined): boolean 
   return !!name && /sightseeing/i.test(name);
 }
 
+/** True for the private boat-trip category (live: "Private Cruises"): catamarans, speedboats and
+ *  dolphin trips chartered for one group. Matched loosely so a rename in /admin ("Private boat
+ *  trips") keeps its homepage row. */
+export function isPrivateCruiseCategory(name: string | null | undefined): boolean {
+  return !!name && /private/i.test(name) && /cruise|boat|catamaran|speed/i.test(name);
+}
+
 export const FALLBACK_CATEGORIES: CategoryItem[] = [
   { name: 'Catamaran cruises', slug: 'catamaran-cruises' },
   { name: 'Île aux Cerfs', slug: 'ile-aux-cerfs' },

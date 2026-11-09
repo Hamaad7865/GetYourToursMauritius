@@ -3072,6 +3072,7 @@ export const fr: Record<string, string> = {
   'Highest rated': 'La mieux notée',
   'What it is': 'Ce que c’est',
   'Private day tours with your own driver': 'Excursions privées à la journée, avec votre chauffeur',
+  'Private boat trips, just your group': 'Sorties en bateau privées, rien que pour votre groupe',
   'Picked from the guides you’ve read': 'D’après vos lectures',
   'Still free tomorrow': 'Encore des places demain',
   'Most booked by our guests': 'Les plus réservés par nos clients',

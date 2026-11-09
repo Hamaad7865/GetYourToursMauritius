@@ -6,6 +6,7 @@ import { HomeHero } from '@/components/gyg/home/HomeHero';
 import { ContinuePlanning } from '@/components/gyg/home/ContinuePlanning';
 import { ContinuePlanningReserve } from '@/components/gyg/home/ContinuePlanningReserve';
 import { HomeTours } from '@/components/gyg/home/HomeTours';
+import { HomePrivateRows } from '@/components/gyg/home/HomePrivateRows';
 import { HomeRails } from '@/components/gyg/home/HomeRails';
 import { WhyDirect } from '@/components/gyg/home/WhyDirect';
 import { SiteFooter } from '@/components/site/SiteFooter';
@@ -102,6 +103,7 @@ export default async function HomePage() {
         {/* Must directly follow the rail it reserves space for. */}
         <ContinuePlanningReserve />
         <HomeTours activities={activities} picks={picks} />
+        <HomePrivateRows activities={activities} picks={picks} />
         <HomeRails />
         <WhyDirect />
         <FeaturedReviews />

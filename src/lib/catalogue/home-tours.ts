@@ -1,4 +1,4 @@
-import { isSightseeingCategory } from '@/lib/categories/categories';
+import { isPrivateCruiseCategory, isSightseeingCategory } from '@/lib/categories/categories';
 import type { TourImage, TourSummary } from '@/lib/validation/tours';
 
 /** How many tours the homepage row shows: one line of six on a desktop. */
@@ -30,10 +30,27 @@ export function pickHomeTours(
   activities: readonly TourSummary[],
   max: number = HOME_TOURS_MAX,
 ): HomeTour[] {
+  return pickCategoryTiles(activities, isSightseeingCategory, max);
+}
+
+/** The private boat trips (catamaran, speedboat, dolphins) for their homepage row, the same way. */
+export function pickPrivateCruises(
+  activities: readonly TourSummary[],
+  max: number = HOME_TOURS_MAX,
+): HomeTour[] {
+  return pickCategoryTiles(activities, isPrivateCruiseCategory, max);
+}
+
+/** Up to `max` tiles from the categories `match` accepts, in catalogue order, photo-less tours skipped. */
+function pickCategoryTiles(
+  activities: readonly TourSummary[],
+  match: (category: string) => boolean,
+  max: number,
+): HomeTour[] {
   const out: HomeTour[] = [];
   for (const tour of activities) {
     if (out.length >= max) break;
-    if (!isSightseeingCategory(tour.category)) continue;
+    if (!match(tour.category)) continue;
     const tile = homeTile(tour);
     if (tile) out.push(tile);
   }
