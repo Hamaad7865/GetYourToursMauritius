@@ -108,7 +108,14 @@ export const ATTRACTION_TOURS: Readonly<Record<string, readonly string[]>> = {
   'casela-nature-parks': ['casela-world-of-adventures'],
 };
 
-/** Blog post slug → the tours that post is about, best fit first. */
+/**
+ * Most tour cards a blog post shows: one full row on a wide screen. `activitiesBySlug` keeps only
+ * its first three unless told otherwise, so the post page passes this; a slug listed past it is
+ * dropped without a warning (a test keeps every list within it).
+ */
+export const MAX_POST_TOURS = 4;
+
+/** Blog post slug → the tours that post is about, best fit first (at most MAX_POST_TOURS). */
 export const POST_TOURS: Readonly<Record<string, readonly string[]>> = {
   // December is a month for the water: the trips the guide recommends booking ahead.
   'mauritius-in-december': [

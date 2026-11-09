@@ -18,6 +18,7 @@ import { areas } from '@/lib/content/areas';
 import {
   ATTRACTION_TOURS,
   DEFAULT_POST_TOURS,
+  MAX_POST_TOURS,
   POST_HUBS,
   POST_TOURS,
   toursForPost,
@@ -141,6 +142,16 @@ describe('tour links from guide pages', () => {
     const codeIds = new Set(ADDITIONAL_ATTRACTIONS_RAW.map((p) => p.id));
     for (const id of Object.keys(ATTRACTION_TOURS)) {
       expect(databaseIds.has(id) || codeIds.has(id), id).toBe(true);
+    }
+  });
+
+  it('POST_TOURS lists at most MAX_POST_TOURS well-formed, distinct tour slugs per post', () => {
+    // The post page shows only the first MAX_POST_TOURS, and drops the rest without a warning.
+    for (const [post, tours] of Object.entries(POST_TOURS)) {
+      expect(tours.length, post).toBeGreaterThan(0);
+      expect(tours.length, post).toBeLessThanOrEqual(MAX_POST_TOURS);
+      expect(new Set(tours).size, post).toBe(tours.length);
+      for (const slug of tours) expect(slug, `${post} -> ${slug}`).toMatch(slugShape);
     }
   });
 

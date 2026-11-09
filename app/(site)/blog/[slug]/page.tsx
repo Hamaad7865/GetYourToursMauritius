@@ -6,7 +6,7 @@ import { JsonLd } from '@/components/seo/JsonLd';
 import { renderBlocks } from '@/components/content/RichText';
 import { formatPostDate, POST_META_FR } from '@/lib/content/blog';
 import { loadPost, loadRelatedPosts } from '@/lib/content/blog-live';
-import { POST_HUBS, toursForPost } from '@/lib/content/tour-links';
+import { MAX_POST_TOURS, POST_HUBS, toursForPost } from '@/lib/content/tour-links';
 import { activitiesBySlug } from '@/lib/seo/landing';
 import { ActivityGrid } from '@/components/catalogue/ActivityGrid';
 import { articleJsonLd, breadcrumbListJsonLd, faqPageJsonLd } from '@/lib/seo/jsonld';
@@ -65,7 +65,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   const [p, related, tours] = await Promise.all([
     loadPost(slug, locale),
     loadRelatedPosts(slug, 3, locale),
-    activitiesBySlug(toursForPost(slug)),
+    activitiesBySlug(toursForPost(slug), MAX_POST_TOURS),
   ]);
   if (!p) notFound();
   const hub = POST_HUBS[p.slug];
