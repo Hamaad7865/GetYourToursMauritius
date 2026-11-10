@@ -8,7 +8,7 @@ import type { PlannerPlace } from '@/lib/validation/planner';
 // server-only cache deps); re-export it here to keep its long-standing import path working.
 export { regionFromCoords };
 
-const SEARCH_TTL_MS = 6 * 60 * 60 * 1000; // searches: 6h
+const SEARCH_TTL_MS = 30 * 24 * 60 * 60 * 1000; // searches: 30d, same as details (places rarely move)
 const DETAILS_TTL_MS = 30 * 24 * 60 * 60 * 1000; // place details: 30d (rarely change)
 
 /**
@@ -236,7 +236,10 @@ async function searchTextCached(
   apiKey: string,
   maxPages: number,
 ): Promise<PlannerPlace[]> {
-  const cacheKey = `s:${CACHE_VERSION}:${textQuery}|${maxPages}`;
+  // Normalised key only (Google still gets the original text): "Grand  Baie" and "grand baie" are
+  // one billed search, not two.
+  const norm = textQuery.toLowerCase().replace(/\s+/g, ' ').trim();
+  const cacheKey = `s:${CACHE_VERSION}:${norm}|${maxPages}`;
   const hit = await cacheGet<PlannerPlace[]>(cacheKey);
   if (hit) return hit;
   const out: PlannerPlace[] = [];

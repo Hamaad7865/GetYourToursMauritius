@@ -26,4 +26,10 @@ describe('searchGooglePlaces page budget', () => {
     await searchGooglePlaces({ query: 'waterfall' }, 'k');
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
+
+  it('treats case and spacing variants as one cached search', async () => {
+    await searchGooglePlaces({ query: 'Grand  Baie', maxPages: 1 }, 'k');
+    await searchGooglePlaces({ query: 'grand baie', maxPages: 1 }, 'k');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
 });
