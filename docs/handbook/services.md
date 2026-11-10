@@ -138,6 +138,10 @@ See [`whatsapp-setup-runbook.md`](../whatsapp-setup-runbook.md) for the full Wha
 > The browser Maps key needs the **Maps JavaScript API**, not the Embed API — the code loads
 > `libraries=places,marker,routes` and drives the Geocoder. An Embed-only key produces a broken map.
 
+> **Cost.** Every Maps call is billed past a small free monthly allowance, and both keys are capped per
+> day in Google Cloud console. Before adding a map or a place lookup, read
+> [landmines.md → "Google Maps bills per call"](landmines.md#google-maps-bills-per-call-once-a-small-free-monthly-allowance-runs-out).
+
 ### Auth legacy
 
 `SUPABASE_JWT_SECRET` and `ACCEPT_LEGACY_HS256` exist only for the legacy HS256 path, which is **off by

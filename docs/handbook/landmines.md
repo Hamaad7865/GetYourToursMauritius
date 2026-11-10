@@ -789,3 +789,30 @@ The rule this breaks is already in [operations.md](operations.md#what-you-can-ch
 anything the owner edits in `/admin` must be READ from the database everywhere it is shown. A
 "representative" or "roughly right" duplicate in code will drift, and the drift is invisible — the
 widget kept quoting correctly the whole time.
+
+### Google Maps bills per call once a small free monthly allowance runs out
+
+October 2026 cost $68 after the free allowances ran out on 20 Oct: Geocoding 19,561 calls, Places
+Text Search 1,943, Places photos 2,867, Routes 13,324. Every Geocoding / Routes / Places call a page
+makes on load is multiplied by every visitor **and every crawler**. The causes, and the rules that
+keep it at $0 (plan: `docs/superpowers/plans/2026-11-10-google-maps-cost-to-zero.md`):
+
+- **Never geocode a fixed place per visitor.** Tour itinerary stops and meeting points resolve from
+  `src/lib/content/_place-coords.gen.ts` first (`lookupPlaceCoords`, checked inside `geocode()`). A stop
+  added in `/admin` is NOT in it until someone runs `node scripts/build-place-coords.mjs`, reviews
+  the table, re-runs with `--apply` and commits — until then that one stop geocodes per visitor
+  again. The table holds OpenStreetMap data (storable, attributed in the generated file), never
+  Google geocodes (Google's terms don't allow keeping them long-term). Activities have their own
+  `activities.lat/lng`.
+- **Mount a map only near the viewport** — `useNearViewport` (`ItineraryMap` and `RoutedItinerary`
+  do). A map mounted on page load bills every crawler.
+- **A Places Text Search page is one billed request.** Ask for `maxPages: 1` (`?pages=1`) unless the
+  UI shows more than 20 results. The pick-up box once paid for three pages per typed prefix to show
+  six.
+- **Places responses are cached in `places_cache` for 30 days; photos in the edge cache.** A Pages
+  Function response is _not_ kept by Cloudflare's CDN just because it sends `Cache-Control` — the
+  photo route uses `caches.default` explicitly.
+- **Computed routes are memoised per page session** (`routeMemo` in `RouteMap.tsx`).
+- **Safety net, in Google Cloud console:** per-day quotas on each Maps API and a $5 budget alert. If a
+  map or the planner's place list "stops working" on a busy day, check APIs & Services → Quotas
+  before debugging code — a hit cap degrades to the keyless "View on Google Maps" link by design.
