@@ -50,6 +50,8 @@ export interface PlacesSearchArgs {
   query?: string;
   category?: string;
   region?: string;
+  /** Text Search pages to fetch (each page is ONE billed request). Default 3 (~60 results). */
+  maxPages?: 1 | 2 | 3;
 }
 
 // ── pure mappers ────────────────────────────────────────────────────────────
@@ -285,7 +287,7 @@ export async function searchGooglePlaces(
     );
     places = dedupeById(lists.flat());
   } else {
-    places = await searchTextCached(buildQuery(args), apiKey, 3);
+    places = await searchTextCached(buildQuery(args), apiKey, args.maxPages ?? 3);
   }
   if (args.region && args.region !== 'All') return places.filter((p) => p.region === args.region);
   return places;

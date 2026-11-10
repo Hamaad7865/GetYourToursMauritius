@@ -90,8 +90,9 @@ export function PickupSearch({
     let active = true;
     const t = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/planner/places?q=${encodeURIComponent(q)}`).then((r) =>
-          r.json(),
+        // One page (= one billed Places request): we show 6 results, a page holds 20.
+        const res = await fetch(`/api/planner/places?q=${encodeURIComponent(q)}&pages=1`).then(
+          (r) => r.json(),
         );
         if (!active) return;
         setResults(
@@ -102,7 +103,7 @@ export function PickupSearch({
       } finally {
         if (active) setLoading(false);
       }
-    }, 280);
+    }, 400);
     return () => {
       active = false;
       clearTimeout(t);

@@ -44,6 +44,8 @@ export const GET = apiHandler(async (req) => {
           query: url.searchParams.get('q') ?? undefined,
           category: url.searchParams.get('category') ?? undefined,
           region: url.searchParams.get('region') ?? undefined,
+          // The pick-up box shows 6 results: one page (one billed request) is plenty.
+          maxPages: url.searchParams.get('pages') === '1' ? 1 : undefined,
         },
         key,
       );

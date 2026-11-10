@@ -7,7 +7,7 @@ import {
   regionFromCoords,
   REGION_DISTANCE_DEFAULT,
 } from '@/lib/services/pricing';
-import { searchGooglePlaces } from '@/lib/maps/google-places';
+import { resolvePlaceByText } from '@/lib/maps/google-places';
 import { cacheGet, cacheSet } from '@/lib/maps/places-cache';
 import type { TourSummary } from '@/lib/validation/tours';
 
@@ -122,8 +122,8 @@ function realSources(ctx: ServiceContext, mapsApiKey: string | null): CoordsSour
     },
     searchPlace: async (query) => {
       if (!mapsApiKey) return null;
-      const places = await searchGooglePlaces({ query }, mapsApiKey);
-      const first = places[0];
+      // One page, top hit: a coordinate lookup must not pay for three pages of results.
+      const first = await resolvePlaceByText(query, mapsApiKey);
       return first ? { lat: first.lat, lng: first.lng } : null;
     },
   };
