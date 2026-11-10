@@ -42,14 +42,24 @@ function LegendPin({ kind }: { kind: StopKind }) {
  * (alternatives) itineraries so they look identical. Pickup/start is a coral pin; fixed stops are
  * solid teal "main" pins; swappable stops are hollow teal "other" pins.
  */
-export function ItineraryMap({ stops, kinds }: { stops: ItineraryStop[]; kinds?: StopKind[] }) {
+export function ItineraryMap({
+  stops,
+  kinds,
+  settled = true,
+}: {
+  stops: ItineraryStop[];
+  kinds?: StopKind[];
+  /** False while the parent is still re-ordering the stops: drawing now would bill a route for an
+   *  order that is about to change (RoutedItinerary). */
+  settled?: boolean;
+}) {
   const t = useT();
   const hasStart = (kinds ?? []).includes('start');
   // The map — and its billed Google calls — waits until the visitor scrolls near it.
   const [nearRef, near] = useNearViewport<HTMLDivElement>();
   return (
     <div ref={nearRef}>
-      {near ? (
+      {near && settled ? (
         <RouteMap stops={stops} kinds={kinds} animate />
       ) : (
         // Same box as RouteMap's container, so nothing shifts when the map arrives.

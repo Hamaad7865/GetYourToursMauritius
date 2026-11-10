@@ -72,7 +72,13 @@ export function RoutedItinerary({
   return (
     <div ref={nearRef} className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_1.1fr]">
       <ItineraryTimeline nodes={orderedNodes} collapseAt={collapseAt} />
-      <ItineraryMap stops={orderedStops} kinds={orderedKinds} />
+      <ItineraryMap
+        stops={orderedStops}
+        kinds={orderedKinds}
+        // Draw once, in the final order (one computeRoutes, not two). If Maps can't load, the
+        // order never settles — let RouteMap show its own fallback link instead of a grey box.
+        settled={order !== null || stops.length < 3 || status === 'error'}
+      />
     </div>
   );
 }
