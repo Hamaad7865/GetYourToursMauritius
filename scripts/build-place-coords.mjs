@@ -51,6 +51,17 @@ const inMauritius = (p) =>
 const OVERRIDES = {
   // Plus Code PQ5H+9V9 (decoded: -20.29163, 57.77963) — the Grand River South East boat jetty.
   'pq5h+9v9 grand river south east': { lat: -20.2916, lng: 57.7796 },
+  // Port Louis city tour: the Kaylasson temple (OSM "Sockalingum Meenatchee Ammen Kovil"), the
+  // capital's best-known Tamil temple.
+  'tamil temple': { lat: -20.14968, lng: 57.51949 },
+  // South tour, after Chamarel: the roadside viewpoint over Le Morne and Ile aux Benitiers (OSM
+  // "Viewpoint Chamarel").
+  'viewpoint of benitier island': { lat: -20.4212, lng: 57.38641 },
+  // The boat tours' waterfall up the Grand River South East (OSM "Cascade"), both spellings.
+  'g r s e waterfall': { lat: -20.29176, lng: 57.76065 },
+  'grand river south east waterfall': { lat: -20.29176, lng: 57.76065 },
+  // The islet just north of Ile aux Cerfs — not named in OSM; placed by hand from the map.
+  'ilot mangenie': { lat: -20.261, lng: 57.805 },
 };
 
 /** A better OSM search for a stop name that is misspelt or informal (keys normalised). The stored
@@ -77,16 +88,9 @@ const ALIASES = {
   'port louis caudan waterfront': 'Caudan Waterfront, Port Louis',
 };
 
-/** Not storable yet — the site keeps asking Google for these until a human places them in OVERRIDES
- *  from a map. Tamil Temple: OSM matched a street, and which temple the tour means is the owner's
- *  call. The rest are not in OpenStreetMap at all (or only under a name we couldn't find). */
-const SKIP = [
-  'tamil temple',
-  'viewpoint of benitier island',
-  'g r s e waterfall',
-  'grand river south east waterfall',
-  'ilot mangenie',
-];
+/** Names to leave to the live geocoder until a human places them in OVERRIDES. Empty since
+ *  2026-11-11 — every published stop is placed. New stops are pinned by the admin save anyway. */
+const SKIP = [];
 
 /** Not a place — a description. Stored as null: never geocoded, the map simply has no pin for it. */
 const UNPLACEABLE = [

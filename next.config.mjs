@@ -116,7 +116,7 @@ const nextConfig = {
       "style-src 'self' 'unsafe-inline' https://*.googleapis.com https://*.peachpayments.com https://*.oppwa.com",
       "img-src 'self' data: blob: https:",
       "font-src 'self' data: https://fonts.gstatic.com",
-      "connect-src 'self' https://*.supabase.co https://*.googleapis.com https://*.gstatic.com https://*.peachpayments.com https://*.oppwa.com https://*.jscrambler.com",
+      "connect-src 'self' https://*.supabase.co https://*.googleapis.com https://*.gstatic.com https://*.peachpayments.com https://*.oppwa.com https://*.jscrambler.com https://nominatim.openstreetmap.org",
       "frame-src 'self' https://*.peachpayments.com https://*.supabase.co https://*.oppwa.com https://challenges.cloudflare.com",
       "frame-ancestors 'self'",
       "base-uri 'self'",

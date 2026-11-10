@@ -801,7 +801,7 @@ keep it at $0 (plan: `docs/superpowers/plans/2026-11-10-google-maps-cost-to-zero
   `extra.itinerary`. **Saving a tour in `/admin` fills a missing pin automatically**
   (`pinItinerary` in `src/lib/admin/stop-pins.ts`): the stored table
   `src/lib/content/_place-coords.gen.ts` first, then OpenStreetMap Nominatim through the staff-only
-  `POST /api/v1/admin/place-pins` (server-side for Nominatim's User-Agent rule; ≤ 1 req/s). The save
+  `POST /api/v1/admin/place-pins` (server-side for Nominatim's User-Agent rule; ≤ 1 req/s). If the server can't reach Nominatim (it may refuse Cloudflare IPs), the browser asks it directly — `nominatim.openstreetmap.org` is in the CSP `connect-src` for that. The save
   also copies the pins onto the French translation's own `extra.itinerary` **by position** (the
   shallow `a.extra || t.extra` merge means French pages never see the English pins otherwise). A stop
   OSM can't place is saved unpinned, the save warns, and the Itinerary pane takes a pasted

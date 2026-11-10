@@ -85,6 +85,10 @@ export const PLACE_COORDS: Record<string, { lat: number; lng: number } | null> =
     lat: -20.375,
     lng: 57.72185,
   },
+  'g r s e waterfall': {
+    lat: -20.29176,
+    lng: 57.76065,
+  },
   'gabriel island': {
     lat: -19.88637,
     lng: 57.67213,
@@ -108,6 +112,10 @@ export const PLACE_COORDS: Record<string, { lat: number; lng: number } | null> =
   'grand river south east': {
     lat: -20.31307,
     lng: 57.66572,
+  },
+  'grand river south east waterfall': {
+    lat: -20.29176,
+    lng: 57.76065,
   },
   'gris gris viewpoint': {
     lat: -20.52452,
@@ -141,6 +149,10 @@ export const PLACE_COORDS: Record<string, { lat: number; lng: number } | null> =
   'ile de passe': {
     lat: -20.39901,
     lng: 57.7674,
+  },
+  'ilot mangenie': {
+    lat: -20.261,
+    lng: 57.805,
   },
   'la vanille nature park': {
     lat: -20.50076,
@@ -203,6 +215,10 @@ export const PLACE_COORDS: Record<string, { lat: number; lng: number } | null> =
     lat: -20.3262,
     lng: 57.37722,
   },
+  'tamil temple': {
+    lat: -20.14968,
+    lng: 57.51949,
+  },
   'trou aux biches': {
     lat: -20.04413,
     lng: 57.53675,
@@ -214,5 +230,9 @@ export const PLACE_COORDS: Record<string, { lat: number; lng: number } | null> =
   'trou d eau douce': {
     lat: -20.23975,
     lng: 57.78497,
+  },
+  'viewpoint of benitier island': {
+    lat: -20.4212,
+    lng: 57.38641,
   },
 };

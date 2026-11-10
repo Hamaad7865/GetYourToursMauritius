@@ -3,6 +3,7 @@ import { countRowsEq, countRowsIn, isForeignKeyViolation } from '@/lib/admin/del
 import { normalizeBadges, type BadgeInput } from '@/lib/catalogue/badges';
 import type { PricingMode } from '@/lib/validation/tours';
 import { copyPinsByPosition } from '@/lib/admin/stop-pins';
+import { findPins } from '@/lib/maps/osm-pin';
 
 /* Client-side admin writes. RLS already grants staff/admin full read+write on activities and
  * their images/options/prices, so an authenticated admin performs these directly — no RPC. */
@@ -918,27 +919,41 @@ export async function saveActivityTranslation(
   if (error) throw error;
 }
 
-/** Ask the server for map pins for these stop names (stored table, then OpenStreetMap — never
- *  Google). Throws on failure; pinItinerary() turns that into "left unpinned". */
+/** Ask for map pins for these stop names (stored table, then OpenStreetMap — never Google). The
+ *  server route goes first (it can send Nominatim the identifying User-Agent its policy asks for).
+ *  If the server can't reach OpenStreetMap — it may refuse Cloudflare's shared IPs — the names it
+ *  couldn't answer are asked again straight from the admin's browser, so a save never needs a human
+ *  to paste coordinates just because one network path is blocked. */
 export async function requestPlacePins(
   names: string[],
 ): Promise<Record<string, { lat: number; lng: number } | null>> {
-  const { data } = await getBrowserSupabase().auth.getSession();
-  const token = data.session?.access_token;
-  const res = await fetch('/api/v1/admin/place-pins', {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      ...(token ? { authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify({ names }),
-  });
-  const body = (await res.json().catch(() => null)) as {
-    ok?: boolean;
-    data?: { pins?: Record<string, { lat: number; lng: number } | null> };
-  } | null;
-  if (!res.ok || !body?.ok || !body.data?.pins) throw new Error('Could not look up map pins.');
-  return body.data.pins;
+  let pins: Record<string, { lat: number; lng: number } | null> = {};
+  try {
+    const { data } = await getBrowserSupabase().auth.getSession();
+    const token = data.session?.access_token;
+    const res = await fetch('/api/v1/admin/place-pins', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        ...(token ? { authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ names }),
+    });
+    const body = (await res.json().catch(() => null)) as {
+      ok?: boolean;
+      data?: { pins?: Record<string, { lat: number; lng: number } | null> };
+    } | null;
+    if (res.ok && body?.ok && body.data?.pins) pins = body.data.pins;
+  } catch {
+    // fall through to the browser lookup
+  }
+  const missing = names.filter((n) => !(n in pins));
+  if (!missing.length) return pins;
+  // A browser can't set User-Agent (and trying adds a CORS preflight), so send a plain GET; the
+  // browser's own Referer identifies the site, which Nominatim's policy accepts for web apps.
+  const browserFetch = ((url: string, init?: RequestInit) =>
+    fetch(url, { signal: init?.signal })) as typeof fetch;
+  return { ...pins, ...(await findPins(missing, { fetchImpl: browserFetch })) };
 }
 
 /** Copy the English stops' pins onto the French translation's own itinerary (see
