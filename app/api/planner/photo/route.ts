@@ -33,6 +33,15 @@ export const GET = apiHandler(async (req) => {
   const key = mapsKey();
   if (!key) return new Response('Maps key not configured', { status: 404 });
 
+  // A Pages Function response is NOT kept by Cloudflare's CDN because of Cache-Control alone, so
+  // without this nearly every view re-billed a Places photo. `caches` is absent in next dev / tests.
+  const edgeCache = (globalThis as { caches?: { default?: Cache } }).caches?.default;
+  const cacheKey = new Request(
+    new URL(`/api/planner/photo?ref=${encodeURIComponent(ref)}`, req.url).toString(),
+  );
+  const cached = edgeCache ? await edgeCache.match(cacheKey) : undefined;
+  if (cached) return cached;
+
   const media = `https://places.googleapis.com/v1/${ref}/media?maxWidthPx=400&key=${encodeURIComponent(key)}`;
   // Bound the upstream fetch so a hung Google request can't hold the edge invocation open indefinitely.
   const controller = new AbortController();
@@ -47,11 +56,14 @@ export const GET = apiHandler(async (req) => {
   }
   if (!res.ok || !res.body) return new Response('Photo unavailable', { status: 502 });
 
-  return new Response(res.body, {
+  const out = new Response(res.body, {
     status: 200,
     headers: {
       'Content-Type': res.headers.get('content-type') ?? 'image/jpeg',
       'Cache-Control': 'public, max-age=86400, s-maxage=604800, immutable',
     },
   });
+  // Best-effort: a cache write failure must never cost the visitor their photo.
+  if (edgeCache) await edgeCache.put(cacheKey, out.clone()).catch(() => undefined);
+  return out;
 });
