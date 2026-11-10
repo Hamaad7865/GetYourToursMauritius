@@ -797,13 +797,19 @@ Text Search 1,943, Places photos 2,867, Routes 13,324. Every Geocoding / Routes 
 makes on load is multiplied by every visitor **and every crawler**. The causes, and the rules that
 keep it at $0 (plan: `docs/superpowers/plans/2026-11-10-google-maps-cost-to-zero.md`):
 
-- **Never geocode a fixed place per visitor.** Tour itinerary stops and meeting points resolve from
-  `src/lib/content/_place-coords.gen.ts` first (`lookupPlaceCoords`, checked inside `geocode()`). A stop
-  added in `/admin` is NOT in it until someone runs `node scripts/build-place-coords.mjs`, reviews
-  the table, re-runs with `--apply` and commits — until then that one stop geocodes per visitor
-  again. The table holds OpenStreetMap data (storable, attributed in the generated file), never
-  Google geocodes (Google's terms don't allow keeping them long-term). Activities have their own
-  `activities.lat/lng`.
+- **Never geocode a fixed place per visitor.** A tour itinerary stop carries its own `lat`/`lng` in
+  `extra.itinerary`. **Saving a tour in `/admin` fills a missing pin automatically**
+  (`pinItinerary` in `src/lib/admin/stop-pins.ts`): the stored table
+  `src/lib/content/_place-coords.gen.ts` first, then OpenStreetMap Nominatim through the staff-only
+  `POST /api/v1/admin/place-pins` (server-side for Nominatim's User-Agent rule; ≤ 1 req/s). The save
+  also copies the pins onto the French translation's own `extra.itinerary` **by position** (the
+  shallow `a.extra || t.extra` merge means French pages never see the English pins otherwise). A stop
+  OSM can't place is saved unpinned, the save warns, and the Itinerary pane takes a pasted
+  "lat, lng". Renaming a stop clears its pin. The page then reads: stop pin → stored table → Google
+  (billed, per visitor). Store OpenStreetMap or hand-placed coordinates only, never a Google geocode
+  (Google's terms don't allow keeping them long-term). `scripts/build-place-coords.mjs` only rebuilds
+  the fallback table; nobody needs to run it for a new stop. Meeting points still resolve via the
+  table and then Google (`LocationMap`). Activities have their own `activities.lat/lng`.
 - **Mount a map only near the viewport** — `useNearViewport` (`ItineraryMap` and `RoutedItinerary`
   do). A map mounted on page load bills every crawler.
 - **A Places Text Search page is one billed request.** Ask for `maxPages: 1` (`?pages=1`) unless the

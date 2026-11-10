@@ -1,8 +1,85 @@
 'use client';
 
+import { useState } from 'react';
 import { IconX } from '@/components/ui/icons';
 import { StringList, inputClass } from '@/components/admin/fields';
 import type { ItineraryStopInput } from '@/lib/admin/activity-write';
+import { hasPin, parseLatLng } from '@/lib/admin/stop-pins';
+
+/**
+ * The stop's stored map pin. Saving fills a missing one automatically (stored table, then
+ * OpenStreetMap); this shows it so a wrong match can be spotted, and takes a pasted "lat, lng" for a
+ * place OpenStreetMap doesn't know. A stop with no pin costs a billed Google lookup per page visitor.
+ */
+function PinField({
+  stop,
+  onPin,
+}: {
+  stop: ItineraryStopInput;
+  onPin: (pin: { lat: number | null; lng: number | null }) => void;
+}) {
+  const [text, setText] = useState('');
+  const [bad, setBad] = useState(false);
+  if (hasPin(stop)) {
+    const q = `${stop.lat},${stop.lng}`;
+    return (
+      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-ink-muted">
+        <span>
+          Map pin: {stop.lat}, {stop.lng}
+        </span>
+        <a
+          href={`https://www.google.com/maps?q=${q}`}
+          target="_blank"
+          rel="noreferrer"
+          className="font-bold text-teal-dark underline"
+        >
+          Check on a map
+        </a>
+        <button
+          type="button"
+          onClick={() => onPin({ lat: null, lng: null })}
+          className="font-bold text-ink-muted underline hover:text-coral"
+        >
+          Remove pin
+        </button>
+      </div>
+    );
+  }
+  const commit = () => {
+    if (!text.trim()) return setBad(false);
+    const pin = parseLatLng(text);
+    if (!pin) return setBad(true);
+    setBad(false);
+    setText('');
+    onPin(pin);
+  };
+  return (
+    <div className="mt-2 text-[12px] text-ink-muted">
+      <label className="flex flex-wrap items-center gap-2">
+        <span>No map pin yet — found automatically when you save, or paste coordinates:</span>
+        <input
+          className={`${inputClass} max-w-[220px] py-1 text-[12px]`}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              commit();
+            }
+          }}
+          placeholder="-20.2916, 57.7796"
+        />
+      </label>
+      {bad && (
+        <p className="m-0 mt-1 text-coral-dark">
+          That isn’t a point in Mauritius — right-click the place in Google Maps and click the
+          numbers to copy them.
+        </p>
+      )}
+    </div>
+  );
+}
 
 export function ItineraryEditor({
   stops,
@@ -23,7 +100,8 @@ export function ItineraryEditor({
               <input
                 className={inputClass}
                 value={stop.title}
-                onChange={(e) => update(i, { title: e.target.value })}
+                // A new name is a new place: drop the old pin so saving looks the new one up.
+                onChange={(e) => update(i, { title: e.target.value, lat: null, lng: null })}
                 placeholder="Stop title (e.g. Port Louis)"
               />
               <input
@@ -42,6 +120,7 @@ export function ItineraryEditor({
               <IconX width={18} height={18} />
             </button>
           </div>
+          <PinField stop={stop} onPin={(pin) => update(i, pin)} />
           <textarea
             className={`${inputClass} mt-2`}
             rows={2}
@@ -68,7 +147,7 @@ export function ItineraryEditor({
                   onChange={(e) =>
                     update(i, {
                       options: stop.options.map((o, idx) =>
-                        idx === oi ? { ...o, title: e.target.value } : o,
+                        idx === oi ? { ...o, title: e.target.value, lat: null, lng: null } : o,
                       ),
                     })
                   }

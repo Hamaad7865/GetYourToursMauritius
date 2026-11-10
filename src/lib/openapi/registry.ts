@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { ZodOpenApiPathsObject, ZodOpenApiResponseObject } from 'zod-openapi';
 import { draftFromEmailResponseSchema } from '@/lib/validation/quote-extraction';
+import { placePinsRequestSchema, placePinsResponseSchema } from '@/lib/validation/place-pins';
 import {
   adminAssistantRequestSchema,
   adminAssistantResponseSchema,
@@ -1164,6 +1165,27 @@ export const apiPaths: ZodOpenApiPathsObject = {
         ),
         '429': errorResponse('Too many requests'),
         '500': errorResponse('The email could not be sent'),
+      },
+    },
+  },
+  '/admin/place-pins': {
+    post: {
+      operationId: 'findPlacePins',
+      summary: 'Map pins for itinerary stop names (needs Tours)',
+      description:
+        'Called by the tour editor when it saves: returns stored or OpenStreetMap coordinates for ' +
+        'the stop names it was sent, so the tour stores its pins and its public page never geocodes ' +
+        'them per visitor. Never uses Google. null = no on-island place found; a name left out of ' +
+        'the result = the lookup failed in transit. Writes nothing.',
+      tags: ['Catalogue'],
+      security: [{ bearerAuth: [] }],
+      requestBody: jsonBody(placePinsRequestSchema),
+      responses: {
+        '200': okJson(placePinsResponseSchema, 'A pin (or null) per name'),
+        '400': errorResponse('No names, or more than 12'),
+        '401': errorResponse('Authentication required'),
+        '403': errorResponse('The caller’s role does not include the Tours section'),
+        '429': errorResponse('Too many requests'),
       },
     },
   },

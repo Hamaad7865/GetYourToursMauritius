@@ -18,8 +18,11 @@
  *     node scripts/build-place-coords.mjs --apply                  # write the generated file
  *
  * Names already in the generated file are kept and not looked up again. Nominatim's usage policy:
- * max 1 request/second, an identifying User-Agent — honoured below. A NEW stop added in /admin shows
- * as a "new name" here; re-run, review, --apply, commit.
+ * max 1 request/second, an identifying User-Agent — honoured below.
+ *
+ * You do NOT need this for a new stop: saving the tour in /admin pins it automatically (stop-pins.ts →
+ * /api/v1/admin/place-pins) and stores the pin on the stop itself. This table is only the fallback for
+ * stops saved before that existed, and for meeting points.
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 

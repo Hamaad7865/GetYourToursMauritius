@@ -2,6 +2,7 @@ import { getBrowserSupabase } from '@/lib/supabase/browser';
 import { countRowsEq, countRowsIn, isForeignKeyViolation } from '@/lib/admin/delete-guards';
 import { normalizeBadges, type BadgeInput } from '@/lib/catalogue/badges';
 import type { PricingMode } from '@/lib/validation/tours';
+import { copyPinsByPosition } from '@/lib/admin/stop-pins';
 
 /* Client-side admin writes. RLS already grants staff/admin full read+write on activities and
  * their images/options/prices, so an authenticated admin performs these directly — no RPC. */
@@ -55,12 +56,13 @@ export interface ItineraryStopInput {
   area: string;
   description: string;
   tags: string[];
-  /** Hand-placed map coordinates (set via SQL patches, not the editor) — round-tripped untouched so
-   *  an admin save never degrades the map back to title-geocoding. */
+  /** Stored map pin. Filled automatically on save (stop-pins.ts: stored table, then OpenStreetMap),
+   *  or pasted by hand in the editor; round-tripped untouched so a save never degrades the map back to
+   *  per-visitor Google geocoding. Renaming the stop clears it so the new name is looked up. */
   lat?: number | null;
   lng?: number | null;
-  /** Alternatives the customer can pick instead of this stop. */
-  options: { title: string; area: string }[];
+  /** Alternatives the customer can pick instead of this stop (pinned the same way). */
+  options: { title: string; area: string; lat?: number | null; lng?: number | null }[];
 }
 
 export interface ActivityFormValues {
@@ -247,7 +249,13 @@ function buildExtra(v: ActivityFormValues) {
       };
       const options = s.options
         .filter((o) => o.title.trim())
-        .map((o) => ({ title: o.title.trim(), area: o.area.trim() || null }));
+        .map((o) => ({
+          title: o.title.trim(),
+          area: o.area.trim() || null,
+          ...(typeof o.lat === 'number' && typeof o.lng === 'number'
+            ? { lat: o.lat, lng: o.lng }
+            : {}),
+        }));
       return options.length ? { ...base, options } : base;
     });
   const badges = normalizeBadges(v.badges);
@@ -910,6 +918,54 @@ export async function saveActivityTranslation(
   if (error) throw error;
 }
 
+/** Ask the server for map pins for these stop names (stored table, then OpenStreetMap — never
+ *  Google). Throws on failure; pinItinerary() turns that into "left unpinned". */
+export async function requestPlacePins(
+  names: string[],
+): Promise<Record<string, { lat: number; lng: number } | null>> {
+  const { data } = await getBrowserSupabase().auth.getSession();
+  const token = data.session?.access_token;
+  const res = await fetch('/api/v1/admin/place-pins', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      ...(token ? { authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ names }),
+  });
+  const body = (await res.json().catch(() => null)) as {
+    ok?: boolean;
+    data?: { pins?: Record<string, { lat: number; lng: number } | null> };
+  } | null;
+  if (!res.ok || !body?.ok || !body.data?.pins) throw new Error('Could not look up map pins.');
+  return body.data.pins;
+}
+
+/** Copy the English stops' pins onto the French translation's own itinerary (see
+ *  copyPinsByPosition). Best effort: the French page falls back to the stored table / Google, so a
+ *  failure here must never fail the save. */
+export async function syncFrenchPins(
+  activityId: string,
+  stops: ItineraryStopInput[],
+): Promise<void> {
+  const sb = getBrowserSupabase();
+  const { data, error } = await sb
+    .from('activity_translations')
+    .select('extra')
+    .eq('activity_id', activityId)
+    .eq('locale', 'fr')
+    .maybeSingle();
+  if (error || !data?.extra || typeof data.extra !== 'object') return;
+  const extra = data.extra as Record<string, unknown>;
+  const itinerary = copyPinsByPosition(extra.itinerary, stops);
+  if (!itinerary) return;
+  await sb
+    .from('activity_translations')
+    .update({ extra: { ...extra, itinerary } as never })
+    .eq('activity_id', activityId)
+    .eq('locale', 'fr');
+}
+
 /** Load the existing French translation row (if any) for the editor. Returns the form shape plus
  *  the raw `source`, so the caller can show the machine-draft badge with `isMachineDraft`. */
 export async function loadActivityTranslation(
@@ -977,7 +1033,7 @@ interface ExtraShape {
     tags?: string[];
     lat?: number | null;
     lng?: number | null;
-    options?: Array<{ title?: string; area?: string | null }>;
+    options?: Array<{ title?: string; area?: string | null; lat?: number; lng?: number }>;
   }>;
   badges?: Array<{ icon?: string; title?: string; subtitle?: string }>;
   whatToBring?: string[];
@@ -1092,7 +1148,12 @@ export async function loadActivityForEdit(id: string): Promise<ActivityFormValue
       tags: s.tags ?? [],
       lat: s.lat ?? null,
       lng: s.lng ?? null,
-      options: (s.options ?? []).map((o) => ({ title: o.title ?? '', area: o.area ?? '' })),
+      options: (s.options ?? []).map((o) => ({
+        title: o.title ?? '',
+        area: o.area ?? '',
+        lat: o.lat ?? null,
+        lng: o.lng ?? null,
+      })),
     })),
     badges: (extra.badges ?? []).map((b) => ({
       icon: b.icon ?? '',

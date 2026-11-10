@@ -34,11 +34,14 @@ import {
   loadActivityForEdit,
   loadActivityTranslation,
   saveActivityTranslation,
+  requestPlacePins,
+  syncFrenchPins,
   slugify,
   updateActivity,
   type ActivityFormValues,
   type ActivityTranslationForm,
 } from '@/lib/admin/activity-write';
+import { pinItinerary } from '@/lib/admin/stop-pins';
 
 /**
  * The tour editor.
@@ -214,11 +217,20 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
     }
     setSaving(true);
     try {
+      // Pin every new itinerary stop before writing (stored table, then OpenStreetMap), so the public
+      // page reads stored coordinates instead of paying Google to geocode the stop per visitor.
+      // Never throws: a stop that can't be placed is saved unpinned and named in the warning below.
+      const pinned = await pinItinerary(v.itinerary, requestPlacePins);
+      const vp = { ...v, itinerary: pinned.stops };
+      const pinWarning = pinned.unpinned.length
+        ? `Saved — but ${pinned.unpinned.map((n) => `“${n}”`).join(', ')} couldn’t be placed on the map automatically. Paste its coordinates in the Itinerary pane (right-click the spot in Google Maps to copy them).`
+        : null;
       if (mode === 'new') {
-        const newId = await createActivity(v, { contentOnly, pricingLocked });
+        const newId = await createActivity(vp, { contentOnly, pricingLocked });
         // Saving the activity always saves its French alongside it — the owner typing (or simply
         // reviewing and clicking Save) IS the review, so this also clears the machine-draft badge.
         await saveActivityTranslation(newId, fr);
+        await syncFrenchPins(newId, vp.itinerary).catch(() => undefined);
         // Stay IN the tour instead of bouncing to the list: switch this editor over to the tour that
         // was just created so a second save edits it in place (no duplicate). ?saved=1 re-shows the
         // confirmation after the edit page remounts with fresh, id-carrying data.
@@ -227,8 +239,9 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
         return;
       }
       if (id) {
-        const { keptWithBookings } = await updateActivity(id, v, { contentOnly, pricingLocked });
+        const { keptWithBookings } = await updateActivity(id, vp, { contentOnly, pricingLocked });
         await saveActivityTranslation(id, fr);
+        await syncFrenchPins(id, vp.itinerary).catch(() => undefined);
         // Reload so newly-added options/supplements pick up their database ids, then stay on the
         // current pane with a "Saved ✓" confirmation rather than leaving the tour.
         await reloadInto(id);
@@ -241,6 +254,8 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
           setWarning(
             `Saved — but ${names} ${one ? 'has' : 'have'} bookings, so ${one ? 'it was' : 'they were'} not removed. Use “Discontinue” on ${one ? 'it' : 'them'} to hide from customers while keeping the booking.`,
           );
+        } else if (pinWarning) {
+          setWarning(pinWarning);
         }
         // Revalidate the public site's server components so the change shows there too.
         router.refresh();

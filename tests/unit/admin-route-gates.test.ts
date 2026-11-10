@@ -38,6 +38,7 @@ const GATED: Record<string, string> = {
   'admin/quotes/draft-from-email/route.ts': 'section.quotes',
   'admin/documents/[id]/pdf/route.ts': 'section.documents',
   'admin/documents/[id]/email/route.ts': 'section.documents',
+  'admin/place-pins/route.ts': 'section.tours',
   'seo/ai-fix/route.ts': 'section.seo',
   'seo/search-console/route.ts': 'section.seo',
   'reviews/google-live/route.ts': 'section.reviews',
