@@ -2,6 +2,7 @@
 
 import type { ItineraryStop } from '@/lib/validation/tours';
 import { useT } from '@/components/site/PreferencesProvider';
+import { useNearViewport } from '@/lib/maps/useNearViewport';
 import { RouteMap, type StopKind } from './RouteMap';
 
 /** Whether any stop on the map is a swappable "other" stop — drives showing that legend entry. */
@@ -44,9 +45,19 @@ function LegendPin({ kind }: { kind: StopKind }) {
 export function ItineraryMap({ stops, kinds }: { stops: ItineraryStop[]; kinds?: StopKind[] }) {
   const t = useT();
   const hasStart = (kinds ?? []).includes('start');
+  // The map — and its billed Google calls — waits until the visitor scrolls near it.
+  const [nearRef, near] = useNearViewport<HTMLDivElement>();
   return (
-    <div>
-      <RouteMap stops={stops} kinds={kinds} animate />
+    <div ref={nearRef}>
+      {near ? (
+        <RouteMap stops={stops} kinds={kinds} animate />
+      ) : (
+        // Same box as RouteMap's container, so nothing shifts when the map arrives.
+        <div
+          aria-hidden="true"
+          className="h-[300px] w-full overflow-hidden rounded-2xl border border-ink/10 bg-ink/[0.04] lg:h-[360px]"
+        />
+      )}
       <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-ink-muted">
         {hasStart && (
           <span className="flex items-center gap-1.5">
@@ -61,6 +72,10 @@ export function ItineraryMap({ stops, kinds }: { stops: ItineraryStop[]; kinds?:
             <LegendPin kind="other" /> {t('Other stop')}
           </span>
         )}
+        {/* ODbL attribution: stop pins come from _place-coords.gen.ts (OpenStreetMap data). */}
+        <span className="ml-auto text-[11px] text-ink-muted/80">
+          {t('Stop locations © OpenStreetMap contributors')}
+        </span>
       </div>
     </div>
   );

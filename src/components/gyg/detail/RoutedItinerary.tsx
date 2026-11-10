@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import type { ItineraryStop } from '@/lib/validation/tours';
 import { useGoogleMaps } from '@/lib/maps/useGoogleMaps';
 import { geocode } from '@/lib/maps/geocode';
+import { useNearViewport } from '@/lib/maps/useNearViewport';
 import { nearestNeighborOrder, type MaybePoint } from '@/lib/itinerary/order';
 import { ItineraryTimeline, type TimelineNode } from './ItineraryTimeline';
 import { ItineraryMap } from '@/components/maps/ItineraryMap';
@@ -33,11 +34,13 @@ export function RoutedItinerary({
   collapseAt?: number;
 }) {
   const status = useGoogleMaps();
+  // Geocoding unknown stops is billed: wait until the visitor scrolls near the itinerary.
+  const [nearRef, near] = useNearViewport<HTMLDivElement>();
   const [order, setOrder] = useState<number[] | null>(null);
   const [coords, setCoords] = useState<Record<number, google.maps.LatLngLiteral>>({});
 
   useEffect(() => {
-    if (status !== 'ready' || stops.length < 3) return;
+    if (!near || status !== 'ready' || stops.length < 3) return;
     let cancelled = false;
     void (async () => {
       const points: MaybePoint[] = await Promise.all(
@@ -58,7 +61,7 @@ export function RoutedItinerary({
     return () => {
       cancelled = true;
     };
-  }, [status, stops]);
+  }, [near, status, stops]);
 
   const ord = order ?? stops.map((_, i) => i);
   const orderedNodes = ord.map((i) => nodes[i]!);
@@ -67,7 +70,7 @@ export function RoutedItinerary({
   const orderedKinds = kinds ? ord.map((i) => kinds[i]!) : undefined;
 
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_1.1fr]">
+    <div ref={nearRef} className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_1.1fr]">
       <ItineraryTimeline nodes={orderedNodes} collapseAt={collapseAt} />
       <ItineraryMap stops={orderedStops} kinds={orderedKinds} />
     </div>

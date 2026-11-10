@@ -2644,6 +2644,8 @@ export const fr: Record<string, string> = {
   'Search for your hotel or drag the pin to mark your pickup point.':
     'Recherchez votre hôtel ou faites glisser le repère pour indiquer votre point de prise en charge.',
   'See the full route': 'Voir l’itinéraire complet',
+  'Stop locations © OpenStreetMap contributors':
+    'Emplacements des étapes © contributeurs OpenStreetMap',
   'What our guests say': 'Ce que disent nos clients',
   'Rated {avg}/5 from {total} reviews on TripAdvisor & Google.':
     'Noté {avg}/5 sur {total} avis TripAdvisor et Google.',

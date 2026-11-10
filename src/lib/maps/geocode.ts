@@ -5,6 +5,8 @@
  * keeping Geocoding API usage (and cost) minimal. Returns null when geocoding is unavailable
  * or finds nothing, so callers can fall back to a keyless map link. */
 
+import { lookupPlaceCoords } from './place-coords';
+
 const memCache = new Map<string, google.maps.LatLngLiteral | null>();
 
 function normalise(query: string): string {
@@ -29,6 +31,10 @@ function writeSession(key: string, value: google.maps.LatLngLiteral | null): voi
 }
 
 export async function geocode(query: string): Promise<google.maps.LatLngLiteral | null> {
+  // Stored coordinates first (tour stops, meeting points): no billed call, same for every visitor.
+  const stored = lookupPlaceCoords(query);
+  if (stored !== undefined) return stored;
+
   const q = normalise(query).toLowerCase();
   if (memCache.has(q)) return memCache.get(q) ?? null;
 
