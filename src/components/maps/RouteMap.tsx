@@ -73,6 +73,14 @@ function buildDrivePath(
  * of the session — every retry just re-spams the console. The straight-line fallback takes over. */
 let directionsDenied = false;
 
+/** Same stops → same road. Route paths are kept for this page session only (never persisted), so a
+ *  builder edit that ends where it started, a re-render or a revisit doesn't bill computeRoutes
+ *  again. Bounded so a long planner session can't grow it without limit. */
+const routeMemo = new Map<string, google.maps.LatLngLiteral[]>();
+const ROUTE_MEMO_MAX = 50;
+const routeKey = (pts: google.maps.LatLngLiteral[]) =>
+  pts.map((p) => `${p.lat.toFixed(5)},${p.lng.toFixed(5)}`).join('|');
+
 /** Overlays added to the map: AdvancedMarkers (removed via `.map = null`) and route Polylines
  *  (removed via `setMap(null)`). */
 type MapOverlay = google.maps.marker.AdvancedMarkerElement | google.maps.Polyline;
@@ -255,7 +263,21 @@ export function RouteMap({
       // The path the car drives: the real road route if Directions is available, else straight lines.
       let path: google.maps.LatLngLiteral[] = points;
       let drewRoute = false;
-      if (points.length >= 2 && !directionsDenied) {
+      const memoKey = routeKey(points);
+      const remembered = points.length >= 2 ? routeMemo.get(memoKey) : undefined;
+      if (remembered) {
+        track(
+          new google.maps.Polyline({
+            map,
+            path: remembered,
+            strokeColor: '#0E8C92',
+            strokeWeight: 4,
+            strokeOpacity: 0.9,
+          }),
+        );
+        path = remembered;
+        drewRoute = true;
+      } else if (points.length >= 2 && !directionsDenied) {
         try {
           // Routes API (the successor to the deprecated DirectionsService). We request only `path`
           // (the polyline points) and render it ourselves with createPolylines (real Polylines, not
@@ -281,6 +303,11 @@ export function RouteMap({
             // LatLngAltitude exposes lat/lng as number getters (not methods).
             path = route.path.map((p) => ({ lat: p.lat, lng: p.lng }));
             drewRoute = true;
+            if (routeMemo.size >= ROUTE_MEMO_MAX) {
+              const oldest = routeMemo.keys().next().value;
+              if (oldest !== undefined) routeMemo.delete(oldest);
+            }
+            routeMemo.set(memoKey, path);
           }
         } catch (err: unknown) {
           // "not enabled / denied / disabled" is permanent for this key → stop retrying it this
