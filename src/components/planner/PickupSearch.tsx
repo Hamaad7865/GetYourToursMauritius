@@ -4,6 +4,25 @@ import { useEffect, useRef, useState } from 'react';
 import type { PlannerPlace } from '@/lib/validation/planner';
 import type { PlannerPoint } from './planner-constants';
 import { useT } from '@/components/site/PreferencesProvider';
+import { nominatimSearch } from '@/lib/maps/osm-pin';
+import { geoPointId } from '@/lib/geo/pickup-name';
+
+// A browser can't set User-Agent (and trying adds a CORS preflight): a plain GET, identified by Referer.
+const browserFetch = ((url: string, init?: RequestInit) =>
+  fetch(url, { signal: init?.signal })) as typeof fetch;
+
+const osmToPlace = (p: Awaited<ReturnType<typeof nominatimSearch>>[number]): PlannerPlace => ({
+  id: geoPointId(p.lat, p.lng),
+  name: p.name,
+  category: p.kind,
+  region: p.area,
+  lat: p.lat,
+  lng: p.lng,
+  durationMin: 0,
+  closesAt: null,
+  blurb: null,
+  imageUrl: null,
+});
 
 function PinGlyph() {
   return (
@@ -91,13 +110,19 @@ export function PickupSearch({
     const t = setTimeout(async () => {
       try {
         // One page (= one billed Places request): we show 6 results, a page holds 20.
-        const res = await fetch(`/api/planner/places?q=${encodeURIComponent(q)}&pages=1`).then(
-          (r) => r.json(),
-        );
+        const res = await fetch(`/api/planner/places?q=${encodeURIComponent(q)}&pages=1`)
+          .then((r) => r.json())
+          .catch(() => null);
         if (!active) return;
-        setResults(
-          res.ok && Array.isArray(res.data) ? (res.data as PlannerPlace[]).slice(0, 6) : [],
-        );
+        if (res?.ok && Array.isArray(res.data) && res.data.length) {
+          setResults((res.data as PlannerPlace[]).slice(0, 6));
+          return;
+        }
+        // Google refused (an unpaid bill blocked it in Nov 2026) or found nothing: ask
+        // OpenStreetMap from the browser — it refuses Cloudflare's servers, not visitors.
+        const osm = await nominatimSearch(q, browserFetch);
+        if (!active) return;
+        setResults(osm.map(osmToPlace));
       } catch {
         if (active) setResults([]);
       } finally {
