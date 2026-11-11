@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { resolvePickup } from '@/components/admin/BookingFacts';
+import { PickupText } from '@/components/admin/PickupText';
 import { fmtDate, fmtDateShort, fmtDateTime } from '@/lib/admin/format';
 import {
   guestPickup,
@@ -249,7 +250,7 @@ function pickupRows(
       v: (
         <>
           {at}
-          {pickup.text}
+          <PickupText text={pickup.text} />
           {pickup.roundTrip && (
             <span className="block text-[12px] font-medium text-teal-dark">
               Round-trip transfer
@@ -263,7 +264,7 @@ function pickupRows(
   } else {
     rows.push({ k: 'Pickup', v: <span className="text-ink-muted">Makes own way</span> });
   }
-  if (dropoff.kind === 'text') rows.push({ k: 'Drop-off', v: dropoff.text });
+  if (dropoff.kind === 'text') rows.push({ k: 'Drop-off', v: <PickupText text={dropoff.text} /> });
   else if (dropoff.kind === 'same') rows.push({ k: 'Drop-off', v: 'Same as pickup' });
   return rows;
 }

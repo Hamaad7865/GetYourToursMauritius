@@ -1,4 +1,5 @@
 import { fmtDate } from '@/lib/admin/format';
+import { PickupText } from '@/components/admin/PickupText';
 import type { AdminTransferDetails, BookingStatus, PaymentState } from '@/lib/admin/bookings';
 
 /* How a booking is PRESENTED in the back office, shared by the Bookings drawer and the Calendar's
@@ -198,7 +199,7 @@ export function PickupFacts({
         <dd className="mt-0.5 text-[13px] text-ink/80">
           {pickup.kind === 'text' ? (
             <>
-              {pickup.text}
+              <PickupText text={pickup.text} />
               {pickup.roundTrip && (
                 <span className="mt-0.5 block text-[12px] font-medium text-teal-dark">
                   Round-trip transfer
@@ -219,7 +220,7 @@ export function PickupFacts({
         <dt className="text-[11.5px] font-bold uppercase tracking-wide text-ink-muted">Drop-off</dt>
         <dd className="mt-0.5 text-[13px] text-ink/80">
           {dropoff.kind === 'text' ? (
-            dropoff.text
+            <PickupText text={dropoff.text} />
           ) : dropoff.kind === 'same' ? (
             <span className="text-ink-muted">Same as pickup</span>
           ) : (
