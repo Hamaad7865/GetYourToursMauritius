@@ -186,8 +186,12 @@ jobs:
       - name: Install
         run: npm ci
 
+      # --with-deps apt-installs extra fonts from Ubuntu's mirrors. On 2026-11-11 those mirrors were
+      # unreachable for hours and the step hung until the job timed out, blocking an urgent fix. The
+      # runner image already carries Chromium's system libraries (it ships Chrome), so if the apt part
+      # can't finish in 4 minutes, install the browser alone: the smoke test needs no extra fonts.
       - name: Install Playwright Chromium
-        run: npx playwright install --with-deps chromium
+        run: timeout 240 npx playwright install --with-deps chromium || npx playwright install chromium
 
       - name: E2E smoke
         run: npm run test:e2e
