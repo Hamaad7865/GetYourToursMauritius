@@ -86,3 +86,49 @@ export async function findPins(
   }
   return out;
 }
+
+/** A free-text place search on OpenStreetMap, for the pick-up box when Google Places refuses (an
+ *  unpaid Google bill blocked it in Nov 2026 and customers could no longer find their hotel). Server
+ *  side, with the identifying User-Agent. Never throws: [] = nothing found or OSM unreachable. */
+export async function nominatimSearch(
+  query: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<Array<{ name: string; area: string; kind: string; lat: number; lng: number }>> {
+  try {
+    const url = new URL('https://nominatim.openstreetmap.org/search');
+    url.searchParams.set('format', 'jsonv2');
+    url.searchParams.set('countrycodes', 'mu');
+    url.searchParams.set('limit', '6');
+    url.searchParams.set('addressdetails', '1');
+    url.searchParams.set('q', query);
+    const res = await fetchImpl(url.toString(), {
+      headers: { 'User-Agent': NOMINATIM_UA, 'Accept-Language': 'en' },
+      signal: AbortSignal.timeout(6000),
+    });
+    if (!res.ok) return [];
+    const rows = (await res.json()) as Array<{
+      lat?: string;
+      lon?: string;
+      name?: string;
+      display_name?: string;
+      type?: string;
+      address?: Record<string, string | undefined>;
+    }>;
+    return rows
+      .map((r) => {
+        const a = r.address ?? {};
+        const lat = Number(r.lat);
+        const lng = Number(r.lon);
+        return {
+          name: (r.name || r.display_name?.split(',')[0] || '').trim(),
+          area: (a.village || a.town || a.hamlet || a.suburb || a.city || a.state || '').trim(),
+          kind: (r.type ?? '').replace(/_/g, ' '),
+          lat,
+          lng,
+        };
+      })
+      .filter((p) => p.name && Number.isFinite(p.lat) && onMauritius(p));
+  } catch {
+    return [];
+  }
+}

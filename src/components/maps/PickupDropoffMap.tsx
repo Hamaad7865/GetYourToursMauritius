@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import { useGoogleMaps, MAP_ID } from '@/lib/maps/useGoogleMaps';
 import { placeLabel } from '@/lib/maps/place-label';
 import { pinElement, toLatLng } from './pin';
+import { osmReverseName } from '@/lib/maps/osm-reverse';
 
 /* Belle Mare, east-coast Mauritius — the default map centre when no pickup is chosen yet. */
 const BELLE_MARE = { lat: -20.1965, lng: 57.7669 };
@@ -127,13 +128,23 @@ export function PickupDropoffMap({
       pos: google.maps.LatLngLiteral,
       onChangeRef: React.MutableRefObject<(s: string) => void>,
     ) => {
-      geocoder.geocode({ location: pos }, (results, gStatus) => {
-        const addr =
-          gStatus === 'OK' && results?.[0]?.formatted_address
-            ? results[0].formatted_address
-            : `Pinned location (${pos.lat.toFixed(5)}, ${pos.lng.toFixed(5)})`;
-        onChangeRef.current?.(addr);
-      });
+      // Google can refuse (an unpaid bill blocked it in Nov 2026): name the pin from OpenStreetMap
+      // before falling back to bare coordinates a driver can't read.
+      const fallback = () =>
+        void osmReverseName(pos.lat, pos.lng).then((name) =>
+          onChangeRef.current?.(
+            name ?? `Pinned location (${pos.lat.toFixed(5)}, ${pos.lng.toFixed(5)})`,
+          ),
+        );
+      try {
+        geocoder.geocode({ location: pos }, (results, gStatus) => {
+          if (gStatus === 'OK' && results?.[0]?.formatted_address) {
+            onChangeRef.current?.(results[0].formatted_address);
+          } else fallback();
+        });
+      } catch {
+        fallback();
+      }
     };
 
     // Wire a Places autocomplete onto an input. Wrapped so the map + draggable pins keep working

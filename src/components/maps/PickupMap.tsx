@@ -5,6 +5,7 @@ import { useGoogleMaps, MAP_ID } from '@/lib/maps/useGoogleMaps';
 import { placeLabel } from '@/lib/maps/place-label';
 import { useT } from '@/components/site/PreferencesProvider';
 import { toLatLng } from './pin';
+import { osmReverseName } from '@/lib/maps/osm-reverse';
 
 /* Belle Mare, east-coast Mauritius — the default map centre when no pickup is chosen yet. */
 const BELLE_MARE = { lat: -20.1965, lng: 57.7669 };
@@ -74,16 +75,24 @@ export function PickupMap({
     // coordinates if the Geocoding API is unavailable, so the field is never blank.
     const geocoder = new google.maps.Geocoder();
     const fillAddress = (pos: google.maps.LatLngLiteral) => {
-      geocoder.geocode({ location: pos }, (results, gStatus) => {
-        onChangeRef.current(
-          gStatus === 'OK' && results?.[0]?.formatted_address
-            ? results[0].formatted_address
-            : t('Pinned location ({lat}, {lng})', {
-                lat: pos.lat.toFixed(5),
-                lng: pos.lng.toFixed(5),
-              }),
-        );
-      });
+      const coords = () =>
+        t('Pinned location ({lat}, {lng})', {
+          lat: pos.lat.toFixed(5),
+          lng: pos.lng.toFixed(5),
+        });
+      // Google can refuse (an unpaid bill blocked it in Nov 2026): name the pin from OpenStreetMap
+      // before falling back to bare coordinates a driver can't read.
+      const fallback = () =>
+        void osmReverseName(pos.lat, pos.lng).then((name) => onChangeRef.current(name ?? coords()));
+      try {
+        geocoder.geocode({ location: pos }, (results, gStatus) => {
+          if (gStatus === 'OK' && results?.[0]?.formatted_address) {
+            onChangeRef.current(results[0].formatted_address);
+          } else fallback();
+        });
+      } catch {
+        fallback();
+      }
     };
 
     // Address autocomplete is a separate API (Places). Wrap it so the map + draggable pin keep
