@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { computeDashboard, statsFor, type DashViewer } from '@/lib/admin/dashboard';
-import type { BookingRow } from '@/lib/admin/bookings';
+import { paymentView, type BookingRow } from '@/lib/admin/bookings';
 
 function booking(over: Partial<BookingRow>): BookingRow {
   return {
@@ -197,6 +197,69 @@ describe('computeDashboard', () => {
     const july = d.revenue['12m'].points[11]!;
     expect(july.label).toBe('Jul');
     expect(july.value).toBe(150);
+  });
+
+  it('lists part-paid bookings — deposit in, balance owed, still live — earliest trip first', () => {
+    // Angela's shape (BMTC3502B32EE3AA): €350 quote, €105 deposit settled, €245 still to collect.
+    const partPaid = { paymentState: 'paid' as const, depositEur: 105, totalEur: 350 };
+    const rows: BookingRow[] = [
+      booking({ id: 'later', ...partPaid, balanceDueEur: 245, startsAt: '2026-07-25T08:00:00Z' }),
+      booking({ id: 'undated', ...partPaid, balanceDueEur: 200, startsAt: null }),
+      booking({
+        id: 'overdue',
+        ...partPaid,
+        balanceDueEur: 100,
+        status: 'completed',
+        startsAt: '2026-07-10T08:00:00Z',
+      }),
+      // Settled in full: balance 0.
+      booking({ id: 'full', ...partPaid, balanceDueEur: 0 }),
+      // A quote converted but never paid: balance = total, so nothing has landed.
+      booking({ id: 'unpaid-quote', ...partPaid, paymentState: 'pending', balanceDueEur: 350 }),
+      // An ORDINARY booking whose card was declined: no deposit, balance = total.
+      booking({ id: 'declined', paymentState: 'failed', depositEur: 0, balanceDueEur: 100 }),
+      // Cancelled with the deposit forfeit and kept: the balance row is no longer being collected.
+      booking({ id: 'forfeit', ...partPaid, balanceDueEur: 245, status: 'cancelled' }),
+    ];
+
+    const d = computeDashboard(rows, NOW);
+
+    expect(d.partPaid.map((r) => r.id)).toEqual(['overdue', 'later', 'undated']);
+    expect(d.partPaid[1]).toMatchObject({ balanceDueEur: 245, totalEur: 350 });
+    expect(d.partPaid[2]!.tripAt).toBeNull();
+    expect(d.partPaidBalanceEur).toBe(545);
+    // Part paid is not "payment pending": Needs attention still holds only the never-paid booking.
+    expect(d.pending.map((p) => p.id)).toEqual(['unpaid-quote']);
+  });
+});
+
+describe('paymentView — what the payment pill and ?pay= filter read', () => {
+  const quote = { depositEur: 105, totalEur: 350 };
+
+  it('reads a settled deposit with a balance left as part paid', () => {
+    expect(paymentView(booking({ ...quote, balanceDueEur: 245 }))).toBe('part_paid');
+    expect(paymentView(booking({ ...quote, balanceDueEur: 245, status: 'completed' }))).toBe(
+      'part_paid',
+    );
+  });
+
+  it('keeps the ledger state everywhere else', () => {
+    expect(paymentView(booking({ ...quote, balanceDueEur: 0 }))).toBe('paid');
+    expect(paymentView(booking({ paymentState: 'paid', depositEur: 0, balanceDueEur: 0 }))).toBe(
+      'paid',
+    );
+    expect(paymentView(booking({ ...quote, paymentState: 'pending', balanceDueEur: 350 }))).toBe(
+      'pending',
+    );
+    expect(
+      paymentView(booking({ paymentState: 'failed', depositEur: 0, balanceDueEur: 100 })),
+    ).toBe('failed');
+    expect(
+      paymentView(booking({ ...quote, paymentState: 'partially_refunded', balanceDueEur: 245 })),
+    ).toBe('partially_refunded');
+    expect(paymentView(booking({ ...quote, balanceDueEur: 245, status: 'cancelled' }))).toBe(
+      'paid',
+    );
   });
 });
 

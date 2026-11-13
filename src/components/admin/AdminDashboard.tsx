@@ -16,6 +16,7 @@ import {
   type DashStat,
 } from '@/lib/admin/dashboard';
 import type { BookingStatus } from '@/lib/admin/bookings';
+import { fmtDateShort } from '@/lib/admin/format';
 import { RevenueChart } from '@/components/admin/RevenueChart';
 import { WhatsAppNumberCard } from '@/components/admin/WhatsAppNumberCard';
 import { ZilAiMaintenanceCard } from '@/components/admin/ZilAiMaintenanceCard';
@@ -55,6 +56,9 @@ const STAT_GRID_COLS: Record<number, string> = {
   3: 'lg:grid-cols-3',
   4: 'lg:grid-cols-4',
 };
+
+/** Part-paid rows shown on the dashboard; the rest are one "See all" away. */
+const PART_PAID_ROWS = 5;
 
 const STAT_CARD =
   'rounded-2xl border border-[#EAEEF0] bg-white p-[18px] shadow-[0_1px_2px_rgba(10,46,54,.04)]';
@@ -473,6 +477,62 @@ export function AdminDashboard() {
                       </div>
                     </div>
                     <span className="text-sm font-extrabold text-ink">{euro(p.totalEur)}</span>
+                  </Link>
+                ))
+              )}
+            </Card>
+          )}
+
+          {/* Part paid — a deposit (or earlier installment) in, the balance still to collect. Rows are
+              per-booking amounts like Needs attention, so the same Bookings gate; the summed figure
+              in the header is a business total, so only with money.revenue (else the count). */}
+          {showBookings && (
+            <Card className="overflow-hidden">
+              <div className="flex items-center justify-between gap-3 border-b border-[#EEF1F3] px-[18px] py-4">
+                <h2 className="text-[15px] font-extrabold text-ink">Part paid</h2>
+                <div className="flex items-center gap-3">
+                  {data.partPaid.length > 0 && (
+                    <Link
+                      href="/admin/bookings?pay=part_paid"
+                      className="text-[12.5px] font-bold text-teal hover:text-teal-dark"
+                    >
+                      See all
+                    </Link>
+                  )}
+                  <span className="rounded-lg bg-[#e6eefc] px-2.5 py-1 text-[11.5px] font-bold text-[#1d4f9e]">
+                    {showMoney
+                      ? `${euro(data.partPaidBalanceEur)} to collect`
+                      : `${data.partPaid.length} open`}
+                  </span>
+                </div>
+              </div>
+              {data.partPaid.length === 0 ? (
+                <div className="px-[18px] py-10 text-center text-sm text-ink-muted">
+                  No balances to collect.
+                </div>
+              ) : (
+                data.partPaid.slice(0, PART_PAID_ROWS).map((p) => (
+                  <Link
+                    key={p.id}
+                    href={`/admin/bookings?open=${p.id}`}
+                    className="flex items-center gap-3 border-b border-[#F4F6F7] px-[18px] py-3.5 last:border-b-0 hover:bg-[#FAFBFC]"
+                  >
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#e6eefc] text-[#1d4f9e]">
+                      <IconWallet width={17} height={17} />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-[13.5px] font-bold text-ink">{p.customer}</div>
+                      <div className="mt-0.5 truncate text-[12px] text-ink-muted">
+                        {p.ref} ·{' '}
+                        {p.tripAt
+                          ? `trip ${fmtDateShort(p.tripAt)}`
+                          : `booked ${fmtDateShort(p.bookedAt)}`}
+                      </div>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <div className="text-sm font-extrabold text-ink">{euro(p.balanceDueEur)}</div>
+                      <div className="text-[11.5px] text-ink-muted">of {euro(p.totalEur)}</div>
+                    </div>
                   </Link>
                 ))
               )}

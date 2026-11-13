@@ -2,6 +2,7 @@ import { childSeatsCost } from '@/lib/services/pricing';
 import { getBrowserSupabase } from '@/lib/supabase/browser';
 import { readAll, uniqueById } from '@/lib/admin/read-all';
 import { occurrenceDepartureTime } from '@/lib/catalogue/departure-time';
+import { balanceIsOutstanding } from '@/lib/quotes/deposit';
 
 /* Admin booking reads + lifecycle writes. Staff/admin RLS (`*_staff` policies) grants full
  * read on bookings/booking_items/payments and full write on bookings, so the authenticated
@@ -22,6 +23,43 @@ export type BookingStatus =
   | 'failed';
 
 export type PaymentState = 'pending' | 'paid' | 'partially_refunded' | 'refunded' | 'failed';
+
+/**
+ * How a booking's payment READS in the back office: the ledger's {@link PaymentState}, plus the one
+ * state the ledger has no word for, `part_paid`.
+ *
+ * `payment_state` is a best-row-wins roll-up, so it flips to 'paid' the moment a quote's DEPOSIT (or a
+ * per-date schedule's first installment) settles, and stays 'paid' while the rest is still owed. The
+ * bookings list then showed "Paid" beside a €350 total with €245 still to collect (BMTC3502B32EE3AA).
+ * The DB enum is deliberately NOT widened: 'paid' correctly means "money is held" to the refund, change-
+ * of-tour and settlement paths, and a new label there would be a migration through append_payment_event.
+ */
+export type PaymentView = PaymentState | 'part_paid';
+
+/**
+ * The ONE reading of {@link PaymentView}, shared by the bookings list (pill, filter, CSV), the drawer
+ * badge and the dashboard's part-paid panel, so the panel's count and the list's `?pay=part_paid` can
+ * never disagree.
+ *
+ * Part paid = money landed but the booking is not settled, on a booking that is still LIVE:
+ *  - `paymentState === 'paid'`: some payment row settled;
+ *  - {@link balanceIsOutstanding}: a deposit booking with `0 < balance_due < total` — never the bare
+ *    `balance_due > 0`, which also holds on a never-paid quote and on a declined ordinary booking;
+ *  - confirmed or completed: a CANCELLED quote booking keeps its forfeited deposit and its row still
+ *    carries the balance (handbook quotes.md §6), but nobody is collecting it any more.
+ */
+export function paymentView(
+  b: Pick<BookingRow, 'paymentState' | 'status' | 'depositEur' | 'balanceDueEur' | 'totalEur'>,
+): PaymentView {
+  if (
+    b.paymentState === 'paid' &&
+    (b.status === 'confirmed' || b.status === 'completed') &&
+    balanceIsOutstanding({ deposit: b.depositEur, balanceDue: b.balanceDueEur, total: b.totalEur })
+  ) {
+    return 'part_paid';
+  }
+  return b.paymentState;
+}
 
 export interface BookingItemRow {
   priceLabel: string;

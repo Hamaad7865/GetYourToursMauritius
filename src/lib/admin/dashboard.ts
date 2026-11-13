@@ -1,4 +1,10 @@
-import { loadBookings, type BookingRow, type BookingStatus, type PaymentState } from './bookings';
+import {
+  loadBookings,
+  paymentView,
+  type BookingRow,
+  type BookingStatus,
+  type PaymentState,
+} from './bookings';
 import { serviceWhen } from './format';
 
 /* Admin dashboard view-model. All figures are DERIVED from the bookings the admin can already
@@ -46,6 +52,21 @@ export interface PendingRow {
   totalEur: number;
 }
 
+/** A live booking with money in and a balance still to collect — see `paymentView`'s `part_paid`. */
+export interface PartPaidRow {
+  id: string;
+  ref: string;
+  customer: string;
+  /** When the guest is collected (serviceWhen), or null when the booking has no dated line — every
+   *  quote booking whose lines are all custom items, which is most part-paid bookings. */
+  tripAt: string | null;
+  /** When it was booked — the age of the balance, shown when there is no trip date. */
+  bookedAt: string;
+  totalEur: number;
+  /** What is still to collect — `bookings.balance_due_minor`, never `total − netPaid`. */
+  balanceDueEur: number;
+}
+
 export interface SparkPoint {
   day: string; // "Mon"
   value: number; // revenue that day, EUR
@@ -83,6 +104,11 @@ export interface DashboardData {
   departures: DepartureRow[];
   recent: RecentRow[];
   pending: PendingRow[];
+  /** Every part-paid booking, earliest trip first (so an overdue balance leads). The panel shows the
+   *  first few; its "See all" opens /admin/bookings?pay=part_paid, which applies the same rule. */
+  partPaid: PartPaidRow[];
+  /** Σ balanceDueEur over `partPaid` — a business total, shown only with money.revenue. */
+  partPaidBalanceEur: number;
   spark: SparkPoint[];
   revenue: RevenueByPeriod;
 }
@@ -214,6 +240,30 @@ export function computeDashboard(bookings: BookingRow[], now: Date): DashboardDa
     totalEur: b.totalEur,
   }));
 
+  // Part paid: a deposit (or earlier installment) taken, the balance still to collect. paymentView is
+  // the same rule the bookings list filters ?pay=part_paid by, so the panel and its "See all" agree.
+  // Earliest trip first — a balance whose trip has already run is the most overdue — undated last, in
+  // loadBookings' newest-booked-first order (a stable sort keeps it). A quote booking made only of
+  // custom lines has no trip date at all, so in practice most rows are that undated tail.
+  const partPaid: PartPaidRow[] = bookings
+    .filter((b) => paymentView(b) === 'part_paid')
+    .map((b) => ({ b, at: serviceWhen(b)?.at ?? null }))
+    .sort(
+      (x, y) =>
+        Number(x.at == null) - Number(y.at == null) ||
+        (x.at && y.at ? Date.parse(x.at) - Date.parse(y.at) : 0),
+    )
+    .map(({ b, at }) => ({
+      id: b.id,
+      ref: b.ref,
+      customer: b.customerName,
+      tripAt: at,
+      bookedAt: b.createdAt,
+      totalEur: b.totalEur,
+      balanceDueEur: b.balanceDueEur,
+    }));
+  const partPaidBalanceEur = partPaid.reduce((s, r) => s + r.balanceDueEur, 0);
+
   // Revenue = net cash retained (Σ paid − refunded) on bookings created in the last 7 Mauritius days.
   const revByDay = new Map<string, number>();
   for (let i = 0; i < 7; i += 1) revByDay.set(addDays(weekStart, i), 0);
@@ -330,6 +380,8 @@ export function computeDashboard(bookings: BookingRow[], now: Date): DashboardDa
     departures,
     recent,
     pending,
+    partPaid,
+    partPaidBalanceEur,
     spark,
     revenue,
   };

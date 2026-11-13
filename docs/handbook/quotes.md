@@ -307,6 +307,12 @@ throughout (it feeds VAT and the operator payout):
   **out** of the `payment_state` enum on purpose, so the roll-up (and its sticky-failed protection) is
   untouched. **Never read `payment_state` as "fully settled"** — a deposit-confirmed booking is
   `payment_state = 'paid'` with a balance still owed; ask `balance_due_minor`.
+- **"Part paid" in the back office** is that case, derived in TypeScript, never a DB state:
+  `paymentView()` in `src/lib/admin/bookings.ts` returns `part_paid` for `payment_state = 'paid'` +
+  `balanceIsOutstanding` (deposit > 0, 0 < balance < total) on a confirmed or completed booking. The
+  bookings list pill, its `?pay=part_paid` filter, the CSV, the drawer badge and the dashboard's
+  **Part paid** panel all read it, so the panel's count and its "See all" list agree. The "Paid" filter
+  therefore means paid **in full**. The calendar's day sheet has its own "Deposit paid" chip.
 
 The **balance** is a separate `purpose = 'balance'` payments row, chased later through a **durable**
 balance link (`quotes.balance_token_hash`, a second credential distinct from `token_hash`). The guest

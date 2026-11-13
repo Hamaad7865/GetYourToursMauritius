@@ -1,6 +1,6 @@
 import { fmtDate } from '@/lib/admin/format';
 import { PickupText } from '@/components/admin/PickupText';
-import type { AdminTransferDetails, BookingStatus, PaymentState } from '@/lib/admin/bookings';
+import type { AdminTransferDetails, BookingStatus, PaymentView } from '@/lib/admin/bookings';
 
 /* How a booking is PRESENTED in the back office, shared by the Bookings drawer and the Calendar's
  * day sheet.
@@ -60,17 +60,21 @@ export function statusPill(status: BookingStatus): PillSpec {
 /** A booking that can no longer be paid. `payment_state` stays 'pending' in the LEDGER sense (no
  *  payment ever happened — it's a cached projection of payment_events), but rendering that as
  *  "Pending" on an expired/cancelled booking reads as money-still-expected. Show "Not paid". */
-export function paymentClosed(state: PaymentState, status: BookingStatus): boolean {
+export function paymentClosed(state: PaymentView, status: BookingStatus): boolean {
   return state === 'pending' && (status === 'expired' || status === 'cancelled');
 }
 
-export function paymentPill(state: PaymentState, status: BookingStatus): PillSpec {
+/** Pass {@link paymentView}'s answer, not the raw `paymentState`, or a deposit-only booking reads
+ *  "Paid". Part paid wears the calendar's "Deposit paid" blue so the two screens look alike. */
+export function paymentPill(state: PaymentView, status: BookingStatus): PillSpec {
   if (paymentClosed(state, status)) {
     return { label: 'Not paid', cls: 'bg-slate-100 text-slate-500', dot: 'bg-slate-400' };
   }
   switch (state) {
     case 'paid':
       return { label: 'Paid', cls: 'bg-emerald-50 text-emerald-700', dot: 'bg-emerald-500' };
+    case 'part_paid':
+      return { label: 'Part paid', cls: 'bg-[#e6eefc] text-[#1d4f9e]', dot: 'bg-[#1d4f9e]' };
     case 'partially_refunded':
     case 'refunded':
       return {

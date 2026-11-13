@@ -16,10 +16,11 @@ import {
   sendInstallmentReminder,
   bookingExtraCharges,
   findBookingIdByMerchantRef,
+  paymentView,
   type BookingRow,
   type BookingDetail,
   type BookingStatus,
-  type PaymentState,
+  type PaymentView,
 } from '@/lib/admin/bookings';
 import { BookingChangePanel } from '@/components/admin/BookingChangePanel';
 import { avatar } from '@/lib/admin/dashboard';
@@ -103,11 +104,13 @@ function statusClass(status: BookingStatus): string {
 }
 /** Optional bookingStatus: the drawer's booking badge passes it so a closed (expired/cancelled)
  *  never-paid booking greys out instead of glowing "pending"; payment-row badges omit it. */
-function paymentClass(state: PaymentState, bookingStatus?: BookingStatus): string {
+function paymentClass(state: PaymentView, bookingStatus?: BookingStatus): string {
   if (bookingStatus && paymentClosed(state, bookingStatus)) return 'bg-slate-100 text-slate-500';
   switch (state) {
     case 'paid':
       return 'bg-teal/10 text-teal-dark';
+    case 'part_paid':
+      return 'bg-[#e6eefc] text-[#1d4f9e]';
     case 'partially_refunded':
     case 'refunded':
     case 'failed':
@@ -124,9 +127,12 @@ const STATUS_FILTERS: Array<{ value: 'all' | BookingStatus; label: string }> = [
   { value: 'completed', label: 'Completed' },
   { value: 'cancelled', label: 'Cancelled' },
 ];
-const PAY_FILTERS: Array<{ value: 'all' | PaymentState; label: string }> = [
+// Matched against paymentView, like the pill: "Paid" is paid IN FULL, and a deposit-only booking is
+// under "Part paid" (the dashboard's part-paid panel links here as ?pay=part_paid).
+const PAY_FILTERS: Array<{ value: 'all' | PaymentView; label: string }> = [
   { value: 'all', label: 'All payments' },
   { value: 'paid', label: 'Paid' },
+  { value: 'part_paid', label: 'Part paid' },
   { value: 'pending', label: 'Pending' },
   { value: 'refunded', label: 'Refunded' },
   { value: 'failed', label: 'Failed' },
@@ -170,7 +176,7 @@ function exportCsv(rows: BookingRow[]): void {
       b.createdAt,
       b.guests,
       b.totalEur.toFixed(2),
-      paymentPill(b.paymentState, b.status).label,
+      paymentPill(paymentView(b), b.status).label,
       b.status,
       b.source,
     ]
@@ -206,9 +212,9 @@ export function AdminBookings() {
     const v = searchParams.get('status');
     return v && STATUS_FILTERS.some((f) => f.value === v) ? (v as 'all' | BookingStatus) : 'all';
   });
-  const [pay, setPay] = useState<'all' | PaymentState>(() => {
+  const [pay, setPay] = useState<'all' | PaymentView>(() => {
     const v = searchParams.get('pay');
-    return v && PAY_FILTERS.some((f) => f.value === v) ? (v as 'all' | PaymentState) : 'all';
+    return v && PAY_FILTERS.some((f) => f.value === v) ? (v as 'all' | PaymentView) : 'all';
   });
   const [tour, setTour] = useState('all');
   const [dateF, setDateF] = useState<DateFilter>(() => {
@@ -261,7 +267,7 @@ export function AdminBookings() {
     const today = mauDay(new Date());
     const list = (rows ?? []).filter((b) => {
       if (status !== 'all' && b.status !== status) return false;
-      if (pay !== 'all' && b.paymentState !== pay) return false;
+      if (pay !== 'all' && paymentView(b) !== pay) return false;
       if (tour !== 'all' && b.activityTitle !== tour) return false;
       if (dateF !== 'all') {
         // The guest's real day — a departure-only transfer's slot can sit days before its return_date.
@@ -416,7 +422,7 @@ export function AdminBookings() {
           </select>
           <select
             value={pay}
-            onChange={(e) => setPay(e.target.value as 'all' | PaymentState)}
+            onChange={(e) => setPay(e.target.value as 'all' | PaymentView)}
             aria-label="Filter by payment"
             className={SELECT_CLS}
           >
@@ -514,7 +520,7 @@ export function AdminBookings() {
                       {euroInt(b.totalEur)}
                     </td>
                     <td className="px-3 py-3">
-                      <Pill p={paymentPill(b.paymentState, b.status)} />
+                      <Pill p={paymentPill(paymentView(b), b.status)} />
                     </td>
                     <td className="px-3 py-3">
                       <Pill p={statusPill(b.status)} />
@@ -727,8 +733,8 @@ function BookingDrawer({
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-mono text-sm font-bold text-teal">{booking.ref}</span>
                 <Badge className={statusClass(booking.status)}>{titleCase(booking.status)}</Badge>
-                <Badge className={paymentClass(booking.paymentState, booking.status)}>
-                  {paymentPill(booking.paymentState, booking.status).label}
+                <Badge className={paymentClass(paymentView(booking), booking.status)}>
+                  {paymentPill(paymentView(booking), booking.status).label}
                 </Badge>
               </div>
               <p className="mt-1 text-[12.5px] text-ink-muted">
