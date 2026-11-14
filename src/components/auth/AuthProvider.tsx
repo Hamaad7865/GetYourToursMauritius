@@ -34,6 +34,12 @@ interface AuthContextValue {
   profile: Profile | null;
   /** True until the initial session check resolves — guard UI flicker with this. */
   loading: boolean;
+  /**
+   * True while a signed-in person's profile row is still being read. `loading` turns false as soon
+   * as the session is known, one request BEFORE the profile (and so the role) arrives; anything that
+   * judges the role must wait for this too, or it judges a null profile (see `profilePending`).
+   */
+  profileLoading: boolean;
   openAuth: (mode?: AuthMode) => void;
   closeAuth: () => void;
   signOut: () => Promise<void>;
@@ -41,6 +47,15 @@ interface AuthContextValue {
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+
+/**
+ * Whether the signed-in person's profile read is still out. `settledFor` is the user whose read last
+ * finished (whatever its outcome), so a read still running for someone who signed in since keeps it
+ * pending, and an earlier person's late answer cannot end it.
+ */
+export function profilePending(userId: string | null, settledFor: string | null): boolean {
+  return userId !== null && settledFor !== userId;
+}
 
 /**
  * Attach any QUOTE bookings this person paid for as a guest, before they had an account.
@@ -118,6 +133,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isGuest, setIsGuest] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  // The user whose profile read last finished (see `profilePending`).
+  const [profileSettledFor, setProfileSettledFor] = useState<string | null>(null);
   const [dialogMode, setDialogMode] = useState<AuthMode | null>(null);
   const { showToast } = useToast();
   const t = useT();
@@ -274,11 +291,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Captured, not read from the closure later: by the time the profile resolves another
           // auth event may have moved `freshLogin` on.
           const greet = freshLogin;
-          void loadProfile(u).then((name) => {
-            // Fall back to the signup name only when the profile has none (or wouldn't read) —
-            // never greet a named person by their stale one.
-            if (greet) welcome(welcomeName(name, u));
-          });
+          void loadProfile(u)
+            .then((name) => {
+              // Fall back to the signup name only when the profile has none (or wouldn't read) —
+              // never greet a named person by their stale one.
+              if (greet) welcome(welcomeName(name, u));
+            })
+            .catch(() => {
+              /* a failed read leaves the profile null, as loadProfile does for a read error */
+            })
+            .finally(() => {
+              if (active) setProfileSettledFor(u.id);
+            });
           // Once per user per page load, alongside the profile row. A guest who paid a quote before
           // they had an account has an ownerless booking the RLS policy cannot match; this is what
           // hands it to them. Idempotent, so running it on every sign-in costs one no-op statement.
@@ -327,6 +351,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (user) await loadProfile(user);
   }, [user, loadProfile]);
 
+  const profileLoading = profilePending(user?.id ?? null, profileSettledFor);
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
@@ -334,12 +359,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isGuest,
       profile,
       loading,
+      profileLoading,
       openAuth,
       closeAuth,
       signOut,
       refreshProfile,
     }),
-    [user, session, isGuest, profile, loading, openAuth, closeAuth, signOut, refreshProfile],
+    [
+      user,
+      session,
+      isGuest,
+      profile,
+      loading,
+      profileLoading,
+      openAuth,
+      closeAuth,
+      signOut,
+      refreshProfile,
+    ],
   );
 
   return (

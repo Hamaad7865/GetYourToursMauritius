@@ -6,9 +6,11 @@ import { BTN_PRIMARY } from '@/components/admin/ui';
 
 /** Gates the admin area to staff/admin/seo profiles. Customers and signed-out users are blocked. */
 export function AdminGuard({ children }: { children: ReactNode }) {
-  const { user, profile, loading, openAuth } = useAuth();
+  const { user, profile, loading, profileLoading, openAuth } = useAuth();
 
-  if (loading) {
+  // Wait for the profile as well as the session: the role is on the profile, which arrives one
+  // request after the session, and judging it before then showed the Owner "Not authorised".
+  if (loading || profileLoading) {
     return <Centered>Loading…</Centered>;
   }
   if (!user) {
