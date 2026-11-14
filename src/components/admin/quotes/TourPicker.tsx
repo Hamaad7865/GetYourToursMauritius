@@ -36,13 +36,16 @@ import {
 export function TourPicker({
   onAdd,
   onClose,
+  initialActivityId = '',
 }: {
   onAdd: (lines: QuoteLineDraft[]) => void;
   onClose: () => void;
+  /** Open with this tour already chosen (picked from the editor's "add an item" box). */
+  initialActivityId?: string;
 }) {
   const dialogRef = useDialog(true, onClose);
   const [activities, setActivities] = useState<QuotableActivity[] | null>(null);
-  const [activityId, setActivityId] = useState('');
+  const [activityId, setActivityId] = useState(initialActivityId);
   const [day, setDay] = useState(() => mauDay(new Date()));
   const [departures, setDepartures] = useState<QuoteDeparture[] | null>(null);
   const [occurrenceId, setOccurrenceId] = useState('');
@@ -148,7 +151,7 @@ export function TourPicker({
           {error && (
             <p
               role="alert"
-              className="rounded-xl bg-coral/10 px-4 py-3 text-[13px] font-medium text-coral"
+              className="rounded-xl bg-coral-tint px-4 py-3 text-[13px] font-medium text-coral-dark"
             >
               {error}
             </p>
@@ -214,7 +217,7 @@ export function TourPicker({
                             </span>
                           )}
                           {d.refusal && (
-                            <span className="mt-1 block text-[12px] leading-relaxed text-coral">
+                            <span className="mt-1 block text-[12px] leading-relaxed text-coral-dark">
                               {d.refusal}
                             </span>
                           )}

@@ -2,6 +2,7 @@
 
 import { Fragment, type ReactNode } from 'react';
 import { useAuth } from '@/components/auth/AuthProvider';
+import { BTN_PRIMARY } from '@/components/admin/ui';
 
 /** Gates the admin area to staff/admin/seo profiles. Customers and signed-out users are blocked. */
 export function AdminGuard({ children }: { children: ReactNode }) {
@@ -13,12 +14,9 @@ export function AdminGuard({ children }: { children: ReactNode }) {
   if (!user) {
     return (
       <Centered>
-        <p className="text-sm text-ink-muted">You need to sign in to access the admin.</p>
-        <button
-          type="button"
-          onClick={() => openAuth('signin')}
-          className="mt-4 rounded-full bg-teal px-5 py-2.5 text-sm font-bold text-white hover:bg-teal-dark"
-        >
+        <p className="text-[13px] text-ink-soft">You need to sign in to access the admin.</p>
+        {/* Teal-dark, not the brand teal: white on #0E8C92 is 4.05:1, short of AA for this text. */}
+        <button type="button" onClick={() => openAuth('signin')} className={`${BTN_PRIMARY} mt-4`}>
           Sign in
         </button>
       </Centered>
@@ -28,8 +26,10 @@ export function AdminGuard({ children }: { children: ReactNode }) {
   if (role !== 'admin' && role !== 'staff' && role !== 'seo') {
     return (
       <Centered>
-        <h1 className="font-display text-2xl font-semibold text-ink">Not authorised</h1>
-        <p className="mt-2 max-w-md text-sm text-ink-muted">
+        <h1 className="text-[22px] font-bold leading-[1.2] tracking-[-0.02em] text-ink">
+          Not authorised
+        </h1>
+        <p className="mt-2 max-w-md text-[13px] text-ink-soft">
           You&apos;re signed in as {user.email}, but this account isn&apos;t an admin yet. Ask an
           administrator to grant you access.
         </p>

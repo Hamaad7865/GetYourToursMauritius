@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pricing</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="bo.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0B5C63}a:hover{color:#0A2E36}
+</style>
+</helmet>
+<div class="app">
+<div class="side-slot"><dc-import name="Nav" active="pricing" hint-size="232px,1040px"></dc-import></div>
+<div class="main">
+<header class="top">
+<div class="crumb">Catalogue / <b>Pricing</b></div>
+<button class="search" aria-label="Search everything"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18a7 7 0 100-14 7 7 0 000 14zM20 20l-4-4"/></svg><span>Search bookings, guests, tours</span><span class="kbd">Ctrl K</span></button>
+<button class="btn"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New</button>
+<button class="ib" aria-label="Notifications"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16v-5a6 6 0 0112 0v5l2 2H4zM10 21h4"/></svg><span class="dot"></span></button>
+<button class="ib" aria-label="Open the assistant"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg></button>
+<span class="av d">BM</span>
+</header>
+<main class="page">
+<div class="ph">
+<div><h1 class="h1">Pricing</h1><p class="sub">Transport fares used by the booking widget, quotes and the trip planner. Tour prices live on each tour.</p></div>
+<span class="st warn sp">2 unsaved changes</span>
+<button class="btn">Discard</button>
+<button class="btn pri">Save fares</button>
+</div>
+<div class="g" style="grid-template-columns:220px minmax(0,1fr) 300px">
+<nav class="card" aria-label="Fare books" style="padding:8px">
+<a class="rl" href="Pricing.dc.html">Sightseeing tours</a>
+<a class="rl" href="Pricing.dc.html">Custom road trips</a>
+<a class="rl on" href="Pricing.dc.html">Transport add-on<span class="e">2 edits</span></a>
+<a class="rl" href="Pricing.dc.html">Region distances</a>
+<a class="rl" href="Pricing.dc.html">Airport transfers</a>
+<a class="rl" href="Pricing.dc.html">Hotel to hotel</a>
+<hr class="hr" style="margin:8px 0">
+<a class="rl" href="Pricing.dc.html">Card payments<span class="e">EUR</span></a>
+</nav>
+<div class="col" style="gap:14px">
+<section class="card">
+<div class="ch"><div class="x"><div class="t">Transport add-on</div><div class="n">Round-trip fare from the guest's hotel to the activity, by how far apart the two regions are</div></div></div>
+<div class="tscroll"><table class="tbl">
+<thead><tr><th>Vehicle</th><th class="num">Seats up to</th><th class="num">Same region</th><th class="num">Nearby region</th><th class="num">Far region</th></tr></thead>
+<tbody>
+<tr><td class="b">Standard car</td><td class="num">4</td><td class="num"><input class="in c" aria-label="Standard car, same region" value="30.00"></td><td class="num"><input class="in c" aria-label="Standard car, nearby region" value="60.00" style="border-color:var(--teal-d);background:var(--teal-t)"></td><td class="num"><input class="in c" aria-label="Standard car, far region" value="90.00"></td></tr>
+<tr><td class="b">SUV</td><td class="num">4</td><td class="num"><input class="in c" aria-label="SUV, same region" value="40.00"></td><td class="num"><input class="in c" aria-label="SUV, nearby region" value="75.00"></td><td class="num"><input class="in c" aria-label="SUV, far region" value="110.00"></td></tr>
+<tr><td class="b">Family car</td><td class="num">6</td><td class="num"><input class="in c" aria-label="Family car, same region" value="45.00"></td><td class="num"><input class="in c" aria-label="Family car, nearby region" value="85.00" style="border-color:var(--teal-d);background:var(--teal-t)"></td><td class="num"><input class="in c" aria-label="Family car, far region" value="120.00"></td></tr>
+<tr><td class="b">Minibus</td><td class="num">14</td><td class="num"><input class="in c" aria-label="Minibus, same region" value="60.00"></td><td class="num"><input class="in c" aria-label="Minibus, nearby region" value="110.00"></td><td class="num"><input class="in c" aria-label="Minibus, far region" value="150.00"></td></tr>
+<tr><td class="b">Coaster</td><td class="num">25</td><td class="num"><input class="in c" aria-label="Coaster, same region" value="90.00"></td><td class="num"><input class="in c" aria-label="Coaster, nearby region" value="160.00"></td><td class="num"><input class="in c" aria-label="Coaster, far region" value="220.00"></td></tr>
+</tbody>
+</table></div>
+<div class="row s m" style="padding:10px 16px;border-top:1px solid var(--line-2)">Highlighted cells have changed and are not saved yet. The smallest vehicle that fits the party is chosen for the guest.</div>
+</section>
+<section class="card">
+<div class="ch"><div class="x"><div class="t">Region distances</div><div class="n">Which band applies between two regions</div></div><a class="btn sm" href="Pricing.dc.html">Edit distances</a></div>
+<div class="tscroll"><table class="tbl c">
+<thead><tr><th>From, to</th><th>North</th><th>East</th><th>South</th><th>West</th><th>Centre</th></tr></thead>
+<tbody>
+<tr><td class="b">North</td><td><span class="st ok">Same</span></td><td><span class="st info">Nearby</span></td><td><span class="st warn">Far</span></td><td><span class="st info">Nearby</span></td><td><span class="st info">Nearby</span></td></tr>
+<tr><td class="b">East</td><td><span class="st info">Nearby</span></td><td><span class="st ok">Same</span></td><td><span class="st info">Nearby</span></td><td><span class="st warn">Far</span></td><td><span class="st info">Nearby</span></td></tr>
+<tr><td class="b">South</td><td><span class="st warn">Far</span></td><td><span class="st info">Nearby</span></td><td><span class="st ok">Same</span></td><td><span class="st info">Nearby</span></td><td><span class="st info">Nearby</span></td></tr>
+<tr><td class="b">West</td><td><span class="st info">Nearby</span></td><td><span class="st warn">Far</span></td><td><span class="st info">Nearby</span></td><td><span class="st ok">Same</span></td><td><span class="st info">Nearby</span></td></tr>
+</tbody>
+</table></div>
+</section>
+</div>
+<div class="col" style="gap:14px">
+<section class="card">
+<div class="ch"><span class="t">Try a fare</span><span class="tag new">New</span></div>
+<div class="cb col">
+<div class="f"><label>Guest's hotel is in</label><button class="sel" style="justify-content:space-between">East, Belle Mare<svg class="i sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button></div>
+<div class="f"><label>Activity is in</label><button class="sel" style="justify-content:space-between">North, Grand Baie<svg class="i sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button></div>
+<div class="f"><label for="try-pax">Guests</label><input class="in" id="try-pax" value="5"></div>
+<div class="note t col" style="gap:2px"><span class="s">Family car, nearby region</span><span class="h1">€85.00</span><span class="s">Round trip. Was €80.00 before your edit.</span></div>
+<p class="hint">The same calculation the site uses, so you can check a change before saving it.</p>
+</div>
+</section>
+<section class="card">
+<div class="ch"><span class="t">Where these fares show</span></div>
+<div class="li"><span class="dotk ok"></span><span class="x">Booking widget on each tour</span></div>
+<div class="li"><span class="dotk ok"></span><span class="x">The transfer line on a quote</span></div>
+<div class="li"><span class="dotk ok"></span><span class="x">Assistant and trip planner</span></div>
+</section>
+</div>
+</div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1040}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

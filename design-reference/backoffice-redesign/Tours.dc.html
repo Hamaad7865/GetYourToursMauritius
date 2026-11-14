@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tours</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="bo.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0B5C63}a:hover{color:#0A2E36}
+</style>
+</helmet>
+<div class="app">
+<div class="side-slot"><dc-import name="Nav" active="tours" hint-size="232px,1040px"></dc-import></div>
+<div class="main">
+<header class="top">
+<div class="crumb">Catalogue / <b>Tours</b></div>
+<button class="search" aria-label="Search everything"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18a7 7 0 100-14 7 7 0 000 14zM20 20l-4-4"/></svg><span>Search bookings, guests, tours</span><span class="kbd">Ctrl K</span></button>
+<button class="btn"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New</button>
+<button class="ib" aria-label="Notifications"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16v-5a6 6 0 0112 0v5l2 2H4zM10 21h4"/></svg><span class="dot"></span></button>
+<button class="ib" aria-label="Open the assistant"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg></button>
+<span class="av d">BM</span>
+</header>
+<main class="page">
+<div class="ph">
+<div><h1 class="h1">Tours</h1><p class="sub">34 published, 3 drafts. Drag a row to change the order guests see.</p></div>
+<a class="btn pri sp" href="TourEditor.dc.html"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New tour</a>
+</div>
+<div class="row w">
+<div class="f" style="flex:0 1 320px"><input class="in" aria-label="Search tours" placeholder="Search tours by name or slug"></div>
+<button class="sel">All categories<svg class="i sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+<div class="seg"><button class="on">All</button><button>Published</button><button>Drafts</button></div>
+<button class="sel">Needs attention: 2<svg class="i sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+<div class="seg sp"><button class="on">List</button><button>Cards</button></div>
+</div>
+<section class="card">
+<div class="tscroll"><table class="tbl">
+<thead><tr><th style="width:28px"></th><th>Tour</th><th>Category</th><th class="num">From</th><th>Options</th><th style="width:210px">Bookable dates</th><th class="num">Sold, 30 days</th><th>Status</th><th></th></tr></thead>
+<tbody>
+<tr><td class="m">⋮⋮</td><td><div class="row"><span class="img" style="width:52px;height:38px">Photo</span><div><div class="b">Catamaran cruise, 3 northern islands</div><div class="m s">/tours/catamaran-cruise-northern-islands</div></div></div></td><td>Boat trips and cruises</td><td class="num b">€93.00</td><td>Shared, Private</td><td><div class="s sb">Open for 185 days</div><div class="bar"><i style="width:100%"></i></div></td><td class="num">41</td><td><span class="st ok">Published</span></td><td class="num nw"><a class="btn sm" href="TourEditor.dc.html">Edit</a> <a class="btn sm" href="Availability.dc.html">Availability</a></td></tr>
+<tr><td class="m">⋮⋮</td><td><div class="row"><span class="img" style="width:52px;height:38px">Photo</span><div><div class="b">Dolphin swim and Île aux Bénitiers</div><div class="m s">/tours/dolphin-swim-ile-aux-benitiers</div></div></div></td><td>Dolphins and whales</td><td class="num b">€55.00</td><td>Shared, Private</td><td><div class="s sb">Open for 185 days</div><div class="bar"><i style="width:100%"></i></div></td><td class="num">36</td><td><span class="st ok">Published</span></td><td class="num nw"><a class="btn sm" href="TourEditor.dc.html">Edit</a> <a class="btn sm" href="Availability.dc.html">Availability</a></td></tr>
+<tr><td class="m">⋮⋮</td><td><div class="row"><span class="img" style="width:52px;height:38px">Photo</span><div><div class="b">Île aux Cerfs speedboat with lunch</div><div class="m s">/tours/ile-aux-cerfs-speedboat</div></div></div></td><td>Island day trips</td><td class="num b">€55.00</td><td>Shared</td><td><div class="s sb">Open for 185 days</div><div class="bar"><i style="width:100%"></i></div></td><td class="num">29</td><td><span class="st ok">Published</span></td><td class="num nw"><a class="btn sm" href="TourEditor.dc.html">Edit</a> <a class="btn sm" href="Availability.dc.html">Availability</a></td></tr>
+<tr><td class="m">⋮⋮</td><td><div class="row"><span class="img" style="width:52px;height:38px">Photo</span><div><div class="b">Private south tour</div><div class="m s">/tours/private-south-tour</div></div></div></td><td>Sightseeing tours</td><td class="num b">€90.00</td><td>Car, SUV, Minibus</td><td><div class="s sb">Open for 185 days</div><div class="bar"><i style="width:100%"></i></div></td><td class="num">24</td><td><span class="st ok">Published</span></td><td class="num nw"><a class="btn sm" href="TourEditor.dc.html">Edit</a> <a class="btn sm" href="Availability.dc.html">Availability</a></td></tr>
+<tr><td class="m">⋮⋮</td><td><div class="row"><span class="img" style="width:52px;height:38px">Photo</span><div><div class="b">Private north tour</div><div class="m s">/tours/private-north-tour</div></div></div></td><td>Sightseeing tours</td><td class="num b">€88.00</td><td>Car, SUV, Minibus</td><td><div class="s sb">Open for 185 days</div><div class="bar"><i style="width:100%"></i></div></td><td class="num">19</td><td><span class="st ok">Published</span></td><td class="num nw"><a class="btn sm" href="TourEditor.dc.html">Edit</a> <a class="btn sm" href="Availability.dc.html">Availability</a></td></tr>
+<tr><td class="m">⋮⋮</td><td><div class="row"><span class="img" style="width:52px;height:38px">Photo</span><div><div class="b">Helicopter flight, underwater waterfall</div><div class="m s">/tours/helicopter-underwater-waterfall</div></div></div></td><td>Helicopter and sky</td><td class="num b">€427.00</td><td>15 min, 30 min</td><td><div class="s sb down">No dates after 20 Dec</div><div class="bar"><i class="c" style="width:20%"></i></div></td><td class="num">8</td><td><span class="st ok">Published</span></td><td class="num nw"><a class="btn sm" href="TourEditor.dc.html">Edit</a> <a class="btn sm" href="Availability.dc.html">Availability</a></td></tr>
+<tr><td class="m">⋮⋮</td><td><div class="row"><span class="img" style="width:52px;height:38px">Photo</span><div><div class="b">Sunset catamaran with dinner</div><div class="m s">/tours/sunset-catamaran-dinner</div></div></div></td><td>Boat trips and cruises</td><td class="num m">No price yet</td><td class="m">None</td><td><div class="s sb m">Not bookable yet</div><div class="bar"><i style="width:0%"></i></div></td><td class="num m">0</td><td><span class="st">Draft</span></td><td class="num nw"><a class="btn sm" href="TourEditor.dc.html">Edit</a> <a class="btn sm" href="Availability.dc.html">Availability</a></td></tr>
+<tr><td class="m">⋮⋮</td><td><div class="row"><span class="img" style="width:52px;height:38px">Photo</span><div><div class="b">Seaplane over the lagoon</div><div class="m s">/tours/seaplane-lagoon</div></div></div></td><td>Helicopter and sky</td><td class="num b">€180.00</td><td>Enquiry only</td><td><div class="s sb m">Guests enquire, no calendar</div><div class="bar"><i style="width:0%"></i></div></td><td class="num">3</td><td><span class="st ok">Published</span></td><td class="num nw"><a class="btn sm" href="TourEditor.dc.html">Edit</a> <a class="btn sm" href="Availability.dc.html">Availability</a></td></tr>
+</tbody>
+</table></div>
+<div class="row" style="padding:10px 16px;border-top:1px solid var(--line-2)"><span class="m s">Showing 8 of 37</span><button class="btn sm sp">Load more</button></div>
+</section>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1040}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

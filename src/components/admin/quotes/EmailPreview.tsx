@@ -47,7 +47,7 @@ export function EmailPreview({ form }: { form: QuoteFormValues }) {
       <Card title="Preview">
         <p
           role="alert"
-          className="rounded-xl bg-coral/10 px-4 py-3 text-[13px] font-medium leading-relaxed text-coral"
+          className="rounded-xl bg-coral-tint px-4 py-3 text-[13px] font-medium leading-relaxed text-coral-dark"
         >
           {rendered.error}
         </p>

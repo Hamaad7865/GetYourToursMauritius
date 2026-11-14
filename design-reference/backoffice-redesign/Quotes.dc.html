@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Quotes worklist</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="bo.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0B5C63}a:hover{color:#0A2E36}
+</style>
+</helmet>
+<div class="app">
+<div class="side-slot"><dc-import name="Nav" active="quotes" hint-size="232px,1040px"></dc-import></div>
+<div class="main">
+<header class="top">
+<div class="crumb">Operations / <b>Quotes</b></div>
+<button class="search" aria-label="Search everything"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18a7 7 0 100-14 7 7 0 000 14zM20 20l-4-4"/></svg><span>Search bookings, guests, tours</span><span class="kbd">Ctrl K</span></button>
+<button class="btn"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New</button>
+<button class="ib" aria-label="Notifications"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16v-5a6 6 0 0112 0v5l2 2H4zM10 21h4"/></svg><span class="dot"></span></button>
+<button class="ib" aria-label="Open the assistant"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg></button>
+<span class="av d">BM</span>
+</header>
+<main class="page">
+<div class="ph">
+<div><h1 class="h1">Quotes</h1><p class="sub">62 sent in the last 30 days, 56 of them paid.</p></div>
+<button class="btn ai sp"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg>Paste an enquiry</button>
+<a class="btn pri" href="QuoteEditor.dc.html"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New quote</a>
+</div>
+<div class="g g4">
+<div class="card kpi"><span class="l">Waiting for payment</span><span class="v">2</span><span class="d">€635 sent and still valid</span></div>
+<div class="card kpi"><span class="l">Balance to collect</span><span class="v">2</span><span class="d">€570 owed on deposits</span></div>
+<div class="card kpi"><span class="l">Expired without paying</span><span class="v">14</span><span class="d">Past their valid-until date</span></div>
+<div class="card kpi"><span class="l">Paid in the last 30 days</span><span class="v">56</span><span class="d">9 in 10 quotes get paid</span></div>
+</div>
+<section class="card">
+<div class="ch"><span class="dotk w"></span><span class="t">Waiting for payment</span><span class="n">2 quotes</span></div>
+<div class="li"><span class="av">LW</span><div class="x"><div class="b tr">Lukas Weber</div><div class="m s tr">Private south tour with transfer, and 1 more item</div></div><div style="width:120px"><div class="sb">Thu 19 Nov</div><div class="m s">Trip date</div></div><div style="width:150px"><div class="sb">Sent 3 days ago</div><div class="m s">Valid until 25 Nov</div></div><div class="b r" style="width:90px">€455.00</div><button class="btn sm">WhatsApp</button><button class="btn sm">Send again</button><a class="btn sm q" href="QuoteEditor.dc.html">Open</a></div>
+<div class="li"><span class="av g">SR</span><div class="x"><div class="b tr">Sofia Rossi</div><div class="m s tr">Suzuki Swift, 4 days</div></div><div style="width:120px"><div class="sb">Mon 16 Nov</div><div class="m s">Trip date</div></div><div style="width:150px"><div class="sb">Sent yesterday</div><div class="m s">Valid until 27 Nov</div></div><div class="b r" style="width:90px">€180.00</div><button class="btn sm">WhatsApp</button><button class="btn sm">Send again</button><a class="btn sm q" href="QuoteEditor.dc.html">Open</a></div>
+</section>
+<section class="card">
+<div class="ch"><span class="dotk w"></span><span class="t">Balance to collect</span><span class="n">Deposit paid, the rest is still owed</span></div>
+<div class="li"><span class="av c">JC</span><div class="x"><div class="b tr">James Carter</div><div class="m s tr">Private south tour</div></div><div style="width:120px"><div class="sb">Today, 08:30</div><div class="m s">Trip date</div></div><div style="width:150px"><div class="s sb">€45 of €180 paid</div><div class="bar"><i class="w" style="width:25%"></i></div></div><div class="b r" style="width:90px">€135.00</div><button class="btn sm pri">Send balance link</button><a class="btn sm q" href="QuoteEditor.dc.html">Open</a></div>
+<div class="li"><span class="av b">AS</span><div class="x"><div class="b tr">Anika Sharma</div><div class="m s tr">Private dolphin day at Île aux Bénitiers with lunch</div></div><div style="width:120px"><div class="sb">Fri 20 Nov</div><div class="m s">Trip date</div></div><div style="width:150px"><div class="s sb">€48 of €483 paid</div><div class="bar"><i class="w" style="width:10%"></i></div></div><div class="b r" style="width:90px">€435.00</div><button class="btn sm">Send balance link</button><a class="btn sm q" href="QuoteEditor.dc.html">Open</a></div>
+</section>
+<div class="g g2">
+<section class="card">
+<div class="ch"><span class="dotk"></span><span class="t">Drafts</span><span class="n">1</span></div>
+<div class="li"><span class="av">CM</span><div class="x"><div class="b tr">Chloé Martin</div><div class="m s tr">Catamaran cruise, 3 northern islands. Started yesterday.</div></div><div class="b">€186.00</div><a class="btn sm" href="QuoteEditor.dc.html">Finish</a></div>
+</section>
+<section class="card">
+<div class="ch"><span class="dotk c"></span><span class="t">Expired without paying</span><span class="n">14</span></div>
+<div class="li"><div class="x"><div class="sb">These still said "Sent" before. Each can be re-opened for 14 more days or closed.</div></div><button class="btn sm">Review all</button></div>
+</section>
+</div>
+<section class="card">
+<div class="ch"><span class="dotk ok"></span><span class="t">Paid</span><span class="n">145</span><div class="f sp" style="width:240px"><input class="in" aria-label="Search paid quotes" placeholder="Search ref, name or email" style="height:30px"></div></div>
+<div class="tscroll"><table class="tbl c">
+<thead><tr><th>Ref</th><th>Guest</th><th>What</th><th>Trip date</th><th>Paid</th><th class="num">Total</th><th></th></tr></thead>
+<tbody>
+<tr><td class="ref">Q7C21E90A4B13</td><td class="b">Priya Naidoo</td><td>Hyundai Creta, 3 days</td><td>Sun 15 Nov</td><td>13 Nov, in full</td><td class="num b">€180.00</td><td class="num"><button class="btn sm q">Duplicate</button></td></tr>
+<tr><td class="ref">Q3A90D5F7C2E1</td><td class="b">Tom Becker</td><td>Private north tour</td><td>Thu 12 Nov</td><td>11 Nov, in full</td><td class="num b">€90.00</td><td class="num"><button class="btn sm q">Duplicate</button></td></tr>
+<tr><td class="ref">QB58E2C19D04A</td><td class="b">Marie Dupont</td><td>Helicopter flight, 15 minutes</td><td>Tue 17 Nov</td><td>11 Nov, in full</td><td class="num b">€427.00</td><td class="num"><button class="btn sm q">Duplicate</button></td></tr>
+</tbody>
+</table></div>
+</section>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1040}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

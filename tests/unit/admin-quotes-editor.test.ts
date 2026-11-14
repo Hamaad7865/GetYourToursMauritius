@@ -11,8 +11,8 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
+  PAYMENT_PLAN_OPTIONS,
   PREVIEW_LINK_TOKEN,
-  QUOTE_PANES,
   catalogueLineRefusal,
   convertedBookingKind,
   customLineDraft,
@@ -638,10 +638,12 @@ describe('refusals reaching the operator', () => {
 });
 
 describe('the screen is reachable', () => {
-  it('has a rail whose panes are unique', () => {
-    const ids = QUOTE_PANES.map((p) => p.id);
+  // The one-page editor replaced the guest / lines / notes / send rail (back-office redesign, phase 1);
+  // what must not be lost with the rail is any payment plan, so that is what this now pins.
+  it('offers every payment plan from one control', () => {
+    const ids = PAYMENT_PLAN_OPTIONS.map((p) => p.value);
     expect(new Set(ids).size).toBe(ids.length);
-    expect(ids).toContain('send');
+    expect(ids).toEqual(['full', 'deposit', 'per_date']);
   });
 
   it('is in the admin nav, and every nav entry points at a route that exists', () => {

@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Search, notifications and assistant</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="bo.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0B5C63}a:hover{color:#0A2E36}
+</style>
+</helmet>
+<div class="app" style="width:1440px;height:1040px;display:grid;grid-template-columns:minmax(0,1fr) 380px 420px;gap:28px;padding:40px;align-items:start;align-content:start">
+<div class="col" style="gap:14px">
+<div><div class="h2">Search everything</div><p class="sub">Press Ctrl K on any screen. Finds guests, bookings, quotes and tours, and runs common actions.</p></div>
+<section class="sug" style="border-radius:14px" aria-label="Search everything">
+<div class="row" style="padding:14px 16px;border-bottom:1px solid var(--line)"><svg class="i lg m" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18a7 7 0 100-14 7 7 0 000 14zM20 20l-4-4"/></svg><input class="in" aria-label="Search" value="weber" style="border:0;height:28px;font-size:16px;padding:0"><span class="kbd">Esc</span></div>
+<div class="lbl" style="padding:10px 16px 4px">Guests, bookings and quotes</div>
+<div class="o on"><span class="av">LW</span><div class="x"><div class="b">Lukas Weber</div><div class="m s">Quote waiting for payment, €455.00, sent 3 days ago</div></div><span class="st warn">Quote</span><span class="kbd">Enter</span></div>
+<div class="o"><span class="av">LW</span><div class="x"><div class="b">Lukas Weber</div><div class="m s">Île aux Cerfs speedboat with lunch, Mon 16 Nov, paid</div></div><span class="ref">BMT83E6A2D9</span></div>
+<div class="o"><span class="av g">HW</span><div class="x"><div class="b">Hanna Weber</div><div class="m s">Enquiry about airport transfers, contacted 2 Nov</div></div><span class="st info">Enquiry</span></div>
+<div class="lbl" style="padding:10px 16px 4px">Actions</div>
+<div class="o"><span class="ico t"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span><div class="x sb">New quote for Lukas Weber</div><span class="m s">Starts with his details filled in</span></div>
+<div class="o"><span class="ico t"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19l1.5-4A7.5 7.5 0 1110 18.5z"/></svg></span><div class="x sb">Message Lukas Weber on WhatsApp</div></div>
+<div class="row s m" style="padding:10px 16px;border-top:1px solid var(--line);gap:14px"><span><span class="kbd">↑</span> <span class="kbd">↓</span> to move</span><span><span class="kbd">Enter</span> to open</span><span class="sp">5 results</span></div>
+</section>
+<div><div class="h2" style="margin-top:10px">The New button</div><p class="sub">One place to start anything, from any screen.</p></div>
+<section class="sug" style="width:300px;border-radius:12px" aria-label="New menu">
+<a class="o on" href="QuoteEditor.dc.html"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v12H4zM4 7l8 6 8-6"/></svg><span class="x sb">Quote</span><span class="kbd">Q</span></a>
+<a class="o" href="TourEditor.dc.html"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h8l8 8-8 8-8-8zM8.5 8.5h.01"/></svg><span class="x sb">Tour</span><span class="kbd">T</span></a>
+<a class="o" href="Documents.dc.html"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6zM14 3v4h4M9 12h6M9 16h6"/></svg><span class="x sb">Invoice or document</span><span class="kbd">D</span></a>
+<a class="o" href="Blog.dc.html"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16zM13 7l4 4"/></svg><span class="x sb">Blog post</span><span class="kbd">B</span></a>
+</section>
+</div>
+<div class="col" style="gap:14px">
+<div><div class="h2">Notifications</div><p class="sub">The bell, grouped by what you can do about each one.</p></div>
+<section class="card" aria-label="Notifications">
+<div class="ch"><span class="t">Notifications</span><span class="n">3 new</span><button class="btn sm q sp">Mark all read</button></div>
+<a class="li" href="Bookings.dc.html"><span class="ico t"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span><div class="x"><div class="b">Payment received, €372.00</div><div class="m s">Marie Dupont, catamaran cruise. 12 minutes ago</div></div><span class="dotk c"></span></a>
+<a class="li" href="Leads.dc.html"><span class="ico b"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13l3-8h10l3 8v6H4zM4 13h5l1 2h4l1-2h5"/></svg></span><div class="x"><div class="b">New enquiry</div><div class="m s">Chloé Martin, private catamaran. 2 hours ago</div></div><span class="dotk c"></span></a>
+<a class="li" href="Bookings.dc.html"><span class="ico c"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l9 16H3zM12 10v4M12 17h.01"/></svg></span><div class="x"><div class="b">Card payment failed</div><div class="m s">Sofia Rossi, helicopter flight, €854.00. 3 hours ago</div></div><span class="dotk c"></span></a>
+<a class="li" href="Quotes.dc.html"><span class="ico t"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span><div class="x"><div class="sb">Quote paid, €180.00</div><div class="m s">Priya Naidoo, Hyundai Creta. Yesterday</div></div></a>
+<a class="li" href="Reviews.dc.html"><span class="ico g"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l2.5 5.2 5.7.8-4.1 4 1 5.6L12 17l-5.1 2.6 1-5.6-4.1-4 5.7-.8z"/></svg></span><div class="x"><div class="sb">New review to approve</div><div class="m s">Tom Becker, 5 stars. Yesterday</div></div></a>
+<a class="li" href="Calendar.dc.html"><span class="ico"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v14H4zM4 10h16M8 3v4M16 3v4"/></svg></span><div class="x"><div class="sb">Catamaran is full on Sat 21 Nov</div><div class="m s">12 of 12 seats. 2 days ago</div></div></a>
+</section>
+</div>
+<div class="col" style="gap:14px">
+<div><div class="h2">Assistant</div><p class="sub">Opens beside any screen and knows what you are looking at. It proposes, you approve.</p></div>
+<section class="card" aria-label="Gemini assistant" style="display:flex;flex-direction:column">
+<div class="ch"><span class="ico v"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg></span><div class="x"><div class="t">Gemini</div><div class="n">Looking at: Enquiries, Chloé Martin</div></div><button class="btn sm q">New chat</button><button class="ib s q" aria-label="Close the assistant"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+<div class="cb col" style="gap:14px">
+<div class="note n" style="align-self:flex-end;max-width:85%;font-size:13px">Draft a quote for this enquiry. Private catamaran on the 24th for 8, with the transfer from Belle Mare.</div>
+<p style="line-height:1.6">Here is a draft from your catalogue prices. The private catamaran is free on Tue 24 Nov. I used the minibus fare for 8 guests from Belle Mare to Grand Baie.</p>
+<div class="card" style="border-color:#D9D0F5">
+<div class="ch"><span class="t">Draft quote for Chloé Martin</span><span class="st ai">Not saved</span></div>
+<div class="cb col" style="gap:6px">
+<div class="row"><span class="x">Private catamaran, Tue 24 Nov, 8 guests</span><span>€890.00</span></div>
+<div class="row"><span class="x">Minibus transfer, round trip</span><span>€110.00</span></div>
+<hr class="hr">
+<div class="row b"><span class="x">Total</span><span>€1,000.00</span></div>
+<div class="row" style="margin-top:6px"><a class="btn pri x" href="QuoteEditor.dc.html">Open in the quote editor</a><button class="btn">Change</button></div>
+</div>
+</div>
+<p class="hint">Nothing is saved or sent until you open it and press send yourself. The assistant never sets a price of its own.</p>
+<div class="row w"><button class="btn sm">Reply to her in French</button><button class="btn sm">Is the 25th free too?</button></div>
+</div>
+<div class="row" style="padding:12px 16px;border-top:1px solid var(--line-2)"><input class="in" aria-label="Ask Gemini" placeholder="Ask Gemini, or paste an enquiry"><button class="btn dark" aria-label="Send"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>
+</section>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1040}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Reviews</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="bo.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0B5C63}a:hover{color:#0A2E36}
+</style>
+</helmet>
+<div class="app">
+<div class="side-slot"><dc-import name="Nav" active="reviews" hint-size="232px,1040px"></dc-import></div>
+<div class="main">
+<header class="top">
+<div class="crumb">Growth / <b>Reviews</b></div>
+<button class="search" aria-label="Search everything"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18a7 7 0 100-14 7 7 0 000 14zM20 20l-4-4"/></svg><span>Search bookings, guests, tours</span><span class="kbd">Ctrl K</span></button>
+<button class="btn"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New</button>
+<button class="ib" aria-label="Notifications"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16v-5a6 6 0 0112 0v5l2 2H4zM10 21h4"/></svg><span class="dot"></span></button>
+<button class="ib" aria-label="Open the assistant"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg></button>
+<span class="av d">BM</span>
+</header>
+<main class="page">
+<div class="ph">
+<div><h1 class="h1">Reviews</h1><p class="sub">Guests are asked for a review after their trip. Nothing shows on the site until you approve it.</p></div>
+</div>
+<div class="tabs">
+<a class="tab on" href="Reviews.dc.html">Your queue<span class="c">3</span></a>
+<a class="tab" href="Reviews.dc.html">Approved<span class="c">84</span></a>
+<a class="tab" href="Reviews.dc.html">Rejected</a>
+<a class="tab" href="Reviews.dc.html">From Google</a>
+</div>
+<div class="g g21">
+<div class="col" style="gap:14px">
+<section class="card">
+<div class="cb col">
+<div class="row"><span class="av">TB</span><div class="x"><div class="b">Tom Becker</div><div class="m s">Private north tour, 12 Nov. Booking <span class="ref">BMT2C58F7A1</span></div></div><span class="stars" aria-label="5 out of 5 stars">★★★★★</span></div>
+<p style="font-size:14px;line-height:1.6">Our driver was on time, knew every stop and never rushed us. The botanical garden and the red-roof church were the highlights. Booking direct was simple and cheaper than the hotel desk.</p>
+<div class="row w"><button class="btn pri">Approve and show on the site</button><button class="btn">Reject</button><button class="btn q sp">Open the booking</button></div>
+</div>
+</section>
+<section class="card">
+<div class="cb col">
+<div class="row"><span class="av g">PN</span><div class="x"><div class="b">Priya Naidoo</div><div class="m s">Catamaran cruise, 3 northern islands, 11 Nov. Booking <span class="ref">BMT61A0C9E4</span></div></div><span class="stars" aria-label="4 out of 5 stars">★★★★<span style="color:#C9D3D6">★</span></span></div>
+<p style="font-size:14px;line-height:1.6">Lovely day and a great lunch. The pickup came twenty minutes late, which made the morning a little stressful with children, but the crew more than made up for it.</p>
+<div class="note">Mentions a late pickup. Worth a personal reply before it goes live.</div>
+<div class="row w"><button class="btn pri">Approve and show on the site</button><button class="btn">Reject</button><button class="btn ai">Draft a reply</button><button class="btn q sp">Open the booking</button></div>
+</div>
+</section>
+<section class="card">
+<div class="cb col">
+<div class="row"><span class="av b">MD</span><div class="x"><div class="b">Marie Dupont</div><div class="m s">Excursion dauphins et Île aux Bénitiers, 9 Nov. In French.</div></div><span class="stars" aria-label="5 out of 5 stars">★★★★★</span></div>
+<p style="font-size:14px;line-height:1.6">Une journée magique. Nous avons nagé avec les dauphins dès le matin et le déjeuner sur l'île était excellent. Équipe très attentionnée avec les enfants.</p>
+<div class="row w"><button class="btn pri">Approve and show on the site</button><button class="btn">Reject</button><button class="btn q sp">Open the booking</button></div>
+</div>
+</section>
+</div>
+<div class="col" style="gap:14px">
+<section class="card">
+<div class="ch"><span class="t">Where you stand</span></div>
+<div class="cb col">
+<div class="row"><span class="h1" style="font-size:40px">4.8</span><div><div class="stars" style="font-size:16px" aria-hidden="true">★★★★★</div><div class="m s">1,076 reviews on TripAdvisor and Google</div></div></div>
+<hr class="hr">
+<dl class="kv" style="grid-template-columns:minmax(0,1fr) auto"><dt>Shown on your own site</dt><dd>84</dd><dt>Waiting for you</dt><dd>3</dd><dt>Review requests sent, 30 days</dt><dd>41</dd><dt>Answered</dt><dd>9</dd></dl>
+</div>
+</section>
+<section class="card">
+<div class="ch"><span class="t">Latest from Google</span><button class="btn sm q sp">See all</button></div>
+<div class="li" style="align-items:flex-start"><span class="av c">LW</span><div class="x"><div class="row"><span class="b x">Lukas W.</span><span class="stars" aria-label="5 out of 5 stars">★★★★★</span></div><div class="m s">3 days ago</div><div class="s" style="margin-top:4px">Best catamaran day of our trip. Small group, generous lunch.</div></div></div>
+<div class="li" style="align-items:flex-start"><span class="av">AS</span><div class="x"><div class="row"><span class="b x">Anika S.</span><span class="stars" aria-label="5 out of 5 stars">★★★★★</span></div><div class="m s">1 week ago</div><div class="s" style="margin-top:4px">Easy booking, clear messages on WhatsApp, driver was early.</div></div></div>
+<div class="li" style="align-items:flex-start"><span class="av g">SR</span><div class="x"><div class="row"><span class="b x">Sofia R.</span><span class="stars" aria-label="4 out of 5 stars">★★★★<span style="color:#C9D3D6">★</span></span></div><div class="m s">2 weeks ago</div><div class="s" style="margin-top:4px">Great helicopter flight. Wish it had been longer.</div></div></div>
+</section>
+</div>
+</div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1040}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Bookings</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="bo.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0B5C63}a:hover{color:#0A2E36}
+</style>
+</helmet>
+<div class="app">
+<div class="side-slot"><dc-import name="Nav" active="bookings" hint-size="232px,1040px"></dc-import></div>
+<div class="main">
+<header class="top">
+<div class="crumb">Operations / <b>Bookings</b></div>
+<button class="search" aria-label="Search everything"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18a7 7 0 100-14 7 7 0 000 14zM20 20l-4-4"/></svg><span>Search bookings, guests, tours</span><span class="kbd">Ctrl K</span></button>
+<button class="btn"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New</button>
+<button class="ib" aria-label="Notifications"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16v-5a6 6 0 0112 0v5l2 2H4zM10 21h4"/></svg><span class="dot"></span></button>
+<button class="ib" aria-label="Open the assistant"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg></button>
+<span class="av d">BM</span>
+</header>
+<main class="page">
+<div class="ph">
+<div><h1 class="h1">Bookings</h1><p class="sub">148 bookings. 3 are waiting for payment.</p></div>
+<button class="btn sp"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></svg>Export CSV</button>
+</div>
+<div class="tabs">
+<a class="tab on" href="Bookings.dc.html">All<span class="c">148</span></a>
+<a class="tab" href="Bookings.dc.html">Awaiting payment<span class="c">3</span></a>
+<a class="tab" href="Bookings.dc.html">Today<span class="c">4</span></a>
+<a class="tab" href="Bookings.dc.html">Next 7 days<span class="c">21</span></a>
+<a class="tab" href="Bookings.dc.html">Part paid<span class="c">5</span></a>
+<a class="tab" href="Bookings.dc.html">Completed</a>
+<a class="tab" href="Bookings.dc.html">Cancelled</a>
+</div>
+<div class="row w">
+<div class="f" style="flex:0 1 300px"><input class="in" aria-label="Search bookings" placeholder="Search ref, name or email"></div>
+<button class="sel">All tours<svg class="i sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+<button class="sel">All payments<svg class="i sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+<button class="sel">All dates<svg class="i sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+<span class="m s sp">Sorted by trip date, soonest first</span>
+</div>
+<div class="g gl">
+<section class="card">
+<div class="tscroll"><table class="tbl">
+<thead><tr><th>Ref</th><th>Guest</th><th>Tour</th><th>Trip date</th><th class="num">Guests</th><th class="num">Total</th><th>Payment</th><th>Status</th></tr></thead>
+<tbody>
+<tr class="sel"><td class="ref">BMT7F3A21C4</td><td><div class="b">Marie Dupont</div><div class="m s">marie@example.com</div></td><td>Catamaran cruise, 3 northern islands</td><td class="nw">Sat 14 Nov</td><td class="num">4</td><td class="num b">€372.00</td><td><span class="st ok">Paid</span></td><td><span class="st ok">Confirmed</span></td></tr>
+<tr><td class="ref">BMT19C0E5A7</td><td><div class="b">James Carter</div><div class="m s">james@example.com</div></td><td>Private south tour</td><td class="nw">Sat 14 Nov</td><td class="num">2</td><td class="num b">€180.00</td><td><span class="st warn">Part paid</span></td><td><span class="st ok">Confirmed</span></td></tr>
+<tr><td class="ref">BMT5D2B8F10</td><td><div class="b">Anika Sharma</div><div class="m s">anika@example.com</div></td><td>Dolphin swim and Île aux Bénitiers</td><td class="nw">Sun 15 Nov</td><td class="num">3</td><td class="num b">€165.00</td><td><span class="st">Pending</span></td><td><span class="st warn">Awaiting payment</span></td></tr>
+<tr><td class="ref">BMT83E6A2D9</td><td><div class="b">Lukas Weber</div><div class="m s">lukas@example.com</div></td><td>Île aux Cerfs speedboat with lunch</td><td class="nw">Mon 16 Nov</td><td class="num">2</td><td class="num b">€110.00</td><td><span class="st ok">Paid</span></td><td><span class="st ok">Confirmed</span></td></tr>
+<tr><td class="ref">BMT0A47C3E2</td><td><div class="b">Sofia Rossi</div><div class="m s">sofia@example.com</div></td><td>Helicopter flight, underwater waterfall</td><td class="nw">Tue 17 Nov</td><td class="num">2</td><td class="num b">€854.00</td><td><span class="st bad">Failed</span></td><td><span class="st warn">Awaiting payment</span></td></tr>
+<tr><td class="ref">BMT6E91D0B5</td><td><div class="b">Priya Naidoo</div><div class="m s">priya@example.com</div></td><td>Airport transfer to Belle Mare</td><td class="nw">Wed 18 Nov</td><td class="num">5</td><td class="num b">€65.00</td><td><span class="st ok">Paid</span></td><td><span class="st ok">Confirmed</span></td></tr>
+<tr><td class="ref">BMT2C58F7A1</td><td><div class="b">Tom Becker</div><div class="m s">tom@example.com</div></td><td>Private north tour</td><td class="nw">Thu 12 Nov</td><td class="num">4</td><td class="num b">€176.00</td><td><span class="st ok">Paid</span></td><td><span class="st">Completed</span></td></tr>
+<tr><td class="ref">BMT94B3E6D0</td><td><div class="b">Chloé Martin</div><div class="m s">chloe@example.com</div></td><td>Catamaran cruise, 3 northern islands</td><td class="nw">Wed 11 Nov</td><td class="num">2</td><td class="num b">€186.00</td><td><span class="st info">Refunded</span></td><td><span class="st bad">Cancelled</span></td></tr>
+</tbody>
+</table></div>
+<div class="row" style="padding:10px 16px;border-top:1px solid var(--line-2)"><span class="m s">Showing 8 of 148</span><button class="btn sm sp">Load more</button></div>
+</section>
+<aside class="card" aria-label="Booking details">
+<div class="ch"><span class="ref">BMT7F3A21C4</span><span class="st ok">Confirmed</span><button class="ib s q sp" aria-label="Close booking details"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+<div class="cb col">
+<div class="row"><span class="av">MD</span><div class="x"><div class="h2">Marie Dupont</div><div class="m s">Booked 9 Nov on the website, in English</div></div></div>
+<div class="row w"><button class="btn sm">WhatsApp</button><button class="btn sm">Email</button><button class="btn sm">Invoice PDF</button></div>
+<hr class="hr">
+<dl class="kv">
+<dt>Tour</dt><dd>Catamaran cruise, 3 northern islands</dd>
+<dt>When</dt><dd>Sat 14 Nov, 09:00</dd>
+<dt>Guests</dt><dd>2 adults, 2 children</dd>
+<dt>Pickup</dt><dd>Lux Belle Mare, Belle Mare</dd>
+<dt>Room</dt><dd>214</dd>
+<dt>Phone</dt><dd>+33 6 12 34 56 78</dd>
+</dl>
+<hr class="hr">
+<div class="col" style="gap:6px">
+<div class="row"><span class="x">2 × Adult</span><span>€186.00</span></div>
+<div class="row"><span class="x">2 × Child</span><span>€126.00</span></div>
+<div class="row"><span class="x">Round-trip transfer from Lux Belle Mare</span><span>€60.00</span></div>
+<div class="row b"><span class="x">Total</span><span>€372.00</span></div>
+<div class="bar"><i style="width:100%"></i></div>
+<div class="m s">Paid in full by card on 9 Nov, 14:04</div>
+</div>
+<hr class="hr">
+<div class="f"><label for="bk-note">Private note</label><textarea class="in" id="bk-note" rows="2" placeholder="Only the team sees this"></textarea></div>
+<div class="row w"><button class="btn pri">Change date or tour</button><button class="btn">Mark as completed</button><button class="btn" aria-label="More actions: cancel, refund, reset guest link, erase data">More<svg class="i sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button></div>
+</div>
+</aside>
+</div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1040}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

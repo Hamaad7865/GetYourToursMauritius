@@ -3,8 +3,11 @@ import { join, relative, sep } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   ADMIN_NAV,
+  NAV_GROUPS,
   allows,
   bottomNavFor,
+  crumbFor,
+  groupedNav,
   navFor,
   navItemForPath,
   pageAllowedFor,
@@ -235,12 +238,13 @@ describe('admin navigation by permission', () => {
   });
 
   it('the bottom bar is the usual four in sidebar order, minus any not allowed, topped up to four', () => {
-    // Owner: the usual four.
+    // Owner: the usual four. Enquiries (Operations) now sits above Tours (Catalogue) in the grouped
+    // sidebar, so it comes first here too — the redesign's deliberate reorder, same four items.
     expect(bottomNavFor(owner).map((n) => n.href)).toEqual([
       '/admin',
       '/admin/bookings',
-      '/admin/activities',
       '/admin/leads',
+      '/admin/activities',
     ]);
     // The old seo account's bar keeps its order: Tours, SEO, Blog, Redirects.
     expect(bottomNavFor(writer).map((n) => n.href)).toEqual([
@@ -281,6 +285,94 @@ describe('admin navigation by permission', () => {
     for (const access of [owner, reservations, writer]) {
       expect(bottomNavFor(access).length).toBeLessThanOrEqual(4);
     }
+  });
+});
+
+describe('the grouped sidebar', () => {
+  const groupIndex = (g: (typeof ADMIN_NAV)[number]['group']) =>
+    g === null ? -1 : NAV_GROUPS.indexOf(g);
+
+  it('puts Today alone above the groups, and every other item in a group', () => {
+    expect(ADMIN_NAV[0]).toMatchObject({ href: '/admin', label: 'Today', group: null });
+    expect(ADMIN_NAV.filter((n) => n.group === null).map((n) => n.href)).toEqual(['/admin']);
+    for (const item of ADMIN_NAV) {
+      if (item.group !== null) expect(NAV_GROUPS, item.href).toContain(item.group);
+    }
+  });
+
+  it('lists the items in group order, each group in one run, so navFor IS the sidebar order', () => {
+    const order = ADMIN_NAV.map((n) => groupIndex(n.group));
+    expect(order).toEqual([...order].sort((a, b) => a - b));
+  });
+
+  it('files each section where the redesign puts it, with only the labels renamed', () => {
+    const byHref = Object.fromEntries(ADMIN_NAV.map((n) => [n.href, [n.group, n.label]]));
+    expect(byHref).toEqual({
+      '/admin': [null, 'Today'],
+      '/admin/bookings': ['Operations', 'Bookings'],
+      '/admin/calendar': ['Operations', 'Calendar'],
+      '/admin/quotes': ['Operations', 'Quotes'],
+      '/admin/leads': ['Operations', 'Enquiries'],
+      '/admin/activities': ['Catalogue', 'Tours'],
+      '/admin/categories': ['Catalogue', 'Categories'],
+      '/admin/content': ['Catalogue', 'Standard content'],
+      '/admin/vehicle-pricing': ['Catalogue', 'Pricing'],
+      '/admin/rental': ['Catalogue', 'Rental fleet'],
+      '/admin/planner-places': ['Catalogue', 'Planner places'],
+      '/admin/reports': ['Money', 'Reports'],
+      '/admin/documents': ['Money', 'Documents'],
+      '/admin/seo': ['Growth', 'SEO'],
+      '/admin/blog': ['Growth', 'Blog'],
+      '/admin/reviews': ['Growth', 'Reviews'],
+      '/admin/redirects': ['Growth', 'Redirects'],
+      '/admin/roles': ['Admin', 'Team and roles'],
+    });
+  });
+
+  it('shows the Owner every group, each under its label', () => {
+    const sections = groupedNav(navFor(owner));
+    expect(sections.map((s) => s.group)).toEqual([null, ...NAV_GROUPS]);
+    expect(sections.flatMap((s) => s.items)).toEqual(navFor(owner));
+  });
+
+  it('shows no label for a group with nothing in it', () => {
+    expect(
+      groupedNav(navFor(reservations)).map((s) => [s.group, s.items.map((n) => n.href)]),
+    ).toEqual([
+      [null, ['/admin']],
+      ['Operations', ['/admin/bookings', '/admin/calendar', '/admin/quotes']],
+    ]);
+    expect(groupedNav(navFor(writer)).map((s) => [s.group, s.items.map((n) => n.href)])).toEqual([
+      [null, ['/admin']],
+      ['Catalogue', ['/admin/activities', '/admin/planner-places']],
+      ['Growth', ['/admin/seo', '/admin/blog', '/admin/redirects']],
+    ]);
+    expect(groupedNav(navFor(NO_ACCESS))).toEqual([]);
+  });
+
+  it('never changes who sees what: the grouped list is exactly navFor, for every role', () => {
+    for (const access of [owner, reservations, writer, buildAccess({ role: 'staff' })]) {
+      expect(groupedNav(navFor(access)).flatMap((s) => s.items)).toEqual(navFor(access));
+    }
+  });
+
+  it('names the group and section in the breadcrumb, deep pages included', () => {
+    expect(crumbFor('/admin')).toEqual({ group: null, label: 'Today', href: '/admin' });
+    expect(crumbFor('/admin/activities/x/edit')).toEqual({
+      group: 'Catalogue',
+      label: 'Tours',
+      href: '/admin/activities',
+    });
+    expect(crumbFor('/admin/leads')?.label).toBe('Enquiries');
+    expect(crumbFor('/admin/not-a-real-page')).toBeNull();
+  });
+
+  it('gives the long labels a short form for the phone bar', () => {
+    const short = Object.fromEntries(ADMIN_NAV.map((n) => [n.href, n.short ?? n.label]));
+    expect(short['/admin/planner-places']).toBe('Places');
+    expect(short['/admin/rental']).toBe('Rental');
+    expect(short['/admin/roles']).toBe('Roles');
+    for (const label of Object.values(short)) expect(label.length).toBeLessThanOrEqual(10);
   });
 });
 

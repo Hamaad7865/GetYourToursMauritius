@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Documents</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="bo.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0B5C63}a:hover{color:#0A2E36}
+</style>
+</helmet>
+<div class="app">
+<div class="side-slot"><dc-import name="Nav" active="documents" hint-size="232px,1040px"></dc-import></div>
+<div class="main">
+<header class="top">
+<div class="crumb">Money / <b>Documents</b></div>
+<button class="search" aria-label="Search everything"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18a7 7 0 100-14 7 7 0 000 14zM20 20l-4-4"/></svg><span>Search bookings, guests, tours</span><span class="kbd">Ctrl K</span></button>
+<button class="btn"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New</button>
+<button class="ib" aria-label="Notifications"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16v-5a6 6 0 0112 0v5l2 2H4zM10 21h4"/></svg><span class="dot"></span></button>
+<button class="ib" aria-label="Open the assistant"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg></button>
+<span class="av d">BM</span>
+</header>
+<main class="page">
+<div class="ph">
+<div><h1 class="h1">Documents</h1><p class="sub">Invoices, proformas, receipts and paper quotes for companies and agents.</p></div>
+<button class="btn pri sp"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New document</button>
+</div>
+<div class="g" style="grid-template-columns:330px minmax(0,1fr) 380px">
+<section class="card" aria-label="Document list">
+<div class="cb col" style="gap:8px;border-bottom:1px solid var(--line-2)">
+<input class="in" aria-label="Search documents" placeholder="Search number or client">
+<div class="seg wide"><button class="on">All</button><button>Invoices</button><button>Proformas</button><button>Receipts</button></div>
+</div>
+<a class="li sel" href="Documents.dc.html"><div class="x"><div class="row"><span class="ref x">Draft invoice</span><span class="st">Draft</span></div><div class="b tr">Azur Voyages SARL</div><div class="m s">14 Nov, €1,240.00</div></div></a>
+<a class="li" href="Documents.dc.html"><div class="x"><div class="row"><span class="ref x">INV-0142</span><span class="st ok">Issued</span></div><div class="b tr">Constance Hotels, concierge desk</div><div class="m s">12 Nov, €854.00</div></div></a>
+<a class="li" href="Documents.dc.html"><div class="x"><div class="row"><span class="ref x">PRO-0031</span><span class="st ok">Issued</span></div><div class="b tr">Weber family</div><div class="m s">11 Nov, €455.00</div></div></a>
+<a class="li" href="Documents.dc.html"><div class="x"><div class="row"><span class="ref x">REC-0118</span><span class="st ok">Issued</span></div><div class="b tr">Marie Dupont</div><div class="m s">9 Nov, €372.00</div></div></a>
+<a class="li" href="Documents.dc.html"><div class="x"><div class="row"><span class="ref x">INV-0141</span><span class="st bad">Void</span></div><div class="b tr">Azur Voyages SARL</div><div class="m s">6 Nov, €1,190.00</div></div></a>
+<a class="li" href="Documents.dc.html"><div class="x"><div class="row"><span class="ref x">INV-0140</span><span class="st ok">Issued</span></div><div class="b tr">Lux Belle Mare, guest relations</div><div class="m s">4 Nov, €620.00</div></div></a>
+</section>
+<div class="col" style="gap:14px">
+<section class="card">
+<div class="ch"><span class="t">Draft invoice</span><span class="st">Draft</span><span class="n">Gets its number when you issue it</span><button class="btn sm sp">Save</button><button class="btn sm pri">Issue</button></div>
+<div class="cb col">
+<div class="g g2">
+<div class="f"><label for="d-client">Client</label><input class="in" id="d-client" value="Azur Voyages SARL"></div>
+<div class="f"><label for="d-email">Client email</label><input class="in" id="d-email" value="compta@example.com"></div>
+<div class="f"><label for="d-addr">Address</label><input class="in" id="d-addr" value="12 rue de la République, 69002 Lyon"></div>
+<div class="f"><label for="d-vat">Client VAT number</label><input class="in" id="d-vat" value="FR 12 345678901"></div>
+<div class="f"><label for="d-date">Document date</label><input class="in" id="d-date" value="14 Nov 2026"></div>
+<div class="f"><label for="d-lang">Language</label><input class="in" id="d-lang" value="Français"></div>
+</div>
+</div>
+</section>
+<section class="card">
+<div class="ch"><span class="t">Lines</span><span class="n">3</span></div>
+<div class="tscroll"><table class="tbl c">
+<thead><tr><th>Description</th><th class="num">Qty</th><th class="num">Unit price</th><th class="num">Amount</th><th></th></tr></thead>
+<tbody>
+<tr><td><input class="in" aria-label="Line 1 description" value="Private catamaran, 24 Nov, 8 guests"></td><td class="num"><input class="in c" aria-label="Line 1 quantity" value="1" style="width:56px"></td><td class="num"><input class="in c" aria-label="Line 1 unit price" value="890.00"></td><td class="num b">€890.00</td><td><button class="ib s q" aria-label="Remove line 1"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></td></tr>
+<tr><td><input class="in" aria-label="Line 2 description" value="Minibus transfer, Belle Mare to Grand Baie and back"></td><td class="num"><input class="in c" aria-label="Line 2 quantity" value="1" style="width:56px"></td><td class="num"><input class="in c" aria-label="Line 2 unit price" value="110.00"></td><td class="num b">€110.00</td><td><button class="ib s q" aria-label="Remove line 2"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></td></tr>
+<tr><td><input class="in" aria-label="Line 3 description" value="Private south tour, 26 Nov"></td><td class="num"><input class="in c" aria-label="Line 3 quantity" value="2" style="width:56px"></td><td class="num"><input class="in c" aria-label="Line 3 unit price" value="120.00"></td><td class="num b">€240.00</td><td><button class="ib s q" aria-label="Remove line 3"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></td></tr>
+</tbody>
+</table></div>
+<div class="row" style="padding:10px 16px;border-top:1px solid var(--line-2)"><button class="btn sm">Add a line</button><button class="btn sm">Copy lines from a booking</button><span class="sp m s">Before VAT €1,078.26</span><span class="m s">VAT 15% €161.74</span><span class="b">Total €1,240.00</span></div>
+</section>
+<section class="card">
+<div class="ch"><span class="t">After it is issued</span></div>
+<div class="cb row w"><button class="btn">Download PDF</button><button class="btn">Email to client</button><button class="btn">Convert to invoice</button><button class="btn q danger sp">Void</button></div>
+</section>
+</div>
+<section class="card">
+<div class="ch"><span class="t">Preview</span><span class="n">A4, as the client receives it</span></div>
+<div class="cb" style="background:var(--bg);border-radius:0 0 12px 12px">
+<div class="paper col" style="gap:10px;min-height:470px">
+<div class="row t"><div class="x"><div class="b" style="font-size:14px">Belle Mare Tours</div><div class="m xs">BRN C09091906</div></div><div class="r"><h3>Facture</h3><div class="m xs">Brouillon, 14 nov. 2026</div></div></div>
+<hr class="hr">
+<div><div class="m xs">Facturé à</div><div class="b">Azur Voyages SARL</div><div class="m xs">12 rue de la République, 69002 Lyon</div><div class="m xs">TVA FR 12 345678901</div></div>
+<hr class="hr">
+<div class="row"><span class="x">Catamaran privé, 24 nov., 8 personnes</span><span>890,00 €</span></div>
+<div class="row"><span class="x">Transfert minibus aller-retour</span><span>110,00 €</span></div>
+<div class="row"><span class="x">Excursion privée sud, 26 nov. × 2</span><span>240,00 €</span></div>
+<hr class="hr">
+<div class="row m"><span class="x">Hors TVA</span><span>1 078,26 €</span></div>
+<div class="row m"><span class="x">TVA 15 %</span><span>161,74 €</span></div>
+<div class="row b" style="font-size:14px"><span class="x">Total</span><span>1 240,00 €</span></div>
+</div>
+</div>
+</section>
+</div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1040}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Settings</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="bo.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0B5C63}a:hover{color:#0A2E36}
+</style>
+</helmet>
+<div class="app">
+<div class="side-slot"><dc-import name="Nav" active="settings" hint-size="232px,1040px"></dc-import></div>
+<div class="main">
+<header class="top">
+<div class="crumb">Admin / <b>Settings</b></div>
+<button class="search" aria-label="Search everything"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18a7 7 0 100-14 7 7 0 000 14zM20 20l-4-4"/></svg><span>Search bookings, guests, tours</span><span class="kbd">Ctrl K</span></button>
+<button class="btn"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New</button>
+<button class="ib" aria-label="Notifications"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16v-5a6 6 0 0112 0v5l2 2H4zM10 21h4"/></svg><span class="dot"></span></button>
+<button class="ib" aria-label="Open the assistant"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg></button>
+<span class="av d">BM</span>
+</header>
+<main class="page">
+<div class="ph">
+<div><h1 class="h1">Settings</h1><p class="sub">The few switches that used to be scattered across other screens, in one place.</p></div>
+</div>
+<div class="g g2">
+<div class="col" style="gap:14px">
+<section class="card">
+<div class="ch"><span class="ico t"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19l1.5-4A7.5 7.5 0 1110 18.5z"/></svg></span><div class="x"><div class="t">WhatsApp number</div><div class="n">Used by the chat button on the site and every "message us" link</div></div></div>
+<div class="cb col">
+<div class="row"><div class="f x"><label for="st-wa">Number, with country code</label><input class="in" id="st-wa" value="+230 5 123 4567"></div><button class="btn pri" style="margin-top:20px">Save</button></div>
+<p class="hint">If this is empty, the site falls back to the business phone number.</p>
+</div>
+</section>
+<section class="card">
+<div class="ch"><span class="ico v"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg></span><div class="x"><div class="t">Site assistant maintenance notice</div><div class="n">Shows guests a polite "back soon" message where the assistant usually answers</div></div><button class="sw" aria-label="Show the maintenance notice" aria-pressed="false"></button></div>
+<div class="cb col">
+<div class="f"><label for="st-zil">Message guests see while it is on</label><textarea class="in" id="st-zil" rows="2">Our assistant is taking a short break. Message us on WhatsApp and we will reply ourselves.</textarea></div>
+<div class="row"><span class="st ok">Assistant is answering</span><span class="m s">Notice is off</span></div>
+</div>
+</section>
+<section class="card">
+<div class="ch"><span class="ico g"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h14a2 2 0 012 2v9a2 2 0 01-2 2H4zM4 7V5h12M16 13.5h.01"/></svg></span><div class="x"><div class="t">Card payments</div><div class="n">Which currency cards are charged in</div></div><a class="btn sm" href="Pricing.dc.html">Open in Pricing</a></div>
+<div class="cb"><dl class="kv" style="grid-template-columns:150px minmax(0,1fr)"><dt>Charging in</dt><dd>Euros (EUR)</dd><dt>Applies to</dt><dd>New payment links only. A booking never mixes currencies.</dd></dl></div>
+</section>
+</div>
+<div class="col" style="gap:14px">
+<section class="card">
+<div class="ch"><span class="ico b"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21a9 9 0 100-18 9 9 0 000 18zM12 7v5l3 2"/></svg></span><div class="x"><div class="t">System health</div><div class="n">Checked a minute ago</div></div><span class="tag new">New</span><button class="btn sm">Check now</button></div>
+<div class="li"><span class="dotk ok"></span><div class="x"><div class="sb">Bookable dates are being opened</div><div class="m s">Last run 3 minutes ago. Dates are open 185 days ahead.</div></div><span class="st ok">Running</span></div>
+<div class="li"><span class="dotk ok"></span><div class="x"><div class="sb">Card payments</div><div class="m s">Payment provider reachable, last payment 42 minutes ago</div></div><span class="st ok">Working</span></div>
+<div class="li"><span class="dotk ok"></span><div class="x"><div class="sb">Emails to guests</div><div class="m s">Confirmations and quotes are going out, none waiting</div></div><span class="st ok">Working</span></div>
+<div class="li"><span class="dotk w"></span><div class="x"><div class="sb">Maps and pickup search</div><div class="m s">Google is refusing requests. Pickups fall back to OpenStreetMap.</div></div><span class="st warn">Fallback</span></div>
+<div class="li"><span class="dotk ok"></span><div class="x"><div class="sb">Errors in the last 24 hours</div><div class="m s">None recorded</div></div><button class="btn sm q">Open the log</button></div>
+</section>
+<section class="card">
+<div class="ch"><span class="ico"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v12H4zM4 7l8 6 8-6"/></svg></span><div class="x"><div class="t">Addresses guests see</div><div class="n">Set when the site is deployed. Shown here so nobody has to look them up.</div></div></div>
+<div class="cb"><dl class="kv" style="grid-template-columns:150px minmax(0,1fr)"><dt>Website</dt><dd>bellemaretours.com</dd><dt>Emails are sent from</dt><dd>bookings@bellemaretours.com</dd><dt>Replies go to</dt><dd>info@bellemaretours.com</dd><dt>Business number</dt><dd>BRN C09091906</dd></dl></div>
+</section>
+</div>
+</div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1040}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

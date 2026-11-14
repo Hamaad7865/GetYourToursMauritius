@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Planner places</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="bo.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0B5C63}a:hover{color:#0A2E36}
+</style>
+</helmet>
+<div class="app">
+<div class="side-slot"><dc-import name="Nav" active="places" hint-size="232px,1040px"></dc-import></div>
+<div class="main">
+<header class="top">
+<div class="crumb">Catalogue / <b>Planner places</b></div>
+<button class="search" aria-label="Search everything"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18a7 7 0 100-14 7 7 0 000 14zM20 20l-4-4"/></svg><span>Search bookings, guests, tours</span><span class="kbd">Ctrl K</span></button>
+<button class="btn"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New</button>
+<button class="ib" aria-label="Notifications"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16v-5a6 6 0 0112 0v5l2 2H4zM10 21h4"/></svg><span class="dot"></span></button>
+<button class="ib" aria-label="Open the assistant"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg></button>
+<span class="av d">BM</span>
+</header>
+<main class="page">
+<div class="ph">
+<div><h1 class="h1">Planner places</h1><p class="sub">The stops the road trip planner builds a day from. 42 places, 1 without a map pin.</p></div>
+<button class="btn pri sp"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Add a place</button>
+</div>
+<div class="row w">
+<div class="f" style="flex:0 1 300px"><input class="in" aria-label="Search places" placeholder="Search places"></div>
+<div class="seg"><button class="on">All regions</button><button>North</button><button>East</button><button>South</button><button>West</button><button>Centre</button></div>
+<button class="sel">All categories<svg class="i sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+</div>
+<div class="g" style="grid-template-columns:minmax(0,1fr) 440px">
+<section class="card">
+<div class="tscroll"><table class="tbl">
+<thead><tr><th style="width:28px"></th><th>Place</th><th>Category</th><th>Region</th><th class="num">Ideal visit</th><th>Closes</th><th>Map pin</th></tr></thead>
+<tbody>
+<tr><td class="m">⋮⋮</td><td><div class="row"><span class="img" style="width:44px;height:34px">Photo</span><span class="b">Pamplemousses Botanical Garden</span></div></td><td>Garden</td><td>North</td><td class="num">90 min</td><td>17:30</td><td><span class="st ok">Placed</span></td></tr>
+<tr><td class="m">⋮⋮</td><td><div class="row"><span class="img" style="width:44px;height:34px">Photo</span><span class="b">Cap Malheureux red-roof church</span></div></td><td>Landmark</td><td>North</td><td class="num">30 min</td><td class="m">Always open</td><td><span class="st ok">Placed</span></td></tr>
+<tr><td class="m">⋮⋮</td><td><div class="row"><span class="img" style="width:44px;height:34px">Photo</span><span class="b">Trou aux Biches beach</span></div></td><td>Beach</td><td>North</td><td class="num">120 min</td><td class="m">Always open</td><td><span class="st ok">Placed</span></td></tr>
+<tr><td class="m">⋮⋮</td><td><div class="row"><span class="img" style="width:44px;height:34px">Photo</span><span class="b">Port Louis Central Market</span></div></td><td>Market</td><td>North</td><td class="num">60 min</td><td>17:00</td><td><span class="st ok">Placed</span></td></tr>
+<tr class="sel"><td class="m">⋮⋮</td><td><div class="row"><span class="img" style="width:44px;height:34px">Photo</span><span class="b">Chamarel Seven Coloured Earth</span></div></td><td>Nature</td><td>South</td><td class="num">60 min</td><td>17:00</td><td><span class="st ok">Placed</span></td></tr>
+<tr><td class="m">⋮⋮</td><td><div class="row"><span class="img" style="width:44px;height:34px">Photo</span><span class="b">Grand Bassin sacred lake</span></div></td><td>Sacred site</td><td>South</td><td class="num">45 min</td><td class="m">Always open</td><td><span class="st ok">Placed</span></td></tr>
+<tr><td class="m">⋮⋮</td><td><div class="row"><span class="img" style="width:44px;height:34px">Photo</span><span class="b">Black River Gorges viewpoint</span></div></td><td>Nature</td><td>South</td><td class="num">30 min</td><td class="m">Always open</td><td><span class="st bad">No pin</span></td></tr>
+<tr><td class="m">⋮⋮</td><td><div class="row"><span class="img" style="width:44px;height:34px">Photo</span><span class="b">Le Morne beach and viewpoint</span></div></td><td>Beach</td><td>West</td><td class="num">90 min</td><td class="m">Always open</td><td><span class="st ok">Placed</span></td></tr>
+<tr><td class="m">⋮⋮</td><td><div class="row"><span class="img" style="width:44px;height:34px">Photo</span><span class="b">Belle Mare public beach</span></div></td><td>Beach</td><td>East</td><td class="num">120 min</td><td class="m">Always open</td><td><span class="st ok">Placed</span></td></tr>
+</tbody>
+</table></div>
+<div class="row" style="padding:10px 16px;border-top:1px solid var(--line-2)"><span class="m s">Showing 9 of 42. Without a pin, the planner would show a place in the wrong spot, so it is left out of trips.</span></div>
+</section>
+<aside class="col" style="gap:14px" aria-label="Selected place">
+<section class="card" style="padding:8px">
+<div class="map" style="height:250px" role="img" aria-label="Map preview with a pin for each place in the list">
+<span class="pin" style="left:38%;top:14%"></span><span class="pin" style="left:46%;top:9%"></span><span class="pin" style="left:30%;top:22%"></span><span class="pin" style="left:24%;top:38%"></span><span class="pin sel" style="left:28%;top:72%"></span><span class="pin" style="left:44%;top:74%"></span><span class="pin" style="left:18%;top:84%"></span><span class="pin" style="left:76%;top:44%"></span>
+<span class="tag" style="position:absolute;left:10px;bottom:10px">Map preview</span>
+</div>
+</section>
+<section class="card">
+<div class="ch"><span class="t">Chamarel Seven Coloured Earth</span><button class="ib s q sp" aria-label="Close"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+<div class="cb col">
+<div class="g g2">
+<div class="f"><label for="pl-name">Name</label><input class="in" id="pl-name" value="Chamarel Seven Coloured Earth"></div>
+<div class="f"><label for="pl-cat">Category</label><input class="in" id="pl-cat" value="Nature"></div>
+<div class="f"><label for="pl-region">Region</label><input class="in" id="pl-region" value="South"></div>
+<div class="f"><label for="pl-dur">Ideal visit, minutes</label><input class="in" id="pl-dur" value="60"></div>
+<div class="f"><label for="pl-close">Closes at</label><input class="in" id="pl-close" value="17:00"></div>
+<div class="f"><label for="pl-pin">Map pin</label><button class="btn" id="pl-pin">Move the pin on the map</button></div>
+</div>
+<div class="f"><label for="pl-blurb">What the planner says about it</label><textarea class="in" id="pl-blurb" rows="3">Rolling dunes in seven shades of earth, with a waterfall viewpoint and giant tortoises a short walk away.</textarea></div>
+<div class="row"><button class="btn pri">Save place</button><button class="btn">Cancel</button><button class="btn q danger sp">Remove</button></div>
+</div>
+</section>
+</aside>
+</div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1040}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

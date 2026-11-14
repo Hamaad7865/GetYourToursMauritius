@@ -30,13 +30,16 @@ import {
 export function RentalPicker({
   onAdd,
   onClose,
+  initialSlug = '',
 }: {
   onAdd: (lines: QuoteLineDraft[]) => void;
   onClose: () => void;
+  /** Open with this vehicle already chosen (picked from the editor's "add an item" box). */
+  initialSlug?: string;
 }) {
   const dialogRef = useDialog(true, onClose);
   const [fleet, setFleet] = useState<RentalVehicleInput[] | null>(null);
-  const [slug, setSlug] = useState('');
+  const [slug, setSlug] = useState(initialSlug);
   const [pickup, setPickup] = useState(() => mauDay(new Date()));
   const [ret, setRet] = useState(() => mauDay(new Date(Date.now() + 3 * 86_400_000)));
   const [error, setError] = useState<string | null>(null);
@@ -46,7 +49,8 @@ export function RentalPicker({
       .then((rows) => {
         const active = rows.filter((v) => v.active);
         setFleet(active);
-        setSlug((s) => s || active[0]?.slug || '');
+        // A preselected vehicle that is no longer active falls back to the first one, as before.
+        setSlug((s) => (s && active.some((v) => v.slug === s) ? s : active[0]?.slug || ''));
       })
       .catch((err: unknown) => {
         setFleet([]);
@@ -110,7 +114,7 @@ export function RentalPicker({
           {error && (
             <p
               role="alert"
-              className="rounded-xl bg-coral/10 px-4 py-3 text-[13px] font-medium text-coral"
+              className="rounded-xl bg-coral-tint px-4 py-3 text-[13px] font-medium text-coral-dark"
             >
               {error}
             </p>

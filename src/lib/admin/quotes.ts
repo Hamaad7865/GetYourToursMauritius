@@ -112,6 +112,24 @@ export interface QuoteRow {
   locale: string;
   createdAt: string;
   updatedAt: string;
+  /**
+   * The converted booking's money, for the worklist's "balance to collect" and "paid" groups. Read by
+   * `loadQuotes` / `loadQuote` alongside the quote: `undefined` = not read (the quote is unconverted,
+   * or the read failed — the screen then says the payment state is unknown), `null` = the quote was
+   * converted but no booking row exists any more (an erasure deletes an unpaid one).
+   */
+  booking?: QuoteBookingSummary | null;
+}
+
+/**
+ * The few booking columns the quotes screens need, in MINOR units. `balanceDueMinor` on its own is not
+ * a debt — decide with `balanceIsOutstanding` over all three (src/lib/quotes/deposit.ts).
+ */
+export interface QuoteBookingSummary {
+  status: string;
+  totalMinor: number;
+  depositMinor: number;
+  balanceDueMinor: number;
 }
 
 export interface QuoteDetail extends QuoteRow {
@@ -312,8 +330,11 @@ type Row = Record<string, unknown>;
 
 interface SelectBuilder extends PromiseLike<{ data: Row[] | null; error: unknown }> {
   eq(column: string, value: string): SelectBuilder;
+  in(column: string, values: string[]): SelectBuilder;
+  ilike(column: string, pattern: string): SelectBuilder;
   order(column: string, opts: { ascending: boolean }): SelectBuilder;
   range(from: number, to: number): SelectBuilder;
+  limit(count: number): SelectBuilder;
   maybeSingle(): PromiseLike<{ data: Row | null; error: unknown }>;
 }
 
@@ -552,8 +573,67 @@ async function session(): Promise<{ accessToken: string; userId: string } | null
   }
 }
 
-/** All quotes, newest first. Staff RLS returns every row — ALL of them, paged past PostgREST's
- *  silent row cap (see read-all.ts). */
+const BOOKING_SUMMARY_COLUMNS = 'id, status, total_minor, deposit_minor, balance_due_minor';
+
+/** Ids per `.in()` read: well inside a URL's length and PostgREST's row cap. */
+const IN_CHUNK = 100;
+
+function mapBookingSummary(raw: Row): QuoteBookingSummary {
+  return {
+    status: text(raw.status),
+    totalMinor: minor(raw.total_minor),
+    depositMinor: minor(raw.deposit_minor),
+    balanceDueMinor: minor(raw.balance_due_minor),
+  };
+}
+
+/**
+ * The converted bookings' money, keyed by booking id. Null when any read fails: the caller then
+ * leaves every `booking` unread rather than filing a quote as paid (or as closed) on half the data.
+ *
+ * A second read rather than a PostgREST embed, for the same reason `loadQuote` reads its lines
+ * separately — and because the PGlite harness that proves this has no embeds at all.
+ */
+async function loadBookingSummaries(
+  ids: string[],
+): Promise<Map<string, QuoteBookingSummary> | null> {
+  const out = new Map<string, QuoteBookingSummary>();
+  for (let i = 0; i < ids.length; i += IN_CHUNK) {
+    try {
+      const { data, error } = await db()
+        .from('bookings')
+        .select(BOOKING_SUMMARY_COLUMNS)
+        .in('id', ids.slice(i, i + IN_CHUNK));
+      if (error) return null;
+      for (const raw of data ?? []) out.set(text(raw.id), mapBookingSummary(raw));
+    } catch {
+      return null;
+    }
+  }
+  return out;
+}
+
+/**
+ * Attach each converted quote's booking summary. An unconverted quote is left as it is; a converted
+ * one whose booking row is gone gets `null` (an erasure hard-deletes an unpaid booking and the FK
+ * then nulls `booking_id`); a failed read leaves `booking` undefined, which the worklist shows as
+ * "payment unknown" — never as paid.
+ */
+async function withBookings(quotes: QuoteRow[]): Promise<QuoteRow[]> {
+  const ids = [
+    ...new Set(quotes.map((q) => q.bookingId).filter((id): id is string => Boolean(id))),
+  ];
+  const summaries = ids.length > 0 ? await loadBookingSummaries(ids) : new Map();
+  return quotes.map((q) => {
+    if (!q.convertedAt && !q.bookingId) return q;
+    if (!q.bookingId) return { ...q, booking: null };
+    if (!summaries) return q;
+    return { ...q, booking: summaries.get(q.bookingId) ?? null };
+  });
+}
+
+/** All quotes, newest first, each converted one with its booking's money. Staff RLS returns every
+ *  row — ALL of them, paged past PostgREST's silent row cap (see read-all.ts). */
 export async function loadQuotes(): Promise<QuoteRow[]> {
   const rows = await readAll<Row>((lo, hi) =>
     db()
@@ -563,7 +643,115 @@ export async function loadQuotes(): Promise<QuoteRow[]> {
       .order('id', { ascending: true })
       .range(lo, hi),
   );
-  return uniqueById(rows as Array<Row & { id: string }>).map(mapQuote);
+  return withBookings(uniqueById(rows as Array<Row & { id: string }>).map(mapQuote));
+}
+
+/** One line as the worklist names a quote: its first line, how many more, the earliest date. */
+export interface QuoteLineBrief {
+  quoteId: string;
+  position: number;
+  description: string | null;
+  priceLabel: string | null;
+  startsAt: string | null;
+}
+
+/** Every quote line, briefly, for the worklist's "what they're buying" column. All of them, paged. */
+export async function loadQuoteLineBriefs(): Promise<QuoteLineBrief[]> {
+  const rows = await readAll<Row>((lo, hi) =>
+    db()
+      .from('quote_items')
+      .select('id, quote_id, position, description, price_label, starts_at')
+      .order('id', { ascending: true })
+      .range(lo, hi),
+  );
+  return uniqueById(rows as Array<Row & { id: string }>).map((raw) => ({
+    quoteId: text(raw.quote_id),
+    position: Number(raw.position ?? 0),
+    description: textOrNull(raw.description),
+    priceLabel: textOrNull(raw.price_label),
+    startsAt: textOrNull(raw.starts_at),
+  }));
+}
+
+/** A hand-typed line as it was last quoted, for the editor's "add an item" suggestions. */
+export interface CustomLineHistoryRow {
+  description: string;
+  unitAmountMinor: number;
+  /** When the quote holding it was last saved — its lines are replaced on every save. */
+  quotedAt: string;
+}
+
+/**
+ * Every hand-typed (custom) line ever quoted, with its price and when. The editor folds these into
+ * one suggestion per wording at its latest price (`pastLinesFrom`). Read-only, and only what staff RLS
+ * already shows on the quotes screen.
+ */
+export async function loadCustomLineHistory(): Promise<CustomLineHistoryRow[]> {
+  const [items, quotes] = await Promise.all([
+    readAll<Row>((lo, hi) =>
+      db()
+        .from('quote_items')
+        .select('id, quote_id, description, unit_amount_minor')
+        .eq('kind', 'custom')
+        .order('id', { ascending: true })
+        .range(lo, hi),
+    ),
+    readAll<Row>((lo, hi) =>
+      db().from('quotes').select('id, updated_at').order('id', { ascending: true }).range(lo, hi),
+    ),
+  ]);
+  const savedAt = new Map(quotes.map((q) => [text(q.id), text(q.updated_at)]));
+  return uniqueById(items as Array<Row & { id: string }>).flatMap((raw) => {
+    const description = textOrNull(raw.description)?.trim();
+    const quotedAt = savedAt.get(text(raw.quote_id));
+    if (!description || !quotedAt) return [];
+    return [{ description, unitAmountMinor: minor(raw.unit_amount_minor), quotedAt }];
+  });
+}
+
+/**
+ * A value for `ilike` that matches itself only: `%` and `_` are wildcards there and `\` is the escape
+ * character, and all three are legal in an email address.
+ */
+export function likeExact(value: string): string {
+  return value.replace(/[\\%_]/g, (c) => `\\${c}`);
+}
+
+/** The earlier quotes and paid bookings that carry an email, for the returning-guest hint. */
+export interface GuestHistory {
+  quotes: Array<{ id: string }>;
+  bookings: Array<{ ref: string; createdAt: string }>;
+}
+
+/** Bookings that count as "booked with us": paid. An abandoned checkout is not a booking. */
+const PAID_BOOKING_STATUSES = new Set(['confirmed', 'completed']);
+
+/**
+ * The guest's history by email, case-insensitively. `ilike` with the wildcards escaped does the case
+ * folding in the database; the exact comparison here is the belt to that. Capped, because the hint
+ * only counts — it never lists.
+ */
+export async function loadGuestHistory(email: string): Promise<GuestHistory> {
+  const wanted = email.trim().toLowerCase();
+  if (!wanted) return { quotes: [], bookings: [] };
+  const pattern = likeExact(wanted);
+  const [quotes, bookings] = await Promise.all([
+    db().from('quotes').select('id, customer_email').ilike('customer_email', pattern).limit(200),
+    db()
+      .from('bookings')
+      .select('ref, status, customer_email, created_at')
+      .ilike('customer_email', pattern)
+      .limit(200),
+  ]);
+  if (quotes.error) throw quotes.error;
+  if (bookings.error) throw bookings.error;
+  const same = (raw: Row) => text(raw.customer_email).trim().toLowerCase() === wanted;
+  return {
+    quotes: (quotes.data ?? []).filter(same).map((raw) => ({ id: text(raw.id) })),
+    bookings: (bookings.data ?? [])
+      .filter((raw) => same(raw) && PAID_BOOKING_STATUSES.has(text(raw.status)))
+      .map((raw) => ({ ref: text(raw.ref), createdAt: text(raw.created_at) })),
+  };
 }
 
 /** One quote with its lines, in the owner's order. Null when there is no such quote. */
@@ -588,18 +776,11 @@ export async function loadQuote(id: string): Promise<QuoteDetail | null> {
   // The converted booking's live status — the only thing that separates a quote whose deposit actually
   // settled from one whose guest opened checkout and never finished (that booking then expires unpaid,
   // while converted_at stays stamped). Without it the editor cannot tell "paid" from "abandoned".
-  let bookingStatus: string | null = null;
-  const convertedBookingId = textOrNull(data.booking_id);
-  if (convertedBookingId) {
-    const { data: booking } = await getBrowserSupabase()
-      .from('bookings')
-      .select('status')
-      .eq('id', convertedBookingId)
-      .maybeSingle();
-    bookingStatus = booking?.status ?? null;
-  }
+  // The same read also carries the booking's money, so the editor can say what is still owed.
+  const [quote] = await withBookings([mapQuote(data)]);
+  const bookingStatus = quote!.booking?.status ?? null;
 
-  return { ...mapQuote(data), items: (items ?? []).map(mapItem), bookingStatus };
+  return { ...quote!, items: (items ?? []).map(mapItem), bookingStatus };
 }
 
 /**

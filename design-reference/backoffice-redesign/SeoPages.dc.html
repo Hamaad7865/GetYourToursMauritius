@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SEO page titles and redirects</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="bo.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0B5C63}a:hover{color:#0A2E36}
+</style>
+</helmet>
+<div class="app">
+<div class="side-slot"><dc-import name="Nav" active="seo" hint-size="232px,1040px"></dc-import></div>
+<div class="main">
+<header class="top">
+<div class="crumb">Growth / <a href="Seo.dc.html">SEO</a> / <b>Page titles</b></div>
+<button class="search" aria-label="Search everything"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18a7 7 0 100-14 7 7 0 000 14zM20 20l-4-4"/></svg><span>Search bookings, guests, tours</span><span class="kbd">Ctrl K</span></button>
+<button class="btn"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New</button>
+<button class="ib" aria-label="Notifications"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16v-5a6 6 0 0112 0v5l2 2H4zM10 21h4"/></svg><span class="dot"></span></button>
+<button class="ib" aria-label="Open the assistant"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg></button>
+<span class="av d">BM</span>
+</header>
+<main class="page">
+<div class="ph">
+<div><h1 class="h1">SEO</h1><p class="sub">What each page says in Google results, and where old addresses now lead.</p></div>
+</div>
+<div class="tabs">
+<a class="tab" href="Seo.dc.html">Performance and health</a>
+<a class="tab on" href="SeoPages.dc.html">Page titles</a>
+<a class="tab" href="SeoPages.dc.html">Redirects<span class="c">12</span></a>
+</div>
+<div class="g" style="grid-template-columns:380px minmax(0,1fr)">
+<section class="card" aria-label="Pages">
+<div class="cb" style="border-bottom:1px solid var(--line-2)"><input class="in" aria-label="Filter pages" placeholder="Filter by name or address"></div>
+<a class="li" href="SeoPages.dc.html"><div class="x"><div class="b tr">Home</div><div class="m s tr">/</div></div><span class="st ok">Custom</span></a>
+<a class="li sel" href="SeoPages.dc.html"><div class="x"><div class="b tr">Catamaran cruises</div><div class="m s tr">/mauritius-catamaran-cruise</div></div><span class="st ok">Custom</span></a>
+<a class="li" href="SeoPages.dc.html"><div class="x"><div class="b tr">All tours</div><div class="m s tr">/mauritius-tours</div></div><span class="st bad">Same as another</span></a>
+<a class="li" href="SeoPages.dc.html"><div class="x"><div class="b tr">Belle Mare</div><div class="m s tr">/belle-mare</div></div><span class="st ok">Custom</span></a>
+<a class="li" href="SeoPages.dc.html"><div class="x"><div class="b tr">Car rental</div><div class="m s tr">/rent</div></div><span class="st">Built-in</span></a>
+<a class="li" href="SeoPages.dc.html"><div class="x"><div class="b tr">Airport transfers</div><div class="m s tr">/airport-transfers</div></div><span class="st warn">Too long</span></a>
+<a class="li" href="SeoPages.dc.html"><div class="x"><div class="b tr">Travel guide</div><div class="m s tr">/mauritius-travel-guide</div></div><span class="st">Built-in</span></a>
+<a class="li" href="SeoPages.dc.html"><div class="x"><div class="b tr">Reviews</div><div class="m s tr">/reviews</div></div><span class="st">Built-in</span></a>
+<div class="li"><span class="m s">Tours are edited on the tour itself, blog posts in the blog editor.</span></div>
+</section>
+<div class="col" style="gap:14px">
+<section class="card">
+<div class="ch"><div class="x"><div class="t">Catamaran cruises</div><div class="n">/mauritius-catamaran-cruise</div></div><button class="btn sm ai">Suggest with AI</button><button class="btn sm">Reset to built-in</button><button class="btn sm pri">Save</button></div>
+<div class="cb g g2">
+<div class="col">
+<div class="f"><div class="row"><label for="s-title" class="x">Title</label><span class="hint">52 of 60</span></div><input class="in" id="s-title" value="Catamaran Cruise Mauritius: 3 Northern Islands Day Trip"><div class="bar"><i style="width:87%"></i></div></div>
+<div class="f"><div class="row"><label for="s-desc" class="x">Description</label><span class="hint">148 of 160</span></div><textarea class="in" id="s-desc" rows="4">Sail to Gabriel, Flat and Gunner's Quoin islands with lunch, drinks and snorkelling. Run by Belle Mare Tours, at the operator's own price. Book online.</textarea><div class="bar"><i style="width:92%"></i></div></div>
+<div class="f"><label for="s-img">Photo when the page is shared</label><div class="row"><span class="img" style="width:96px;height:50px">Photo</span><input class="in" id="s-img" value="catamaran-share.jpg"></div><span class="hint">1200 by 630 works best.</span></div>
+</div>
+<div class="col">
+<span class="lbl">How it looks on Google</span>
+<div class="paper col" style="gap:4px;padding:16px;box-shadow:none">
+<div class="row" style="gap:8px"><span class="av d" style="width:24px;height:24px;font-size:9px">BM</span><div><div class="s sb">Belle Mare Tours</div><div class="m xs">bellemaretours.com › mauritius-catamaran-cruise</div></div></div>
+<div style="font-size:16px;color:#1F5C9E;font-weight:600">Catamaran Cruise Mauritius: 3 Northern Islands Day Trip</div>
+<div class="m s" style="line-height:1.5">Sail to Gabriel, Flat and Gunner's Quoin islands with lunch, drinks and snorkelling. Run by Belle Mare Tours, at the operator's own price. Book online.</div>
+</div>
+<div class="note t">Last 28 days: 96 clicks, average position 8.4.</div>
+</div>
+</div>
+</section>
+<section class="card">
+<div class="ch"><div class="x"><div class="t">Redirects</div><div class="n">Send an old address to a live page. It only applies when the old address would be "not found".</div></div></div>
+<div class="cb row w" style="border-bottom:1px solid var(--line-2)">
+<div class="f x"><label for="r-from">Old address</label><input class="in" id="r-from" value="/catamaran-trip"></div>
+<svg class="i lg m" viewBox="0 0 24 24" aria-hidden="true" style="margin-top:20px"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+<div class="f x"><label for="r-to">Goes to</label><input class="in" id="r-to" value="/mauritius-catamaran-cruise"></div>
+<button class="btn pri" style="margin-top:20px">Add redirect</button>
+</div>
+<div class="tscroll"><table class="tbl c">
+<thead><tr><th>Old address</th><th>Goes to</th><th class="num">Visits, 28 days</th><th>Added</th><th></th></tr></thead>
+<tbody>
+<tr><td class="sb">/dolphin-tour</td><td>/tours/dolphin-swim-ile-aux-benitiers</td><td class="num">31</td><td>2 Oct</td><td class="num"><button class="btn sm q danger">Remove</button></td></tr>
+<tr><td class="sb">/car-hire</td><td>/rent</td><td class="num">18</td><td>19 Sep</td><td class="num"><button class="btn sm q danger">Remove</button></td></tr>
+<tr><td class="sb">/excursions</td><td>/mauritius-tours</td><td class="num">12</td><td>19 Sep</td><td class="num"><button class="btn sm q danger">Remove</button></td></tr>
+</tbody>
+</table></div>
+</section>
+</div>
+</div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1040}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

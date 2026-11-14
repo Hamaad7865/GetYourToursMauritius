@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tour editor</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="bo.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0B5C63}a:hover{color:#0A2E36}
+</style>
+</helmet>
+<div class="app">
+<div class="side-slot"><dc-import name="Nav" active="tours" hint-size="232px,1040px"></dc-import></div>
+<div class="main">
+<header class="top">
+<div class="crumb">Catalogue / <a href="Tours.dc.html">Tours</a> / <b>Catamaran cruise, 3 northern islands</b></div>
+<button class="search" aria-label="Search everything"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18a7 7 0 100-14 7 7 0 000 14zM20 20l-4-4"/></svg><span>Search bookings, guests, tours</span><span class="kbd">Ctrl K</span></button>
+<button class="btn"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New</button>
+<button class="ib" aria-label="Notifications"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16v-5a6 6 0 0112 0v5l2 2H4zM10 21h4"/></svg><span class="dot"></span></button>
+<button class="ib" aria-label="Open the assistant"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg></button>
+<span class="av d">BM</span>
+</header>
+<main class="page">
+<div class="ph">
+<div><div class="row"><h1 class="h1">Catamaran cruise, 3 northern islands</h1><span class="st ok">Published</span></div><p class="sub">Last saved today at 10:12. Saving keeps you in the tour.</p></div>
+<button class="btn sp">View on the site</button>
+<a class="btn" href="Availability.dc.html">Availability</a>
+<button class="btn pri">Save changes</button>
+</div>
+<div class="g" style="grid-template-columns:210px minmax(0,1fr) 320px">
+<nav class="card" aria-label="Tour sections" style="padding:8px">
+<a class="rl" href="TourEditor.dc.html"><span class="dotk ok"></span>Basics</a>
+<a class="rl" href="TourEditor.dc.html"><span class="dotk ok"></span>Description</a>
+<a class="rl" href="TourEditor.dc.html"><span class="dotk ok"></span>Photos and files<span class="e">8</span></a>
+<a class="rl on" href="TourEditor.dc.html"><span class="dotk ok"></span>Pricing and options<span class="e">2</span></a>
+<a class="rl" href="TourEditor.dc.html"><span class="dotk ok"></span>Itinerary</a>
+<a class="rl" href="TourEditor.dc.html"><span class="dotk ok"></span>Logistics</a>
+<a class="rl" href="TourEditor.dc.html"><span class="dotk ok"></span>Inclusions</a>
+<a class="rl" href="TourEditor.dc.html"><span class="dotk"></span>Badges</a>
+<a class="rl" href="TourEditor.dc.html"><span class="dotk ok"></span>Search appearance</a>
+<a class="rl" href="TourEditor.dc.html"><span class="dotk w"></span>Français<span class="e">2 missing</span></a>
+</nav>
+<div class="col" style="gap:14px">
+<section class="card">
+<div class="ch"><span class="t">Option 1</span><span class="tag">Shared</span><button class="btn sm q sp danger">Remove option</button></div>
+<div class="cb col">
+<div class="g" style="grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr)">
+<div class="f"><label for="o1-name">Option name</label><input class="in" id="o1-name" value="Shared catamaran"></div>
+<div class="f"><label for="o1-dur">Duration, minutes</label><input class="in" id="o1-dur" value="480"></div>
+<div class="f"><label for="o1-start">Start time</label><input class="in" id="o1-start" value="09:00"></div>
+</div>
+<div class="tscroll"><table class="tbl c">
+<thead><tr><th>Price tier</th><th>Ages</th><th class="num">Price per guest</th><th></th></tr></thead>
+<tbody>
+<tr><td class="b">Adult</td><td>12 and over</td><td class="num"><input class="in c" aria-label="Adult price in euros" value="93.00"></td><td class="num"><button class="ib s q" aria-label="Remove tier"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></td></tr>
+<tr><td class="b">Child</td><td>3 to 11</td><td class="num"><input class="in c" aria-label="Child price in euros" value="63.00"></td><td class="num"><button class="ib s q" aria-label="Remove tier"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></td></tr>
+<tr><td class="b">Infant</td><td>0 to 2</td><td class="num"><input class="in c" aria-label="Infant price in euros" value="0.00"></td><td class="num"><button class="ib s q" aria-label="Remove tier"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></td></tr>
+</tbody>
+</table></div>
+<div class="row w"><button class="btn sm">Add a tier</button><span class="m s sp">Capacity and running days are set in Availability: 12 guests a trip, 1 trip a day.</span></div>
+</div>
+</section>
+<section class="card">
+<div class="ch"><span class="t">Option 2</span><span class="tag">Private</span><button class="btn sm q sp danger">Remove option</button></div>
+<div class="cb col">
+<div class="g" style="grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr)">
+<div class="f"><label for="o2-name">Option name</label><input class="in" id="o2-name" value="Private catamaran"></div>
+<div class="f"><label for="o2-dur">Duration, minutes</label><input class="in" id="o2-dur" value="480"></div>
+<div class="f"><label for="o2-start">Start time</label><input class="in" id="o2-start" value="09:00"></div>
+</div>
+<div class="row w" style="gap:16px">
+<span class="row"><button class="sw on" aria-label="Private option" aria-pressed="true"></button><span class="sb">Private option, with its own seats</span></span>
+<div class="f" style="width:150px"><label for="o2-group">Group size, up to</label><input class="in" id="o2-group" value="8"></div>
+<div class="f" style="width:170px"><label for="o2-price">Price for the group, €</label><input class="in" id="o2-price" value="890.00"></div>
+</div>
+</div>
+</section>
+<button class="btn" style="align-self:flex-start"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Add an option</button>
+</div>
+<div class="col" style="gap:14px">
+<section class="card">
+<div class="ch"><span class="t">On the site</span><span class="n">Updates as you type</span></div>
+<div class="cb col" style="gap:8px">
+<span class="img" style="height:150px">Cover photo</span>
+<div class="m xs sb">Boat trips and cruises</div>
+<div class="b" style="font-size:14px">Catamaran cruise, 3 northern islands</div>
+<div class="row s"><span class="stars">★★★★★</span><span class="m">4.8, from guest reviews</span></div>
+<div class="row"><span class="m s x">From</span><span class="b" style="font-size:16px">€93.00</span><span class="m s">a guest</span></div>
+</div>
+</section>
+<section class="card">
+<div class="ch"><span class="t">Before it goes live</span><span class="n">9 of 10</span></div>
+<div class="li"><span class="ck on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span><span class="x">At least one option with a price</span></div>
+<div class="li"><span class="ck on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span><span class="x">Cover photo and 3 more photos</span></div>
+<div class="li"><span class="ck on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span><span class="x">Bookable dates open</span></div>
+<div class="li"><span class="ck on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span><span class="x">Search title and description</span></div>
+<div class="li"><span class="ck"></span><span class="x">French title and summary</span><a class="btn sm" href="TourEditor.dc.html">Fill in</a></div>
+</section>
+</div>
+</div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1040}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

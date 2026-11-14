@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Today</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="bo.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0B5C63}a:hover{color:#0A2E36}
+</style>
+</helmet>
+<div class="app">
+<div class="side-slot"><dc-import name="Nav" active="today" hint-size="232px,1040px"></dc-import></div>
+<div class="main">
+<header class="top">
+<div class="crumb"><b>Today</b></div>
+<button class="search" aria-label="Search everything"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18a7 7 0 100-14 7 7 0 000 14zM20 20l-4-4"/></svg><span>Search bookings, guests, tours</span><span class="kbd">Ctrl K</span></button>
+<button class="btn"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New</button>
+<button class="ib" aria-label="Notifications"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16v-5a6 6 0 0112 0v5l2 2H4zM10 21h4"/></svg><span class="dot"></span></button>
+<button class="ib" aria-label="Open the assistant"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg></button>
+<span class="av d">BM</span>
+</header>
+<main class="page">
+<div class="ph">
+<div><h1 class="h1">Saturday 14 November</h1><p class="sub">4 departures today, 23 guests, and 4 things that need you.</p></div>
+<div class="seg sp"><button class="on">Today</button><button>Tomorrow</button><button>This week</button></div>
+</div>
+<div class="g g4">
+<a class="card kpi" href="Calendar.dc.html"><span class="l">Departures today</span><span class="v">4</span><span class="d">23 guests, 9 hotel pickups</span></a>
+<a class="card kpi" href="Reports.dc.html"><span class="l">Taken this week</span><span class="v">€3,480</span><span class="d"><span class="up">+12%</span> against last week</span></a>
+<a class="card kpi" href="Bookings.dc.html"><span class="l">Awaiting payment</span><span class="v">3</span><span class="d">€1,129 not yet paid</span></a>
+<a class="card kpi" href="Quotes.dc.html"><span class="l">Quotes waiting</span><span class="v">2</span><span class="d">€635 sent, oldest 3 days ago</span></a>
+</div>
+<div class="g g21">
+<section class="card">
+<div class="ch"><span class="t">Today's run sheet</span><span class="n">Sat 14 Nov</span><a class="btn sm sp" href="Calendar.dc.html">Open day sheet</a><button class="btn sm">Print</button></div>
+<div class="tlr"><span class="tm">07:30</span><div class="x"><div class="b tr">Dolphin swim and Île aux Bénitiers</div><div class="m s">Shared boat</div></div><div><div class="s sb">8 of 12 seats</div><div class="bar"><i style="width:66%"></i></div></div><span class="s m">3 hotel pickups</span><span class="st ok">All paid</span></div>
+<div class="tlr"><span class="tm">08:30</span><div class="x"><div class="b tr">Private south tour</div><div class="m s">Private car, 2 guests</div></div><div><div class="s sb">Private</div><div class="bar"><i style="width:100%"></i></div></div><span class="s m">1 hotel pickup</span><span class="st warn">Balance €135</span></div>
+<div class="tlr"><span class="tm">09:00</span><div class="x"><div class="b tr">Catamaran cruise, 3 northern islands</div><div class="m s">Shared catamaran</div></div><div><div class="s sb">11 of 12 seats</div><div class="bar"><i class="w" style="width:92%"></i></div></div><span class="s m">5 hotel pickups</span><span class="st ok">All paid</span></div>
+<div class="tlr"><span class="tm">15:00</span><div class="x"><div class="b tr">Helicopter flight, underwater waterfall</div><div class="m s">15 minutes</div></div><div><div class="s sb">2 of 3 seats</div><div class="bar"><i style="width:66%"></i></div></div><span class="s m">Own way</span><span class="st ok">All paid</span></div>
+<div class="ch" style="border-top:1px solid var(--line-2)"><span class="t">Tomorrow</span><span class="n">Sun 15 Nov, 3 departures, 14 guests</span></div>
+<div class="tlr"><span class="tm">07:30</span><div class="x"><div class="b tr">Dolphin swim and Île aux Bénitiers</div><div class="m s">Shared boat</div></div><div><div class="s sb">6 of 12 seats</div><div class="bar"><i style="width:50%"></i></div></div><span class="s m">2 hotel pickups</span><span class="st warn">1 awaiting payment</span></div>
+<div class="tlr"><span class="tm">09:00</span><div class="x"><div class="b tr">Île aux Cerfs speedboat with lunch</div><div class="m s">Shared speedboat</div></div><div><div class="s sb">8 of 10 seats</div><div class="bar"><i style="width:80%"></i></div></div><span class="s m">3 hotel pickups</span><span class="st ok">All paid</span></div>
+</section>
+<div class="col" style="gap:14px">
+<section class="card">
+<div class="ch"><span class="t">Needs you</span><span class="n">4</span></div>
+<div class="li"><span class="ico g"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h14a2 2 0 012 2v9a2 2 0 01-2 2H4zM4 7V5h12M16 13.5h.01"/></svg></span><div class="x"><div class="b tr">Balance of €135 before today's tour</div><div class="m s tr">James Carter, Private south tour, 08:30</div></div><button class="btn sm">Send link</button></div>
+<div class="li"><span class="ico c"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l9 16H3zM12 10v4M12 17h.01"/></svg></span><div class="x"><div class="b tr">Card payment failed</div><div class="m s tr">Sofia Rossi, Helicopter flight, €854</div></div><a class="btn sm" href="Bookings.dc.html">Open</a></div>
+<div class="li"><span class="ico b"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v12H4zM4 7l8 6 8-6"/></svg></span><div class="x"><div class="b tr">Quote unpaid for 3 days</div><div class="m s tr">Lukas Weber, €455, valid until 25 Nov</div></div><a class="btn sm" href="Quotes.dc.html">Nudge</a></div>
+<div class="li"><span class="ico t"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13l3-8h10l3 8v6H4zM4 13h5l1 2h4l1-2h5"/></svg></span><div class="x"><div class="b tr">4 new enquiries</div><div class="m s tr">Oldest received 2 hours ago</div></div><a class="btn sm" href="Leads.dc.html">Reply</a></div>
+</section>
+<section class="card">
+<div class="ch"><span class="t">Money in</span><div class="seg sp"><button class="on">7 days</button><button>4 weeks</button><button>12 months</button></div></div>
+<div class="cb">
+<div class="bars" style="height:108px"><div><i style="height:38%"></i>Sun</div><div><i style="height:52%"></i>Mon</div><div><i style="height:30%"></i>Tue</div><div><i style="height:71%"></i>Wed</div><div><i style="height:58%"></i>Thu</div><div><i style="height:92%"></i>Fri</div><div><i class="on" style="height:44%"></i>Sat</div></div>
+</div>
+</section>
+</div>
+</div>
+<section class="card">
+<div class="ch"><span class="t">Latest bookings</span><a class="btn sm q sp" href="Bookings.dc.html">See all bookings</a></div>
+<div class="tscroll"><table class="tbl">
+<thead><tr><th>Ref</th><th>Guest</th><th>Tour</th><th>Trip date</th><th class="num">Total</th><th>Payment</th><th>Source</th></tr></thead>
+<tbody>
+<tr><td class="ref">BMT7F3A21C4</td><td class="b">Marie Dupont</td><td>Catamaran cruise, 3 northern islands</td><td>Sat 14 Nov</td><td class="num b">€372.00</td><td><span class="st ok">Paid</span></td><td><span class="tag">Website</span></td></tr>
+<tr><td class="ref">BMT19C0E5A7</td><td class="b">James Carter</td><td>Private south tour</td><td>Sat 14 Nov</td><td class="num b">€180.00</td><td><span class="st warn">Part paid</span></td><td><span class="tag">Quote</span></td></tr>
+<tr><td class="ref">BMT5D2B8F10</td><td class="b">Anika Sharma</td><td>Dolphin swim and Île aux Bénitiers</td><td>Sun 15 Nov</td><td class="num b">€165.00</td><td><span class="st">Pending</span></td><td><span class="tag">Website</span></td></tr>
+</tbody>
+</table></div>
+</section>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1040}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

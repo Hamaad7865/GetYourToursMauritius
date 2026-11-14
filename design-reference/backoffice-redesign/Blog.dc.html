@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Blog</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="bo.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0B5C63}a:hover{color:#0A2E36}
+</style>
+</helmet>
+<div class="app">
+<div class="side-slot"><dc-import name="Nav" active="blog" hint-size="232px,1040px"></dc-import></div>
+<div class="main">
+<header class="top">
+<div class="crumb">Growth / <b>Blog</b></div>
+<button class="search" aria-label="Search everything"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18a7 7 0 100-14 7 7 0 000 14zM20 20l-4-4"/></svg><span>Search bookings, guests, tours</span><span class="kbd">Ctrl K</span></button>
+<button class="btn"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New</button>
+<button class="ib" aria-label="Notifications"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16v-5a6 6 0 0112 0v5l2 2H4zM10 21h4"/></svg><span class="dot"></span></button>
+<button class="ib" aria-label="Open the assistant"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg></button>
+<span class="av d">BM</span>
+</header>
+<main class="page">
+<div class="ph">
+<div><h1 class="h1">Blog</h1><p class="sub">Travel guides. A published post is live on the site straight away.</p></div>
+<button class="btn pri sp"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New post</button>
+</div>
+<div class="g" style="grid-template-columns:290px minmax(0,1fr) 300px">
+<section class="card" aria-label="Posts">
+<div class="cb" style="border-bottom:1px solid var(--line-2)"><div class="seg wide"><button class="on">All 14</button><button>Published 12</button><button>Drafts 2</button></div></div>
+<a class="li sel" href="Blog.dc.html"><div class="x"><div class="b" style="line-height:1.3">Mauritius in December: what to book early</div><div class="row s" style="margin-top:4px"><span class="st ok">Published</span><span class="m">68 clicks this week</span></div></div></a>
+<a class="li" href="Blog.dc.html"><div class="x"><div class="b" style="line-height:1.3">Catamaran or speedboat to Île aux Cerfs?</div><div class="row s" style="margin-top:4px"><span class="st ok">Published</span><span class="m">24 clicks this week</span></div></div></a>
+<a class="li" href="Blog.dc.html"><div class="x"><div class="b" style="line-height:1.3">Swimming with dolphins: what to expect</div><div class="row s" style="margin-top:4px"><span class="st ok">Published</span><span class="m">19 clicks this week</span></div></div></a>
+<a class="li" href="Blog.dc.html"><div class="x"><div class="b" style="line-height:1.3">A first-timer's week on the east coast</div><div class="row s" style="margin-top:4px"><span class="st">Draft</span><span class="m">Edited yesterday</span></div></div></a>
+<a class="li" href="Blog.dc.html"><div class="x"><div class="b" style="line-height:1.3">Getting from the airport to Belle Mare</div><div class="row s" style="margin-top:4px"><span class="st ok">Published</span><span class="m">11 clicks this week</span></div></div></a>
+<a class="li" href="Blog.dc.html"><div class="x"><div class="b" style="line-height:1.3">New Year in Mauritius: what is open</div><div class="row s" style="margin-top:4px"><span class="st">Draft</span><span class="m">Edited 3 days ago</span></div></div></a>
+</section>
+<section class="card">
+<div class="ch"><span class="t">Writing</span><span class="n">Saved a moment ago</span><div class="seg sp"><button class="on">English</button><button>Français</button></div></div>
+<div class="cb col" style="gap:14px;padding:22px 28px">
+<span class="img" style="height:150px">Cover photo, shown on the post, the blog card and when shared</span>
+<div class="f"><label for="b-title">Title</label><input class="in" id="b-title" value="Mauritius in December: what to book early" style="height:44px;font-size:18px;font-weight:700"></div>
+<div class="f"><label for="b-intro">Opening lines</label><textarea class="in" id="b-intro" rows="2">December is the busiest month on the island. Here is what fills up first, and what you can safely leave until you land.</textarea></div>
+<hr class="hr">
+<div class="row"><span class="m">⋮⋮</span><span class="tag">Section 1</span><span class="sp"></span><button class="btn sm q">Add a photo</button><button class="btn sm q danger">Remove</button></div>
+<div class="f"><label for="b-h1">Heading</label><input class="in" id="b-h1" value="Boat days sell out first" style="font-weight:700"></div>
+<div class="f"><label for="b-p1">Text</label><textarea class="in" id="b-p1" rows="4">Catamarans and speedboats carry a fixed number of guests, so the days between Christmas and New Year go weeks ahead. If a boat day matters to you, book it before your flights are even confirmed.
+
+Sightseeing days by car are easier: a private driver can usually be found with a few days' notice.</textarea></div>
+<div class="row"><span class="m">⋮⋮</span><span class="tag">Section 2</span><span class="sb x tr">Weather and what it means for your plans</span><button class="btn sm q">Open</button></div>
+<div class="row"><span class="m">⋮⋮</span><span class="tag">Section 3</span><span class="sb x tr">Getting around over the holidays</span><button class="btn sm q">Open</button></div>
+<div class="row"><span class="m">⋮⋮</span><span class="tag">Questions</span><span class="sb x tr">3 questions and answers</span><button class="btn sm q">Open</button></div>
+<div class="row w"><button class="btn sm"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Section</button><button class="btn sm"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Question</button><button class="btn sm"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Link to a tour</button></div>
+</div>
+</section>
+<div class="col" style="gap:14px">
+<section class="card">
+<div class="ch"><span class="t">Publishing</span><span class="st ok">Published</span></div>
+<div class="cb col">
+<dl class="kv" style="grid-template-columns:84px minmax(0,1fr)"><dt>Address</dt><dd class="tr">/blog/mauritius-in-december</dd><dt>First live</dt><dd>21 Oct 2026</dd><dt>Updated</dt><dd>Today</dd></dl>
+<button class="btn pri wide">Update the live post</button>
+<div class="row"><button class="btn x">View on site</button><button class="btn x">Unpublish</button></div>
+</div>
+</section>
+<section class="card">
+<div class="ch"><span class="t">Ready check</span><span class="n">5 of 6</span></div>
+<div class="li"><span class="ck on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span><span class="x">Cover photo</span></div>
+<div class="li"><span class="ck on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span><span class="x">At least 3 sections</span></div>
+<div class="li"><span class="ck on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span><span class="x">Questions and answers</span></div>
+<div class="li"><span class="ck on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span><span class="x">Links to 2 tours</span></div>
+<div class="li"><span class="ck on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span><span class="x">Search title and description</span></div>
+<div class="li"><span class="ck"></span><span class="x">French version</span><button class="btn sm ai">Translate</button></div>
+</section>
+<section class="card">
+<div class="ch"><span class="t">On Google</span></div>
+<div class="cb col" style="gap:4px"><div class="m xs">bellemaretours.com › blog</div><div style="color:#1F5C9E;font-weight:600">Mauritius in December: What to Book Early</div><div class="m s">What fills up first over Christmas and New Year, and what you can leave until you land.</div></div>
+</section>
+</div>
+</div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1040}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

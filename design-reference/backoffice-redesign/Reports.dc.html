@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Reports</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="bo.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0B5C63}a:hover{color:#0A2E36}
+</style>
+</helmet>
+<div class="app">
+<div class="side-slot"><dc-import name="Nav" active="reports" hint-size="232px,1040px"></dc-import></div>
+<div class="main">
+<header class="top">
+<div class="crumb">Money / <b>Reports</b></div>
+<button class="search" aria-label="Search everything"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18a7 7 0 100-14 7 7 0 000 14zM20 20l-4-4"/></svg><span>Search bookings, guests, tours</span><span class="kbd">Ctrl K</span></button>
+<button class="btn"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New</button>
+<button class="ib" aria-label="Notifications"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16v-5a6 6 0 0112 0v5l2 2H4zM10 21h4"/></svg><span class="dot"></span></button>
+<button class="ib" aria-label="Open the assistant"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg></button>
+<span class="av d">BM</span>
+</header>
+<main class="page">
+<div class="ph">
+<div><h1 class="h1">Reports</h1><p class="sub">Money actually received, counted in the month each booking was made.</p></div>
+<div class="seg sp"><button>2025</button><button class="on">2026</button></div>
+<button class="btn"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></svg>Export CSV</button>
+<button class="btn">Print or save as PDF</button>
+</div>
+<div class="g g4">
+<div class="card kpi"><span class="l">Money in, gross</span><span class="v">€61,240</span><span class="d">219 paid bookings</span></div>
+<div class="card kpi"><span class="l">Refunds</span><span class="v">€1,830</span><span class="d">3% of money in</span></div>
+<div class="card kpi"><span class="l">Net kept</span><span class="v">€59,410</span><span class="d">After refunds</span></div>
+<div class="card kpi"><span class="l">VAT, 15% included</span><span class="v">€7,749</span><span class="d">An estimate, not tax advice</span></div>
+</div>
+<div class="g g21">
+<section class="card">
+<div class="ch"><span class="t">Net revenue by month</span><span class="n">2026, in euros</span></div>
+<div class="cb">
+<div class="bars" style="height:150px"><div><i style="height:10%"></i>Jan</div><div><i style="height:13%"></i>Feb</div><div><i style="height:15%"></i>Mar</div><div><i style="height:19%"></i>Apr</div><div><i style="height:24%"></i>May</div><div><i style="height:48%"></i>Jun</div><div><i style="height:61%"></i>Jul</div><div><i style="height:70%"></i>Aug</div><div><i style="height:72%"></i>Sep</div><div><i style="height:100%"></i>Oct</div><div><i class="on" style="height:50%"></i>Nov</div><div><i style="height:0%"></i>Dec</div></div>
+</div>
+</section>
+<section class="card">
+<div class="ch"><span class="t">By channel</span><span class="n">Share of net revenue</span></div>
+<div class="cb col" style="gap:10px">
+<div><div class="row s"><span class="x sb">Quotes</span><span class="b">€29,110</span><span class="m" style="width:36px;text-align:right">49%</span></div><div class="bar"><i style="width:49%"></i></div></div>
+<div><div class="row s"><span class="x sb">Website</span><span class="b">€27,330</span><span class="m" style="width:36px;text-align:right">46%</span></div><div class="bar"><i style="width:46%"></i></div></div>
+<div><div class="row s"><span class="x sb">Assistant chat</span><span class="b">€1,780</span><span class="m" style="width:36px;text-align:right">3%</span></div><div class="bar"><i style="width:3%"></i></div></div>
+<div><div class="row s"><span class="x sb">WhatsApp</span><span class="b">€1,190</span><span class="m" style="width:36px;text-align:right">2%</span></div><div class="bar"><i style="width:2%"></i></div></div>
+</div>
+</section>
+</div>
+<div class="g g21">
+<section class="card">
+<div class="ch"><span class="t">VAT and profit by month</span><button class="btn sm q sp">Show January to May</button></div>
+<div class="tscroll"><table class="tbl c">
+<thead><tr><th>Month</th><th class="num">Money in</th><th class="num">Refunds</th><th class="num">Net</th><th class="num">VAT 15%</th><th class="num">Before VAT</th><th class="num">Bookings</th></tr></thead>
+<tbody>
+<tr><td class="m">January to May</td><td class="num">€10,000.00</td><td class="num">€0.00</td><td class="num">€10,000.00</td><td class="num">€1,304.35</td><td class="num">€8,695.65</td><td class="num">38</td></tr>
+<tr><td>June</td><td class="num">€6,120.00</td><td class="num">€180.00</td><td class="num">€5,940.00</td><td class="num">€774.78</td><td class="num">€5,165.22</td><td class="num">21</td></tr>
+<tr><td>July</td><td class="num">€7,480.00</td><td class="num">€0.00</td><td class="num">€7,480.00</td><td class="num">€975.65</td><td class="num">€6,504.35</td><td class="num">27</td></tr>
+<tr><td>August</td><td class="num">€8,910.00</td><td class="num">€320.00</td><td class="num">€8,590.00</td><td class="num">€1,120.43</td><td class="num">€7,469.57</td><td class="num">31</td></tr>
+<tr><td>September</td><td class="num">€9,340.00</td><td class="num">€410.00</td><td class="num">€8,930.00</td><td class="num">€1,164.78</td><td class="num">€7,765.22</td><td class="num">33</td></tr>
+<tr><td>October</td><td class="num">€12,860.00</td><td class="num">€520.00</td><td class="num">€12,340.00</td><td class="num">€1,609.57</td><td class="num">€10,730.43</td><td class="num">45</td></tr>
+<tr><td>November, so far</td><td class="num">€6,530.00</td><td class="num">€400.00</td><td class="num">€6,130.00</td><td class="num">€799.57</td><td class="num">€5,330.43</td><td class="num">24</td></tr>
+<tr class="tot"><td>Total</td><td class="num">€61,240.00</td><td class="num">€1,830.00</td><td class="num">€59,410.00</td><td class="num">€7,749.13</td><td class="num">€51,660.87</td><td class="num">219</td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="card">
+<div class="ch"><span class="t">Top tours</span><span class="n">Net revenue</span></div>
+<div class="li"><span class="m b" style="width:16px">1</span><span class="x tr sb">Catamaran cruise, 3 northern islands</span><span class="b">€14,260</span></div>
+<div class="li"><span class="m b" style="width:16px">2</span><span class="x tr sb">Private dolphin day with lunch</span><span class="b">€9,870</span></div>
+<div class="li"><span class="m b" style="width:16px">3</span><span class="x tr sb">Car rental</span><span class="b">€8,140</span></div>
+<div class="li"><span class="m b" style="width:16px">4</span><span class="x tr sb">Private south tour</span><span class="b">€6,390</span></div>
+<div class="li"><span class="m b" style="width:16px">5</span><span class="x tr sb">Helicopter flight</span><span class="b">€5,120</span></div>
+<div class="li"><span class="note" style="flex:1">The VAT column assumes every sale carries 15% VAT. Confirm with your accountant before filing.</span></div>
+</section>
+</div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1040}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

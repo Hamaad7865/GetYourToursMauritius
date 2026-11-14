@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Rental fleet</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="bo.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0B5C63}a:hover{color:#0A2E36}
+</style>
+</helmet>
+<div class="app">
+<div class="side-slot"><dc-import name="Nav" active="rental" hint-size="232px,1040px"></dc-import></div>
+<div class="main">
+<header class="top">
+<div class="crumb">Catalogue / <b>Rental fleet</b></div>
+<button class="search" aria-label="Search everything"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18a7 7 0 100-14 7 7 0 000 14zM20 20l-4-4"/></svg><span>Search bookings, guests, tours</span><span class="kbd">Ctrl K</span></button>
+<button class="btn"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New</button>
+<button class="ib" aria-label="Notifications"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16v-5a6 6 0 0112 0v5l2 2H4zM10 21h4"/></svg><span class="dot"></span></button>
+<button class="ib" aria-label="Open the assistant"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg></button>
+<span class="av d">BM</span>
+</header>
+<main class="page">
+<div class="ph">
+<div><h1 class="h1">Rental fleet</h1><p class="sub">Cars and scooters shown on the rental page. Guests see an instant price, then confirm on WhatsApp or through a quote.</p></div>
+<button class="btn pri sp"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Add a vehicle</button>
+</div>
+<div class="g g4">
+<div class="card kpi"><span class="l">On the site</span><span class="v">6</span><span class="d">1 more is hidden</span></div>
+<div class="card kpi"><span class="l">Daily rates</span><span class="v">€25 to €110</span><span class="d">Scooter to 7-seater</span></div>
+<div class="card kpi"><span class="l">Rentals quoted, 30 days</span><span class="v">22</span><span class="d">Through the quotes screen</span></div>
+<div class="card kpi"><span class="l">Most quoted</span><span class="v">Suzuki Swift</span><span class="d">9 quotes in 30 days</span></div>
+</div>
+<div class="g gl">
+<section class="card">
+<div class="tscroll"><table class="tbl">
+<thead><tr><th style="width:28px"></th><th>Vehicle</th><th>Category</th><th class="num">Seats</th><th>Gearbox</th><th class="num">Daily rate</th><th class="num">Deposit</th><th>On the site</th></tr></thead>
+<tbody>
+<tr class="sel"><td class="m">⋮⋮</td><td><div class="row"><span class="img" style="width:56px;height:38px">Photo</span><div><div class="b">Suzuki Swift</div><div class="m s">suzuki-swift</div></div></div></td><td>Economy</td><td class="num">5</td><td>Automatic</td><td class="num b">€45.00</td><td class="num">€300.00</td><td><button class="sw on" aria-label="Show Suzuki Swift on the site" aria-pressed="true"></button></td></tr>
+<tr><td class="m">⋮⋮</td><td><div class="row"><span class="img" style="width:56px;height:38px">Photo</span><div><div class="b">Nissan March</div><div class="m s">nissan-march</div></div></div></td><td>Economy</td><td class="num">5</td><td>Automatic</td><td class="num b">€40.00</td><td class="num">€300.00</td><td><button class="sw on" aria-label="Show Nissan March on the site" aria-pressed="true"></button></td></tr>
+<tr><td class="m">⋮⋮</td><td><div class="row"><span class="img" style="width:56px;height:38px">Photo</span><div><div class="b">Kia Picanto</div><div class="m s">kia-picanto</div></div></div></td><td>Economy</td><td class="num">4</td><td>Manual</td><td class="num b">€35.00</td><td class="num">€250.00</td><td><button class="sw on" aria-label="Show Kia Picanto on the site" aria-pressed="true"></button></td></tr>
+<tr><td class="m">⋮⋮</td><td><div class="row"><span class="img" style="width:56px;height:38px">Photo</span><div><div class="b">Hyundai Creta</div><div class="m s">hyundai-creta</div></div></div></td><td>SUV</td><td class="num">5</td><td>Automatic</td><td class="num b">€60.00</td><td class="num">€400.00</td><td><button class="sw on" aria-label="Show Hyundai Creta on the site" aria-pressed="true"></button></td></tr>
+<tr><td class="m">⋮⋮</td><td><div class="row"><span class="img" style="width:56px;height:38px">Photo</span><div><div class="b">Toyota Fortuner</div><div class="m s">toyota-fortuner</div></div></div></td><td>7-seater</td><td class="num">7</td><td>Automatic</td><td class="num b">€110.00</td><td class="num">€600.00</td><td><button class="sw on" aria-label="Show Toyota Fortuner on the site" aria-pressed="true"></button></td></tr>
+<tr><td class="m">⋮⋮</td><td><div class="row"><span class="img" style="width:56px;height:38px">Photo</span><div><div class="b">Honda PCX scooter</div><div class="m s">honda-pcx</div></div></div></td><td>Scooter</td><td class="num">2</td><td>Automatic</td><td class="num b">€25.00</td><td class="num">€150.00</td><td><button class="sw on" aria-label="Show Honda PCX scooter on the site" aria-pressed="true"></button></td></tr>
+<tr><td class="m">⋮⋮</td><td><div class="row"><span class="img" style="width:56px;height:38px">Photo</span><div><div class="b m">Mini Cooper cabrio</div><div class="m s">mini-cooper-cabrio</div></div></div></td><td class="m">Convertible</td><td class="num m">4</td><td class="m">Automatic</td><td class="num m">€95.00</td><td class="num m">€500.00</td><td><button class="sw" aria-label="Show Mini Cooper cabrio on the site" aria-pressed="false"></button></td></tr>
+</tbody>
+</table></div>
+</section>
+<aside class="card" aria-label="Edit vehicle">
+<div class="ch"><span class="t">Suzuki Swift</span><span class="st ok">On the site</span><button class="ib s q sp" aria-label="Close"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+<div class="cb col">
+<div class="row t"><span class="img" style="width:132px;height:88px">Photo</span><div class="col" style="gap:6px"><button class="btn sm">Replace photo</button><span class="hint">A side view on a plain background works best.</span></div></div>
+<div class="g g2">
+<div class="f"><label for="rv-name">Name</label><input class="in" id="rv-name" value="Suzuki Swift"></div>
+<div class="f"><label for="rv-slug">Web address</label><input class="in" id="rv-slug" value="suzuki-swift"></div>
+<div class="f"><label for="rv-cat">Category</label><input class="in" id="rv-cat" value="Economy"></div>
+<div class="f"><label for="rv-gear">Gearbox</label><input class="in" id="rv-gear" value="Automatic"></div>
+<div class="f"><label for="rv-seats">Seats</label><input class="in" id="rv-seats" value="5"></div>
+<div class="f"><label for="rv-sort">Position in the list</label><input class="in" id="rv-sort" value="1"></div>
+<div class="f"><label for="rv-rate">Daily rate, €</label><input class="in" id="rv-rate" value="45.00"></div>
+<div class="f"><label for="rv-dep">Deposit, €</label><input class="in" id="rv-dep" value="300.00"></div>
+</div>
+<div class="note t"><span class="b">What a guest sees:</span> 4 days, €180.00. The deposit is a hold taken at handover and is never added to the price.</div>
+<div class="row"><button class="btn pri">Save vehicle</button><button class="btn">Cancel</button><button class="btn q danger sp">Remove</button></div>
+</div>
+</aside>
+</div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1040}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

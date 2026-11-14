@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Enquiries</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="bo.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0B5C63}a:hover{color:#0A2E36}
+</style>
+</helmet>
+<div class="app">
+<div class="side-slot"><dc-import name="Nav" active="leads" hint-size="232px,1040px"></dc-import></div>
+<div class="main">
+<header class="top">
+<div class="crumb">Operations / <b>Enquiries</b></div>
+<button class="search" aria-label="Search everything"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18a7 7 0 100-14 7 7 0 000 14zM20 20l-4-4"/></svg><span>Search bookings, guests, tours</span><span class="kbd">Ctrl K</span></button>
+<button class="btn"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New</button>
+<button class="ib" aria-label="Notifications"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16v-5a6 6 0 0112 0v5l2 2H4zM10 21h4"/></svg><span class="dot"></span></button>
+<button class="ib" aria-label="Open the assistant"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg></button>
+<span class="av d">BM</span>
+</header>
+<main class="page">
+<div class="ph">
+<div><h1 class="h1">Enquiries</h1><p class="sub">4 new. 7 contacted and waiting on the guest.</p></div>
+</div>
+<div class="tabs">
+<a class="tab on" href="Leads.dc.html">New<span class="c">4</span></a>
+<a class="tab" href="Leads.dc.html">Contacted<span class="c">7</span></a>
+<a class="tab" href="Leads.dc.html">Converted<span class="c">38</span></a>
+<a class="tab" href="Leads.dc.html">All</a>
+</div>
+<div class="g" style="grid-template-columns:400px minmax(0,1fr)">
+<section class="card" aria-label="Enquiry list">
+<a class="li sel" href="Leads.dc.html"><span class="av">CM</span><div class="x"><div class="row"><span class="b x tr">Chloé Martin</span><span class="m s nw">2 hours ago</span></div><div class="sb s tr">Catamaran cruise, 3 northern islands</div><div class="m s tr">Bonjour, nous serons 6 adultes et 2 enfants du 21 au 28…</div></div></a>
+<a class="li" href="Leads.dc.html"><span class="av g">DK</span><div class="x"><div class="row"><span class="b x tr">Daniel Kruger</span><span class="m s nw">5 hours ago</span></div><div class="sb s tr">Private south tour</div><div class="m s tr">Can the driver pick us up from Flic en Flac at 8?</div></div></a>
+<a class="li" href="Leads.dc.html"><span class="av b">EH</span><div class="x"><div class="row"><span class="b x tr">Emma Hughes</span><span class="m s nw">Yesterday</span></div><div class="sb s tr">Airport transfer</div><div class="m s tr">We land at 06:10 with two toddlers, do you have seats?</div></div></a>
+<a class="li" href="Leads.dc.html"><span class="av c">RP</span><div class="x"><div class="row"><span class="b x tr">Rahul Patel</span><span class="m s nw">Yesterday</span></div><div class="sb s tr">Dolphin swim and Île aux Bénitiers</div><div class="m s tr">Is lunch vegetarian friendly? Group of 9.</div></div></a>
+<div class="li"><span class="m s">That is everything new. Contacted enquiries move to the next tab.</span></div>
+</section>
+<div class="col" style="gap:14px">
+<section class="card">
+<div class="ch"><span class="av">CM</span><div class="x"><div class="t">Chloé Martin</div><div class="n">Received today at 08:14, from the catamaran page, in French</div></div><div class="seg"><button class="on">New</button><button>Contacted</button><button>Converted</button></div></div>
+<div class="cb col">
+<dl class="kv">
+<dt>Email</dt><dd>chloe@example.com</dd>
+<dt>Phone</dt><dd>+33 6 98 76 54 32</dd>
+<dt>Interested in</dt><dd>Catamaran cruise, 3 northern islands</dd>
+</dl>
+<div class="note n" style="font-size:13.5px;line-height:1.6">Bonjour, nous serons 6 adultes et 2 enfants du 21 au 28 novembre à Belle Mare. Est-il possible de privatiser le catamaran le 24 ? Quel serait le prix avec le transfert depuis l'hôtel ? Merci.</div>
+<div class="row w">
+<a class="btn pri" href="QuoteEditor.dc.html"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Create quote</a>
+<button class="btn"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v12H4zM4 7l8 6 8-6"/></svg>Reply by email</button>
+<button class="btn"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19l1.5-4A7.5 7.5 0 1110 18.5z"/></svg>WhatsApp</button>
+<button class="btn ai sp"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg>Draft a reply</button>
+</div>
+</div>
+</section>
+<div class="g g2">
+<section class="card">
+<div class="ch"><span class="t">A quote would start with</span></div>
+<div class="cb col" style="gap:8px">
+<div class="row"><span class="ck on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span><span class="x">Guest name, email and phone</span></div>
+<div class="row"><span class="ck on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span><span class="x">Private catamaran, Tue 24 Nov, 8 guests</span></div>
+<div class="row"><span class="ck on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span><span class="x">French as the quote language</span></div>
+<div class="row"><span class="ck"></span><span class="x m">Hotel for the transfer: not given, ask the guest</span></div>
+</div>
+</section>
+<section class="card">
+<div class="ch"><span class="t">History with this guest</span></div>
+<div class="li"><span class="ico t"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16l-3-2-2 2-2-2-2 2-2-2-3 2zM9 9h6M9 13h6"/></svg></span><div class="x"><div class="sb tr">Catamaran cruise, 3 northern islands</div><div class="m s">Booked for 11 Nov, cancelled and refunded</div></div><a class="ref" href="Bookings.dc.html">BMT94B3E6D0</a></div>
+<div class="li"><span class="m s">No other bookings or quotes under this email.</span></div>
+</section>
+</div>
+</div>
+</div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1040}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

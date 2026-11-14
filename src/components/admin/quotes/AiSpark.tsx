@@ -84,10 +84,10 @@ export function AiSparkButton({
         onClick={onClick}
         aria-label={label}
         aria-expanded={expanded}
-        className="ai-spark-btn relative grid h-10 w-10 place-items-center rounded-full border border-ink/10 bg-white"
+        className="ai-spark-btn relative grid h-9 w-9 place-items-center rounded-full border border-line bg-white"
       >
         <span className="ai-spark-halo" aria-hidden="true" />
-        <GeminiSpark size={20} className="ai-spark-icon relative" />
+        <GeminiSpark size={18} className="ai-spark-icon relative" />
       </button>
       <span
         aria-hidden="true"

@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Team and roles</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="bo.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0B5C63}a:hover{color:#0A2E36}
+.pm td{padding:5px 12px}
+.pm td.c,.pm th.c{text-align:center}
+.pm tr.grp td{background:#FAFBFB;font-weight:700;font-size:12px;color:#51666B}
+</style>
+</helmet>
+<div class="app">
+<div class="side-slot"><dc-import name="Nav" active="roles" hint-size="232px,1040px"></dc-import></div>
+<div class="main">
+<header class="top">
+<div class="crumb">Admin / <b>Team and roles</b></div>
+<button class="search" aria-label="Search everything"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18a7 7 0 100-14 7 7 0 000 14zM20 20l-4-4"/></svg><span>Search bookings, guests, tours</span><span class="kbd">Ctrl K</span></button>
+<button class="btn"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New</button>
+<button class="ib" aria-label="Notifications"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16v-5a6 6 0 0112 0v5l2 2H4zM10 21h4"/></svg><span class="dot"></span></button>
+<button class="ib" aria-label="Open the assistant"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg></button>
+<span class="av d">BM</span>
+</header>
+<main class="page">
+<div class="ph">
+<div><h1 class="h1">Team and roles</h1><p class="sub">Decide what each person can open, and who sees the business's money. Only the owner can change this.</p></div>
+<button class="btn sp"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New role</button>
+<button class="btn pri">Save changes</button>
+</div>
+<div class="g" style="grid-template-columns:minmax(0,1fr) 380px">
+<section class="card">
+<div class="ch"><span class="t">Who can open what</span><span class="n">Tick a box to give a role that section</span></div>
+<div class="tscroll"><table class="tbl pm">
+<thead><tr><th>Section</th><th class="c">Owner</th><th class="c">Reservations<div class="m xs">Team, 2 people</div></th><th class="c">Accounts<div class="m xs">Team, 1 person</div></th><th class="c">Content<div class="m xs">Content only, 1 person</div></th></tr></thead>
+<tbody>
+<tr class="grp"><td colspan="5">Operations</td></tr>
+<tr><td>Bookings</td><td class="c"><span class="ck on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span></td><td class="c"><span class="ck on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span></td><td class="c"><span class="ck on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span></td><td class="c m">Never</td></tr>
+<tr><td>Calendar</td><td class="c"><span class="ck on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span></td><td class="c"><span class="ck on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span></td><td class="c"><span class="ck"></span></td><td class="c m">Never</td></tr>
+<tr><td>Quotes</td><td class="c"><span class="ck on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span></td><td class="c"><span class="ck on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span></td><td class="c"><span class="ck on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span></td><td class="c m">Never</td></tr>
+<tr><td>Enquiries</td><td class="c"><span class="ck on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span></td><td class="c"><span class="ck on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span></td><td class="c"><span class="ck"></span></td><td class="c m">Never</td></tr>
+<tr><td>Documents</td><td class="c"><span class="ck on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span></td><td class="c"><span class="ck"></span></td><td class="c"><span class="ck on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span></td><td class="c m">Never</td></tr>
+<tr class="grp"><td colspan="5">Catalogue</td></tr>
+<tr><td>Tours</td><td class="c"><span class="ck on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span></td><td class="c"><span class="ck"></span></td><td class="c"><span class="ck"></span></td><td class="c"><span class="ck on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span></td></tr>
+<tr><td>Categories and standard content</td><td class="c"><span class="ck on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span></td><td class="c"><span class="ck"></span></td><td class="c"><span class="ck"></span></td><td class="c"><span class="ck on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span></td></tr>
+<tr><td>Rental fleet</td><td class="c"><span class="ck on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span></td><td class="c"><span class="ck on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span></td><td class="c"><span class="ck"></span></td><td class="c"><span class="ck"></span></td></tr>
+<tr><td>Planner places</td><td class="c"><span class="ck on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span></td><td class="c"><span class="ck"></span></td><td class="c"><span class="ck"></span></td><td class="c"><span class="ck on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span></td></tr>
+<tr class="grp"><td colspan="5">Growth</td></tr>
+<tr><td>SEO and redirects</td><td class="c"><span class="ck on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span></td><td class="c"><span class="ck"></span></td><td class="c"><span class="ck"></span></td><td class="c"><span class="ck on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span></td></tr>
+<tr><td>Blog</td><td class="c"><span class="ck on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span></td><td class="c"><span class="ck"></span></td><td class="c"><span class="ck"></span></td><td class="c"><span class="ck on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span></td></tr>
+<tr><td>Reviews</td><td class="c"><span class="ck on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span></td><td class="c"><span class="ck on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span></td><td class="c"><span class="ck"></span></td><td class="c"><span class="ck"></span></td></tr>
+<tr><td>Assistant</td><td class="c"><span class="ck on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span></td><td class="c"><span class="ck on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span></td><td class="c"><span class="ck"></span></td><td class="c"><span class="ck on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span></td></tr>
+<tr class="grp"><td colspan="5">Money</td></tr>
+<tr><td>See revenue figures</td><td class="c"><span class="ck on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span></td><td class="c"><span class="ck"></span></td><td class="c"><span class="ck on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span></td><td class="c m">Never</td></tr>
+<tr><td>Reports and exports</td><td class="c"><span class="ck on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span></td><td class="c"><span class="ck"></span></td><td class="c"><span class="ck on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span></td><td class="c m">Never</td></tr>
+<tr><td>Change prices and fares</td><td class="c"><span class="ck on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span></td><td class="c"><span class="ck"></span></td><td class="c"><span class="ck"></span></td><td class="c m">Never</td></tr>
+<tr><td>Change the charge currency</td><td class="c"><span class="ck on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span></td><td class="c"><span class="ck"></span></td><td class="c"><span class="ck"></span></td><td class="c m">Never</td></tr>
+<tr><td>Mark refunds</td><td class="c"><span class="ck on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span></td><td class="c"><span class="ck"></span></td><td class="c"><span class="ck on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span></td><td class="c m">Never</td></tr>
+<tr><td>Read margin notes</td><td class="c"><span class="ck on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span></td><td class="c"><span class="ck"></span></td><td class="c"><span class="ck"></span></td><td class="c m">Never</td></tr>
+</tbody>
+</table></div>
+</section>
+<div class="col" style="gap:14px">
+<section class="card">
+<div class="ch"><span class="t">People</span><span class="n">5</span></div>
+<div class="li"><span class="av d">BM</span><div class="x"><div class="b tr">You</div><div class="m s tr">owner@example.com</div></div><span class="st ok">Owner</span></div>
+<div class="li"><span class="av">NR</span><div class="x"><div class="b tr">Nadia R.</div><div class="m s tr">nadia@example.com</div></div><button class="sel" style="height:30px">Reservations<svg class="i sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button></div>
+<div class="li"><span class="av g">KP</span><div class="x"><div class="b tr">Kevin P.</div><div class="m s tr">kevin@example.com</div></div><button class="sel" style="height:30px">Reservations<svg class="i sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button></div>
+<div class="li"><span class="av b">SA</span><div class="x"><div class="b tr">Sara A.</div><div class="m s tr">sara@example.com</div></div><button class="sel" style="height:30px">Accounts<svg class="i sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button></div>
+<div class="li"><span class="av c">JL</span><div class="x"><div class="b tr">Julien L.</div><div class="m s tr">julien@example.com</div></div><button class="sel" style="height:30px">Content<svg class="i sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button></div>
+</section>
+<section class="card">
+<div class="ch"><span class="t">Add a person</span></div>
+<div class="cb col">
+<div class="f"><label for="m-email">Email</label><input class="in" id="m-email" placeholder="name@example.com"></div>
+<div class="f"><label>Role</label><button class="sel" style="justify-content:space-between">Reservations<svg class="i sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button></div>
+<button class="btn wide">Add to the team</button>
+<p class="hint">They must already have an account on the site with this email.</p>
+</div>
+</section>
+<div class="note n">A Content role can never open bookings, payments, enquiries or guest details, whatever is ticked. Prices, the charge currency, refunds and roles are locked in the database itself, not only hidden on screen.</div>
+</div>
+</div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1040}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

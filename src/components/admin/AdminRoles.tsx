@@ -210,7 +210,7 @@ export function AdminRoles() {
   return (
     <div>
       <AdminHeading
-        title="Roles"
+        title="Team and roles"
         subtitle="Decide what each person in the back office can open, and whether they see the business’s money."
       />
       {loadError && (

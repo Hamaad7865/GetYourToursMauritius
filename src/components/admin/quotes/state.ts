@@ -489,7 +489,12 @@ export {
 } from '@/lib/quotes/deposit';
 // …and imported as well, because `export … from` re-exports without binding the name locally, and
 // this module's own defaults (emptyQuoteForm, formFromQuote) read it.
-import { DEFAULT_DEPOSIT_BPS } from '@/lib/quotes/deposit';
+import {
+  DEFAULT_DEPOSIT_BPS,
+  PAY_IN_FULL_BPS,
+  balanceMinorOf,
+  depositMinorOf,
+} from '@/lib/quotes/deposit';
 
 /** Basis points as a whole percent for the editor's % field. 1000 -> 10, 10000 -> 100. */
 export function depositPercentFromBps(bps: number): number {
@@ -683,7 +688,7 @@ export function rentalLineDescription(
  * RentalWidget prices with (src/lib/services/pricing.ts), so the quoted figure equals what the guest
  * saw on /rent.
  *
- * The pick-up day goes in `date` (not `startsAt`), so the LinesPane date field stays the editable
+ * The pick-up day goes in `date` (not `startsAt`), so the line's date field (QuoteLines) stays the editable
  * source of truth exactly as it is for a custom line, and {@link quoteInputFromForm} derives `starts_at`
  * from it. The security deposit is deliberately not a parameter: a refundable hold is not a charge, and
  * a figure the helper never sees cannot leak into `quotes.total_minor` (`quote_total_mismatch`).
@@ -776,7 +781,7 @@ export function transferLineDescription(activityTitle: string, pickupLabel: stri
  * shape that is chargeable-as-typed — the negotiated figure the operator sees is what the guest pays —
  * and `quoteItemRows` clears the occurrence/option/slug on it so nothing is left dangling. The pick-up
  * day rides in `date` (not `startsAt`), exactly like a rental line, so {@link quoteInputFromForm}
- * derives `starts_at` from it and the LinesPane date field stays the editable source of truth.
+ * derives `starts_at` from it and the line's date field (QuoteLines) stays the editable source of truth.
  */
 export function transportLineDraft(pick: TransferPick): QuoteLineDraft {
   return {
@@ -915,11 +920,133 @@ export function sendRefusal(form: QuoteFormValues, today: string = quoteTodayUtc
   if (form.validUntil && form.validUntil.slice(0, 10) < today.slice(0, 10)) {
     return (
       `This quote was only valid until ${form.validUntil}, which has passed — the guest’s link would ` +
-      `not open and the payment path would refuse it. Move the valid-until date forward on the ` +
-      `guest pane and save, then send.`
+      `not open and the payment path would refuse it. Move the valid-until date forward (Guest, ` +
+      `“Change details”), then send.`
     );
   }
   return null;
+}
+
+/**
+ * Why the one-page editor's Send button is unavailable — or null when pressing it may go ahead.
+ *
+ * Send saves first and then sends, so a quote with no id yet is NOT a reason: the save gives it one.
+ * Everything else is: the refusals the save would raise (no guest, a half-typed line), the send
+ * route's own (no lines, nothing to charge), and every reason {@link sendRefusal} gives, which is
+ * asked here with a stand-in id so its "save first" line does not block a button that saves. The
+ * screen asks {@link sendRefusal} again, on the freshly saved quote, before it sends.
+ */
+export function sendBlockReason(
+  form: QuoteFormValues,
+  today: string = quoteTodayUtc(),
+): string | null {
+  if (!form.customerName.trim() || !form.customerEmail.trim()) {
+    return 'Add the guest’s name and email address first — the quote is emailed to them.';
+  }
+  if (form.lines.length === 0) return 'Add at least one item to the quote.';
+  const problem = formLineProblem(form);
+  if (problem) return problem;
+  const total = formTotalMinor(form);
+  if (total !== null && total <= 0) {
+    return 'This quote totals nothing to charge. Price at least one item before sending.';
+  }
+  return sendRefusal(form.id ? form : { ...form, id: 'unsaved' }, today);
+}
+
+/* ------------------------------------------------------------------------------------------- */
+/* The payment plan and the summary                                                              */
+/* ------------------------------------------------------------------------------------------- */
+
+/**
+ * The three choices of the editor's payment control, over the two stored fields. `per_date` is
+ * `payment_mode`; "pay in full" and "deposit" are both `payment_mode = 'deposit'`, told apart by
+ * `deposit_bps` (10000 = the whole total up front).
+ */
+export type PaymentPlan = 'full' | 'deposit' | 'per_date';
+
+export const PAYMENT_PLAN_OPTIONS: ReadonlyArray<{ value: PaymentPlan; label: string }> = [
+  { value: 'full', label: 'Pay in full' },
+  { value: 'deposit', label: 'Deposit' },
+  { value: 'per_date', label: 'Per date' },
+];
+
+export function planOf(form: Pick<QuoteFormValues, 'paymentMode' | 'depositBps'>): PaymentPlan {
+  if (form.paymentMode === 'per_date') return 'per_date';
+  return form.depositBps >= PAY_IN_FULL_BPS ? 'full' : 'deposit';
+}
+
+/**
+ * The form with `plan` chosen. Going back to "Deposit" restores the deposit the operator last had
+ * (`rememberedDepositBps`) rather than resetting a negotiated 25% to the 10% default; per date leaves
+ * the stored deposit alone, because it is ignored there and must come back if the plan is switched.
+ */
+export function applyPlan(
+  form: QuoteFormValues,
+  plan: PaymentPlan,
+  rememberedDepositBps: number,
+): QuoteFormValues {
+  if (plan === 'per_date') return { ...form, paymentMode: 'per_date' };
+  if (plan === 'full') return { ...form, paymentMode: 'deposit', depositBps: PAY_IN_FULL_BPS };
+  const depositBps =
+    form.depositBps < PAY_IN_FULL_BPS
+      ? form.depositBps
+      : rememberedDepositBps < PAY_IN_FULL_BPS
+        ? rememberedDepositBps
+        : DEFAULT_DEPOSIT_BPS;
+  return { ...form, paymentMode: 'deposit', depositBps };
+}
+
+/** The summary's figures, in minor units — or null while a line is half-typed. Display only. */
+export function quoteBreakdown(
+  form: QuoteFormValues,
+): { itemsMinor: number; transfersMinor: number; totalMinor: number } | null {
+  try {
+    const items = quoteInputFromForm(form).items;
+    return {
+      itemsMinor: items.reduce((sum, item) => sum + lineSubtotalMinor(item), 0),
+      transfersMinor: items.reduce((sum, item) => sum + transportFareMinorOf(item), 0),
+      totalMinor: quoteTotalMinor(items),
+    };
+  } catch {
+    return null;
+  }
+}
+
+export interface DueNow {
+  plan: PaymentPlan;
+  totalMinor: number;
+  /** What the guest is charged when they accept. */
+  nowMinor: number;
+  /** What is collected afterwards (the balance link, or the later dates). */
+  laterMinor: number;
+  /** Per date only: one installment per activity date, the first being `nowMinor`. */
+  schedule: ReturnType<typeof computeQuoteSchedule>;
+}
+
+/**
+ * What the guest pays now and later, computed the way the email states it and api_convert_quote
+ * charges it: `depositMinorOf` for a deposit (pay in full is a 100% deposit), and for per date the
+ * schedule {@link previewEmailInput} builds — which is empty when no line has a date, in which case the
+ * deposit terms apply, exactly as the RPC falls back. Display only; null while a line is half-typed.
+ */
+export function dueNowSummary(form: QuoteFormValues): DueNow | null {
+  const breakdown = quoteBreakdown(form);
+  if (!breakdown) return null;
+  const totalMinor = breakdown.totalMinor;
+  const plan = planOf(form);
+  const schedule = (plan === 'per_date' ? previewEmailInput(form).schedule : null) ?? [];
+  if (schedule.length > 0) {
+    const nowMinor = schedule[0]!.amountMinor;
+    return { plan, totalMinor, nowMinor, laterMinor: Math.max(0, totalMinor - nowMinor), schedule };
+  }
+  const nowMinor = depositMinorOf(totalMinor, form.depositBps);
+  return {
+    plan,
+    totalMinor,
+    nowMinor,
+    laterMinor: balanceMinorOf(totalMinor, form.depositBps),
+    schedule,
+  };
 }
 
 /* ------------------------------------------------------------------------------------------- */
@@ -947,41 +1074,4 @@ export function refusalMessage(err: unknown, fallback: string): string {
     if (details) return details;
   }
   return fallback;
-}
-
-/* ------------------------------------------------------------------------------------------- */
-/* The rail                                                                                      */
-/* ------------------------------------------------------------------------------------------- */
-
-export type QuotePaneId = 'guest' | 'lines' | 'notes' | 'send';
-
-export const QUOTE_PANES: Array<{ id: QuotePaneId; label: string }> = [
-  { id: 'guest', label: 'Guest & validity' },
-  { id: 'lines', label: 'Lines & prices' },
-  { id: 'notes', label: 'Notes' },
-  { id: 'send', label: 'Preview & send' },
-];
-
-/** Labels for `quotes.status`, in the operator's words. */
-export const QUOTE_STATUS_LABEL: Record<QuoteStatus, string> = {
-  draft: 'Draft',
-  sent: 'Sent',
-  accepted: 'Accepted',
-  expired: 'Expired',
-  cancelled: 'Withdrawn',
-};
-
-/** Pill colours, matching the bookings screen's vocabulary (teal = good, coral = closed). */
-export function quoteStatusClass(status: QuoteStatus): string {
-  switch (status) {
-    case 'accepted':
-      return 'bg-teal/10 text-teal-dark';
-    case 'sent':
-      return 'bg-gold-light/20 text-ink';
-    case 'cancelled':
-    case 'expired':
-      return 'bg-coral/10 text-coral';
-    default:
-      return 'bg-ink/[0.06] text-ink-muted';
-  }
 }

@@ -2,6 +2,7 @@
 
 import { useId, useState } from 'react';
 import { IconPlus, IconX } from '@/components/ui/icons';
+import { INPUT_CLS } from '@/components/admin/ui';
 
 /**
  * Shared back-office form primitives. Extracted verbatim from ActivityForm so the standard-content
@@ -9,10 +10,10 @@ import { IconPlus, IconX } from '@/components/ui/icons';
  * two screens edit the same five lists, and they must feel identical.
  */
 
-/** Moved verbatim from ActivityForm — the single source for every back-office text input, so the two
- *  screens stay pixel-identical. */
-export const inputClass =
-  'w-full rounded-xl border border-[#E2E7EA] bg-[#F7F8FA] px-3.5 py-2.5 text-sm text-ink outline-none placeholder:text-ink-muted/70 focus:border-teal focus:bg-white';
+/** The single source for every back-office text input — and, here, for the selects and textareas the
+ *  tour editor's panes draw with it too. It IS `INPUT_CLS` (one look for every control), so a
+ *  restyle reaches both families of screens at once. */
+export const inputClass = INPUT_CLS;
 
 export function Section({
   title,
@@ -24,9 +25,9 @@ export function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-[#EAEEF0] bg-white p-5 sm:p-6">
-      <h2 className="text-[15px] font-extrabold text-ink">{title}</h2>
-      {hint && <p className="mt-0.5 text-[13px] text-ink-muted">{hint}</p>}
+    <section className="min-w-0 rounded-xl border border-line bg-white p-4 sm:p-5">
+      <h2 className="text-[14px] font-bold text-ink">{title}</h2>
+      {hint && <p className="mt-0.5 text-[12.5px] text-ink-soft">{hint}</p>}
       <div className="mt-4">{children}</div>
     </section>
   );
@@ -49,12 +50,12 @@ export function Field({
 }) {
   const id = useId();
   return (
-    <label htmlFor={id} className={`flex flex-col gap-1.5 ${full ? 'sm:col-span-2' : ''}`}>
-      <span className="text-[12.5px] font-bold text-ink/60">
-        {label} {required && <span className="text-coral">*</span>}
+    <label htmlFor={id} className={`flex flex-col gap-[5px] ${full ? 'sm:col-span-2' : ''}`}>
+      <span className="text-[12px] font-semibold text-ink-muted">
+        {label} {required && <span className="text-coral-dark">*</span>}
       </span>
       {children}
-      {hint && <span className="text-[12px] text-ink-muted">{hint}</span>}
+      {hint && <span className="text-[11.5px] text-ink-soft">{hint}</span>}
     </label>
   );
 }
@@ -81,20 +82,20 @@ export function StringList({
   }
   return (
     <div className="flex flex-col gap-2">
-      <span className="text-[13px] font-bold text-ink">{label}</span>
+      <span className="text-[13px] font-semibold text-ink">{label}</span>
       {hint}
       <div className="flex flex-wrap gap-1.5">
         {items.map((it, i) => (
           <span
             key={`${it}-${i}`}
-            className="flex items-center gap-1 rounded-full bg-cream px-3 py-1 text-[13px] text-ink"
+            className="flex items-center gap-1 rounded-md border border-line bg-ground px-2.5 py-1 text-[12.5px] font-medium text-ink"
           >
             {it}
             <button
               type="button"
               aria-label={`Remove ${it}`}
               onClick={() => onChange(items.filter((_, idx) => idx !== i))}
-              className="text-ink-muted hover:text-coral"
+              className="text-ink-muted hover:text-coral-dark"
             >
               <IconX width={13} height={13} />
             </button>
@@ -117,7 +118,8 @@ export function StringList({
         <button
           type="button"
           onClick={add}
-          className="shrink-0 rounded-xl border border-ink/15 px-3 text-ink hover:border-teal hover:text-teal"
+          aria-label={`Add ${label.toLowerCase()}`}
+          className="shrink-0 rounded-lg border border-line bg-white px-3 text-ink transition-colors hover:border-[#C2CED1] hover:bg-[#FAFBFB] motion-reduce:transition-none"
         >
           <IconPlus width={16} height={16} />
         </button>

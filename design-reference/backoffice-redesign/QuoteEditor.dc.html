@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Quote on one page</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="bo.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0B5C63}a:hover{color:#0A2E36}
+</style>
+</helmet>
+<div class="app">
+<div class="side-slot"><dc-import name="Nav" active="quotes" hint-size="232px,1040px"></dc-import></div>
+<div class="main">
+<header class="top">
+<div class="crumb">Operations / <a href="Quotes.dc.html">Quotes</a> / <b>New quote</b></div>
+<button class="search" aria-label="Search everything"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18a7 7 0 100-14 7 7 0 000 14zM20 20l-4-4"/></svg><span>Search bookings, guests, tours</span><span class="kbd">Ctrl K</span></button>
+<button class="btn"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New</button>
+<button class="ib" aria-label="Notifications"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16v-5a6 6 0 0112 0v5l2 2H4zM10 21h4"/></svg><span class="dot"></span></button>
+<button class="ib" aria-label="Open the assistant"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg></button>
+<span class="av d">BM</span>
+</header>
+<main class="page">
+<div class="ph">
+<div><div class="row"><h1 class="h1">New quote</h1><span class="st">Draft</span></div><p class="sub">Saved automatically a moment ago.</p></div>
+<button class="btn ai sp"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg>Fill from an enquiry</button>
+<button class="btn">Duplicate</button>
+<button class="btn danger">Withdraw</button>
+</div>
+<div class="g gl">
+<div class="col" style="gap:14px">
+<section class="card">
+<div class="ch"><span class="t">Guest</span><span class="n">Returning guest: 1 earlier booking</span></div>
+<div class="cb col">
+<div class="g g3">
+<div class="f"><label for="q-name">Guest name</label><input class="in" id="q-name" value="Lukas Weber"></div>
+<div class="f"><label for="q-phone">Phone or WhatsApp</label><input class="in" id="q-phone" value="+49 170 555 0142"></div>
+<div class="f"><label for="q-email">Email</label><input class="in" id="q-email" value="lukas@example.com"></div>
+</div>
+<div class="row w"><span class="tag">English</span><span class="tag">Valid 14 days, until 28 Nov</span><span class="tag">Hotel room: not set</span><button class="btn sm q">Change details</button></div>
+</div>
+</section>
+<section class="card">
+<div class="ch"><span class="t">What they're buying</span><span class="n">2 items</span></div>
+<div class="qline"><div class="x"><div class="row"><span class="tag">Tour</span><span class="b tr">Private south tour</span></div><div class="m s" style="margin-top:3px">Thu 19 Nov, 09:00. 2 guests. Pickup at Lux Belle Mare.</div></div><input class="in" aria-label="Quantity" value="1" style="text-align:right"><input class="in" aria-label="Unit price in euros" value="180.00" style="text-align:right"><span class="b r">€180.00</span><button class="ib s q" aria-label="Remove this item"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+<div class="qline a"><div class="x row"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 16v-5l2-5h10l2 5v5M5 16h14M7 16v2M17 16v2M5 11h14"/></svg><span>Round-trip transfer from Lux Belle Mare</span><span class="m">suggested €60.00</span></div><span></span><input class="in" aria-label="Transfer fare in euros" value="60.00" style="text-align:right;height:30px"><span class="b r">€60.00</span><button class="ib s q" aria-label="Remove the transfer"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+<div class="qline"><div class="x"><div class="row"><span class="tag">Rental</span><span class="b tr">Suzuki Swift</span></div><div class="m s" style="margin-top:3px">Thu 19 to Mon 23 Nov. 4 days at the daily rate.</div></div><input class="in" aria-label="Quantity" value="4" style="text-align:right"><input class="in" aria-label="Unit price in euros" value="45.00" style="text-align:right"><span class="b r">€180.00</span><button class="ib s q" aria-label="Remove this item"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+<div class="cb col" style="gap:8px">
+<div class="f"><label for="q-add">Add an item</label><input class="in" id="q-add" value="cata" placeholder="Type a tour, a car, or anything else"></div>
+<div class="sug">
+<div class="o on"><span class="tag">Used before</span><span class="x sb tr">Catamaran cruise, 3 northern islands</span><span class="m s nw">last quoted €93.00 a guest</span><span class="kbd">Enter</span></div>
+<div class="o"><span class="tag">Catalogue</span><span class="x sb tr">Catamaran cruise to Île aux Cerfs</span><span class="m s nw">from €85.00, holds a seat</span></div>
+<div class="o"><span class="tag">New</span><span class="x sb tr">Add "cata" as a new item</span><span class="m s nw">you type the price</span></div>
+</div>
+<div class="row w"><button class="btn sm">Tour from the catalogue</button><button class="btn sm">Rental car</button><button class="btn sm">Transfer only</button></div>
+</div>
+</section>
+<div class="row w"><button class="btn"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Note to the guest</button><button class="btn"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Internal note</button><span class="m s sp">Prices are in euros. Nothing is charged until the guest pays.</span></div>
+</div>
+<div class="col" style="gap:14px">
+<section class="card">
+<div class="cb col">
+<div class="row"><span class="m sb x">Total</span><span class="h1" style="font-size:28px">€420.00</span></div>
+<div class="col" style="gap:4px"><div class="row s m"><span class="x">Items</span><span>€360.00</span></div><div class="row s m"><span class="x">Transfers</span><span>€60.00</span></div></div>
+<div class="seg wide"><button class="on">Pay in full</button><button>Deposit</button><button>Per date</button></div>
+<p class="s m">The guest pays €420.00 now.</p>
+<button class="btn pri wide"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v12H4zM4 7l8 6 8-6"/></svg>Send by email</button>
+<button class="btn wide"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19l1.5-4A7.5 7.5 0 1110 18.5z"/></svg>Send on WhatsApp</button>
+<button class="btn wide"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 9h10v10H9zM5 15V5h10"/></svg>Copy payment link</button>
+<div class="note t">Checked: the total matches the lines, and every item has a date.</div>
+</div>
+</section>
+<section class="card">
+<div class="ch"><span class="t">What the guest sees</span><button class="btn sm q sp">Open full preview</button></div>
+<div class="cb" style="background:var(--bg);border-radius:0 0 12px 12px">
+<div class="paper col" style="gap:8px;padding:16px">
+<h3>Your quote from Belle Mare Tours</h3>
+<div class="row"><span class="x">Private south tour, Thu 19 Nov</span><span>€180.00</span></div>
+<div class="row m"><span class="x">Round-trip transfer</span><span>€60.00</span></div>
+<div class="row"><span class="x">Suzuki Swift, 4 days</span><span>€180.00</span></div>
+<hr class="hr">
+<div class="row b"><span class="x">Total</span><span>€420.00</span></div>
+<span class="btn pri wide" style="height:32px">Pay €420.00</span>
+</div>
+</div>
+</section>
+<section class="card">
+<div class="ch"><span class="t">History</span></div>
+<div class="li"><span class="dotk ok"></span><div class="x">Draft started</div><span class="m s">Today, 10:42</span></div>
+<div class="li"><span class="dotk"></span><div class="x m">Not sent yet</div></div>
+</section>
+</div>
+</div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1040}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

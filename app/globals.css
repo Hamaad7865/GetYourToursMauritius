@@ -46,6 +46,24 @@
   --color-teal-bright: 19 160 166;
   --color-gold: 201 138 18;
   --color-gold-light: 245 166 35;
+
+  /* Back office (design-reference/backoffice-redesign/bo.css). Used only under /admin; nothing on
+     the public site reads these. Where bo.css repeats a brand value it reuses the brand token
+     instead: ink, ink-muted (= --muted), teal, teal-dark, teal-tint (bo.css --teal-t is #E6F4F3,
+     a hair from #EAF7F5, so the brand tint stands in), coral, coral-dark, gold-light (= bo.css
+     --gold). Every text pairing below passes AA on white and on its own tint. */
+  --color-ink-soft: 95 115 120; /* #5F7378 secondary text, 4.99:1 on white */
+  --color-ink-raised: 22 80 91; /* #16505B active nav item and avatar on the ink sidebar */
+  --color-line: 225 231 233; /* #E1E7E9 hairlines */
+  --color-line-soft: 237 241 242; /* #EDF1F2 row dividers, neutral chip */
+  --color-ground: 243 245 246; /* #F3F5F6 page ground */
+  --color-coral-tint: 252 236 232; /* #FCECE8 */
+  --color-gold-dark: 133 90 5; /* #855A05 text on gold-tint, 5.44:1 */
+  --color-gold-tint: 251 242 220; /* #FBF2DC */
+  --color-blue-dark: 31 92 158; /* #1F5C9E text on blue-tint, 5.92:1 */
+  --color-blue-tint: 231 240 250; /* #E7F0FA */
+  --color-violet-dark: 91 63 168; /* #5B3FA8 assistant only, 6.54:1 on violet-tint */
+  --color-violet-tint: 238 234 251; /* #EEEAFB */
 }
 
 @layer base {

@@ -81,7 +81,9 @@ export function AdminLeads() {
       <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="font-display text-[30px] font-medium tracking-tight text-ink">Leads</h1>
+            <h1 className="font-display text-[30px] font-medium tracking-tight text-ink">
+              Enquiries
+            </h1>
             {newCount > 0 && (
               <span className="rounded-full bg-coral/10 px-2.5 py-1 text-[12px] font-bold text-coral">
                 {newCount} new

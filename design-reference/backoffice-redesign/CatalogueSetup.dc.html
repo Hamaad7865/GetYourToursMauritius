@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Categories and standard content</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="bo.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0B5C63}a:hover{color:#0A2E36}
+</style>
+</helmet>
+<div class="app">
+<div class="side-slot"><dc-import name="Nav" active="setup" hint-size="232px,1040px"></dc-import></div>
+<div class="main">
+<header class="top">
+<div class="crumb">Catalogue / <b>Categories and content</b></div>
+<button class="search" aria-label="Search everything"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18a7 7 0 100-14 7 7 0 000 14zM20 20l-4-4"/></svg><span>Search bookings, guests, tours</span><span class="kbd">Ctrl K</span></button>
+<button class="btn"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New</button>
+<button class="ib" aria-label="Notifications"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16v-5a6 6 0 0112 0v5l2 2H4zM10 21h4"/></svg><span class="dot"></span></button>
+<button class="ib" aria-label="Open the assistant"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg></button>
+<span class="av d">BM</span>
+</header>
+<main class="page">
+<div class="ph">
+<div><h1 class="h1">Categories and content</h1><p class="sub">How tours are grouped on the site, and the standard lists every new tour starts with.</p></div>
+</div>
+<div class="g" style="grid-template-columns:minmax(0,5fr) minmax(0,6fr)">
+<section class="card">
+<div class="ch"><span class="t">Categories</span><span class="n">7, in the order guests see them</span><button class="btn sm pri sp"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New category</button></div>
+<div class="li"><span class="m">⋮⋮</span><span class="img" style="width:48px;height:36px">Photo</span><div class="x"><div class="b tr">Boat trips and cruises</div><div class="m s">9 tours</div></div><span class="s m">Shown</span><button class="sw on" aria-label="Show Boat trips and cruises on the site" aria-pressed="true"></button><button class="btn sm q">Edit</button></div>
+<div class="li"><span class="m">⋮⋮</span><span class="img" style="width:48px;height:36px">Photo</span><div class="x"><div class="b tr">Sightseeing tours</div><div class="m s">8 tours</div></div><span class="s m">Shown</span><button class="sw on" aria-label="Show Sightseeing tours on the site" aria-pressed="true"></button><button class="btn sm q">Edit</button></div>
+<div class="li sel" style="flex-direction:column;align-items:stretch;gap:12px">
+<div class="row" style="gap:12px"><span class="m">⋮⋮</span><span class="img" style="width:48px;height:36px">Photo</span><div class="x"><div class="b tr">Dolphins and whales</div><div class="m s">4 tours</div></div><span class="s m">Shown</span><button class="sw on" aria-label="Show Dolphins and whales on the site" aria-pressed="true"></button></div>
+<div class="g g2">
+<div class="f"><label for="cat-name">Name</label><input class="in" id="cat-name" value="Dolphins and whales"></div>
+<div class="f"><label for="cat-img">Image</label><input class="in" id="cat-img" value="dolphins-cover.jpg"></div>
+</div>
+<div class="row"><button class="btn sm pri">Save category</button><button class="btn sm">Cancel</button><button class="btn sm q danger sp">Delete</button></div>
+</div>
+<div class="li"><span class="m">⋮⋮</span><span class="img" style="width:48px;height:36px">Photo</span><div class="x"><div class="b tr">Island day trips</div><div class="m s">6 tours</div></div><span class="s m">Shown</span><button class="sw on" aria-label="Show Island day trips on the site" aria-pressed="true"></button><button class="btn sm q">Edit</button></div>
+<div class="li"><span class="m">⋮⋮</span><span class="img" style="width:48px;height:36px">Photo</span><div class="x"><div class="b tr">Helicopter and sky</div><div class="m s">3 tours</div></div><span class="s m">Shown</span><button class="sw on" aria-label="Show Helicopter and sky on the site" aria-pressed="true"></button><button class="btn sm q">Edit</button></div>
+<div class="li"><span class="m">⋮⋮</span><span class="img" style="width:48px;height:36px">Photo</span><div class="x"><div class="b tr">Airport transfers</div><div class="m s">2 tours</div></div><span class="s m">Shown</span><button class="sw on" aria-label="Show Airport transfers on the site" aria-pressed="true"></button><button class="btn sm q">Edit</button></div>
+<div class="li"><span class="m">⋮⋮</span><span class="img" style="width:48px;height:36px">Photo</span><div class="x"><div class="b tr">Seasonal specials</div><div class="m s">5 tours</div></div><span class="s m">Hidden</span><button class="sw" aria-label="Show Seasonal specials on the site" aria-pressed="false"></button><button class="btn sm q">Edit</button></div>
+</section>
+<section class="card">
+<div class="ch"><span class="t">Standard content</span><span class="n">Filled in for you on a new tour</span><button class="sel sp" style="height:30px">Boat trips and cruises<svg class="i sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button></div>
+<div class="cb col" style="gap:16px">
+<div class="col" style="gap:6px">
+<div class="row"><span class="b x">What's included</span><span class="m s">4 lines</span></div>
+<div class="row"><span class="m">⋮⋮</span><input class="in" aria-label="Included line 1" value="Hotel pickup and drop-off when the transfer is added"></div>
+<div class="row"><span class="m">⋮⋮</span><input class="in" aria-label="Included line 2" value="Barbecue lunch on board"></div>
+<div class="row"><span class="m">⋮⋮</span><input class="in" aria-label="Included line 3" value="Soft drinks, beer and wine"></div>
+<div class="row"><span class="m">⋮⋮</span><input class="in" aria-label="Included line 4" value="Snorkelling equipment"></div>
+<button class="btn sm" style="align-self:flex-start">Add a line</button>
+</div>
+<hr class="hr">
+<div class="col" style="gap:6px">
+<div class="row"><span class="b x">Not included</span><span class="m s">2 lines</span></div>
+<div class="row"><span class="m">⋮⋮</span><input class="in" aria-label="Not included line 1" value="Towels"></div>
+<div class="row"><span class="m">⋮⋮</span><input class="in" aria-label="Not included line 2" value="Tips for the crew"></div>
+<button class="btn sm" style="align-self:flex-start">Add a line</button>
+</div>
+<hr class="hr">
+<div class="row"><span class="b x">Highlights</span><span class="m s">3 lines</span><button class="btn sm q">Open</button></div>
+<hr class="hr">
+<div class="row"><span class="b x">What to bring</span><span class="m s">5 lines</span><button class="btn sm q">Open</button></div>
+<hr class="hr">
+<div class="row"><span class="b x">Know before you go</span><span class="m s">4 lines</span><button class="btn sm q">Open</button></div>
+<div class="row"><button class="btn pri">Save standard content</button><span class="m s">Changes apply to new tours. Existing tours keep their own text.</span></div>
+</div>
+</section>
+</div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1040}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

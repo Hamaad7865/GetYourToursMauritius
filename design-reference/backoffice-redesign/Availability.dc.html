@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Availability</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="bo.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0B5C63}a:hover{color:#0A2E36}
+</style>
+</helmet>
+<div class="app">
+<div class="side-slot"><dc-import name="Nav" active="tours" hint-size="232px,1040px"></dc-import></div>
+<div class="main">
+<header class="top">
+<div class="crumb">Catalogue / <a href="Tours.dc.html">Tours</a> / <a href="TourEditor.dc.html">Catamaran cruise</a> / <b>Availability</b></div>
+<button class="search" aria-label="Search everything"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18a7 7 0 100-14 7 7 0 000 14zM20 20l-4-4"/></svg><span>Search bookings, guests, tours</span><span class="kbd">Ctrl K</span></button>
+<button class="btn"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New</button>
+<button class="ib" aria-label="Notifications"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16v-5a6 6 0 0112 0v5l2 2H4zM10 21h4"/></svg><span class="dot"></span></button>
+<button class="ib" aria-label="Open the assistant"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg></button>
+<span class="av d">BM</span>
+</header>
+<main class="page">
+<div class="ph">
+<div><h1 class="h1">Availability</h1><p class="sub">Catamaran cruise, 3 northern islands. Dates open by themselves 185 days ahead.</p></div>
+<div class="seg sp"><button class="on">Shared catamaran</button><button>Private catamaran</button></div>
+<button class="btn pri">Save changes</button>
+</div>
+<div class="g" style="grid-template-columns:300px minmax(0,1fr)">
+<div class="col" style="gap:14px">
+<section class="card">
+<div class="ch"><span class="t">Runs on</span></div>
+<div class="cb col">
+<div class="row w" style="gap:6px">
+<button class="btn sm" aria-pressed="false">Mon</button><button class="btn sm dark" aria-pressed="true">Tue</button><button class="btn sm dark" aria-pressed="true">Wed</button><button class="btn sm dark" aria-pressed="true">Thu</button><button class="btn sm dark" aria-pressed="true">Fri</button><button class="btn sm dark" aria-pressed="true">Sat</button><button class="btn sm dark" aria-pressed="true">Sun</button>
+</div>
+<p class="hint">Turning a day off closes it for new bookings only. Guests already booked keep their seats.</p>
+</div>
+</section>
+<section class="card">
+<div class="ch"><span class="t">Capacity</span></div>
+<div class="cb col">
+<div class="g g2">
+<div class="f"><label for="av-trips">Trips a day</label><input class="in" id="av-trips" value="1"></div>
+<div class="f"><label for="av-guests">Guests a trip</label><input class="in" id="av-guests" value="12"></div>
+</div>
+<div class="f"><label for="av-start">Usual start time</label><input class="in" id="av-start" value="09:00"></div>
+<div class="note t">12 seats a day on this option. The private option has its own boat and does not use these seats.</div>
+</div>
+</section>
+<section class="card">
+<div class="ch"><span class="t">Single-day changes</span><span class="n">2</span></div>
+<div class="li"><span class="ico c"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></span><div class="x"><div class="sb">Thu 12 Nov, called off</div><div class="m s">Weather. 9 guests were emailed.</div></div></div>
+<div class="li"><span class="ico g"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21a9 9 0 100-18 9 9 0 000 18zM12 7v5l3 2"/></svg></span><div class="x"><div class="sb">Sat 21 Nov, starts 08:00</div><div class="m s">Instead of 09:00</div></div><button class="btn sm q">Undo</button></div>
+</section>
+</div>
+<section class="card">
+<div class="ch"><button class="ib s" aria-label="Previous month"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button><span class="t">November 2026</span><button class="ib s" aria-label="Next month"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button><span class="n sp">Click a day to change its start time or call it off</span></div>
+<div class="mg">
+<div class="mh">Mon</div><div class="mh">Tue</div><div class="mh">Wed</div><div class="mh">Thu</div><div class="mh">Fri</div><div class="mh">Sat</div><div class="mh">Sun</div>
+<div class="mc off"></div><div class="mc off"></div><div class="mc off"></div><div class="mc off"></div><div class="mc off"></div><div class="mc off"></div>
+<div class="mc"><span class="dn m">1</span><span class="m">9 of 12</span><div class="bar"><i style="width:75%"></i></div></div>
+<div class="mc off"><span class="dn">2</span><span>Does not run</span></div>
+<div class="mc"><span class="dn m">3</span><span class="m">10 of 12</span><div class="bar"><i style="width:83%"></i></div></div>
+<div class="mc"><span class="dn m">4</span><span class="m">7 of 12</span><div class="bar"><i style="width:58%"></i></div></div>
+<div class="mc"><span class="dn m">5</span><span class="m">12 of 12</span><div class="bar"><i class="w" style="width:100%"></i></div></div>
+<div class="mc"><span class="dn m">6</span><span class="m">8 of 12</span><div class="bar"><i style="width:66%"></i></div></div>
+<div class="mc"><span class="dn m">7</span><span class="m">11 of 12</span><div class="bar"><i style="width:92%"></i></div></div>
+<div class="mc"><span class="dn m">8</span><span class="m">6 of 12</span><div class="bar"><i style="width:50%"></i></div></div>
+<div class="mc off"><span class="dn">9</span><span>Does not run</span></div>
+<div class="mc"><span class="dn m">10</span><span class="m">10 of 12</span><div class="bar"><i style="width:83%"></i></div></div>
+<div class="mc"><span class="dn m">11</span><span class="m">12 of 12</span><div class="bar"><i class="w" style="width:100%"></i></div></div>
+<div class="mc x"><span class="dn">12</span><span class="down">Called off</span></div>
+<div class="mc"><span class="dn m">13</span><span class="m">8 of 12</span><div class="bar"><i style="width:66%"></i></div></div>
+<div class="mc today"><span class="dn">14, today</span><span class="sb">11 of 12</span><div class="bar"><i style="width:92%"></i></div></div>
+<div class="mc"><span class="dn">15</span><span>4 of 12</span><div class="bar"><i style="width:33%"></i></div></div>
+<div class="mc off"><span class="dn">16</span><span>Does not run</span></div>
+<div class="mc"><span class="dn">17</span><span>6 of 12</span><div class="bar"><i style="width:50%"></i></div></div>
+<div class="mc"><span class="dn">18</span><span>2 of 12</span><div class="bar"><i style="width:16%"></i></div></div>
+<div class="mc"><span class="dn">19</span><span>5 of 12</span><div class="bar"><i style="width:42%"></i></div></div>
+<div class="mc"><span class="dn">20</span><span>9 of 12</span><div class="bar"><i style="width:75%"></i></div></div>
+<div class="mc"><span class="dn">21</span><span>12 of 12</span><div class="bar"><i class="w" style="width:100%"></i></div><span class="tag">Starts 08:00</span></div>
+<div class="mc"><span class="dn">22</span><span>3 of 12</span><div class="bar"><i style="width:25%"></i></div></div>
+<div class="mc off"><span class="dn">23</span><span>Does not run</span></div>
+<div class="mc"><span class="dn">24</span><span>0 of 12</span><div class="bar"><i style="width:0%"></i></div></div>
+<div class="mc"><span class="dn">25</span><span>4 of 12</span><div class="bar"><i style="width:33%"></i></div></div>
+<div class="mc"><span class="dn">26</span><span>0 of 12</span><div class="bar"><i style="width:0%"></i></div></div>
+<div class="mc"><span class="dn">27</span><span>2 of 12</span><div class="bar"><i style="width:16%"></i></div></div>
+<div class="mc"><span class="dn">28</span><span>6 of 12</span><div class="bar"><i style="width:50%"></i></div></div>
+<div class="mc"><span class="dn">29</span><span>1 of 12</span><div class="bar"><i style="width:8%"></i></div></div>
+<div class="mc off"><span class="dn">30</span><span>Does not run</span></div>
+<div class="mc off"></div><div class="mc off"></div><div class="mc off"></div><div class="mc off"></div><div class="mc off"></div><div class="mc off"></div>
+</div>
+<div class="row w s m" style="padding:10px 16px;gap:16px"><span class="row" style="gap:6px"><span class="dotk ok"></span>Seats booked</span><span class="row" style="gap:6px"><span class="dotk w"></span>Full</span><span class="row" style="gap:6px"><span class="dotk c"></span>Called off</span><span class="sp">November so far: 151 seats booked of 300</span></div>
+</section>
+</div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1040}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

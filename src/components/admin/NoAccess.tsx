@@ -30,10 +30,10 @@ export function NoAccess({
   return (
     <div className="grid min-h-[50vh] place-items-center text-center">
       <div>
-        <h1 className="font-display text-2xl font-semibold text-ink">
+        <h1 className="text-[22px] font-bold leading-[1.2] tracking-[-0.02em] text-ink">
           {loadFailed ? 'We couldn’t load your permissions.' : 'No access'}
         </h1>
-        <p className="mt-2 max-w-md text-sm text-ink-muted">
+        <p className="mt-2 max-w-md text-[13px] text-ink-soft">
           {loadFailed
             ? 'Check your connection and try again. If it keeps happening, let the owner know.'
             : 'Your role doesn’t include this section. Ask the owner if you need it.'}

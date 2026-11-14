@@ -130,11 +130,13 @@ export function AdminBell() {
         aria-haspopup="true"
         aria-controls="admin-bell-panel"
         aria-expanded={open}
-        className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-[#E2E7EA] text-ink-muted hover:border-teal hover:text-teal"
+        className="relative grid h-9 w-9 place-items-center rounded-lg border border-line bg-white text-ink-muted transition-colors hover:border-[#C2CED1] hover:text-ink motion-reduce:transition-none"
       >
         <IconBell width={18} height={18} />
+        {/* The count, not just a dot: how many is information. Coral-dark, so the white figure on it
+            reads (5.97:1; the brand coral manages 2.89:1). */}
         {unread > 0 && (
-          <span className="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-coral px-1 text-[10.5px] font-extrabold text-white">
+          <span className="absolute -right-1.5 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-coral-dark px-1 text-[10.5px] font-bold text-white ring-2 ring-white">
             {unread > 9 ? '9+' : unread}
           </span>
         )}
@@ -143,33 +145,37 @@ export function AdminBell() {
       {open && (
         <div
           id="admin-bell-panel"
-          className="absolute right-0 top-[calc(100%+8px)] z-40 w-[320px] rounded-2xl border border-[#EAEEF0] bg-white p-2 shadow-[0_24px_50px_-22px_rgba(10,46,54,0.4)]"
+          className="absolute right-0 top-[calc(100%+8px)] z-40 w-[320px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-line bg-white shadow-[0_12px_30px_rgba(10,46,54,0.14)]"
         >
-          <div className="px-3 py-2 text-[12px] font-bold uppercase tracking-wide text-ink-muted">
+          <div className="flex min-h-[46px] items-center border-b border-line-soft px-4 text-[13.5px] font-bold text-ink">
             Notifications
           </div>
           {notes === null ? (
-            <p className="px-3 py-5 text-center text-sm text-ink-muted">Loading…</p>
+            <p className="px-4 py-5 text-center text-[13px] text-ink-soft">Loading…</p>
           ) : notes.length === 0 ? (
-            <p className="px-3 py-5 text-center text-sm text-ink-muted">No notifications yet</p>
+            <p className="px-4 py-5 text-center text-[13px] text-ink-soft">No notifications yet</p>
           ) : (
-            <ul className="max-h-80 overflow-auto">
+            <ul className="max-h-80 overflow-auto [&>li:last-child>button]:border-b-0">
               {notes.map((n) => (
                 <li key={n.id}>
                   <button
                     type="button"
                     onClick={() => openNote(n)}
-                    className={`w-full rounded-xl px-3 py-2.5 text-left hover:bg-cream ${
-                      n.readAt ? '' : 'bg-teal/[0.05]'
+                    className={`w-full border-b border-line-soft px-4 py-[11px] text-left transition-colors hover:bg-[#FAFBFB] motion-reduce:transition-none ${
+                      n.readAt ? '' : 'bg-teal-tint'
                     }`}
                   >
                     <span className="flex items-baseline justify-between gap-2">
-                      <span className="text-[13.5px] font-bold text-ink">{n.title}</span>
-                      <span className="shrink-0 text-[11px] text-ink-muted">
+                      <span
+                        className={`text-[13px] text-ink ${n.readAt ? 'font-semibold' : 'font-bold'}`}
+                      >
+                        {n.title}
+                      </span>
+                      <span className="shrink-0 text-[11px] text-ink-soft">
                         {timeAgo(n.createdAt)}
                       </span>
                     </span>
-                    <span className="mt-0.5 block text-[12.5px] leading-snug text-ink/75">
+                    <span className="mt-0.5 block text-[12px] leading-snug text-ink-soft">
                       {n.body}
                     </span>
                   </button>
