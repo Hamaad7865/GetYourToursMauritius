@@ -41,10 +41,12 @@ import {
   guestInitials,
   lineSummaries,
   matchesQuoteSearch,
+  paidLaterFlags,
   quoteStage,
   rowActions,
   worklistTotals,
   type LineSummary,
+  type PaidLaterFlag,
   type QuoteStage,
   type QuoteWorkGroup,
 } from '@/components/admin/quotes/worklist';
@@ -117,6 +119,8 @@ export function QuoteWorklist({
   );
   const groups = useMemo(() => groupQuotes(visible, today), [visible, today]);
   const totals = useMemo(() => worklistTotals(rows ?? [], today), [rows, today]);
+  // Over every quote, not the searched ones: the paid quote need not match the search.
+  const paidLater = useMemo(() => paidLaterFlags(rows ?? [], today), [rows, today]);
   const sentEver = useMemo(() => (rows ?? []).filter((r) => r.sentAt).length, [rows]);
 
   async function run(key: string, task: () => Promise<void>) {
@@ -314,8 +318,10 @@ export function QuoteWorklist({
                   group={group.id}
                   stage={quoteStage(row, today)}
                   summary={summaries.get(row.id)}
+                  paidLater={paidLater.get(row.id)}
                   busy={busy}
                   onOpen={() => onOpen(row.id)}
+                  onOpenQuote={onOpen}
                   onResend={() => resend(row, false)}
                   onWhatsApp={() => whatsapp(row)}
                   onBalance={() => sendBalance(row)}
@@ -416,8 +422,10 @@ function WorkRow({
   group,
   stage,
   summary,
+  paidLater,
   busy,
   onOpen,
+  onOpenQuote,
   onResend,
   onWhatsApp,
   onBalance,
@@ -427,8 +435,11 @@ function WorkRow({
   group: QuoteWorkGroup;
   stage: QuoteStage;
   summary: LineSummary | undefined;
+  /** This guest paid a later quote: probably a re-quote, so this one should be withdrawn. */
+  paidLater: PaidLaterFlag | undefined;
   busy: string | null;
   onOpen: () => void;
+  onOpenQuote: (id: string) => void;
   onResend: () => void;
   onWhatsApp: () => void;
   onBalance: () => void;
@@ -454,6 +465,20 @@ function WorkRow({
         <p className="truncate text-[12px] text-ink-soft">
           {summary ? whatText(summary) : row.customerEmail}
         </p>
+        {paidLater && (
+          <p className="mt-1 inline-flex max-w-full flex-wrap items-center gap-x-1 rounded-md bg-gold-tint px-2 py-0.5 text-[11.5px] font-semibold text-gold-dark">
+            Guest already paid
+            <button
+              type="button"
+              onClick={() => onOpenQuote(paidLater.id)}
+              className="font-mono underline hover:no-underline"
+              aria-label={`Open quote ${paidLater.ref}, which ${row.customerName} paid`}
+            >
+              {paidLater.ref}
+            </button>
+            <span className="font-normal">· withdraw this one if it’s the same trip</span>
+          </p>
+        )}
       </div>
       <div className="w-28 shrink-0">
         <p className="text-[12.5px] font-semibold text-ink">

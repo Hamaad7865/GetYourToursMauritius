@@ -128,6 +128,54 @@ export function groupQuotes<T extends StageInput>(
   return out;
 }
 
+type PaidLaterInput = StageInput & Pick<QuoteRow, 'id' | 'ref' | 'customerEmail' | 'createdAt'>;
+
+/** The later quote this guest paid, named on an open quote's row. */
+export interface PaidLaterFlag {
+  id: string;
+  ref: string;
+}
+
+/**
+ * Open quotes (waiting, draft, expired) whose guest — same email, case and spaces aside — PAID a quote
+ * made after this one (paid in full or a deposit with a balance owed). Keyed by the open quote's id.
+ *
+ * A FLAG, NOT A REGROUPING. The usual story is a re-quote after an abandoned checkout, and the open one
+ * should be withdrawn — while it is valid its link can still re-arm a checkout and take a second
+ * payment. But a guest may also buy two different trips on two quotes, so the rule never moves the
+ * row or changes the counts; it tells the owner, who decides.
+ */
+export function paidLaterFlags(
+  rows: ReadonlyArray<PaidLaterInput>,
+  today: string = quoteTodayUtc(),
+): Map<string, PaidLaterFlag> {
+  const emailKey = (email: string) => email.trim().toLowerCase();
+  const paidByGuest = new Map<string, Array<{ id: string; ref: string; at: number }>>();
+  const open: PaidLaterInput[] = [];
+  for (const row of rows) {
+    const s = quoteStage(row, today);
+    if (s.label === 'Paid' || s.group === 'balance') {
+      const key = emailKey(row.customerEmail);
+      if (!key) continue;
+      const list = paidByGuest.get(key) ?? [];
+      list.push({ id: row.id, ref: row.ref, at: Date.parse(row.createdAt) });
+      paidByGuest.set(key, list);
+    } else if (s.group !== 'done') {
+      open.push(row);
+    }
+  }
+  const out = new Map<string, PaidLaterFlag>();
+  for (const row of open) {
+    const at = Date.parse(row.createdAt);
+    let best: { id: string; ref: string; at: number } | null = null;
+    for (const paid of paidByGuest.get(emailKey(row.customerEmail)) ?? []) {
+      if (paid.at > at && (!best || paid.at > best.at)) best = paid;
+    }
+    if (best) out.set(row.id, { id: best.id, ref: best.ref });
+  }
+  return out;
+}
+
 export interface WorklistTotals {
   waiting: { count: number; totalMinor: number };
   balance: { count: number; owedMinor: number };

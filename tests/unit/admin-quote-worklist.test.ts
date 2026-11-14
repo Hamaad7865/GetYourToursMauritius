@@ -6,6 +6,7 @@ import {
   isPastValidity,
   lineSummaries,
   matchesQuoteSearch,
+  paidLaterFlags,
   quoteStage,
   rowActions,
   rowSendRefusal,
@@ -294,5 +295,59 @@ describe('what each quote is for', () => {
       firstDate: '2026-11-19T20:00:00.000Z',
     });
     expect(map.get('q2')).toEqual({ first: 'Adult', more: 0, firstDate: null });
+  });
+});
+
+describe('a guest who paid on a later quote', () => {
+  // The Schvangi case (Nov 2026): the guest's checkout on the first quote expired unpaid, the owner
+  // sent a second quote the next day and the guest paid that one. The first still read "Checkout not
+  // finished" under Waiting for payment, and its link could have re-armed a second checkout.
+  const first = row({
+    id: 'old',
+    ref: 'QE071233427A0',
+    customerEmail: 'Guest@Example.com ',
+    createdAt: '2026-11-02T12:35:00.000Z',
+    ...converted,
+    bookingId: 'b-old',
+    booking: booking({ status: 'expired' }),
+  });
+  const paid = row({
+    id: 'new',
+    ref: 'Q44495DF92BB9',
+    customerEmail: 'guest@example.com',
+    createdAt: '2026-11-03T08:10:00.000Z',
+    ...converted,
+    bookingId: 'b-new',
+    booking: booking(),
+  });
+
+  it('flags the open quote with the later paid one', () => {
+    const flags = paidLaterFlags([paid, first], TODAY);
+    expect(flags.get('old')).toEqual({ id: 'new', ref: 'Q44495DF92BB9' });
+    expect(flags.has('new'), 'the paid quote itself is never flagged').toBe(false);
+  });
+
+  it('counts a paid deposit with a balance still owed as paid', () => {
+    const deposit = { ...paid, booking: booking({ depositMinor: 5000, balanceDueMinor: 13000 }) };
+    expect(paidLaterFlags([deposit, first], TODAY).get('old')?.ref).toBe('Q44495DF92BB9');
+  });
+
+  it('ignores a paid quote made BEFORE the open one, another guest, and an unpaid later quote', () => {
+    const earlierPaid = { ...paid, createdAt: '2026-11-01T08:00:00.000Z' };
+    expect(paidLaterFlags([first, earlierPaid], TODAY).size).toBe(0);
+    const otherGuest = { ...paid, customerEmail: 'someone@else.com' };
+    expect(paidLaterFlags([otherGuest, first], TODAY).size).toBe(0);
+    const unpaidLater = { ...paid, booking: booking({ status: 'payment_pending' }) };
+    expect(paidLaterFlags([unpaidLater, first], TODAY).size).toBe(0);
+  });
+
+  it('never flags a quote that is already closed', () => {
+    const withdrawn = { ...first, status: 'cancelled' as const };
+    expect(paidLaterFlags([paid, withdrawn], TODAY).size).toBe(0);
+  });
+
+  it('points at the newest paid quote when there are several', () => {
+    const newer = { ...paid, id: 'newer', ref: 'QNEWER', createdAt: '2026-11-05T08:00:00.000Z' };
+    expect(paidLaterFlags([newer, paid, first], TODAY).get('old')?.ref).toBe('QNEWER');
   });
 });
