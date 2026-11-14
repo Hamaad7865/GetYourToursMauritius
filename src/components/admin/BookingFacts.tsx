@@ -1,9 +1,10 @@
 import { fmtDate } from '@/lib/admin/format';
 import { PickupText } from '@/components/admin/PickupText';
+import { StatusChip, type StatusTone } from '@/components/admin/ui';
 import type { AdminTransferDetails, BookingStatus, PaymentView } from '@/lib/admin/bookings';
 
-/* How a booking is PRESENTED in the back office, shared by the Bookings drawer and the Calendar's
- * day sheet.
+/* How a booking is PRESENTED in the back office, shared by Today, the Bookings drawer and the
+ * Calendar's day sheet.
  *
  * These blocks all encode semantics that are invisible in the raw column and would be a real
  * operational error to get wrong in one place and right in the other:
@@ -11,49 +12,47 @@ import type { AdminTransferDetails, BookingStatus, PaymentView } from '@/lib/adm
  *   - `pickup_pending` means "to be arranged", which is NOT the same as no pickup at all;
  *   - a never-paid booking that has expired or been cancelled must read "Not paid", never the
  *     ledger's literal "Pending" — that misreading is money-still-expected and it has bitten before.
- * One spelling, two screens. */
+ * One spelling, three screens. */
 
 function titleCaseStatus(s: string): string {
   return s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-export interface PillSpec {
+/** A booking or payment status as the shared {@link StatusChip} draws it: the words and their tone. */
+export interface ChipSpec {
   label: string;
-  cls: string;
-  dot: string;
+  tone: StatusTone;
 }
 
-/** Pastel pill: dot + label. */
-export function Pill({ p }: { p: PillSpec }) {
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1 text-xs font-bold ${p.cls}`}
-    >
-      <span className={`h-1.5 w-1.5 rounded-full ${p.dot}`} />
-      {p.label}
-    </span>
-  );
-}
-
-export function statusPill(status: BookingStatus): PillSpec {
+/**
+ * THE booking status words, on every back-office screen (phase 2 of the redesign: one vocabulary).
+ * "Seat held" and "Awaiting payment" are the calendar's long-standing words for a party still in
+ * checkout; the Bookings list used to print the raw status ("Payment Pending") beside them.
+ */
+export function statusPill(status: BookingStatus): ChipSpec {
   switch (status) {
+    case 'draft':
+      return { label: 'Draft', tone: 'neutral' };
+    case 'held':
+      return { label: 'Seat held', tone: 'warn' };
+    case 'payment_pending':
+      return { label: 'Awaiting payment', tone: 'warn' };
     case 'confirmed':
-      return { label: 'Confirmed', cls: 'bg-emerald-50 text-emerald-700', dot: 'bg-emerald-500' };
+      return { label: 'Confirmed', tone: 'ok' };
     case 'completed':
-      return { label: 'Completed', cls: 'bg-ink/[0.06] text-ink', dot: 'bg-ink/40' };
+      return { label: 'Completed', tone: 'neutral' };
     case 'cancelled':
+      return { label: 'Cancelled', tone: 'bad' };
     case 'expired':
+      return { label: 'Expired', tone: 'bad' };
     case 'failed':
-      return { label: titleCaseStatus(status), cls: 'bg-red-50 text-red-700', dot: 'bg-red-500' };
-    case 'refunded':
+      return { label: 'Failed', tone: 'bad' };
     case 'refund_pending':
-      return {
-        label: titleCaseStatus(status),
-        cls: 'bg-slate-100 text-slate-600',
-        dot: 'bg-slate-400',
-      };
+      return { label: 'Refund pending', tone: 'warn' };
+    case 'refunded':
+      return { label: 'Refunded', tone: 'info' };
     default:
-      return { label: titleCaseStatus(status), cls: 'bg-teal/10 text-teal-dark', dot: 'bg-teal' };
+      return { label: titleCaseStatus(status), tone: 'neutral' };
   }
 }
 
@@ -65,28 +64,68 @@ export function paymentClosed(state: PaymentView, status: BookingStatus): boolea
 }
 
 /** Pass {@link paymentView}'s answer, not the raw `paymentState`, or a deposit-only booking reads
- *  "Paid". Part paid wears the calendar's "Deposit paid" blue so the two screens look alike. */
-export function paymentPill(state: PaymentView, status: BookingStatus): PillSpec {
-  if (paymentClosed(state, status)) {
-    return { label: 'Not paid', cls: 'bg-slate-100 text-slate-500', dot: 'bg-slate-400' };
-  }
+ *  "Paid". `paymentView` is the only source of "Part paid", on every screen. */
+export function paymentPill(state: PaymentView, status: BookingStatus): ChipSpec {
+  if (paymentClosed(state, status)) return { label: 'Not paid', tone: 'neutral' };
   switch (state) {
     case 'paid':
-      return { label: 'Paid', cls: 'bg-emerald-50 text-emerald-700', dot: 'bg-emerald-500' };
+      return { label: 'Paid', tone: 'ok' };
     case 'part_paid':
-      return { label: 'Part paid', cls: 'bg-[#e6eefc] text-[#1d4f9e]', dot: 'bg-[#1d4f9e]' };
+      return { label: 'Part paid', tone: 'warn' };
+    case 'partially_refunded':
+      return { label: 'Partly refunded', tone: 'info' };
+    case 'refunded':
+      return { label: 'Refunded', tone: 'info' };
+    case 'failed':
+      return { label: 'Failed', tone: 'bad' };
+    default:
+      return { label: 'Pending', tone: 'neutral' };
+  }
+}
+
+/**
+ * The Payment column of the bookings CSV, kept BYTE-IDENTICAL to what it printed before the chips
+ * changed their words ("Partially Refunded", title case): the owner keeps a spreadsheet fed from it.
+ */
+export function paymentCsvLabel(state: PaymentView, status: BookingStatus): string {
+  if (paymentClosed(state, status)) return 'Not paid';
+  switch (state) {
+    case 'paid':
+      return 'Paid';
+    case 'part_paid':
+      return 'Part paid';
     case 'partially_refunded':
     case 'refunded':
-      return {
-        label: titleCaseStatus(state),
-        cls: 'bg-slate-100 text-slate-600',
-        dot: 'bg-slate-400',
-      };
+      return titleCaseStatus(state);
     case 'failed':
-      return { label: 'Failed', cls: 'bg-red-50 text-red-700', dot: 'bg-red-500' };
+      return 'Failed';
     default:
-      return { label: 'Pending', cls: 'bg-amber-50 text-amber-700', dot: 'bg-amber-500' };
+      return 'Pending';
   }
+}
+
+/** A booking's status as a chip. */
+export function BookingStatusChip({ status }: { status: BookingStatus }) {
+  const c = statusPill(status);
+  return <StatusChip tone={c.tone}>{c.label}</StatusChip>;
+}
+
+/** A booking's payment as a chip — pass {@link paymentView}'s answer. */
+export function PaymentChip({ view, status }: { view: PaymentView; status: BookingStatus }) {
+  const c = paymentPill(view, status);
+  return <StatusChip tone={c.tone}>{c.label}</StatusChip>;
+}
+
+/**
+ * The one chip a party carries on Today's run sheet and the calendar's day sheet: while it is still
+ * in checkout, its booking status ("Seat held", "Awaiting payment"); once it holds seats, its payment.
+ */
+export function partyChip(input: {
+  status: BookingStatus;
+  counted: boolean;
+  payView: PaymentView;
+}): ChipSpec {
+  return input.counted ? paymentPill(input.payView, input.status) : statusPill(input.status);
 }
 
 /** How the pickup reads: nothing, "to be arranged", or an address (which for a round-trip transfer

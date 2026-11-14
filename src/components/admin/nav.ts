@@ -8,6 +8,7 @@ import {
   IconGrid,
   IconMail,
   IconPin,
+  IconSettings,
   IconShield,
   IconSliders,
   IconStar,
@@ -189,6 +190,16 @@ export const ADMIN_NAV: NavItem[] = [
     short: 'Roles',
     icon: IconShield,
     permission: 'owner',
+    group: 'Admin',
+  },
+  // Site-wide switches (the "Chat on WhatsApp" number, ZilAi's maintenance notice) that sat at the foot
+  // of Today until the owner moved them here (15 Nov 2026). Any back-office member, as on Today; the
+  // database lets only staff save them (business_settings RLS), exactly as before.
+  {
+    href: '/admin/settings',
+    label: 'Settings',
+    icon: IconSettings,
+    permission: null,
     group: 'Admin',
   },
 ];

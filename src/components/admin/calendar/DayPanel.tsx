@@ -8,6 +8,7 @@ import {
   TIMELINE_END,
   TIMELINE_START,
   WEEKDAYS,
+  capacityUse,
   dayNumber,
   durationLabel,
   hhmm,
@@ -17,7 +18,8 @@ import {
   yearMonth,
   type CalLine,
 } from '@/lib/admin/calendar-view';
-import { AdminError } from '@/components/admin/ui';
+import { AdminError, buttonClass } from '@/components/admin/ui';
+import { PrintRunSheetButton } from '@/components/admin/RunSheetPrint';
 import { BookingMovePicker, CallOffEditor, MoveDepartureEditor, TimeEditor } from './editors';
 import { CustomPartyBlock, DeparturePartyBlock, ReturnLegPartyBlock } from './PartyBlock';
 import { CalledOffTag, euros, FlagTag, Ic, ICON, QuoteTag } from './parts';
@@ -107,7 +109,7 @@ export function DayPanel({
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-white">
-      <div className="shrink-0 border-b border-[#e9eeed] px-5 pb-4 pt-[18px] sm:pl-[22px]">
+      <div className="shrink-0 border-b border-line-soft px-5 pb-4 pt-[18px] sm:pl-[22px]">
         <div className="flex items-start gap-3">
           <div className="min-w-0 flex-1">
             <p
@@ -118,7 +120,7 @@ export function DayPanel({
               {WEEKDAYS[weekdayIndex(day)]}
               {isToday ? ' · Today' : ''}
             </p>
-            <h2 className="mt-1.5 text-[26px] font-extrabold leading-[1.1] tracking-[-0.02em] text-ink">
+            <h2 className="mt-1.5 text-[22px] font-bold leading-[1.2] tracking-[-0.02em] text-ink">
               {dayNumber(day)} {MONTHS[m0]} {y}
             </h2>
           </div>
@@ -135,12 +137,24 @@ export function DayPanel({
           />
           <Stat value={String(guests)} label={guests === 1 ? 'guest' : 'guests'} />
           {showMoney && <Stat value={euros(value)} label="booked" />}
-          {attention > 0 && (
-            <span className="ml-auto flex h-7 items-center gap-1.5 rounded-full bg-[#fdf1de] px-2.5 text-[12.5px] font-semibold text-[#8f4c06]">
-              <Ic d={ICON.alert} size={14} />
-              {attention} to check
-            </span>
-          )}
+          <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+            {attention > 0 && (
+              <span className="flex h-7 items-center gap-1.5 rounded-full bg-gold-tint px-2.5 text-[12.5px] font-semibold text-gold-dark">
+                <Ic d={ICON.alert} size={14} />
+                {attention} to check
+              </span>
+            )}
+            {/* One day on A4 for the driver and the guide, from the lines this panel shows. A day
+                with nothing on it has nothing to print. */}
+            {(loading || lines.length > 0) && (
+              <PrintRunSheetButton
+                entries={loading ? null : lines.map((l) => l.entry)}
+                day={day}
+                today={today}
+                showMoney={showMoney}
+              />
+            )}
+          </div>
         </div>
       </div>
 
@@ -183,7 +197,7 @@ export function DayPanel({
               {TICKS.map((h) => (
                 <span
                   key={h}
-                  className="absolute -translate-x-1/2 whitespace-nowrap text-[11px] tabular-nums text-[#6b7c7e]"
+                  className="absolute -translate-x-1/2 whitespace-nowrap text-[11px] tabular-nums text-ink-soft"
                   style={{ left: `${((h * 60 - TIMELINE_START) / span) * 100}%` }}
                 >
                   {`${String(h).padStart(2, '0')}:00`}
@@ -236,7 +250,7 @@ function PanelButton({ title, onClick, d }: { title: string; onClick: () => void
       title={title}
       aria-label={title}
       onClick={onClick}
-      className="flex h-[34px] w-[34px] items-center justify-center rounded-[9px] border border-[#e3e9e8] bg-white text-[#3c5255] hover:bg-[#f3f6f5]"
+      className="flex h-[34px] w-[34px] items-center justify-center rounded-[9px] border border-line bg-white text-ink-muted hover:bg-[#f3f6f5]"
     >
       <Ic d={d} size={16} />
     </button>
@@ -263,13 +277,8 @@ function metaLine(l: CalLine, showMoney: boolean): string {
     parts.push(`${g} guest${g === 1 ? '' : 's'}`);
     if (l.pendingGuests) parts.push(`+${l.pendingGuests} unpaid`);
   }
-  if (l.entry.kind === 'occurrence') {
-    const d = l.entry;
-    if (d.guestsPerTrip) {
-      const trips = Math.max(1, Math.round(d.capacity / d.guestsPerTrip));
-      parts.push(`${Math.ceil(d.pax / d.guestsPerTrip)} of ${trips} trip${trips === 1 ? '' : 's'}`);
-    } else parts.push(`${d.units} of ${d.capacity}`);
-  }
+  const use = capacityUse(l.entry);
+  if (use) parts.push(use.label);
   if (showMoney && l.valueEur > 0) parts.push(euros(l.valueEur));
   return parts.join(' · ');
 }
@@ -331,7 +340,7 @@ function LineCard({
             >
               {shownTime ?? 'TBC'}
             </span>
-            <span className="whitespace-nowrap text-[11.5px] leading-[1.2] tabular-nums text-[#6b7c7e]">
+            <span className="whitespace-nowrap text-[11.5px] leading-[1.2] tabular-nums text-ink-soft">
               {until}
             </span>
           </button>
@@ -340,7 +349,7 @@ function LineCard({
             <span className="whitespace-nowrap text-[13px] font-bold leading-[1.2] tabular-nums text-ink">
               {shownTime ?? (l.allDay ? 'All day' : 'TBC')}
             </span>
-            <span className="whitespace-nowrap text-[11.5px] leading-[1.2] tabular-nums text-[#6b7c7e]">
+            <span className="whitespace-nowrap text-[11.5px] leading-[1.2] tabular-nums text-ink-soft">
               {until}
             </span>
           </div>
@@ -351,7 +360,7 @@ function LineCard({
         className={`min-w-0 overflow-hidden rounded-[14px] border bg-white transition-[box-shadow,border-color] duration-200 ${
           expanded
             ? 'border-[#c9dcda] shadow-[0_14px_30px_-20px_rgba(12,47,51,0.5)]'
-            : 'border-[#e3e9e8]'
+            : 'border-line'
         }`}
       >
         <button
@@ -365,7 +374,7 @@ function LineCard({
             <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full" style={{ background: T.dot }} />
             <span
               className={`min-w-0 flex-1 text-[14.5px] font-semibold leading-[1.35] ${
-                l.cancelled ? 'text-[#6b7c7e] line-through' : 'text-ink'
+                l.cancelled ? 'text-ink-soft line-through' : 'text-ink'
               }`}
             >
               {l.title}
@@ -373,7 +382,7 @@ function LineCard({
             <Ic
               d={ICON.chevronDown}
               size={16}
-              className={`mt-[3px] shrink-0 text-[#6b7c7e] transition-transform duration-200 ${
+              className={`mt-[3px] shrink-0 text-ink-soft transition-transform duration-200 ${
                 expanded ? 'rotate-180' : ''
               }`}
             />
@@ -397,7 +406,7 @@ function LineCard({
           )}
           {!expanded && l.leadName && (
             <span className="flex min-w-0 items-center gap-1.5 pl-[18px] text-[12.5px]">
-              <span className="max-w-[55%] shrink-0 truncate font-semibold text-[#3c5255]">
+              <span className="max-w-[55%] shrink-0 truncate font-semibold text-ink-muted">
                 {l.leadName}
                 {l.parties > 1 ? ` + ${l.parties - 1} more` : ''}
               </span>
@@ -406,7 +415,7 @@ function LineCard({
                   <span className="text-[#9aa8a9]">·</span>
                   <span
                     className={`min-w-0 truncate ${
-                      l.whereMissing ? 'text-[#a15c07]' : 'text-ink-muted'
+                      l.whereMissing ? 'text-gold-dark' : 'text-ink-muted'
                     }`}
                   >
                     {l.where}
@@ -418,7 +427,7 @@ function LineCard({
         </button>
 
         {expanded && (
-          <div id={panelId} className="border-t border-[#e9eeed] bg-[#fafcfb]">
+          <div id={panelId} className="border-t border-line-soft bg-[#fafcfb]">
             {timing && dep && (
               <TimeEditor
                 departure={dep}
@@ -491,7 +500,7 @@ function LineCard({
                     type="button"
                     onClick={startTime}
                     className={`inline-flex h-[34px] items-center gap-[7px] rounded-[9px] border px-3 text-[13px] font-semibold text-ink hover:bg-[#f3f6f5] ${
-                      timing ? 'border-[#9fcfca] bg-[#e7f4f3]' : 'border-[#d6dfde] bg-white'
+                      timing ? 'border-[#9fcfca] bg-[#e7f4f3]' : 'border-line bg-white'
                     }`}
                   >
                     <Ic d={ICON.clock} size={15} stroke={1.9} />
@@ -501,7 +510,7 @@ function LineCard({
                 <button
                   type="button"
                   onClick={() => setMode('move')}
-                  className="inline-flex h-[34px] items-center gap-[7px] rounded-[9px] border border-[#d6dfde] bg-white px-3 text-[13px] font-semibold text-ink hover:bg-[#f3f6f5]"
+                  className={buttonClass('ghost')}
                 >
                   <Ic d={ICON.move} size={15} stroke={1.9} />
                   Move to another day
@@ -509,7 +518,7 @@ function LineCard({
                 <button
                   type="button"
                   onClick={() => setMode('calloff')}
-                  className="inline-flex h-[34px] items-center gap-[7px] rounded-[9px] border border-[#f1d0cc] bg-white px-3 text-[13px] font-semibold text-[#b42318] hover:bg-[#fdf3f2]"
+                  className={buttonClass('danger')}
                 >
                   <Ic d={ICON.callOff} size={15} stroke={1.9} />
                   Call off

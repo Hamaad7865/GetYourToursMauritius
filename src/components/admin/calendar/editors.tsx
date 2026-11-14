@@ -33,15 +33,18 @@ import {
 import { mauritiusDayKey } from '@/lib/admin/calendar';
 import { fmtDateShort } from '@/lib/admin/format';
 import { Ic, ICON } from './parts';
+import { buttonClass } from '@/components/admin/ui';
 
-const BTN =
-  'inline-flex h-[34px] items-center gap-[7px] rounded-[9px] border border-[#d6dfde] bg-white px-3 text-[13px] font-semibold text-ink hover:bg-[#f3f6f5] disabled:opacity-50';
-const BTN_PRIMARY =
-  'inline-flex h-[34px] items-center rounded-[9px] bg-teal px-3.5 text-[13px] font-semibold text-white hover:bg-teal-dark disabled:cursor-default disabled:opacity-45';
+// The shared buttons (src/components/admin/ui.tsx): white on teal-dark is 7.71:1; bright teal failed.
+const BTN = buttonClass('ghost');
+const BTN_PRIMARY = buttonClass('primary');
+/** "Move anyway": an override, so gold, but dark text on its tint (white on amber was 2.1:1). */
+const BTN_OVERRIDE =
+  'inline-flex min-h-9 items-center rounded-lg border border-gold-dark bg-gold-tint px-[13px] py-[7px] text-[13px] font-semibold text-gold-dark hover:bg-gold-light/30 disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none';
 
 function ErrorLine({ children }: { children: React.ReactNode }) {
   return (
-    <p role="alert" className="text-[12.5px] font-semibold text-[#b42318]">
+    <p role="alert" className="text-[12.5px] font-semibold text-coral-dark">
       {children}
     </p>
   );
@@ -119,7 +122,7 @@ export function TimeEditor({
           type="button"
           onClick={() => setValue((v) => clamp(v - 15))}
           title="15 minutes earlier"
-          className="h-10 shrink-0 rounded-[9px] border border-[#d6dfde] bg-white px-3 text-[13px] font-semibold tabular-nums text-ink hover:bg-[#eef5f4]"
+          className="h-10 shrink-0 rounded-[9px] border border-line bg-white px-3 text-[13px] font-semibold tabular-nums text-ink hover:bg-[#eef5f4]"
         >
           −15 min
         </button>
@@ -137,7 +140,7 @@ export function TimeEditor({
           type="button"
           onClick={() => setValue((v) => clamp(v + 15))}
           title="15 minutes later"
-          className="h-10 shrink-0 rounded-[9px] border border-[#d6dfde] bg-white px-3 text-[13px] font-semibold tabular-nums text-ink hover:bg-[#eef5f4]"
+          className="h-10 shrink-0 rounded-[9px] border border-line bg-white px-3 text-[13px] font-semibold tabular-nums text-ink hover:bg-[#eef5f4]"
         >
           +15 min
         </button>
@@ -151,8 +154,8 @@ export function TimeEditor({
               key={m}
               type="button"
               onClick={() => setValue(m)}
-              className={`h-[30px] rounded-full border px-2.5 text-[12.5px] font-semibold tabular-nums hover:border-teal ${
-                on ? 'border-teal bg-teal text-white' : 'border-[#d6dfde] bg-white text-ink'
+              className={`h-[30px] rounded-full border px-2.5 text-[12.5px] font-semibold tabular-nums hover:border-teal-dark ${
+                on ? 'border-teal-dark bg-teal-dark text-white' : 'border-line bg-white text-ink'
               }`}
             >
               {hhmm(m)}
@@ -162,9 +165,9 @@ export function TimeEditor({
         })}
       </div>
       <div className="flex flex-col gap-[5px] text-[12.5px] leading-[1.45]">
-        <span className="tabular-nums text-[#3c5255]">{summary}</span>
+        <span className="tabular-nums text-ink-muted">{summary}</span>
         {warn && (
-          <span className="flex items-start gap-1.5 font-semibold text-[#8f4c06]">
+          <span className="flex items-start gap-1.5 font-semibold text-gold-dark">
             <Ic d={ICON.alert} size={13} stroke={2.2} className="mt-[3px] shrink-0" />
             <span>{warn}</span>
           </span>
@@ -292,7 +295,7 @@ export function MoveDepartureEditor({
   if (movable.length === 0) {
     return (
       <div className="flex flex-col gap-2.5 bg-[#f3f9f8] p-3.5">
-        <p className="text-[13px] text-[#3c5255]">
+        <p className="text-[13px] text-ink-muted">
           Nobody on this departure can be moved yet — only paid bookings hold a seat to move.
         </p>
         <div className="flex justify-end">
@@ -314,7 +317,7 @@ export function MoveDepartureEditor({
           type="button"
           onClick={onCancel}
           disabled={busy}
-          className="h-7 rounded-lg px-2.5 text-[13px] font-semibold text-[#3c5255] hover:bg-[#e3efed]"
+          className="h-7 rounded-lg px-2.5 text-[13px] font-semibold text-ink-muted hover:bg-[#e3efed]"
         >
           Cancel
         </button>
@@ -351,7 +354,7 @@ export function MoveDepartureEditor({
                     ? `1 ${MONTHS[yearMonth(d.day)[1]]!.slice(0, 3)}`
                     : dayNumber(d.day)}
                 </span>
-                <span className="text-[10.5px] font-semibold tabular-nums text-[#6b7c7e]">
+                <span className="text-[10.5px] font-semibold tabular-nums text-ink-soft">
                   {!d.past && !d.current && d.seatsLeft != null ? d.seatsLeft : ''}
                 </span>
               </button>
@@ -365,7 +368,7 @@ export function MoveDepartureEditor({
 
       {pick?.target && !result && (
         <div className="flex flex-col gap-2.5">
-          <p className="text-[13px] leading-[1.5] text-[#3c5255]">
+          <p className="text-[13px] leading-[1.5] text-ink-muted">
             Move{' '}
             <strong className="text-ink">
               {movable.length} booking{movable.length === 1 ? '' : 's'} ({guests} guest
@@ -406,7 +409,7 @@ export function MoveDepartureEditor({
             </p>
           )}
           {result.failed.map((f) => (
-            <p key={f.ref} className="text-[#8f4c06]">
+            <p key={f.ref} className="text-gold-dark">
               <strong>{f.ref}</strong>: {f.failure.message}
             </p>
           ))}
@@ -416,7 +419,7 @@ export function MoveDepartureEditor({
                 type="button"
                 disabled={busy}
                 onClick={() => void run(pick.target!, windowRefs, true)}
-                className="inline-flex h-[34px] items-center rounded-[9px] bg-amber-500 px-3.5 text-[13px] font-semibold text-white hover:bg-amber-500/90 disabled:opacity-60"
+                className={BTN_OVERRIDE}
               >
                 {busy ? 'Moving…' : `Move ${windowRefs.length === 1 ? 'it' : 'them'} anyway`}
               </button>
@@ -487,7 +490,7 @@ export function CallOffEditor({
         <select
           value={reason}
           onChange={(e) => setReason(e.target.value as CallOffReason)}
-          className="h-[34px] cursor-pointer rounded-[9px] border border-[#e6d3d0] bg-white px-2.5 text-[13px] font-medium text-ink outline-none focus:border-[#b42318]"
+          className="h-[34px] cursor-pointer rounded-lg border border-line bg-white px-2.5 text-[13px] font-medium text-ink outline-none focus:border-coral-dark focus:ring-[3px] focus:ring-coral-dark/20"
         >
           {CALL_OFF_REASONS.map((r) => (
             <option key={r.value} value={r.value}>
@@ -529,7 +532,7 @@ export function CallOffEditor({
           onClick={() => void callOff()}
           disabled={busy}
           aria-busy={busy}
-          className="inline-flex h-[34px] items-center rounded-[9px] bg-[#b42318] px-3.5 text-[13px] font-semibold text-white hover:bg-[#9a1d13] disabled:opacity-60"
+          className="inline-flex min-h-9 items-center rounded-lg border border-coral-dark bg-coral-dark px-[13px] py-[7px] text-[13px] font-semibold text-white hover:border-ink hover:bg-ink disabled:cursor-not-allowed disabled:opacity-50"
         >
           {busy ? 'Calling off…' : 'Call off departure'}
         </button>
@@ -599,7 +602,7 @@ export function BookingMovePicker({
   );
 
   return (
-    <div className="flex flex-col gap-2 rounded-[10px] border border-[#e3e9e8] bg-[#fafcfb] p-3">
+    <div className="flex flex-col gap-2 rounded-[10px] border border-line bg-[#fafcfb] p-3">
       <p className="text-[12.5px] font-bold text-ink">Move {bookingRef} to…</p>
       {loadError && <ErrorLine>{loadError}</ErrorLine>}
       {failure && !pendingOverride && <ErrorLine>{failure.message}</ErrorLine>}
@@ -615,7 +618,7 @@ export function BookingMovePicker({
             disabled={busy != null}
             aria-busy={busy === tgt.occurrenceId}
             onClick={() => void move(tgt, false)}
-            className="rounded-full border border-[#d6dfde] bg-white px-3 py-1.5 text-[12px] font-bold text-ink hover:border-teal disabled:opacity-60"
+            className="rounded-full border border-line bg-white px-3 py-1.5 text-[12px] font-bold text-ink hover:border-teal disabled:opacity-60"
           >
             {fmtDateShort(tgt.startsAt)}
             <span className="ml-1 font-normal text-ink-muted">({tgt.seatsLeft})</span>
@@ -623,7 +626,7 @@ export function BookingMovePicker({
         ))}
       </div>
       {pendingOverride && (
-        <div className="rounded-[10px] border border-amber-300 bg-amber-50/60 p-3">
+        <div className="rounded-[10px] border border-gold-light bg-gold-tint p-3">
           <p className="text-[12.5px] leading-relaxed text-ink">
             {failure?.message} Move <strong>{bookingRef}</strong> to{' '}
             <strong>{fmtDateShort(pendingOverride.startsAt)}</strong> anyway?
@@ -633,7 +636,7 @@ export function BookingMovePicker({
               type="button"
               disabled={busy != null}
               onClick={() => void move(pendingOverride, true)}
-              className="rounded-full bg-amber-500 px-4 py-1.5 text-[12px] font-bold text-white hover:bg-amber-500/90 disabled:opacity-60"
+              className={BTN_OVERRIDE}
             >
               {busy ? 'Moving…' : 'Move anyway'}
             </button>

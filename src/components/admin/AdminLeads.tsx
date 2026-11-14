@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { loadLeads, setLeadStatus, type LeadRow, type LeadStatus } from '@/lib/admin/leads';
 import { avatar } from '@/lib/admin/dashboard';
+import { mailtoHref } from '@/lib/admin/contact-links';
 
 function errMessage(err: unknown, fallback: string): string {
   if (err instanceof Error) return err.message;
@@ -30,14 +31,10 @@ function formatWhen(iso: string): string {
   );
 }
 
-// The public contact form stores free text in `contact`. Only turn it into a mailto: link when it
-// is strictly a single email address — otherwise an attacker controls the URL after `mailto:` and
-// could pre-populate `?cc=/&subject=/&body=` for a staff click. Anything else renders as plain text.
-const EMAIL_RE = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
-function mailtoHref(contact: string): string | null {
-  const trimmed = contact.trim();
-  return EMAIL_RE.test(trimmed) ? `mailto:${trimmed}` : null;
-}
+// The public contact form stores free text in `contact`; `mailtoHref` (shared with Bookings and the
+// Calendar) only makes a mailto: link when it is strictly a single email address — otherwise an
+// attacker controls the URL after `mailto:` and could pre-populate `?cc=/&subject=/&body=` for a staff
+// click. Anything else renders as plain text.
 
 export function AdminLeads() {
   const [leads, setLeads] = useState<LeadRow[]>([]);

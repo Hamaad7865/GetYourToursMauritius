@@ -73,7 +73,7 @@ function screenName(path: string): string {
     ['/admin/bookings', 'Bookings'],
     ['/admin/activities', 'Tours'],
     ['/admin/calendar', 'Calendar'],
-    ['/admin/leads', 'Leads'],
+    ['/admin/leads', 'Enquiries'],
     ['/admin/reviews', 'Reviews'],
     ['/admin/reports', 'Reports'],
     ['/admin/vehicle-pricing', 'Vehicle pricing'],
@@ -83,7 +83,7 @@ function screenName(path: string): string {
     ['/admin/seo', 'SEO'],
   ];
   for (const [prefix, label] of known) if (path.startsWith(prefix)) return label;
-  return path === '/admin' ? 'Dashboard' : 'Back office';
+  return path === '/admin' ? 'Today' : 'Back office';
 }
 
 export function AssistantProvider({ children }: { children: ReactNode }) {

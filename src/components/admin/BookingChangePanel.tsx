@@ -31,6 +31,7 @@ import {
   type QuoteDeparture,
 } from '@/lib/admin/quote-catalogue';
 import { eur, fmtDate, fmtDateTime } from '@/lib/admin/format';
+import { SELECT_CLS, INPUT_CLS, buttonClass } from '@/components/admin/ui';
 
 interface Props {
   bookingId: string;
@@ -150,22 +151,22 @@ export function BookingChangePanel({
   const refundOwed = existing?.appliedAt && existing.differenceMinor < 0 && !existing.refundedAt;
 
   return (
-    <section className="rounded-xl border border-ink/10 p-4">
+    <section className="border-t border-line-soft px-4 py-3.5">
       <div className="flex items-center justify-between gap-3">
-        <h3 className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">
+        <h3 className="text-[11.5px] font-semibold uppercase tracking-[0.06em] text-ink-soft">
           Change tour
         </h3>
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className="rounded-full border border-ink/15 px-3 py-1 text-[12px] font-bold hover:border-teal hover:text-teal-dark"
+          className={buttonClass('ghost', 'sm')}
         >
           {open ? 'Close' : 'Move to a different tour'}
         </button>
       </div>
 
       {pendingUpgrade && (
-        <div className="mt-3 rounded-lg bg-gold/10 px-3 py-2 text-[13px]">
+        <div className="mt-3 rounded-lg bg-gold-tint px-3 py-2 text-[13px]">
           <p className="font-semibold text-ink">
             Waiting on payment of {eur(existing.differenceMinor / 100)}
           </p>
@@ -182,7 +183,7 @@ export function BookingChangePanel({
                 return 'Proposal withdrawn — the held seat is back in the pool.';
               })
             }
-            className="mt-2 rounded-full border border-coral/40 px-3 py-1 text-[12px] font-bold text-coral hover:bg-coral/10 disabled:opacity-50"
+            className={`mt-2 ${buttonClass('danger', 'sm')}`}
           >
             {busy === 'withdraw' ? 'Withdrawing…' : 'Withdraw proposal'}
           </button>
@@ -190,7 +191,7 @@ export function BookingChangePanel({
       )}
 
       {refundOwed && (
-        <div className="mt-3 rounded-lg bg-coral/10 px-3 py-2 text-[13px]">
+        <div className="mt-3 rounded-lg bg-coral-tint px-3 py-2 text-[13px]">
           <p className="font-semibold text-ink">
             You owe this guest {eur(-existing.differenceMinor / 100)}
           </p>
@@ -216,7 +217,7 @@ export function BookingChangePanel({
                   return `Recorded a refund of ${eur(minor / 100)}.`;
                 });
               }}
-              className="mt-2 rounded-full bg-ink px-3 py-1 text-[12px] font-bold text-white hover:bg-teal-dark disabled:opacity-50"
+              className={`mt-2 ${buttonClass('ghost', 'sm')}`}
             >
               {busy === 'refund' ? 'Recording…' : 'Record refund'}
             </button>
@@ -234,7 +235,7 @@ export function BookingChangePanel({
               of two things (the tour, or the date) and needs the starting point on screen to see
               which. */}
           {currentStartsAt && (
-            <p className="rounded-lg bg-ink/[0.04] px-3 py-2 text-[12.5px] text-ink-muted">
+            <p className="rounded-lg bg-line-soft px-3 py-2 text-[12.5px] text-ink-muted">
               Currently on{' '}
               <span className="font-semibold text-ink">
                 {fmtDate(currentStartsAt)}
@@ -248,7 +249,7 @@ export function BookingChangePanel({
             <select
               value={activityId}
               onChange={(e) => setActivityId(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-ink/15 px-3 py-2 text-sm outline-none focus:border-teal"
+              className={`mt-1 ${SELECT_CLS}`}
             >
               <option value="">Choose a tour…</option>
               {activities.map((a) => (
@@ -267,7 +268,7 @@ export function BookingChangePanel({
               value={day}
               min={todayMu()}
               onChange={(e) => setDay(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-ink/15 px-3 py-2 text-sm outline-none focus:border-teal"
+              className={`mt-1 ${INPUT_CLS}`}
             />
           </label>
 
@@ -281,7 +282,7 @@ export function BookingChangePanel({
               <select
                 value={occurrenceId}
                 onChange={(e) => setOccurrenceId(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-ink/15 px-3 py-2 text-sm outline-none focus:border-teal"
+                className={`mt-1 ${SELECT_CLS}`}
               >
                 <option value="">Choose a departure…</option>
                 {departures.map((d) => (
@@ -295,7 +296,7 @@ export function BookingChangePanel({
           )}
 
           {quote && (
-            <div className="rounded-lg bg-ink/[0.04] px-3 py-2 text-[13px]">
+            <div className="rounded-lg bg-line-soft px-3 py-2 text-[13px]">
               <p className="font-semibold text-ink">
                 {quote.toActivityTitle} — {quote.toOptionName}
               </p>
@@ -345,7 +346,7 @@ export function BookingChangePanel({
                   return 'Moved — same price, nothing to collect.';
                 });
               }}
-              className="w-full rounded-full bg-teal px-4 py-2 text-[13px] font-bold text-white hover:bg-teal-dark disabled:opacity-50"
+              className={`w-full ${buttonClass('primary')}`}
             >
               {busy === 'propose'
                 ? 'Working…'
@@ -362,7 +363,7 @@ export function BookingChangePanel({
       {error && (
         <p
           role="alert"
-          className="mt-2 rounded-lg bg-coral/10 px-3 py-2 text-[13px] text-coral-dark"
+          className="mt-2 rounded-lg bg-coral-tint px-3 py-2 text-[13px] text-coral-dark"
         >
           {error}
         </p>
@@ -370,7 +371,7 @@ export function BookingChangePanel({
       {notice && (
         <p
           role="status"
-          className="mt-2 rounded-lg bg-teal/10 px-3 py-2 text-[13px] text-teal-dark"
+          className="mt-2 rounded-lg bg-teal-tint px-3 py-2 text-[13px] text-teal-dark"
         >
           {notice}
         </p>

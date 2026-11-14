@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -31,6 +31,8 @@ import {
   IconX,
   IconExternalLink,
   IconLogOut,
+  IconChevronLeft,
+  IconChevronRight,
 } from '@/components/ui/icons';
 
 // The assistant column is loaded on demand and never on the server: it is reachable from every
@@ -44,6 +46,15 @@ const AssistantPanel = dynamic(
    ink), labels #9DBBC0 (7.1:1), the active item's icon #7FE0E4 (5.9:1 on ink-raised). */
 const SIDE_TEXT = 'text-[#C9D9DC]';
 const SIDE_LABEL = 'text-[#9DBBC0]';
+
+/** The sidebar's small text buttons at its foot (Search, Hide menu, View site, Sign out). */
+const SIDE_TOOL = `flex h-8 min-w-0 items-center gap-2 rounded-lg px-2 text-[12.5px] font-medium ${SIDE_TEXT} transition-colors hover:bg-white/10 hover:text-white motion-reduce:transition-none`;
+/** The same as a square icon button, for the folded rail. */
+const SIDE_TOOL_ICON = `grid h-9 w-9 place-items-center rounded-lg ${SIDE_TEXT} transition-colors hover:bg-white/10 hover:text-white motion-reduce:transition-none`;
+
+/** Where the desktop sidebar remembers being folded away: this browser's convenience only. */
+const FOLD_KEY = 'bmt-admin-sidebar';
+const NAV_ID = 'admin-sidebar-nav';
 
 /** A 36px square icon button for the light top bar (`.ib`), and its borderless twin (`.ib.q`). Two
  *  strings, not one plus overrides: `border-transparent` cannot beat `border-line` by being appended. */
@@ -76,6 +87,32 @@ function AdminShellInner({ children }: { children: ReactNode }) {
   const { user, profile, signOut } = useAuth();
   const [drawer, setDrawer] = useState(false);
   const [search, setSearch] = useState('');
+  const searchRef = useRef<HTMLInputElement>(null);
+  // The desktop sidebar folds to an icon rail ("Hide menu"). Read after mount, not in useState: the
+  // server render has no storage, and the two renders must match. `animate` stays off until then so a
+  // folded sidebar does not visibly slide shut on every page load.
+  const [folded, setFolded] = useState(false);
+  const [animate, setAnimate] = useState(false);
+  useEffect(() => {
+    try {
+      if (window.localStorage.getItem(FOLD_KEY) === 'folded') setFolded(true);
+    } catch {
+      /* storage blocked: start open */
+    }
+    const id = window.requestAnimationFrame(() => setAnimate(true));
+    return () => window.cancelAnimationFrame(id);
+  }, []);
+  const toggleFolded = () => {
+    setFolded((was) => {
+      const next = !was;
+      try {
+        window.localStorage.setItem(FOLD_KEY, next ? 'folded' : 'open');
+      } catch {
+        /* storage blocked: it still folds for this visit */
+      }
+      return next;
+    });
+  };
   // Focus-in (to the close button), Tab-trap, Escape-to-close, and focus-restore for the mobile drawer —
   // the shared modal hook. Restores to whichever trigger (top bar or bottom-nav "More") opened it.
   const drawerCloseRef = useRef<HTMLButtonElement>(null);
@@ -121,10 +158,22 @@ function AdminShellInner({ children }: { children: ReactNode }) {
     // column below, not here, so the assistant panel (a sibling of it) keeps its own typography.
     <div className="flex min-h-dvh bg-ground text-ink">
       {/* ===== Desktop sidebar ===== */}
-      <aside className="sticky top-0 hidden h-dvh w-[232px] shrink-0 flex-col bg-ink lg:flex print:hidden">
-        <SidebarBrand />
-        <SidebarNav items={items} pathname={pathname} />
-        <SidebarFoot name={name} role={role} initials={initials} onSignOut={() => void signOut()} />
+      <aside
+        className={`sticky top-0 hidden h-dvh shrink-0 flex-col bg-ink lg:flex print:hidden ${
+          folded ? 'w-[68px]' : 'w-[232px]'
+        } ${animate ? 'transition-[width] duration-200 ease-out motion-reduce:transition-none' : ''}`}
+      >
+        <SidebarBrand folded={folded} />
+        <SidebarNav items={items} pathname={pathname} folded={folded} id={NAV_ID} />
+        <SidebarFoot
+          name={name}
+          role={role}
+          initials={initials}
+          onSignOut={() => void signOut()}
+          folded={folded}
+          onToggleFold={toggleFolded}
+          onSearch={canBookings ? () => searchRef.current?.focus() : undefined}
+        />
       </aside>
 
       {/* ===== Mobile drawer ===== */}
@@ -190,6 +239,7 @@ function AdminShellInner({ children }: { children: ReactNode }) {
                 <label className="flex h-9 items-center gap-2 rounded-lg border border-line bg-ground px-2.5 text-ink-soft transition-[border-color,box-shadow,background-color] focus-within:border-teal-dark focus-within:bg-white focus-within:ring-[3px] focus-within:ring-teal-dark/20 motion-reduce:transition-none">
                   <IconSearch width={16} height={16} className="shrink-0" />
                   <input
+                    ref={searchRef}
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     type="search"
@@ -329,19 +379,26 @@ function Breadcrumb({ pathname }: { pathname: string }) {
   );
 }
 
-function SidebarBrand() {
+function SidebarBrand({ folded = false }: { folded?: boolean }) {
   // The real brand logo (white-script `logo-dark.svg`, made for this dark sidebar), linking to the
   // back office's home rather than the public one. The artwork carries the wordmark, so the only text
-  // beside it is the small caption.
+  // beside it is the small caption. Room above and below, and a hairline, so the logo does not crowd
+  // Today (the owner's note, 15 Nov). Folded, the logo shrinks to fit the rail and the caption goes.
   return (
-    <div className="flex items-center gap-2.5 px-4 pb-2 pt-3.5">
+    <div
+      className={`mx-3 mb-3 flex shrink-0 items-center gap-2.5 border-b border-white/10 pb-4 pt-5 ${
+        folded ? 'justify-center' : 'px-1'
+      }`}
+    >
       <Logo
         tone="dark"
         href="/admin"
-        className="h-10 w-auto"
+        className={folded ? 'h-7 w-auto' : 'h-10 w-auto'}
         label="Belle Mare Tours — back office home"
       />
-      <span className={`text-[11px] font-medium leading-tight ${SIDE_LABEL}`}>Back office</span>
+      {!folded && (
+        <span className={`text-[11px] font-medium leading-tight ${SIDE_LABEL}`}>Back office</span>
+      )}
     </div>
   );
 }
@@ -349,6 +406,8 @@ function SidebarBrand() {
 /**
  * The grouped section list (Nav.dc.html): Today alone, then each group under its label. Only what
  * this person may open is passed in, and a group left empty by that shows no label (`groupedNav`).
+ * Folded to the rail, every screen shows as an icon, with a hairline between groups. (Groups that
+ * open and close were tried on 15 Nov 2026 and taken out at the owner's request.)
  *
  * A component of its own, not a closure inside the shell: defined inline it was a NEW component type
  * on every render, so React remounted the list (and lost its scroll) on each keystroke in the search.
@@ -361,15 +420,21 @@ function SidebarNav({
   items,
   pathname,
   onNavigate,
+  folded = false,
+  id,
 }: {
   items: NavItem[];
   pathname: string;
   onNavigate?: () => void;
+  /** The desktop rail: icons only, each still named for a screen reader and on hover. */
+  folded?: boolean;
+  id?: string;
 }) {
   // The desktop sidebar and the phone drawer can both be in the DOM: ids must not collide.
   const idBase = useId();
   return (
     <nav
+      id={id}
       aria-label="Back office sections"
       className="slim-bar-dark flex min-h-0 flex-1 flex-col overflow-y-auto px-2.5 pb-3"
     >
@@ -377,14 +442,23 @@ function SidebarNav({
         const headingId = group ? `${idBase}-${group.toLowerCase()}` : undefined;
         return (
           <div key={group ?? 'today'}>
-            {group && (
-              <p
-                id={headingId}
-                className={`px-2.5 pb-[5px] pt-[13px] text-[11px] font-semibold tracking-[0.02em] ${SIDE_LABEL}`}
-              >
-                {group}
-              </p>
-            )}
+            {group &&
+              (folded ? (
+                <>
+                  {/* The label stays as the list's name; a hairline marks the group. */}
+                  <p id={headingId} className="sr-only">
+                    {group}
+                  </p>
+                  <div aria-hidden="true" className="mx-2 my-2.5 h-px bg-white/10" />
+                </>
+              ) : (
+                <p
+                  id={headingId}
+                  className={`px-2.5 pb-1.5 pt-[18px] text-[11px] font-semibold tracking-[0.02em] ${SIDE_LABEL}`}
+                >
+                  {group}
+                </p>
+              ))}
             <ul aria-labelledby={headingId} className="flex flex-col gap-0.5">
               {sectionItems.map((item) => {
                 const active = isActive(pathname, item);
@@ -395,16 +469,19 @@ function SidebarNav({
                       href={item.href}
                       onClick={onNavigate}
                       aria-current={active ? 'page' : undefined}
-                      className={`flex h-[34px] items-center gap-2.5 rounded-lg px-2.5 text-[13px] transition-colors motion-reduce:transition-none ${
+                      title={folded ? item.label : undefined}
+                      className={`flex h-9 items-center gap-2.5 rounded-lg text-[13px] transition-colors motion-reduce:transition-none ${
+                        folded ? 'justify-center px-0' : 'px-2.5'
+                      } ${
                         active
                           ? 'bg-ink-raised font-semibold text-white'
                           : `font-medium ${SIDE_TEXT} hover:bg-white/5 hover:text-white`
                       }`}
                     >
                       <span className={`flex shrink-0 ${active ? 'text-[#7FE0E4]' : ''}`}>
-                        <Icon width={17} height={17} />
+                        <Icon width={18} height={18} />
                       </span>
-                      <span className="truncate">{item.label}</span>
+                      <span className={folded ? 'sr-only' : 'truncate'}>{item.label}</span>
                     </Link>
                   </li>
                 );
@@ -417,38 +494,124 @@ function SidebarNav({
   );
 }
 
-/** Who is signed in, their role, and sign out, at the foot of the sidebar. */
+/**
+ * The sidebar's foot: a row of tools (Search, Hide menu, View site, Sign out), then who is signed in
+ * with their role as a small pill. Folded, the tools stack as icon buttons over the initials. The
+ * phone drawer passes no `onToggleFold` or `onSearch`: it has no rail, and its search is the top bar.
+ */
 function SidebarFoot({
   name,
   role,
   initials,
   onSignOut,
+  folded = false,
+  onToggleFold,
+  onSearch,
 }: {
   name: string;
   role: string;
   initials: string;
   onSignOut: () => void;
+  folded?: boolean;
+  onToggleFold?: () => void;
+  onSearch?: () => void;
 }) {
+  const foldLabel = folded ? 'Show menu' : 'Hide menu';
+  const FoldIcon = folded ? IconChevronRight : IconChevronLeft;
+  const avatarChip = (
+    <span
+      aria-hidden="true"
+      className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-ink-raised text-[11px] font-bold text-white"
+    >
+      {initials}
+    </span>
+  );
+
+  if (folded) {
+    return (
+      <div className="flex shrink-0 flex-col items-center gap-1 border-t border-white/10 py-3">
+        {onSearch && (
+          <button
+            type="button"
+            onClick={onSearch}
+            aria-label="Search"
+            title="Search"
+            className={SIDE_TOOL_ICON}
+          >
+            <IconSearch width={17} height={17} />
+          </button>
+        )}
+        {onToggleFold && (
+          <button
+            type="button"
+            onClick={onToggleFold}
+            aria-label={foldLabel}
+            title={foldLabel}
+            aria-expanded={false}
+            aria-controls={NAV_ID}
+            className={SIDE_TOOL_ICON}
+          >
+            <FoldIcon width={17} height={17} />
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={onSignOut}
+          aria-label="Sign out"
+          title="Sign out"
+          className={SIDE_TOOL_ICON}
+        >
+          <IconLogOut width={16} height={16} />
+        </button>
+        <span className="mt-1.5" title={`${name}, ${role}`}>
+          {avatarChip}
+          <span className="sr-only">
+            {name}, {role}
+          </span>
+        </span>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex items-center gap-2.5 border-t border-white/10 px-4 py-3">
-      <span
-        aria-hidden="true"
-        className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-full bg-ink-raised text-[11px] font-bold text-white"
-      >
-        {initials}
-      </span>
-      <span className="min-w-0 flex-1 leading-tight">
-        <span className="block truncate text-[13px] font-semibold text-white">{name}</span>
-        <span className={`block truncate text-[11px] font-medium ${SIDE_LABEL}`}>{role}</span>
-      </span>
-      <button
-        type="button"
-        onClick={onSignOut}
-        aria-label="Sign out"
-        className={`grid h-[30px] w-[30px] shrink-0 place-items-center rounded-lg ${SIDE_TEXT} transition-colors hover:bg-white/10 hover:text-white motion-reduce:transition-none`}
-      >
-        <IconLogOut width={16} height={16} />
-      </button>
+    <div className="shrink-0 border-t border-white/10 px-2.5 pb-3 pt-2.5">
+      <div className="grid grid-cols-2 gap-x-1 gap-y-0.5">
+        {onSearch && (
+          <button type="button" onClick={onSearch} className={SIDE_TOOL}>
+            <IconSearch width={15} height={15} className="shrink-0" />
+            <span className="truncate">Search</span>
+          </button>
+        )}
+        {onToggleFold && (
+          <button
+            type="button"
+            onClick={onToggleFold}
+            aria-expanded={true}
+            aria-controls={NAV_ID}
+            className={SIDE_TOOL}
+          >
+            <FoldIcon width={15} height={15} className="shrink-0" />
+            <span className="truncate">{foldLabel}</span>
+          </button>
+        )}
+        <Link href="/" className={SIDE_TOOL}>
+          <IconExternalLink width={15} height={15} className="shrink-0" />
+          <span className="truncate">View site</span>
+        </Link>
+        <button type="button" onClick={onSignOut} className={SIDE_TOOL}>
+          <IconLogOut width={15} height={15} className="shrink-0" />
+          <span className="truncate">Sign out</span>
+        </button>
+      </div>
+      <div className="mt-2.5 flex items-center gap-2.5 rounded-xl bg-white/5 px-2.5 py-2">
+        {avatarChip}
+        <span className="min-w-0 flex-1 leading-tight">
+          <span className="block truncate text-[13px] font-semibold text-white">{name}</span>
+          <span className="mt-1 inline-block max-w-full truncate rounded-full bg-[#7FE0E4]/15 px-2 py-px text-[11px] font-semibold text-[#7FE0E4]">
+            {role}
+          </span>
+        </span>
+      </div>
     </div>
   );
 }

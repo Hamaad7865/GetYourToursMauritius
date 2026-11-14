@@ -1,550 +1,424 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { useAdminAccess } from '@/components/admin/AdminAccessProvider';
 import { can } from '@/lib/admin/permissions';
+import { computeDashboard, euro, statsFor, type DashboardData } from '@/lib/admin/dashboard';
+import { loadBookings, paymentView, type BookingRow } from '@/lib/admin/bookings';
+import { loadCalendarRange, type DayEntry } from '@/lib/admin/calendar';
 import {
-  computeDashboard,
-  loadDashboard,
-  euro,
-  avatar,
-  statsFor,
-  type DashboardData,
-  type DashStat,
-} from '@/lib/admin/dashboard';
-import type { BookingStatus } from '@/lib/admin/bookings';
-import { fmtDateShort } from '@/lib/admin/format';
+  ALL_TYPES_ON,
+  MONTHS,
+  WEEKDAYS,
+  addDays,
+  dayNumber,
+  shortDay,
+  summarize,
+  toCalLines,
+  weekdayIndex,
+  yearMonth,
+} from '@/lib/admin/calendar-view';
+import { loadQuotes, type QuoteRow } from '@/lib/admin/quotes';
+import { loadLeads, type LeadRow } from '@/lib/admin/leads';
+import { mauDay, serviceWhen, titleCase } from '@/lib/admin/format';
+import { BookingStatusChip, PaymentChip } from '@/components/admin/BookingFacts';
+import { GuestAvatar } from '@/components/admin/GuestAvatar';
 import { RevenueChart } from '@/components/admin/RevenueChart';
-import { WhatsAppNumberCard } from '@/components/admin/WhatsAppNumberCard';
-import { ZilAiMaintenanceCard } from '@/components/admin/ZilAiMaintenanceCard';
+import { RunSheetCard } from '@/components/admin/today/RunSheetCard';
+import { NeedsYouCard } from '@/components/admin/today/NeedsYouCard';
+import { MetricCard, TODAY_LIFT, type MetricTone } from '@/components/admin/today/MetricCard';
+import { IconCalendar, IconClock, IconMail, IconTrendUp, IconWallet } from '@/components/ui/icons';
 import {
-  IconBookings,
-  IconWallet,
-  IconClock,
-  IconUsers,
-  IconPin,
-  IconChevron,
-} from '@/components/ui/icons';
+  daySummary,
+  isReady,
+  needsYou,
+  quoteTotals,
+  quietDays,
+  departuresByDay,
+  runSheetRows,
+  todayKpis,
+  todaySentence,
+  tomorrowOf,
+  type Loaded,
+  type TodayViewer,
+} from '@/components/admin/today/rules';
+import {
+  AdminError,
+  AdminHeading,
+  DataTable,
+  Panel,
+  Td,
+  Th,
+  buttonClass,
+} from '@/components/admin/ui';
 
-const STAT_ICON = {
-  today: IconBookings,
-  revenue: IconWallet,
-  pending: IconClock,
-  upcoming: IconPin,
-} as const;
-
-/** Each KPI card drills into the bookings screen, pre-filtered via URL params AdminBookings reads.
- *  Pending uses the `payment_pending` STATUS filter (not `pay=pending`): the card counts money still
- *  owed on ACTIVE bookings, whereas a raw payment filter would also surface cancelled/expired rows whose
- *  ledger state is a stale "pending" (shown as "Not paid"), inflating the list past the card's count.
- *  The date-based drills intentionally show every status for that day (the Status pill disambiguates
- *  a cancelled trip), so their list can legitimately be longer than the active-only card figure. */
-const STAT_HREF: Record<string, string> = {
-  today: '/admin/bookings?date=today',
-  revenue: '/admin/bookings?pay=paid',
-  pending: '/admin/bookings?status=payment_pending',
-  upcoming: '/admin/bookings?date=next7',
-};
-
-/** Grid columns from the number of cards, as FULL literal class names so Tailwind emits them. */
-const STAT_GRID_COLS: Record<number, string> = {
+/** KPI grid columns by the number of cards, as FULL literal class names so Tailwind emits them. */
+const KPI_COLS: Record<number, string> = {
   1: 'lg:grid-cols-1',
   2: 'lg:grid-cols-2',
   3: 'lg:grid-cols-3',
   4: 'lg:grid-cols-4',
+  5: 'lg:grid-cols-5',
 };
 
-/** Part-paid rows shown on the dashboard; the rest are one "See all" away. */
-const PART_PAID_ROWS = 5;
-
-const STAT_CARD =
-  'rounded-2xl border border-[#EAEEF0] bg-white p-[18px] shadow-[0_1px_2px_rgba(10,46,54,.04)]';
-const STAT_CARD_LINK =
-  'group transition hover:border-teal hover:shadow-[0_12px_30px_-16px_rgba(10,46,54,.3)]';
-
-const STAT_TONE: Record<DashStat['tone'], string> = {
-  teal: 'bg-teal/10 text-teal',
-  green: 'bg-emerald-50 text-emerald-700',
-  amber: 'bg-amber-50 text-amber-700',
-  ink: 'bg-ink/[0.06] text-ink',
+/** Each figure's icon and tint on Today. Presentation only: which figures show is `todayKpis`. */
+const KPI_LOOK: Record<string, { icon: ReactNode; tone: MetricTone }> = {
+  today: { icon: <IconCalendar width={15} height={15} />, tone: 'blue' },
+  revenue: { icon: <IconWallet width={15} height={15} />, tone: 'teal' },
+  pending: { icon: <IconClock width={15} height={15} />, tone: 'gold' },
+  upcoming: { icon: <IconTrendUp width={15} height={15} />, tone: 'violet' },
+  quotes: { icon: <IconMail width={15} height={15} />, tone: 'blue' },
 };
 
-function statusPill(status: BookingStatus): { label: string; cls: string; dot: string } {
-  switch (status) {
-    case 'confirmed':
-    case 'completed':
-      return {
-        label: status === 'completed' ? 'Completed' : 'Confirmed',
-        cls: 'bg-emerald-50 text-emerald-700',
-        dot: 'bg-emerald-500',
-      };
-    case 'cancelled':
-    case 'expired':
-    case 'failed':
-      return { label: 'Cancelled', cls: 'bg-red-50 text-red-700', dot: 'bg-red-500' };
-    case 'refunded':
-    case 'refund_pending':
-      return { label: 'Refunded', cls: 'bg-slate-100 text-slate-600', dot: 'bg-slate-400' };
-    default:
-      return { label: 'Pending', cls: 'bg-teal/10 text-teal-dark', dot: 'bg-teal' };
-  }
+/** "Saturday 14 November" — the day in Mauritius, as the page's heading. */
+function longDay(day: string): string {
+  return `${WEEKDAYS[weekdayIndex(day)]} ${dayNumber(day)} ${MONTHS[yearMonth(day)[1]]}`;
 }
 
-function Avatar({ name }: { name: string }) {
-  const { initials, hue } = avatar(name);
-  return (
-    <span
-      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[12px] font-bold text-white"
-      style={{ background: `hsl(${hue} 42% 46%)` }}
-    >
-      {initials}
-    </span>
-  );
-}
-
-function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return (
-    <section className={`rounded-2xl border border-[#EAEEF0] bg-white ${className}`}>
-      {children}
-    </section>
-  );
-}
-
-export function AdminDashboard() {
-  const { profile } = useAuth();
-  const router = useRouter();
-  const access = useAdminAccess();
-  // Business totals are owner-grantable (money.revenue).
-  const showMoney = can(access, 'money.revenue');
-  // The Dashboard is open to every role, but its booking panels show guest names and per-booking
-  // amounts — those belong to whoever has Bookings (RLS lets every staff account read bookings, so
-  // this gate is the only thing keeping a "Calendar only" role from seeing them here).
-  const showBookings = can(access, 'section.bookings');
-  // Today's departures show pickups and party sizes; the Calendar section covers the same day sheet.
-  const showDepartures = can(access, ['section.bookings', 'section.calendar']);
-  // A role that sees none of it has no use for the bookings query, so it is not made.
-  const needsData = showMoney || showBookings || showDepartures;
-  const [loaded, setLoaded] = useState<DashboardData | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  // Nothing to fetch for such a role: the (empty) view-model is enough for the greeting.
-  const empty = useMemo(() => (needsData ? null : computeDashboard([], new Date())), [needsData]);
-  const data = needsData ? loaded : empty;
-  const error = needsData ? loadError : null;
-
+/** Load one read into its own slot: each fails on its own and says so where it is shown. */
+function useRead<T>(enabled: boolean, load: () => Promise<T>, key: string): Loaded<T> {
+  const [value, setValue] = useState<Loaded<T>>(null);
   useEffect(() => {
-    if (!needsData) return;
+    if (!enabled) return;
     let active = true;
-    // A role that has just gained access starts from the skeleton, not from a stale answer.
-    setLoaded(null);
-    setLoadError(null);
-    loadDashboard()
-      .then((d) => active && setLoaded(d))
-      .catch(
-        (e) =>
-          active && setLoadError(e instanceof Error ? e.message : 'Could not load the dashboard.'),
-      );
+    setValue(null);
+    load()
+      .then((v) => active && setValue(v))
+      .catch((err: unknown) => {
+        console.error(`[today] ${key} could not be loaded`, err);
+        if (active) setValue('error');
+      });
     return () => {
       active = false;
     };
-  }, [needsData]);
+    // `load` is a module function per call site; the key names the read.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, key]);
+  return enabled ? value : null;
+}
+
+/**
+ * TODAY — the back office's home (phase 2 of the redesign). The day's figures, the run sheet with a
+ * look at tomorrow, what needs the owner, the money taken and the latest bookings; the two settings
+ * that live here stay at the bottom.
+ *
+ * Who sees what is unchanged from the old dashboard (statsFor / DashViewer): money.revenue for
+ * business totals, section.bookings for guest names, per-booking amounts and links into Bookings,
+ * Bookings-or-Calendar for departures. Quotes and enquiries appear only with their own sections.
+ */
+export function AdminDashboard() {
+  const { profile } = useAuth();
+  const access = useAdminAccess();
+  const showMoney = can(access, 'money.revenue');
+  const showBookings = can(access, 'section.bookings');
+  const showDepartures = can(access, ['section.bookings', 'section.calendar']);
+  const showCalendar = can(access, 'section.calendar');
+  const showQuotes = can(access, 'section.quotes');
+  const showLeads = can(access, 'section.leads');
+  const viewer: TodayViewer = useMemo(
+    () => ({ showMoney, showBookings, showDepartures, showCalendar, showQuotes, showLeads }),
+    [showMoney, showBookings, showDepartures, showCalendar, showQuotes, showLeads],
+  );
+
+  // The day is fixed for the visit, as a Mauritius calendar day.
+  const [now] = useState(() => new Date());
+  const today = mauDay(now);
+  const tomorrow = tomorrowOf(today);
+
+  // A role that sees none of the bookings figures has no use for the bookings query, so it is not made.
+  const needsBookings = showMoney || showBookings || showDepartures;
+  const bookings = useRead<BookingRow[]>(needsBookings, loadBookings, 'bookings');
+  const entries = useRead<DayEntry[]>(
+    showDepartures,
+    () => loadCalendarRange(today, addDays(today, 6)),
+    `calendar-${today}`,
+  );
+  const quotes = useRead<QuoteRow[]>(showQuotes, loadQuotes, 'quotes');
+  const leads = useRead<LeadRow[]>(showLeads, loadLeads, 'leads');
+
+  const data: DashboardData | null = useMemo(
+    () => (isReady(bookings) ? computeDashboard(bookings, now) : null),
+    [bookings, now],
+  );
+  // For the heading and the card list when the bookings read is not made or failed.
+  const empty = useMemo(() => computeDashboard([], now), [now]);
+
+  const lines = useMemo(
+    () => (isReady(entries) ? toCalLines(entries, today) : null),
+    [entries, today],
+  );
+  const calendar = useMemo(() => {
+    if (!isReady(entries) || !lines) return entries === 'error' ? ('error' as const) : null;
+    return {
+      today: daySummary(lines, today),
+      tomorrow: daySummary(lines, tomorrow),
+      next7Departures: summarize(lines, today, addDays(today, 6), {
+        types: ALL_TYPES_ON,
+        attentionOnly: false,
+      }).departures,
+    };
+  }, [entries, lines, today, tomorrow]);
+
+  const needs = useMemo(() => {
+    if (!showBookings && !showQuotes && !showLeads) return null;
+    // Bookings rows wait for the bookings read; a failed read says so instead of showing nothing.
+    if (showBookings && bookings === null) return null;
+    const out = needsYou({ bookings: isReady(bookings) ? bookings : [], quotes, leads }, viewer);
+    if (showBookings && bookings === 'error') {
+      out.notes.unshift('Bookings could not be loaded.');
+    }
+    return out;
+  }, [bookings, quotes, leads, viewer, showBookings, showQuotes, showLeads]);
+
+  const kpis = useMemo(() => {
+    const base = data ?? empty;
+    const list = todayKpis(
+      {
+        stats: statsFor(base.stats, viewer),
+        today,
+        revenueDeltaPct: data ? data.revenue['7d'].deltaPct : null,
+        pendingCount: base.pendingCount,
+        pendingTotalEur: base.pendingTotalEur,
+        calendar: calendar
+          ? calendar === 'error'
+            ? 'error'
+            : { today: calendar.today, next7Departures: calendar.next7Departures }
+          : null,
+        quotes: showQuotes
+          ? isReady(quotes)
+            ? quoteTotals(quotes)
+            : quotes === 'error'
+              ? 'error'
+              : null
+          : undefined,
+      },
+      viewer,
+    );
+    // A figure from the bookings read never shows a made-up zero while it loads or after it fails.
+    return list.map((k) =>
+      (k.key === 'revenue' || k.key === 'pending') && !data
+        ? {
+            ...k,
+            value: bookings === 'error' ? '—' : '…',
+            detail: bookings === 'error' ? 'Could not load' : 'Loading',
+            href: bookings === 'error' ? null : k.href,
+          }
+        : k,
+    );
+  }, [data, empty, calendar, quotes, bookings, today, viewer, showQuotes]);
 
   const firstName = (profile?.fullName || 'there').split(' ')[0];
+  const sentence = todaySentence({
+    departures:
+      showDepartures && calendar && calendar !== 'error' ? calendar.today.departures : null,
+    guests: showDepartures && calendar && calendar !== 'error' ? calendar.today.guests : null,
+    needs: needs ? needs.total : null,
+  });
 
-  if (error) {
-    return (
-      <p className="rounded-2xl border border-coral/30 bg-coral/5 p-4 text-sm font-medium text-coral">
-        {error}
-      </p>
-    );
-  }
-  if (!data) {
-    return (
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div
-            key={i}
-            className="h-[116px] animate-pulse rounded-2xl border border-[#EAEEF0] bg-white"
-          />
-        ))}
-      </div>
-    );
-  }
+  const runSheet = showDepartures ? (
+    <RunSheetCard
+      today={today}
+      tomorrow={tomorrow}
+      entries={entries}
+      todayRows={lines ? runSheetRows(lines, today, showMoney) : []}
+      tomorrowRows={lines ? runSheetRows(lines, tomorrow, showMoney) : []}
+      tomorrowSummary={calendar && calendar !== 'error' ? calendar.tomorrow : null}
+      quiet={lines ? quietDays(lines, today, showMoney) : null}
+      showCalendar={showCalendar}
+      showMoney={showMoney}
+    />
+  ) : null;
+  const showNeeds = showBookings || showQuotes || showLeads;
+  const showRight = showNeeds || (showMoney && Boolean(data));
+  const showLatest = showBookings && isReady(bookings);
+  const twoCols = showRight && Boolean(runSheet || showLatest);
+  // Beside the right-hand stack, under the run sheet (or at the top when there is none).
+  const latestClass = twoCols
+    ? `min-w-0 self-start xl:col-start-1 ${runSheet ? 'xl:row-start-2' : 'xl:row-start-1'}`
+    : 'min-w-0';
 
-  // Each card only for a role that can use it; pending shows how many, not how much, without
-  // money.revenue (see statsFor).
-  const stats = statsFor(data.stats, { showMoney, showBookings, showDepartures });
-  // The left column holds the departures and bookings panels; with neither it would be an empty cell.
-  const showLeft = showDepartures;
+  // The latest bookings (loadBookings is newest first).
+  const latestPanel = showLatest ? (
+    <Panel
+      title="Latest bookings"
+      meta="Newest first"
+      className={`${TODAY_LIFT} ${latestClass}`}
+      style={{ '--i': 7 } as CSSProperties}
+      actions={
+        <Link href="/admin/bookings" className={buttonClass('quiet', 'sm')}>
+          See all bookings
+        </Link>
+      }
+    >
+      {bookings.length === 0 ? (
+        <p className="px-4 py-6 text-center text-ink-soft">No bookings yet.</p>
+      ) : (
+        <DataTable label="Latest bookings">
+          <thead>
+            <tr>
+              <Th>Guest and tour</Th>
+              <Th>Ref</Th>
+              <Th>Trip date</Th>
+              <Th num>Total</Th>
+              <Th>Payment and status</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {bookings.slice(0, 6).map((b) => {
+              const when = serviceWhen(b);
+              return (
+                <tr key={b.id}>
+                  {/* w-full + max-w-0: this column takes whatever width the others leave and
+                      truncates inside it, so a longer chip or ref never pushes the table wider
+                      than its card; min-w keeps the name readable on a phone, where it scrolls. */}
+                  <Td className="w-full min-w-[170px] max-w-0">
+                    <span className="flex min-w-0 items-center gap-2.5">
+                      <GuestAvatar name={b.customerName} />
+                      <span className="min-w-0">
+                        <span className="block truncate font-semibold text-ink">
+                          {b.customerName}
+                        </span>
+                        <span className="block truncate text-[12px] text-ink-soft">
+                          {b.activityTitle}
+                        </span>
+                      </span>
+                    </span>
+                  </Td>
+                  <Td>
+                    <Link
+                      href={`/admin/bookings?open=${b.id}`}
+                      className="whitespace-nowrap font-mono text-[12.5px] font-semibold text-teal-dark hover:underline"
+                      aria-label={`Open booking ${b.ref} for ${b.customerName}`}
+                    >
+                      {b.ref}
+                    </Link>
+                    <span className="block whitespace-nowrap text-[12px] text-ink-soft">
+                      {titleCase(b.source)}
+                    </span>
+                  </Td>
+                  <Td className="whitespace-nowrap">{when ? shortDay(when.day) : '—'}</Td>
+                  <Td num className="font-semibold text-ink">
+                    {euro(b.totalEur)}
+                  </Td>
+                  <Td>
+                    <span className="flex flex-col items-start gap-1">
+                      <PaymentChip view={paymentView(b)} status={b.status} />
+                      <BookingStatusChip status={b.status} />
+                    </span>
+                  </Td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </DataTable>
+      )}
+    </Panel>
+  ) : null;
 
   return (
     <div>
-      {/* Heading */}
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="font-display text-[30px] font-medium tracking-tight text-ink">
-            Good {data.greetingPart}, {firstName}
-          </h1>
-          <p className="mt-1.5 text-sm text-ink-muted">
-            {data.todayLabel} · Belle Mare
-            {showDepartures && ` · ${data.departuresToday} departures today`}
-          </p>
-        </div>
-        {showBookings && (
-          <Link
-            href="/admin/bookings"
-            className="flex items-center gap-1.5 rounded-xl border border-[#E2E7EA] bg-white px-3.5 py-2.5 text-[13.5px] font-semibold text-ink hover:border-teal hover:text-teal"
-          >
-            View all bookings <IconChevron width={15} height={15} className="-rotate-90" />
-          </Link>
-        )}
-      </div>
+      <AdminHeading
+        title={longDay(today)}
+        subtitle={`Good ${(data ?? empty).greetingPart}, ${firstName}.${sentence ? ` ${sentence}` : ''}`}
+        action={
+          showBookings ? (
+            <Link href="/admin/bookings" className={buttonClass('ghost')}>
+              View all bookings
+            </Link>
+          ) : undefined
+        }
+      />
 
-      {/* Stat cards — each drills into a pre-filtered bookings view (a plain card without Bookings). */}
-      {stats.length > 0 && (
-        <div
-          className={`animate-fade-up mb-4 grid grid-cols-2 gap-4 ${STAT_GRID_COLS[stats.length] ?? 'lg:grid-cols-4'}`}
-        >
-          {stats.map((s) => {
-            const Icon = STAT_ICON[s.key as keyof typeof STAT_ICON] ?? IconBookings;
-            // The revenue card carries the real vs-last-week change in its corner instead of a static hint.
-            const revDelta = s.key === 'revenue' ? data.revenue['7d'].deltaPct : null;
-            const body = (
-              <>
-                <div className="flex items-center justify-between">
-                  <span
-                    className={`flex h-10 w-10 items-center justify-center rounded-xl ${STAT_TONE[s.tone]}`}
-                  >
-                    <Icon width={19} height={19} />
-                  </span>
-                  {revDelta !== null ? (
-                    <span
-                      className={`inline-flex items-center gap-0.5 rounded-lg px-1.5 py-0.5 text-[11.5px] font-bold ${
-                        revDelta >= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-coral/10 text-coral'
-                      }`}
-                    >
-                      <span aria-hidden>{revDelta >= 0 ? '▲' : '▼'}</span>
-                      {Math.abs(revDelta)}%
-                    </span>
-                  ) : (
-                    s.hint && (
-                      <span className="text-[12px] font-semibold text-ink-muted">{s.hint}</span>
-                    )
-                  )}
-                </div>
-                <div className="mt-3.5 text-[28px] font-extrabold leading-none tracking-tight text-ink">
-                  {s.value}
-                </div>
-                <div className="mt-1.5 flex items-center gap-1 text-[13px] font-medium text-ink-muted">
-                  {s.label}
-                  {s.linked && (
-                    <IconChevron
-                      width={13}
-                      height={13}
-                      aria-hidden
-                      className="-rotate-90 text-teal opacity-0 transition-opacity group-hover:opacity-100"
-                    />
-                  )}
-                </div>
-              </>
-            );
-            return s.linked ? (
-              <Link
-                key={s.key}
-                href={STAT_HREF[s.key] ?? '/admin/bookings'}
-                aria-label={`${s.label}: ${s.value}`}
-                className={`${STAT_CARD} ${STAT_CARD_LINK}`}
-              >
-                {body}
-              </Link>
-            ) : (
-              <div key={s.key} className={STAT_CARD}>
-                {body}
-              </div>
-            );
-          })}
-        </div>
+      {bookings === 'error' && (
+        <AdminError>
+          The bookings could not be loaded, so the money figures and the booking lists are missing.
+          Try reloading the page.
+        </AdminError>
       )}
 
-      <div
-        className={`animate-fade-up grid grid-cols-1 items-start gap-[18px] ${
-          showLeft ? 'xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]' : 'max-w-xl'
-        }`}
-      >
-        {/* ===== LEFT ===== */}
-        {showLeft && (
-          <div className="flex min-w-0 flex-col gap-[18px]">
-            {/* Today's departures */}
-            {showDepartures && (
-              <Card className="overflow-hidden">
-                <div className="flex items-center justify-between border-b border-[#EEF1F3] px-[18px] py-4">
-                  <h2 className="flex items-center gap-2.5 text-[15px] font-extrabold text-ink">
-                    <IconClock width={17} height={17} className="text-teal" /> Today&apos;s
-                    departures
-                  </h2>
-                  <span className="text-[12.5px] text-ink-muted">
-                    {data.departures.length} scheduled
-                  </span>
-                </div>
-                {data.departures.length === 0 ? (
-                  <div className="px-[18px] py-10 text-center text-sm text-ink-muted">
-                    No departures today. Enjoy the calm.
-                  </div>
-                ) : (
-                  data.departures.map((d) => {
-                    const pill = statusPill(d.status);
-                    return (
-                      <Link
-                        key={d.id}
-                        // Without Bookings the booking page is "No access"; the Calendar has the day sheet.
-                        href={showBookings ? `/admin/bookings?open=${d.id}` : '/admin/calendar'}
-                        className="flex items-center gap-3.5 border-b border-[#F4F6F7] px-[18px] py-3.5 last:border-b-0 hover:bg-[#FAFBFC]"
-                      >
-                        <div className="w-12 shrink-0 text-center">
-                          {d.time ? (
-                            <div className="text-[15px] font-extrabold tracking-tight text-ink">
-                              {d.time}
-                            </div>
-                          ) : (
-                            // No start time set on the tour: say so rather than print the slot's
-                            // placeholder clock. Staff set it under Tours → Logistics.
-                            <div
-                              className="text-[11px] font-bold leading-tight text-ink-muted"
-                              title="No start time set on this tour"
-                            >
-                              Time TBC
-                            </div>
-                          )}
-                        </div>
-                        <div className="h-9 w-px self-stretch bg-[#EEF1F3]" />
-                        <div className="min-w-0 flex-1">
-                          <div className="truncate text-sm font-bold text-ink">{d.tour}</div>
-                          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[12.5px] text-ink-muted">
-                            <span className="inline-flex items-center gap-1">
-                              <IconUsers width={13} height={13} /> {d.guests}
-                            </span>
-                            {d.pickup && (
-                              <>
-                                <span className="h-1 w-1 rounded-full bg-[#cdd6d8]" />
-                                <span className="inline-flex min-w-0 items-center gap-1">
-                                  <IconPin width={13} height={13} className="shrink-0" />
-                                  <span className="truncate">{d.pickup}</span>
-                                </span>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                        <span
-                          className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold ${pill.cls}`}
-                        >
-                          <span className={`h-1.5 w-1.5 rounded-full ${pill.dot}`} />
-                          {pill.label}
-                        </span>
-                      </Link>
-                    );
-                  })
-                )}
-              </Card>
-            )}
-
-            {/* Recent bookings */}
-            {showBookings && (
-              <Card className="overflow-hidden">
-                <div className="flex items-center justify-between border-b border-[#EEF1F3] px-[18px] py-4">
-                  <h2 className="text-[15px] font-extrabold text-ink">Recent bookings</h2>
-                  <Link
-                    href="/admin/bookings"
-                    className="text-[12.5px] font-bold text-teal hover:text-teal-dark"
-                  >
-                    See all
-                  </Link>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[520px] border-collapse">
-                    <thead>
-                      <tr className="bg-[#FAFBFC] text-left text-[11px] font-bold uppercase tracking-wide text-ink-muted">
-                        <th className="px-[18px] py-2.5">Customer</th>
-                        <th className="px-3 py-2.5">Tour</th>
-                        <th className="px-3 py-2.5">Total</th>
-                        <th className="px-[18px] py-2.5">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {data.recent.map((r) => {
-                        const pill = statusPill(r.status);
-                        const open = () => router.push(`/admin/bookings?open=${r.id}`);
-                        return (
-                          <tr
-                            key={r.id}
-                            onClick={open}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter' || e.key === ' ') {
-                                e.preventDefault();
-                                open();
-                              }
-                            }}
-                            tabIndex={0}
-                            role="link"
-                            aria-label={`Open booking ${r.ref} for ${r.customer}`}
-                            className="cursor-pointer border-t border-[#F2F4F6] hover:bg-[#FAFBFC] focus:bg-[#FAFBFC] focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-teal"
-                          >
-                            <td className="px-[18px] py-3">
-                              <div className="flex items-center gap-2.5">
-                                <Avatar name={r.customer} />
-                                <span className="min-w-0">
-                                  <span className="block whitespace-nowrap text-[13.5px] font-bold text-ink">
-                                    {r.customer}
-                                  </span>
-                                  <span className="block text-[11.5px] capitalize text-ink-muted">
-                                    {r.source}
-                                  </span>
-                                </span>
-                              </div>
-                            </td>
-                            <td className="max-w-[170px] px-3 py-3 text-[13px] text-ink/70">
-                              <span className="block truncate">{r.tour}</span>
-                            </td>
-                            <td className="whitespace-nowrap px-3 py-3 text-[13.5px] font-bold text-ink">
-                              {euro(r.totalEur)}
-                            </td>
-                            <td className="px-[18px] py-3">
-                              <span
-                                className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold ${pill.cls}`}
-                              >
-                                <span className={`h-1.5 w-1.5 rounded-full ${pill.dot}`} />
-                                {pill.label}
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                      {data.recent.length === 0 && (
-                        <tr>
-                          <td
-                            colSpan={4}
-                            className="px-[18px] py-10 text-center text-sm text-ink-muted"
-                          >
-                            No bookings yet.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </Card>
-            )}
-          </div>
-        )}
-
-        {/* ===== RIGHT ===== */}
-        <div className="flex min-w-0 flex-col gap-[18px]">
-          {/* Revenue — interactive: hover for a tooltip, toggle 7D / 4W / 12M */}
-          {showMoney && (
-            <Card className="p-[18px]">
-              <RevenueChart revenue={data.revenue} />
-            </Card>
-          )}
-
-          {/* Needs attention */}
-          {showBookings && (
-            <Card className="overflow-hidden">
-              <div className="flex items-center justify-between border-b border-[#EEF1F3] px-[18px] py-4">
-                <h2 className="text-[15px] font-extrabold text-ink">Needs attention</h2>
-                <span className="rounded-lg bg-amber-50 px-2.5 py-1 text-[11.5px] font-bold text-amber-700">
-                  {data.pendingCount} pending
-                </span>
-              </div>
-              {data.pending.length === 0 ? (
-                <div className="px-[18px] py-10 text-center text-sm text-ink-muted">
-                  No pending payments. All settled.
-                </div>
-              ) : (
-                data.pending.map((p) => (
-                  <Link
-                    key={p.id}
-                    href={`/admin/bookings?open=${p.id}`}
-                    className="flex items-center gap-3 border-b border-[#F4F6F7] px-[18px] py-3.5 last:border-b-0 hover:bg-[#FAFBFC]"
-                  >
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-700">
-                      <IconWallet width={17} height={17} />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-[13.5px] font-bold text-ink">{p.customer}</div>
-                      <div className="mt-0.5 text-[12px] text-ink-muted">
-                        {p.ref} · payment pending
-                      </div>
-                    </div>
-                    <span className="text-sm font-extrabold text-ink">{euro(p.totalEur)}</span>
-                  </Link>
-                ))
-              )}
-            </Card>
-          )}
-
-          {/* Part paid — a deposit (or earlier installment) in, the balance still to collect. Rows are
-              per-booking amounts like Needs attention, so the same Bookings gate; the summed figure
-              in the header is a business total, so only with money.revenue (else the count). */}
-          {showBookings && (
-            <Card className="overflow-hidden">
-              <div className="flex items-center justify-between gap-3 border-b border-[#EEF1F3] px-[18px] py-4">
-                <h2 className="text-[15px] font-extrabold text-ink">Part paid</h2>
-                <div className="flex items-center gap-3">
-                  {data.partPaid.length > 0 && (
-                    <Link
-                      href="/admin/bookings?pay=part_paid"
-                      className="text-[12.5px] font-bold text-teal hover:text-teal-dark"
-                    >
-                      See all
-                    </Link>
-                  )}
-                  <span className="rounded-lg bg-[#e6eefc] px-2.5 py-1 text-[11.5px] font-bold text-[#1d4f9e]">
-                    {showMoney
-                      ? `${euro(data.partPaidBalanceEur)} to collect`
-                      : `${data.partPaid.length} open`}
-                  </span>
-                </div>
-              </div>
-              {data.partPaid.length === 0 ? (
-                <div className="px-[18px] py-10 text-center text-sm text-ink-muted">
-                  No balances to collect.
-                </div>
-              ) : (
-                data.partPaid.slice(0, PART_PAID_ROWS).map((p) => (
-                  <Link
-                    key={p.id}
-                    href={`/admin/bookings?open=${p.id}`}
-                    className="flex items-center gap-3 border-b border-[#F4F6F7] px-[18px] py-3.5 last:border-b-0 hover:bg-[#FAFBFC]"
-                  >
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#e6eefc] text-[#1d4f9e]">
-                      <IconWallet width={17} height={17} />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-[13.5px] font-bold text-ink">{p.customer}</div>
-                      <div className="mt-0.5 truncate text-[12px] text-ink-muted">
-                        {p.ref} ·{' '}
-                        {p.tripAt
-                          ? `trip ${fmtDateShort(p.tripAt)}`
-                          : `booked ${fmtDateShort(p.bookedAt)}`}
-                      </div>
-                    </div>
-                    <div className="shrink-0 text-right">
-                      <div className="text-sm font-extrabold text-ink">{euro(p.balanceDueEur)}</div>
-                      <div className="text-[11.5px] text-ink-muted">of {euro(p.totalEur)}</div>
-                    </div>
-                  </Link>
-                ))
-              )}
-            </Card>
-          )}
-
-          {/* Settings — the editable "Chat on WhatsApp" number and ZilAi's maintenance notice. (How
-              cards are charged, MUR/EUR + the rate, lives on the Pricing page.) */}
-          <WhatsAppNumberCard />
-          <ZilAiMaintenanceCard />
+      {/* The figures across the top. */}
+      {needsBookings && bookings === null ? (
+        <div className="mb-3.5 grid grid-cols-2 gap-3.5 lg:grid-cols-4" aria-hidden="true">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div
+              key={i}
+              className="h-[124px] animate-pulse rounded-xl border border-line bg-white motion-reduce:animate-none"
+            />
+          ))}
         </div>
-      </div>
+      ) : (
+        kpis.length > 0 && (
+          <div
+            className={`mb-3.5 grid grid-cols-2 gap-3.5 ${KPI_COLS[kpis.length] ?? 'lg:grid-cols-4'}`}
+          >
+            {kpis.map((k, i) => {
+              const look = KPI_LOOK[k.key] ?? KPI_LOOK.today!;
+              // A change pill only where there is a real comparison, a trend line only where there
+              // is a real series: the money taken (day by day, against the 7 days before) and the
+              // week's departures (day by day, from the Calendar's read).
+              const delta = k.key === 'revenue' && data ? data.revenue['7d'].deltaPct : null;
+              const spark =
+                k.key === 'revenue' && data
+                  ? data.revenue['7d'].points.map((p) => p.value)
+                  : k.key === 'upcoming' && lines
+                    ? departuresByDay(lines, today)
+                    : null;
+              return (
+                <MetricCard
+                  key={k.key}
+                  index={i}
+                  label={k.label}
+                  value={k.value}
+                  detail={delta !== null ? 'Against the 7 days before' : k.detail}
+                  href={k.href}
+                  icon={look.icon}
+                  tone={look.tone}
+                  delta={delta}
+                  deltaAgainst="the 7 days before"
+                  spark={spark}
+                  className={
+                    kpis.length % 2 === 1 && k === kpis[kpis.length - 1]
+                      ? 'col-span-2 lg:col-span-1'
+                      : ''
+                  }
+                />
+              );
+            })}
+          </div>
+        )
+      )}
+
+      {/* The day and the latest bookings on the left, what needs doing and the money on the right.
+          The two columns run independently, so a short run sheet never leaves a hole beside a long
+          "Needs you": the bookings table rises into the space. On a phone the order is run sheet,
+          Needs you, Money in, latest bookings. */}
+      {(runSheet || showRight || latestPanel) && (
+        <div
+          className={`mb-3.5 grid grid-cols-1 items-start gap-3.5 ${
+            twoCols ? 'xl:grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)] xl:grid-rows-[auto_1fr]' : ''
+          }`}
+        >
+          {runSheet && <div className="min-w-0 xl:col-start-1 xl:row-start-1">{runSheet}</div>}
+          {showRight && (
+            <div
+              className={`flex min-w-0 flex-col gap-3.5 ${twoCols ? 'xl:col-start-2 xl:row-span-2 xl:row-start-1' : ''}`}
+            >
+              {showNeeds && (
+                <NeedsYouCard
+                  needs={needs}
+                  loading={needs === null}
+                  showMoney={showMoney}
+                  showBookings={showBookings}
+                />
+              )}
+              {showMoney && data && <RevenueChart revenue={data.revenue} />}
+            </div>
+          )}
+          {latestPanel}
+        </div>
+      )}
     </div>
   );
 }

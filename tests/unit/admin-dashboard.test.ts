@@ -186,6 +186,14 @@ describe('computeDashboard', () => {
     expect(d.revenue['7d'].totalEur).toBe(d.revenueWeekEur);
     // this window 100 vs previous window 50 → +100%
     expect(d.revenue['7d'].deltaPct).toBe(100);
+    // "The period before", bucket for bucket: its sum is exactly the baseline the change compares to.
+    const sum = (xs: number[]) => xs.reduce((s, v) => s + v, 0);
+    expect(d.revenue['7d'].previous).toHaveLength(7);
+    expect(sum(d.revenue['7d'].previous)).toBe(50);
+    expect(d.revenue['4w'].previous).toHaveLength(4);
+    expect(sum(d.revenue['4w'].previous)).toBe(0);
+    expect(d.revenue['12m'].previous).toHaveLength(12);
+    expect(sum(d.revenue['12m'].previous)).toBe(0);
 
     // Both bookings land inside the last 28 days; the prior 28 days earned nothing → null delta.
     expect(d.revenue['4w'].totalEur).toBe(150);

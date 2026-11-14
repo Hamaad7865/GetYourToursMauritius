@@ -31,7 +31,8 @@ import {
   type CalLine,
   type LineType,
 } from '@/lib/admin/calendar-view';
-import { AdminError } from './ui';
+import { AdminError, Segmented, buttonClass } from './ui';
+import { useElementWidth, useTopbarHeight } from './useDock';
 import { DayPanel, type PanelActions } from './calendar/DayPanel';
 import { MonthGrid } from './calendar/MonthGrid';
 import { WeekGrid, type WeekDay } from './calendar/WeekGrid';
@@ -46,34 +47,9 @@ type View = 'month' | 'week';
  *  beside it; narrower — a small screen, or the assistant column open — it slides over with a scrim. */
 const DOCK_AT = 1110;
 
-/** The calendar's own width — not the window's: the assistant column narrows it without a resize. */
-function useWidth(ref: React.RefObject<HTMLElement | null>): number {
-  const [width, setWidth] = useState(0);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const update = () => setWidth(el.getBoundingClientRect().width);
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [ref]);
-  return width;
-}
-
-/** The admin top bar's real height, so the docked panel sits flush under it. */
-function useTopbarHeight(): number {
-  const [height, setHeight] = useState(65);
-  useEffect(() => {
-    const el = document.querySelector<HTMLElement>('[data-admin-topbar]');
-    if (!el) return;
-    const update = () => setHeight(el.offsetHeight);
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-  return height;
+/** "1 departure", "23 guests". */
+function count(n: number, one: string): string {
+  return `${n.toLocaleString('en-GB')} ${n === 1 ? one : `${one}s`}`;
 }
 
 function isTyping(e: KeyboardEvent): boolean {
@@ -107,7 +83,7 @@ export function AdminCalendar() {
   }, []);
 
   const rootRef = useRef<HTMLDivElement>(null);
-  const width = useWidth(rootRef);
+  const width = useElementWidth(rootRef);
   const docked = width >= DOCK_AT;
   const topbar = useTopbarHeight();
 
@@ -140,6 +116,28 @@ export function AdminCalendar() {
     if (wasDocked.current && !docked) setPanelOpen(false);
     wasDocked.current = docked;
   }, [docked, width]);
+
+  // A link from Today (`?day=2026-11-14`, optionally `&line=<line key>`) opens that day's sheet, on
+  // that line. Read once from the address: the page has no Suspense boundary for useSearchParams,
+  // and the link only ever matters on arrival.
+  const deepLinked = useRef(false);
+  useEffect(() => {
+    if (deepLinked.current) return;
+    deepLinked.current = true;
+    const params = new URLSearchParams(window.location.search);
+    const day = params.get('day');
+    if (!day || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(day)) return;
+    const line = params.get('line');
+    openedOnce.current = true; // the link decides which day opens, not the auto-open on today
+    setYm(yearMonth(day));
+    setWeekStart(mondayOf(day));
+    setSelected(day);
+    setPanelOpen(true);
+    if (line) {
+      setFocusKey(line);
+      setExpanded((s) => new Set(s).add(line));
+    }
+  }, []);
 
   // ── The period on screen, and the one before it (for the "vs last month" figure) ──
   const month = monthGridRange(ym[0], ym[1]);
@@ -364,6 +362,18 @@ export function AdminCalendar() {
             : `${dayNumber(weekStart)} ${MONTHS[m1]!.slice(0, 3)} – ${dayNumber(end)} ${MONTHS[m2]!.slice(0, 3)}`;
         })();
   const periodYear = view === 'month' ? ym[0] : yearMonth(addDays(weekStart, 6))[0];
+  // "19 departures and 96 guests this week. 2 need attention." — the figures below, in a sentence.
+  const when =
+    view === 'month'
+      ? `in ${MONTHS[ym[1]]}`
+      : weekStart === mondayOf(today)
+        ? 'this week'
+        : 'in the week';
+  const headline = `${count(summary.departures, 'departure')} and ${count(summary.guests, 'guest')} ${when}. ${
+    summary.attention === 0
+      ? 'Nothing needs attention.'
+      : `${summary.attention} ${summary.attention === 1 ? 'needs' : 'need'} attention.`
+  }`;
 
   const cells = useMemo(
     () => (view === 'month' ? monthCells(ym[0], ym[1], byDay, today, filters) : []),
@@ -418,65 +428,40 @@ export function AdminCalendar() {
     <div ref={rootRef} className="flex min-w-0">
       <div className="min-w-0 flex-1 px-4 pb-12 pt-6 sm:px-6 lg:px-8 lg:pt-7">
         <div className="mx-auto flex max-w-[1640px] flex-col gap-[18px]">
-          <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
-            <div className="flex min-w-0 flex-col gap-2">
-              <p className="text-[12px] font-bold uppercase tracking-[0.16em] text-teal-dark">
-                Calendar
-              </p>
-              <h1 className="text-[34px] font-extrabold leading-none tracking-[-0.025em] text-ink sm:text-[42px]">
-                {periodTitle}
-                <span className="ml-3 font-semibold text-[#7d8d8f]">{periodYear}</span>
+          <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+            <div className="min-w-0">
+              <h1 className="text-[22px] font-bold leading-[1.2] tracking-[-0.02em] text-ink">
+                {periodTitle} <span className="font-semibold text-ink-soft">{periodYear}</span>
               </h1>
-              <p className="mt-0.5 max-w-[620px] text-[14.5px] leading-[1.5] text-ink-muted [text-wrap:pretty]">
-                Every departure, day by day. Open a day for pickups, child seats, flights and notes,
-                then move a departure or call it off.
-              </p>
+              <p className="mt-[3px] text-[13px] text-ink-soft">{headline}</p>
             </div>
-            <div className="flex flex-wrap items-center gap-2.5">
-              <div
-                className="flex gap-0.5 rounded-[11px] bg-[#e6eceb] p-[3px]"
-                role="group"
-                aria-label="View"
-              >
-                {(['month', 'week'] as const).map((v) => (
-                  <button
-                    key={v}
-                    type="button"
-                    onClick={() => changeView(v)}
-                    aria-pressed={view === v}
-                    className={`h-8 rounded-lg px-4 text-[13px] font-semibold capitalize ${
-                      view === v
-                        ? 'bg-white text-ink shadow-[0_1px_2px_rgba(15,42,45,0.14)]'
-                        : 'text-ink-muted hover:text-ink'
-                    }`}
-                  >
-                    {v}
-                  </button>
-                ))}
-              </div>
-              <button
-                type="button"
-                onClick={goToday}
-                className="h-[38px] rounded-[10px] border border-[#d6dfde] bg-white px-3.5 text-[13.5px] font-semibold text-ink hover:bg-[#f3f6f5]"
-              >
+            <div className="flex flex-wrap items-center gap-2">
+              <NavButton
+                title={view === 'month' ? 'Previous month' : 'Previous week'}
+                d={ICON.chevronLeft}
+                onClick={() => shiftPeriod(-1)}
+              />
+              <button type="button" onClick={goToday} className={buttonClass('ghost')}>
                 Today
               </button>
-              <div className="flex gap-1.5">
-                <NavButton
-                  title={view === 'month' ? 'Previous month' : 'Previous week'}
-                  d={ICON.chevronLeft}
-                  onClick={() => shiftPeriod(-1)}
-                />
-                <NavButton
-                  title={view === 'month' ? 'Next month' : 'Next week'}
-                  d={ICON.chevronRight}
-                  onClick={() => shiftPeriod(1)}
-                />
-              </div>
+              <NavButton
+                title={view === 'month' ? 'Next month' : 'Next week'}
+                d={ICON.chevronRight}
+                onClick={() => shiftPeriod(1)}
+              />
+              <Segmented
+                label="View"
+                options={[
+                  { value: 'month', label: 'Month' },
+                  { value: 'week', label: 'Week' },
+                ]}
+                value={view}
+                onChange={(v) => changeView(v)}
+              />
             </div>
           </header>
 
-          <div className="grid grid-cols-2 overflow-hidden rounded-2xl border border-[#e3e9e8] bg-white lg:grid-cols-[repeat(auto-fit,minmax(140px,1fr))]">
+          <div className="grid grid-cols-2 overflow-hidden rounded-xl border border-line bg-white lg:grid-cols-[repeat(auto-fit,minmax(140px,1fr))]">
             <Kpi
               label="Departures"
               dot="#0f8387"
@@ -547,15 +532,13 @@ export function AdminCalendar() {
               role="switch"
               aria-checked={filters.attentionOnly}
               onClick={() => setFilters((f) => ({ ...f, attentionOnly: !f.attentionOnly }))}
-              className={`flex h-8 items-center gap-2.5 rounded-full border pl-1.5 pr-3 text-[13px] font-medium text-[#3c5255] ${
-                filters.attentionOnly
-                  ? 'border-[#f0cf9a] bg-[#fff7ea]'
-                  : 'border-[#d6dfde] bg-white'
+              className={`flex h-8 items-center gap-2.5 rounded-full border pl-1.5 pr-3 text-[13px] font-medium text-ink-muted ${
+                filters.attentionOnly ? 'border-gold-light bg-gold-tint' : 'border-line bg-white'
               }`}
             >
               <span
                 className={`relative h-[18px] w-[30px] shrink-0 rounded-full transition-colors ${
-                  filters.attentionOnly ? 'bg-[#e08a12]' : 'bg-[#cdd8d7]'
+                  filters.attentionOnly ? 'bg-gold-dark' : 'bg-[#7D8F94]'
                 }`}
               >
                 <span
@@ -594,7 +577,8 @@ export function AdminCalendar() {
             )}
           </div>
 
-          <div className="hidden flex-wrap justify-end gap-3.5 text-[12px] text-[#6b7c7e] lg:flex">
+          <div className="hidden flex-wrap justify-end gap-3.5 text-[12px] text-ink-soft lg:flex">
+            <span>Open a day for pickups, child seats, flights and notes</span>
             <span>← → change day or period</span>
             <span>Esc closes the panel</span>
           </div>
@@ -604,7 +588,7 @@ export function AdminCalendar() {
       {panelOpen && docked && (
         <aside
           aria-label="Day"
-          className="sticky w-[440px] shrink-0 self-start border-l border-[#e3e9e8]"
+          className="sticky w-[440px] shrink-0 self-start border-l border-line"
           style={{ top: topbar, height: `calc(100dvh - ${topbar}px)` }}
         >
           {panel}
@@ -652,7 +636,7 @@ function NavButton({ title, d, onClick }: { title: string; d: string; onClick: (
       title={title}
       aria-label={title}
       onClick={onClick}
-      className="flex h-[38px] w-[38px] items-center justify-center rounded-[10px] border border-[#d6dfde] bg-white text-ink hover:bg-[#f3f6f5]"
+      className="flex h-9 w-9 items-center justify-center rounded-lg border border-line bg-white text-ink hover:border-[#C2CED1] hover:bg-[#FAFBFB]"
     >
       <Ic d={d} size={18} />
     </button>
@@ -678,26 +662,26 @@ function Kpi({
 }) {
   const body = (
     <>
-      <span className="flex items-center gap-2 text-[13px] font-semibold text-[#3c5255]">
+      <span className="flex items-center gap-2 text-[13px] font-semibold text-ink-muted">
         <span className="h-[7px] w-[7px] shrink-0 rounded-full" style={{ background: dot }} />
         <span>{label}</span>
-        {action && <span className="ml-auto text-[12px] font-bold text-[#a15c07]">{action}</span>}
+        {action && <span className="ml-auto text-[12px] font-bold text-gold-dark">{action}</span>}
       </span>
-      <span className="text-[30px] font-extrabold leading-none tracking-[-0.02em] tabular-nums text-ink">
+      <span className="text-[26px] font-bold leading-[1.15] tracking-[-0.02em] tabular-nums text-ink">
         {value}
       </span>
       <span className="text-[12.5px] text-ink-muted">{sub}</span>
     </>
   );
-  const cls = `-ml-px flex flex-col gap-1.5 border-l border-t border-[#e9eeed] px-5 pb-[15px] pt-4 text-left transition-colors lg:border-t-0 ${
-    active ? 'bg-[#fff7ea]' : 'bg-white'
+  const cls = `-ml-px flex flex-col gap-1 border-l border-t border-line-soft px-4 py-3.5 text-left transition-colors motion-reduce:transition-none lg:border-t-0 ${
+    active ? 'bg-gold-tint' : 'bg-white'
   }`;
   return onClick ? (
     <button
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`${cls} ${active ? 'hover:bg-[#fff2dc]' : 'hover:bg-[#fbfaf6]'}`}
+      className={`${cls} ${active ? 'hover:bg-gold-light/30' : 'hover:bg-[#FAFBFB]'}`}
     >
       {body}
     </button>
@@ -723,8 +707,8 @@ function TypeChip({
       type="button"
       onClick={onClick}
       aria-pressed={on}
-      className={`flex h-8 items-center gap-2 rounded-full border pl-[11px] pr-3 text-[13px] font-medium transition-colors hover:border-[#b8c8c6] ${
-        on ? 'border-[#d6dfde] bg-white text-ink' : 'border-[#dfe6e5] bg-transparent text-[#6b7c7e]'
+      className={`flex h-8 items-center gap-2 rounded-full border pl-[11px] pr-3 text-[13px] font-medium transition-colors hover:border-[#C2CED1] motion-reduce:transition-none ${
+        on ? 'border-line bg-white text-ink' : 'border-line-soft bg-transparent text-ink-soft'
       }`}
     >
       <span
@@ -733,7 +717,7 @@ function TypeChip({
       />
       <span>{T.label}</span>
       <span
-        className={`text-[12px] font-semibold tabular-nums ${on ? 'text-ink-muted' : 'text-[#8d9b9d]'}`}
+        className={`text-[12px] font-semibold tabular-nums ${on ? 'text-ink-muted' : 'text-ink-soft'}`}
       >
         {count}
       </span>

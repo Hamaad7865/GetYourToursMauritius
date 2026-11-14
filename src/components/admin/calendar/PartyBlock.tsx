@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { resolvePickup } from '@/components/admin/BookingFacts';
+import { partyChip, resolvePickup, type ChipSpec } from '@/components/admin/BookingFacts';
 import { PickupText } from '@/components/admin/PickupText';
 import { fmtDate, fmtDateShort, fmtDateTime } from '@/lib/admin/format';
 import {
@@ -13,7 +13,9 @@ import {
   type DayReturnLeg,
 } from '@/lib/admin/calendar';
 import { LINE_TYPES, type LineType } from '@/lib/admin/calendar-view';
-import type { BookingStatus, PaymentState } from '@/lib/admin/bookings';
+import type { BookingStatus, PaymentState, PaymentView } from '@/lib/admin/bookings';
+import { mailtoHref, telHref, whatsappChatHref } from '@/lib/admin/contact-links';
+import { StatusChip } from '@/components/admin/ui';
 import { euros, FlagTag, Ic, ICON, initials } from './parts';
 
 /* One guest party inside an expanded calendar line. Everything staff need to run the trip without
@@ -27,55 +29,40 @@ interface Row {
   missing?: boolean;
 }
 
-/** The payment chip the prototype draws: paid, deposit paid, unpaid — or the ledger's own state. */
+/** A party's chip — the shared booking/payment vocabulary (BookingFacts), read through
+ *  {@link paymentView} so "Part paid" here means what it means on Today and in Bookings. */
 function payChip(
   status: BookingStatus,
   state: PaymentState,
   counted: boolean,
-  balanceDueEur: number,
-): { label: string; cls: string } {
-  if (!counted) {
-    return {
-      label: status === 'held' ? 'Seat held' : 'Awaiting payment',
-      cls: 'bg-[#fdecea] text-[#b42318]',
-    };
-  }
-  if (state === 'refunded' || state === 'partially_refunded') {
-    return {
-      label: state === 'refunded' ? 'Refunded' : 'Partly refunded',
-      cls: 'bg-slate-100 text-slate-600',
-    };
-  }
-  if (state === 'failed') return { label: 'Payment failed', cls: 'bg-[#fdecea] text-[#b42318]' };
-  if (balanceDueEur > 0) return { label: 'Deposit paid', cls: 'bg-[#e6eefc] text-[#1d4f9e]' };
-  if (state === 'paid') return { label: 'Paid', cls: 'bg-[#e2f3ea] text-[#17663f]' };
-  return { label: 'Pending', cls: 'bg-amber-50 text-amber-700' };
+  payView: PaymentView | undefined,
+): ChipSpec {
+  return partyChip({ status, counted, payView: payView ?? state });
 }
 
+/** Email, call and WhatsApp, each only when the stored value can safely become that link
+ *  (src/lib/admin/contact-links.ts): one strict address; a WhatsApp number with its country code. */
 function ContactButtons({ email, phone }: { email: string; phone: string | null }) {
-  const digits = phone?.replace(/\D/g, '') ?? '';
+  const mail = mailtoHref(email);
+  const tel = telHref(phone);
+  const wa = whatsappChatHref(phone);
   const cls =
-    'flex h-8 w-8 items-center justify-center rounded-full border border-[#dfe6e5] bg-white text-[#3c5255] hover:border-[#bfdcd9] hover:bg-[#e7f4f3] hover:text-teal-dark';
+    'flex h-8 w-8 items-center justify-center rounded-full border border-line bg-white text-ink-muted hover:border-[#C2CED1] hover:bg-teal-tint hover:text-teal-dark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-dark';
   return (
     <div className="flex shrink-0 gap-1">
-      {email && (
-        <a href={`mailto:${email}`} title={email} aria-label={`Email ${email}`} className={cls}>
+      {mail && (
+        <a href={mail} title={email} aria-label={`Email ${email}`} className={cls}>
           <Ic d={ICON.mail} size={15} stroke={1.9} />
         </a>
       )}
-      {phone && (
-        <a
-          href={`tel:${phone.replace(/\s+/g, '')}`}
-          title={phone}
-          aria-label={`Call ${phone}`}
-          className={cls}
-        >
+      {tel && phone && (
+        <a href={tel} title={phone} aria-label={`Call ${phone}`} className={cls}>
           <Ic d={ICON.phone} size={15} stroke={1.9} />
         </a>
       )}
-      {digits.length >= 7 && (
+      {wa && (
         <a
-          href={`https://wa.me/${digits}`}
+          href={wa}
           target="_blank"
           rel="noopener noreferrer"
           title={`WhatsApp ${phone}`}
@@ -119,7 +106,9 @@ function Shell({
   flags: string[];
   money: boolean;
   valueEur: number | null;
-  chip: { label: string; cls: string };
+  chip: ChipSpec;
+  /** What is still to collect — shown only when the payment reads "Part paid" (a stored balance
+   *  alone is not a debt: an unpaid booking carries its whole total there). */
   balanceDueEur: number;
   bookedAt: string;
   source: string;
@@ -130,7 +119,7 @@ function Shell({
 }) {
   const T = LINE_TYPES[type];
   return (
-    <div className="flex flex-col gap-3 border-b border-[#e9eeed] p-3.5">
+    <div className="flex flex-col gap-3 border-b border-line-soft p-3.5">
       <div className="flex items-center gap-2.5">
         <span
           aria-hidden="true"
@@ -169,12 +158,12 @@ function Shell({
               key={r.k}
               className="grid grid-cols-[88px_minmax(0,1fr)] gap-3 text-[13px] leading-[1.45]"
             >
-              <dt className="pt-0.5 text-[11px] font-bold uppercase tracking-[0.08em] text-[#6b7c7e]">
+              <dt className="pt-0.5 text-[11px] font-bold uppercase tracking-[0.08em] text-ink-muted">
                 {r.k}
               </dt>
               <dd
                 className={`min-w-0 [overflow-wrap:anywhere] ${
-                  r.missing ? (upcoming ? 'text-[#a15c07]' : 'text-[#6b7c7e]') : 'text-ink'
+                  r.missing ? (upcoming ? 'text-gold-dark' : 'text-ink-muted') : 'text-ink'
                 }`}
               >
                 {r.v}
@@ -190,12 +179,8 @@ function Shell({
             {euros(valueEur, true)}
           </span>
         )}
-        <span
-          className={`inline-flex h-[22px] items-center rounded-full px-2 text-[12px] font-semibold ${chip.cls}`}
-        >
-          {chip.label}
-        </span>
-        {money && balanceDueEur > 0 && (
+        <StatusChip tone={chip.tone}>{chip.label}</StatusChip>
+        {money && chip.label === 'Part paid' && balanceDueEur > 0 && (
           <span className="text-[12px] text-ink-muted">{euros(balanceDueEur)} balance due</span>
         )}
       </div>
@@ -203,7 +188,7 @@ function Shell({
       {children}
 
       <div className="flex flex-wrap items-center justify-between gap-2.5">
-        <span className="text-[12px] text-[#6b7c7e]">
+        <span className="text-[12px] text-ink-muted">
           Booked {fmtDateTime(bookedAt)} · via {source}
         </span>
         <span className="flex items-center gap-3">
@@ -349,7 +334,7 @@ export function DeparturePartyBlock({
   rows.push({
     k: 'Contact',
     v: (
-      <span className="text-[#3c5255]">
+      <span className="text-ink-muted">
         {[b.customerEmail, b.customerPhone].filter(Boolean).join(' · ')}
       </span>
     ),
@@ -367,7 +352,7 @@ export function DeparturePartyBlock({
       flags={flags}
       money={money}
       valueEur={b.counted ? b.valueEur : null}
-      chip={payChip(b.status, b.paymentState, b.counted, b.balanceDueEur)}
+      chip={payChip(b.status, b.paymentState, b.counted, b.payView)}
       balanceDueEur={b.balanceDueEur}
       bookedAt={b.bookedAt}
       source={b.source}
@@ -424,7 +409,7 @@ export function CustomPartyBlock({
   rows.push({
     k: 'Contact',
     v: (
-      <span className="text-[#3c5255]">
+      <span className="text-ink-muted">
         {[line.customerEmail, line.customerPhone].filter(Boolean).join(' · ')}
       </span>
     ),
@@ -441,7 +426,7 @@ export function CustomPartyBlock({
       flags={flags}
       money={money}
       valueEur={line.valueEur}
-      chip={payChip(line.status, line.paymentState, line.counted, line.balanceDueEur)}
+      chip={payChip(line.status, line.paymentState, line.counted, line.payView)}
       balanceDueEur={line.balanceDueEur}
       bookedAt={line.bookedAt}
       source={line.source}
@@ -481,7 +466,7 @@ export function ReturnLegPartyBlock({
   rows.push({
     k: 'Contact',
     v: (
-      <span className="text-[#3c5255]">
+      <span className="text-ink-muted">
         {[leg.customerEmail, leg.customerPhone].filter(Boolean).join(' · ')}
       </span>
     ),
@@ -499,7 +484,7 @@ export function ReturnLegPartyBlock({
       money={money}
       // Its fare is on the arrival departure that carries the booking line.
       valueEur={null}
-      chip={payChip(leg.status, leg.paymentState, leg.counted, leg.balanceDueEur)}
+      chip={payChip(leg.status, leg.paymentState, leg.counted, leg.payView)}
       balanceDueEur={leg.balanceDueEur}
       bookedAt={leg.bookedAt}
       source={leg.source}

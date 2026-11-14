@@ -1070,6 +1070,161 @@
   }
 }
 
+/* ── Back office: the printed run sheet ───────────────────────────────────────
+   "Print run sheet" on Today and on the Calendar's day sheet (src/components/admin/RunSheetPrint.tsx)
+   mounts a `.bmt-print-sheet` straight under <body> and sets `bmt-printing` on <html> while the print
+   dialog is open. On screen the sheet never shows; on paper ONLY the sheet shows: A4 portrait, black
+   on white, every distinction in words or weight (CALLED OFF, NOT PAID YET), never colour alone.
+   Plain CSS rather than utilities so the page reads the same in every browser's print engine. */
+.bmt-print-sheet {
+  display: none;
+}
+@media print {
+  html.bmt-printing body > *:not(.bmt-print-sheet) {
+    display: none !important;
+  }
+  html.bmt-printing .bmt-print-sheet {
+    display: block;
+    color: #000;
+    background: #fff;
+    font-size: 10pt;
+    line-height: 1.35;
+    page: bmt-run-sheet;
+  }
+  /* A named page, so A4 portrait applies to this sheet only, never to another print view. */
+  @page bmt-run-sheet {
+    size: A4 portrait;
+    margin: 12mm;
+  }
+  .bmt-print-sheet .rs-head {
+    border-bottom: 2px solid #000;
+    padding-bottom: 4pt;
+    margin-bottom: 8pt;
+  }
+  .bmt-print-sheet .rs-head h1 {
+    font-size: 15pt;
+    font-weight: 700;
+    margin: 0;
+  }
+  .bmt-print-sheet .rs-head p,
+  .bmt-print-sheet .rs-empty {
+    margin: 2pt 0 0;
+  }
+  .bmt-print-sheet .rs-block {
+    break-inside: avoid;
+    margin: 0 0 10pt;
+  }
+  .bmt-print-sheet .rs-block h2 {
+    display: flex;
+    gap: 8pt;
+    align-items: baseline;
+    font-size: 11.5pt;
+    font-weight: 700;
+    margin: 0;
+  }
+  .bmt-print-sheet .rs-time {
+    min-width: 46pt;
+  }
+  .bmt-print-sheet .rs-off {
+    border: 1.5pt solid #000;
+    padding: 0 3pt;
+    font-size: 9pt;
+    letter-spacing: 0.04em;
+  }
+  .bmt-print-sheet .rs-meta {
+    margin: 1pt 0 3pt 54pt;
+    font-size: 9pt;
+  }
+  .bmt-print-sheet .rs-parties {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .bmt-print-sheet .rs-parties th {
+    text-align: left;
+    font-size: 8.5pt;
+    font-weight: 700;
+    border-bottom: 1pt solid #000;
+    padding: 2pt 4pt;
+  }
+  .bmt-print-sheet .rs-parties td {
+    vertical-align: top;
+    border-bottom: 0.5pt solid #777;
+    padding: 3pt 4pt;
+  }
+  .bmt-print-sheet .rs-parties tr {
+    break-inside: avoid;
+  }
+  .bmt-print-sheet .rs-parties td:first-child {
+    width: 30%;
+  }
+  .bmt-print-sheet .rs-parties td:nth-child(2) {
+    width: 30%;
+  }
+  .bmt-print-sheet .rs-sub,
+  .bmt-print-sheet .rs-place {
+    display: block;
+  }
+  .bmt-print-sheet .rs-sub {
+    font-size: 9pt;
+  }
+  .bmt-print-sheet .rs-flag {
+    display: inline-block;
+    margin-top: 2pt;
+    border: 1pt solid #000;
+    padding: 0 3pt;
+    font-size: 8.5pt;
+    font-weight: 700;
+  }
+  .bmt-print-sheet .rs-place a {
+    color: #000;
+  }
+  .bmt-print-sheet .rs-facts {
+    margin: 0;
+  }
+  .bmt-print-sheet .rs-facts div {
+    display: flex;
+    gap: 4pt;
+  }
+  .bmt-print-sheet .rs-facts dt {
+    font-weight: 700;
+    min-width: 58pt;
+  }
+  .bmt-print-sheet .rs-facts dd {
+    margin: 0;
+    white-space: pre-wrap;
+  }
+}
+
+/* ── Back office: entrances and trend lines (Today) ──────────────────────────
+   Cards rise in one after another (`--i` is a card's place in its row) and a trend line draws from
+   left to right, after ObsidianUI's analytics dashboard. Only for people who have not asked for less
+   motion: with reduced motion everything is simply there. */
+@media (prefers-reduced-motion: no-preference) {
+  .bmt-rise {
+    animation: bmt-rise 520ms cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+    animation-delay: calc(var(--i, 0) * 55ms);
+  }
+  .bmt-spark-reveal {
+    animation: bmt-spark-reveal 900ms cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+    animation-delay: calc(var(--i, 0) * 55ms + 240ms);
+  }
+}
+@keyframes bmt-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+    filter: blur(3px);
+  }
+}
+@keyframes bmt-spark-reveal {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
 /* ── Touch: no focus-zoom ─────────────────────────────────────────────────────
    WebKit zooms the whole page when you focus a form control whose font-size is under 16px, and it
    does not zoom back out on blur — the viewport stays scrolled and clipped (the "Search" button and

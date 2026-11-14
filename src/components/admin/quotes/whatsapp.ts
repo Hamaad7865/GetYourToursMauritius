@@ -17,35 +17,8 @@ import { SITE } from '@/lib/seo/site';
  * company's own number when the one given is empty.
  */
 
-export type WhatsAppNumber = { digits: string } | { reason: string };
-
-const NEEDS_CODE =
-  'Add the country code to the guest’s phone number (for example +44 7700 900123) to send on WhatsApp.';
-
-/** The digits wa.me dials, or why this phone number cannot be used. */
-export function whatsappNumber(phone: string | null | undefined): WhatsAppNumber {
-  const raw = String(phone ?? '').trim();
-  if (!raw) {
-    return { reason: 'No phone number on this quote. Add the guest’s WhatsApp number to use it.' };
-  }
-  // Spacing and punctuation people type; a national "(0)" trunk digit after the country code.
-  const compact = raw.replace(/\(0\)/g, '').replace(/[\s().\-/]/g, '');
-  let digits: string;
-  if (compact.startsWith('+')) digits = compact.slice(1);
-  else if (compact.startsWith('00')) digits = compact.slice(2);
-  else return { reason: NEEDS_CODE };
-  if (!/^\d+$/.test(digits)) {
-    return {
-      reason: 'The guest’s phone number has letters or an extension in it. Keep only the number.',
-    };
-  }
-  if (digits.startsWith('0') || digits.length < 8 || digits.length > 15) {
-    return {
-      reason: 'The guest’s phone number is not a full international number. Check the digits.',
-    };
-  }
-  return { digits };
-}
+// The number rule itself is shared with the Bookings and Calendar contact links.
+export { whatsappNumber, type WhatsAppNumber } from '@/lib/admin/contact-links';
 
 /** `https://wa.me/<digits>?text=<message>`, the message URL-encoded. */
 export function whatsappHref(digits: string, text: string): string {

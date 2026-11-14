@@ -209,6 +209,7 @@ describe('admin navigation by permission', () => {
       '/admin/bookings',
       '/admin/calendar',
       '/admin/quotes',
+      '/admin/settings',
     ]);
     expect(allows(reservations, navItemForPath('/admin/reports')!)).toBe(false);
   });
@@ -221,7 +222,15 @@ describe('admin navigation by permission', () => {
       '/admin/seo',
       '/admin/blog',
       '/admin/redirects',
+      '/admin/settings',
     ]);
+  });
+
+  it('Settings is for every back-office member, as its cards were on Today', () => {
+    for (const access of [owner, reservations, writer, buildAccess({ role: 'staff' })]) {
+      expect(navFor(access).map((n) => n.href)).toContain('/admin/settings');
+    }
+    expect(navFor(NO_ACCESS).map((n) => n.href)).not.toContain('/admin/settings');
   });
 
   it('Roles is in the nav for the Owner only', () => {
@@ -268,7 +277,11 @@ describe('admin navigation by permission', () => {
       teamRoleId: 'r',
       permissions: ['section.calendar'],
     });
-    expect(bottomNavFor(calendarOnly).map((n) => n.href)).toEqual(['/admin', '/admin/calendar']);
+    expect(bottomNavFor(calendarOnly).map((n) => n.href)).toEqual([
+      '/admin',
+      '/admin/calendar',
+      '/admin/settings',
+    ]);
     const fewContent = buildAccess({
       role: 'seo',
       teamRoleId: 'c',
@@ -278,6 +291,7 @@ describe('admin navigation by permission', () => {
       '/admin',
       '/admin/planner-places',
       '/admin/blog',
+      '/admin/settings',
     ]);
   });
 
@@ -326,6 +340,7 @@ describe('the grouped sidebar', () => {
       '/admin/reviews': ['Growth', 'Reviews'],
       '/admin/redirects': ['Growth', 'Redirects'],
       '/admin/roles': ['Admin', 'Team and roles'],
+      '/admin/settings': ['Admin', 'Settings'],
     });
   });
 
@@ -341,11 +356,13 @@ describe('the grouped sidebar', () => {
     ).toEqual([
       [null, ['/admin']],
       ['Operations', ['/admin/bookings', '/admin/calendar', '/admin/quotes']],
+      ['Admin', ['/admin/settings']],
     ]);
     expect(groupedNav(navFor(writer)).map((s) => [s.group, s.items.map((n) => n.href)])).toEqual([
       [null, ['/admin']],
       ['Catalogue', ['/admin/activities', '/admin/planner-places']],
       ['Growth', ['/admin/seo', '/admin/blog', '/admin/redirects']],
+      ['Admin', ['/admin/settings']],
     ]);
     expect(groupedNav(navFor(NO_ACCESS))).toEqual([]);
   });

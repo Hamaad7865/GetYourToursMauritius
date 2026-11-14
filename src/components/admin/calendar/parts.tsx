@@ -73,7 +73,7 @@ export function TypeDot({ type, size = 8 }: { type: LineType; size?: number }) {
 /** An amber "needs doing" tag, with the warning triangle. */
 export function FlagTag({ children }: { children: ReactNode }) {
   return (
-    <span className="inline-flex h-[22px] items-center gap-[5px] rounded-md bg-[#fdf1de] px-2 text-[12px] font-semibold text-[#8f4c06]">
+    <span className="inline-flex h-[22px] items-center gap-[5px] rounded-md bg-gold-tint px-2 text-[12px] font-semibold text-gold-dark">
       <Ic d={ICON.alert} size={12} stroke={2.2} />
       {children}
     </span>
@@ -82,7 +82,7 @@ export function FlagTag({ children }: { children: ReactNode }) {
 
 export function CalledOffTag() {
   return (
-    <span className="inline-flex h-[22px] items-center rounded-md bg-[#fdecea] px-2 text-[12px] font-semibold text-[#b42318]">
+    <span className="inline-flex h-[22px] items-center rounded-md bg-coral-tint px-2 text-[12px] font-semibold text-coral-dark">
       Called off
     </span>
   );

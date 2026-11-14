@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { installmentPaid, nextInstallment } from '@/lib/admin/installments';
 
 /**
  * Per-date payment schedule for the ADMIN drawer — an operational forecast, not just a list. For each
@@ -100,7 +101,7 @@ export function PaymentSchedule({
   const settled = round2(installments.reduce((s, i) => s + Math.min(i.coveredEur, i.amountEur), 0));
   const remainingTotal = round2(Math.max(0, total - settled));
   // The NEXT payment: the earliest installment not yet fully covered. Null once everything is settled.
-  const next = installments.find((i) => i.coveredEur < i.amountEur - 0.005) ?? null;
+  const next = nextInstallment(installments);
   const nextRemaining = next ? round2(next.amountEur - next.coveredEur) : 0;
 
   return (
@@ -134,7 +135,7 @@ export function PaymentSchedule({
 
       <ul className="mt-2 flex flex-col gap-1.5">
         {installments.map((i) => {
-          const paid = i.coveredEur >= i.amountEur - 0.005;
+          const paid = installmentPaid(i);
           const isNext = next !== null && i.seq === next.seq;
           const remaining = round2(i.amountEur - i.coveredEur);
           // A row partly covered by the deposit/earlier waterfall shows what is STILL owed, so the
@@ -191,7 +192,7 @@ export function PaymentSchedule({
                         </button>
                       )}
                       {st?.status === 'error' && (
-                        <span className="ml-2 text-[11px] text-coral">{st.msg}</span>
+                        <span className="ml-2 text-[11px] text-coral-dark">{st.msg}</span>
                       )}
                     </span>
                   )}
@@ -207,7 +208,7 @@ export function PaymentSchedule({
                 ) : (
                   <span
                     className={`rounded-full px-2 py-0.5 text-[11px] font-bold tabular-nums ${
-                      isNext ? 'bg-teal text-white' : 'bg-ink/[0.06] text-ink-muted'
+                      isNext ? 'bg-teal-dark text-white' : 'bg-ink/[0.06] text-ink-muted'
                     }`}
                   >
                     {partlyCovered ? `${eur(remaining)} due` : 'Due'}

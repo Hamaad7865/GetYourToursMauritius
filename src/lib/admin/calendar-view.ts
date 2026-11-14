@@ -428,6 +428,35 @@ export function byTime(a: CalLine, b: CalLine): number {
   return ta - tb || a.title.localeCompare(b.title);
 }
 
+/** How full a departure is, in the unit its pool is counted in. */
+export interface CapacityUse {
+  used: number;
+  max: number;
+  /** "8 of 12" (booking units — seats on a seat tour, groups or vehicles on a private or vehicle
+   *  option), or "2 of 3 trips" on a shared option sold by the trip. */
+  label: string;
+}
+
+/**
+ * The "N of M" a departure shows on the day sheet and on Today's run sheet — ONE rule. Capacity is
+ * counted in booking UNITS (what `used_capacity` gates on), never in heads; a shared option with a
+ * guests-per-trip cap re-reads its pool as trips. Null for anything with no pool (a quote's custom or
+ * rental line, a return leg).
+ */
+export function capacityUse(entry: DayEntry): CapacityUse | null {
+  if (entry.kind !== 'occurrence') return null;
+  if (entry.guestsPerTrip) {
+    const trips = Math.max(1, Math.round(entry.capacity / entry.guestsPerTrip));
+    const used = Math.ceil(entry.pax / entry.guestsPerTrip);
+    return { used, max: trips, label: `${used} of ${trips} trip${trips === 1 ? '' : 's'}` };
+  }
+  return {
+    used: entry.units,
+    max: entry.capacity,
+    label: `${entry.units} of ${entry.capacity}`,
+  };
+}
+
 export function toCalLines(entries: DayEntry[], today: string): CalLine[] {
   return entries.map((e) => toCalLine(e, today)).sort(byTime);
 }

@@ -6,6 +6,7 @@ import {
   type PaymentState,
 } from './bookings';
 import { serviceWhen } from './format';
+import { isAwaitingPayment } from './booking-views';
 
 /* Admin dashboard view-model. All figures are DERIVED from the bookings the admin can already
  * read (loadBookings) — no extra queries — and computed in a pure function so they're unit-testable
@@ -80,6 +81,10 @@ export interface RevenuePoint {
 /** A revenue series for one period, plus its total and honest change vs the immediately prior period. */
 export interface RevenueSeries {
   points: RevenuePoint[];
+  /** The same buckets one period earlier (the 7 days before, the 4 weeks before, the 12 months
+   *  before), bucket for bucket, so the chart can draw "the period before" under this one. Their sum
+   *  is exactly the baseline `deltaPct` compares against. */
+  previous: number[];
   totalEur: number;
   /** Rounded % change vs the previous equal-length window; null when that window earned nothing
    *  (no divide-by-zero, no fabricated figure). */
@@ -228,10 +233,9 @@ export function computeDashboard(bookings: BookingRow[], now: Date): DashboardDa
     paymentState: b.paymentState,
   }));
 
-  // Needs attention: payment still pending.
-  const pendingAll = bookings.filter(
-    (b) => b.paymentState === 'pending' && !NOT_ACTIVE.has(b.status),
-  );
+  // Awaiting payment: money still expected on a live booking — the ONE rule the Bookings screen's
+  // "Awaiting payment" tab uses too (src/lib/admin/booking-views.ts), over the same full list.
+  const pendingAll = bookings.filter(isAwaitingPayment);
   const pendingTotalEur = pendingAll.reduce((s, b) => s + b.totalEur, 0);
   const pending: PendingRow[] = pendingAll.slice(0, 4).map((b) => ({
     id: b.id,
@@ -309,6 +313,7 @@ export function computeDashboard(bookings: BookingRow[], now: Date): DashboardDa
     days7.push({ label: weekdayShort(day), value: netOnDay(day) });
   }
   const total7 = days7.reduce((s, p) => s + p.value, 0);
+  const before7 = Array.from({ length: 7 }, (_, i) => netOnDay(addDays(today, -13 + i)));
   const prev7 = sumDays(addDays(today, -13), addDays(today, -7));
 
   const weeks4: RevenuePoint[] = [];
@@ -318,6 +323,10 @@ export function computeDashboard(bookings: BookingRow[], now: Date): DashboardDa
     weeks4.push({ label: dayMonthShort(end), value: sumDays(start, end) });
   }
   const total4 = weeks4.reduce((s, p) => s + p.value, 0);
+  const before4 = Array.from({ length: 4 }, (_, w) => {
+    const end = addDays(today, -28 - 7 * (3 - w));
+    return sumDays(addDays(end, -6), end);
+  });
   const prev4 = sumDays(addDays(today, -55), addDays(today, -28));
 
   const thisMonth = monthKey(today);
@@ -327,13 +336,25 @@ export function computeDashboard(bookings: BookingRow[], now: Date): DashboardDa
     months12.push({ label: monthShort(mk), value: netOnMonth(mk) });
   }
   const total12 = months12.reduce((s, p) => s + p.value, 0);
-  let prev12 = 0;
-  for (let m = 0; m < 12; m += 1) prev12 += netOnMonth(addMonthKey(thisMonth, -23 + m));
+  const before12 = Array.from({ length: 12 }, (_, m) =>
+    netOnMonth(addMonthKey(thisMonth, -23 + m)),
+  );
+  const prev12 = before12.reduce((s, v) => s + v, 0);
 
   const revenue: RevenueByPeriod = {
-    '7d': { points: days7, totalEur: total7, deltaPct: pctDelta(total7, prev7) },
-    '4w': { points: weeks4, totalEur: total4, deltaPct: pctDelta(total4, prev4) },
-    '12m': { points: months12, totalEur: total12, deltaPct: pctDelta(total12, prev12) },
+    '7d': { points: days7, previous: before7, totalEur: total7, deltaPct: pctDelta(total7, prev7) },
+    '4w': {
+      points: weeks4,
+      previous: before4,
+      totalEur: total4,
+      deltaPct: pctDelta(total4, prev4),
+    },
+    '12m': {
+      points: months12,
+      previous: before12,
+      totalEur: total12,
+      deltaPct: pctDelta(total12, prev12),
+    },
   };
 
   const stats: DashStat[] = [

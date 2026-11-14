@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { resolvePickup } from '@/components/admin/BookingFacts';
+import {
+  partyChip,
+  paymentCsvLabel,
+  paymentPill,
+  resolvePickup,
+  statusPill,
+} from '@/components/admin/BookingFacts';
 
 /* The day sheet and the bookings drawer brief the same driver about the same pickup, so they resolve
  * it through this one pure function. The bug it fixes: a quote-converted booking carries its hotel only
@@ -101,5 +107,72 @@ describe('resolvePickup — airport-transfer direction', () => {
     });
     expect(r.pickup).toEqual({ kind: 'none' });
     expect(r.dropoff).toEqual({ kind: 'text', text: 'SSR International Airport (departures)' });
+  });
+});
+
+/* Phase 2 of the back-office redesign: ONE status vocabulary on Today, Bookings and the Calendar. */
+describe('status and payment chips', () => {
+  it('names every booking status the same way on every screen', () => {
+    const all = [
+      'draft',
+      'held',
+      'payment_pending',
+      'confirmed',
+      'completed',
+      'cancelled',
+      'expired',
+      'failed',
+      'refund_pending',
+      'refunded',
+    ] as const;
+    expect(all.map((s) => statusPill(s).label)).toEqual([
+      'Draft',
+      'Seat held',
+      'Awaiting payment',
+      'Confirmed',
+      'Completed',
+      'Cancelled',
+      'Expired',
+      'Failed',
+      'Refund pending',
+      'Refunded',
+    ]);
+    expect(statusPill('confirmed').tone).toBe('ok');
+    expect(statusPill('cancelled').tone).toBe('bad');
+    expect(statusPill('payment_pending').tone).toBe('warn');
+  });
+
+  it('reads a payment through paymentView, and a closed never-paid booking as "Not paid"', () => {
+    expect(paymentPill('part_paid', 'confirmed')).toEqual({ label: 'Part paid', tone: 'warn' });
+    expect(paymentPill('paid', 'confirmed')).toEqual({ label: 'Paid', tone: 'ok' });
+    expect(paymentPill('pending', 'expired')).toEqual({ label: 'Not paid', tone: 'neutral' });
+    expect(paymentPill('pending', 'payment_pending')).toEqual({
+      label: 'Pending',
+      tone: 'neutral',
+    });
+    expect(paymentPill('partially_refunded', 'confirmed').label).toBe('Partly refunded');
+    expect(paymentPill('failed', 'payment_pending')).toEqual({ label: 'Failed', tone: 'bad' });
+  });
+
+  it('keeps the CSV Payment column byte-identical to what it exported before', () => {
+    expect(paymentCsvLabel('partially_refunded', 'confirmed')).toBe('Partially Refunded');
+    expect(paymentCsvLabel('refunded', 'refunded')).toBe('Refunded');
+    expect(paymentCsvLabel('part_paid', 'confirmed')).toBe('Part paid');
+    expect(paymentCsvLabel('pending', 'cancelled')).toBe('Not paid');
+    expect(paymentCsvLabel('pending', 'held')).toBe('Pending');
+    expect(paymentCsvLabel('paid', 'completed')).toBe('Paid');
+    expect(paymentCsvLabel('failed', 'failed')).toBe('Failed');
+  });
+
+  it('a party still in checkout wears its booking status; one holding seats, its payment', () => {
+    expect(partyChip({ status: 'held', counted: false, payView: 'pending' }).label).toBe(
+      'Seat held',
+    );
+    expect(partyChip({ status: 'payment_pending', counted: false, payView: 'pending' }).label).toBe(
+      'Awaiting payment',
+    );
+    expect(partyChip({ status: 'confirmed', counted: true, payView: 'part_paid' }).label).toBe(
+      'Part paid',
+    );
   });
 });

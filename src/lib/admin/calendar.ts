@@ -4,10 +4,12 @@ import { rpcErrorText } from '@/lib/admin/rpc-error';
 import {
   hotelPickupTime,
   mapTransfer,
+  paymentView,
   TRANSFER_SELECT,
   type AdminTransferDetails,
   type BookingStatus,
   type PaymentState,
+  type PaymentView,
   type RawTransferFields,
 } from '@/lib/admin/bookings';
 import { occurrenceDepartureTime, tourDepartureTime } from '@/lib/catalogue/departure-time';
@@ -98,6 +100,9 @@ export interface DayBooking {
   valueEur: number;
   /** What the guest still owes (`bookings.balance_due_minor`), in EUR — non-zero on a deposit booking. */
   balanceDueEur: number;
+  /** How the payment READS ({@link paymentView}: "part_paid" only when a deposit genuinely left a
+   *  balance). Optional so a test fixture need not restate it; the chip falls back to `paymentState`. */
+  payView?: PaymentView;
 }
 
 export interface DayDeparture {
@@ -190,6 +195,8 @@ export interface DayCustomLine {
   valueEur: number;
   /** What the guest still owes on the owning booking, in EUR. */
   balanceDueEur: number;
+  /** The owning booking's {@link paymentView}; optional like {@link DayBooking.payView}. */
+  payView?: PaymentView;
   bookingId: string;
   ref: string;
   status: BookingStatus;
@@ -243,6 +250,8 @@ export interface DayReturnLeg {
   staffNote: string | null;
   /** What the guest still owes on the booking, in EUR. */
   balanceDueEur: number;
+  /** The booking's {@link paymentView}; optional like {@link DayBooking.payView}. */
+  payView?: PaymentView;
 }
 
 /** One row of the day sheet: a real departure, a dated custom/rental line, or a return transfer's
@@ -308,6 +317,7 @@ interface RawDayBooking extends RawTransferFields {
   booking_supplements: Array<{ name: string; qty: number; position: number }> | null;
   disruption: { resolvedAt?: string | null } | null;
   balance_due_minor?: number | null;
+  deposit_minor?: number | null;
   /** PostgREST embedded counts: how many lines the booking has in all, so a departure can tell whether
    *  it holds the WHOLE booking (and may count its total) or only part of it. */
   itemCount?: Array<{ count: number }> | null;
@@ -395,10 +405,32 @@ function awaitingChoice(disruption: { resolvedAt?: string | null } | null): bool
   return disruption != null && disruption.resolvedAt == null;
 }
 
+/**
+ * A party's payment as it READS — {@link paymentView} over the booking's own money columns, so the
+ * day sheet says "Part paid" exactly when the Bookings list and Today do (never on a stored
+ * `balance_due_minor` alone, which an unpaid or declined booking also carries).
+ */
+function payViewOf(raw: {
+  status: BookingStatus;
+  payment_state: PaymentState;
+  total_minor?: number | null;
+  deposit_minor?: number | null;
+  balance_due_minor?: number | null;
+}): PaymentView {
+  return paymentView({
+    status: raw.status,
+    paymentState: raw.payment_state,
+    totalEur: (raw.total_minor ?? 0) / 100,
+    depositEur: (raw.deposit_minor ?? 0) / 100,
+    balanceDueEur: (raw.balance_due_minor ?? 0) / 100,
+  });
+}
+
 const BOOKING_FIELDS = `
   id, ref, status, payment_state, customer_name, customer_email, customer_phone,
   source, total_minor, notes, created_at, custom_itinerary,
   pickup_location, dropoff_location, pickup_pending, child_seats, disruption, balance_due_minor,
+  deposit_minor,
   booking_supplements ( name, qty, position ),
   itemCount:booking_items ( count ), customCount:booking_custom_items ( count ),
   ${TRANSFER_SELECT}
@@ -409,7 +441,8 @@ const BOOKING_FIELDS = `
  *  (return_time, departure_flight_number, …); the one booking line carries the vehicle + headcount. */
 const RETURN_LEG_SELECT = `
   id, ref, status, payment_state, customer_name, customer_email, customer_phone,
-  source, created_at, notes, pickup_location, dropoff_location, balance_due_minor, ${TRANSFER_SELECT},
+  source, created_at, notes, pickup_location, dropoff_location, balance_due_minor, total_minor,
+  deposit_minor, ${TRANSFER_SELECT},
   booking_items ( quantity, pax, price_label )
 `;
 
@@ -512,6 +545,7 @@ export function mapDaySchedule(rows: RawDayRow[]): DayDeparture[] {
         reschedulable: b.status === 'confirmed' && b.payment_state === 'paid',
         valueEur: 0,
         balanceDueEur: (b.balance_due_minor ?? 0) / 100,
+        payView: payViewOf(b),
       });
     }
 
@@ -665,6 +699,7 @@ export function mapDayCustomLines(rows: RawDayCustomItem[]): DayCustomLine[] {
       subtotalEur: raw.subtotal_minor / 100,
       valueEur: (raw.subtotal_minor + (raw.transport_fare_minor ?? 0)) / 100,
       balanceDueEur: (b.balance_due_minor ?? 0) / 100,
+      payView: payViewOf(b),
       bookingId: b.id,
       ref: b.ref,
       status: b.status,
@@ -757,6 +792,8 @@ export interface RawReturnLeg extends RawTransferFields {
   pickup_location: string | null;
   dropoff_location: string | null;
   balance_due_minor?: number | null;
+  total_minor?: number | null;
+  deposit_minor?: number | null;
   booking_items: Array<{ quantity: number; pax: number | null; price_label: string | null }> | null;
 }
 
@@ -813,6 +850,7 @@ export function mapReturnLegs(rows: RawReturnLeg[]): DayReturnLeg[] {
       roomOrCabin: raw.room_or_cabin,
       staffNote: raw.notes,
       balanceDueEur: (raw.balance_due_minor ?? 0) / 100,
+      payView: payViewOf(raw),
     });
   }
   return out;

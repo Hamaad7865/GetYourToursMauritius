@@ -1,5 +1,11 @@
 import Link from 'next/link';
-import type { HTMLAttributes, ReactNode, TdHTMLAttributes, ThHTMLAttributes } from 'react';
+import type {
+  CSSProperties,
+  HTMLAttributes,
+  ReactNode,
+  TdHTMLAttributes,
+  ThHTMLAttributes,
+} from 'react';
 import { IconCheck } from '@/components/ui/icons';
 
 /* The back office's shared look: design-reference/backoffice-redesign/bo.css, in Tailwind.
@@ -116,6 +122,7 @@ export function Panel({
   label,
   children,
   className = '',
+  style,
 }: {
   title?: string;
   meta?: ReactNode;
@@ -124,10 +131,13 @@ export function Panel({
   label?: string;
   children: ReactNode;
   className?: string;
+  /** Inline custom properties (Today passes `--i`, its place in the staggered entrance). */
+  style?: CSSProperties;
 }) {
   return (
     <section
       aria-label={title ? undefined : label}
+      style={style}
       className={`min-w-0 rounded-xl border border-line bg-white ${className}`}
     >
       {(title || meta || actions) && (

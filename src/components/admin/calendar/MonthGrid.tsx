@@ -84,8 +84,8 @@ export function MonthGrid({
   onOpenLine: (day: string, key: string) => void;
 }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-[#e3e9e8] bg-white shadow-[0_1px_2px_rgba(15,42,45,0.04)]">
-      <div className="grid grid-cols-7 border-b border-[#e3e9e8] bg-[#fafcfb]">
+    <div className="overflow-hidden rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(15,42,45,0.04)]">
+      <div className="grid grid-cols-7 border-b border-line bg-[#fafcfb]">
         {WEEKDAYS.map((w) => (
           <div
             key={w}
@@ -134,9 +134,9 @@ function DayCell({
         ? 'bg-[#fbfcfc] hover:bg-[#f5faf9]'
         : 'bg-white hover:bg-[#f5faf9]';
   const numInk = c.isToday
-    ? 'bg-teal text-white'
+    ? 'bg-teal-dark text-white'
     : !c.inMonth
-      ? 'text-[#8d9b9d]'
+      ? 'text-ink-soft'
       : c.isPast
         ? 'text-ink-muted'
         : 'text-ink';
@@ -183,7 +183,7 @@ function DayCell({
           {c.guests > 0 && (
             <span
               className={`hidden items-center gap-[3px] text-[12px] font-semibold tabular-nums md:inline-flex ${
-                c.isPast ? 'text-ink-muted' : 'text-[#3c5255]'
+                c.isPast ? 'text-ink-muted' : 'text-ink-muted'
               }`}
             >
               <Ic d={ICON.users} size={12} stroke={2.2} />
@@ -206,7 +206,7 @@ function DayCell({
           />
         ))}
         {c.guests > 0 && (
-          <span className="text-[11px] font-semibold tabular-nums text-[#3c5255]">{c.guests}</span>
+          <span className="text-[11px] font-semibold tabular-nums text-ink-muted">{c.guests}</span>
         )}
       </div>
 

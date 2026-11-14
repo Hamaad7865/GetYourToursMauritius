@@ -37,7 +37,7 @@ export function WeekGrid({
   return (
     // Seven columns need ~900px; beside a docked day panel that can be more than the page has, so
     // the week scrolls sideways inside its card rather than crushing the cards unreadable.
-    <div className="overflow-hidden overflow-x-auto rounded-2xl border border-[#e3e9e8] bg-white shadow-[0_1px_2px_rgba(15,42,45,0.04)]">
+    <div className="overflow-hidden overflow-x-auto rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(15,42,45,0.04)]">
       <div className="grid grid-cols-1 gap-px bg-[#e8eeed] lg:min-w-[896px] lg:grid-cols-7">
         {days.map((d, i) => (
           <WeekColumn
@@ -81,7 +81,7 @@ function WeekColumn({
         type="button"
         onClick={() => onOpenDay(d.day)}
         aria-pressed={selected}
-        className={`border-b border-[#e9eeed] px-3 pb-[11px] pt-3 text-left transition-colors hover:bg-[#f3f9f8] ${
+        className={`border-b border-line-soft px-3 pb-[11px] pt-3 text-left transition-colors hover:bg-[#f3f9f8] ${
           selected ? 'bg-[#eef7f6] shadow-[inset_0_-2px_0_rgb(var(--color-teal))]' : ''
         }`}
       >
@@ -94,7 +94,7 @@ function WeekColumn({
             {WEEKDAYS[index]!.slice(0, 3)}
           </span>
           {d.isToday && (
-            <span className="ml-auto inline-flex h-5 items-center rounded-full bg-teal px-2 text-[11px] font-bold text-white">
+            <span className="ml-auto inline-flex h-5 items-center rounded-full bg-teal-dark px-2 text-[11px] font-bold text-white">
               Today
             </span>
           )}
@@ -124,7 +124,7 @@ function WeekColumn({
         ))}
         {allDay.length > 0 && (
           <div className="mt-1 flex flex-col gap-1">
-            <span className="px-0.5 text-[11px] font-bold uppercase tracking-[0.1em] text-[#6b7c7e]">
+            <span className="px-0.5 text-[11px] font-bold uppercase tracking-[0.1em] text-ink-soft">
               All day
             </span>
             {allDay.map((l) => (
@@ -144,14 +144,14 @@ function WeekCard({ line, past, onOpen }: { line: CalLine; past: boolean; onOpen
     <button
       type="button"
       onClick={onOpen}
-      className="flex flex-col gap-[5px] rounded-[10px] border border-[#e3e9e8] bg-white px-2.5 pb-2.5 pt-[9px] text-left transition hover:border-[#bfd3d1] hover:shadow-[0_8px_18px_-12px_rgba(15,42,45,0.4)]"
+      className="flex flex-col gap-[5px] rounded-[10px] border border-line bg-white px-2.5 pb-2.5 pt-[9px] text-left transition hover:border-[#bfd3d1] hover:shadow-[0_8px_18px_-12px_rgba(15,42,45,0.4)]"
       style={{ opacity: line.cancelled ? 0.6 : past ? 0.78 : 1 }}
     >
       <span className="flex items-center gap-1.5">
         <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: T.dot }} />
         <span className="text-[12.5px] font-bold tabular-nums text-ink">{line.time ?? 'TBC'}</span>
         {PEOPLE_TYPES.has(line.type) && (
-          <span className="ml-auto inline-flex items-center gap-[3px] text-[12px] font-semibold tabular-nums text-[#3c5255]">
+          <span className="ml-auto inline-flex items-center gap-[3px] text-[12px] font-semibold tabular-nums text-ink-muted">
             <Ic d={ICON.users} size={12} stroke={2.2} />
             {line.guests + line.pendingGuests}
           </span>
@@ -167,7 +167,7 @@ function WeekCard({ line, past, onOpen }: { line: CalLine; past: boolean; onOpen
       {line.where && (
         <span
           className={`flex min-w-0 items-center gap-[5px] text-[12px] ${
-            line.whereMissing && !past ? 'text-[#a15c07]' : 'text-ink-muted'
+            line.whereMissing && !past ? 'text-gold-dark' : 'text-ink-muted'
           }`}
         >
           <Ic d={isFlight ? ICON.plane : ICON.pin} size={12} className="shrink-0" />
@@ -175,7 +175,7 @@ function WeekCard({ line, past, onOpen }: { line: CalLine; past: boolean; onOpen
         </span>
       )}
       {line.flags.length > 0 && (
-        <span className="self-start rounded-md bg-[#fdf1de] px-[7px] py-0.5 text-[11.5px] font-semibold text-[#8f4c06]">
+        <span className="self-start rounded-md bg-gold-tint px-[7px] py-0.5 text-[11.5px] font-semibold text-gold-dark">
           {line.flags.join(' · ')}
         </span>
       )}

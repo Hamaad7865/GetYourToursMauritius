@@ -1,7 +1,9 @@
 # Back office redesign: design and hand-off
 
-Status: mock-ups published 14 Nov 2026. Phase 0 is built (uncommitted, see "Phase 0 result"). The owner
-started phase 1 (quotes) the same day. Phases 2 to 5 are not started.
+Status: mock-ups published 14 Nov 2026. Phases 0 and 1 are built, committed and pushed as `1dd63efc` on
+14 Nov 2026. Phase 2 (Today, Bookings, Calendar) was built the same day, reworked with the owner on
+15 Nov 2026, and is uncommitted in the working tree (see each phase's result below). Phases 3 to 5
+are not started.
 
 ## Where the mock-ups are
 
@@ -151,7 +153,7 @@ owner to look before the next begins. Nothing is pushed without the owner saying
 | 4     | Tour editor, Availability, Pricing                                                                           | Opus   | Catalogue and fares: mistakes here change what guests pay      |
 | 5     | Settings with system health, Ctrl K palette, "New" menu                                                      | Opus   | New capabilities                                               |
 
-### Phase 0 result (built 14 Nov 2026, uncommitted in the working tree)
+### Phase 0 result (built 14 Nov 2026, shipped in `1dd63efc`)
 
 Gate green on the final code. No signed-in admin screen was looked at in a browser.
 
@@ -189,7 +191,7 @@ the drawer (focus held, Esc closes), the bottom bar and 16px inputs. Found and f
 - The assistant's own name for screens (`screenName` in `AssistantProvider.tsx`) still says "Leads" and
   "Dashboard".
 
-### Phase 1 result (built 14 Nov 2026, uncommitted in the working tree)
+### Phase 1 result (built 14 Nov 2026, shipped in `1dd63efc`)
 
 Quotes: the worklist and the one-page editor. No migration, no SQL and no change to pricing,
 conversion, the pay routes or the send route.
@@ -319,6 +321,245 @@ below for now: a `wa.me` link, no Business API.
   route to skip the email (a small change, no migration), if wanted.
 - Follow-up (it existed before): if a new quote has been saved and is still open when the assistant
   hands over another enquiry, the drafter does not pick it up until the quote is closed.
+
+### Phase 2 result (built 14 Nov 2026, reworked with the owner 15 Nov, uncommitted in the working tree)
+
+Today (`/admin`), Bookings and Calendar, on phase 0's shared pieces. Same routes and the same
+permissions as before, plus one new screen, Settings (see "Changed with the owner on 15 Nov"). No
+migration, no SQL, no new API route, and no change to pricing, booking creation, payment settlement,
+refunds, cancelling or rescheduling.
+
+**One set of words for status** (`BookingFacts.tsx`)
+
+- `statusPill` and `paymentPill` now give a label and a tone for the shared `StatusChip`. The Bookings
+  list and detail, both tables on Today and the Calendar's party blocks all use them, so a booking
+  reads the same on all three screens. "Part paid" comes only from `paymentView()`; the Calendar now
+  reads `deposit_minor` (and `total_minor` on return legs) so it can use the same rule.
+- The CSV's Payment column keeps exactly its old words (`paymentCsvLabel`).
+
+**Today** (`AdminDashboard.tsx`; rules in `today/rules.ts`; `today/RunSheetCard.tsx`,
+`today/NeedsYouCard.tsx`, `RevenueChart.tsx`)
+
+- Heading: the day in Mauritius ("Saturday 14 November"), then "Good evening, Sheik. 4 departures
+  today, 23 guests, and 4 things that need you.", built only from figures the viewer may see.
+- Figures on top: Departures today (with guests and pickups), Taken in the last 7 days (with the change
+  against the 7 days before, only when there is one), Awaiting payment (a count, with the euros only for
+  `money.revenue`), Departures in the next 7 days, and Quotes waiting (only with `section.quotes`, from
+  the quotes worklist's own rule). Who sees which card is still decided by `statsFor`.
+- Today's run sheet, then tomorrow. Both are read with the Calendar's loader and counted by the
+  Calendar's rule (paid guests only, unpaid shown as "+2 unpaid"). Each row: time ("Time TBC" when the
+  tour has none), tour and option, guests, "4 of 12 booked" with a bar (from the capacity already
+  loaded), pickups, and one chip (Called off, "1 awaiting payment", "Balance €135", or All paid). A row
+  opens that departure on the Calendar's day sheet. "Open day sheet" and "Print" sit in the card's
+  header.
+- "Needs you" replaces "Needs attention" and the "Part paid" panel, with their rules unchanged: balances
+  (`paymentView === 'part_paid'`, earliest trip first) and payments not made yet (the old Pending rule,
+  now one function shared with the Bookings tab). Each row names the guest and the problem and offers
+  one action: "Send reminder" where the booking has a per-date schedule (the existing reminder for its
+  next date), "Send balance link" for a quote-born balance (the Quotes screen's sender, with the Quotes
+  screen's question word for word), otherwise "Open". With `section.quotes` one row counts the quotes
+  waiting and opens Quotes; with `section.leads` one row counts new enquiries and opens Enquiries. "See
+  all" links open the matching Bookings tab.
+- "Money in": the same figures as the old revenue chart, drawn as a clean line with the period before
+  as a dashed line under it, and a read-out of both on hover, touch or the arrow keys. 7 days, 4 weeks
+  or 12 months. A hidden table gives the same numbers to a screen reader.
+- Latest bookings: the 6 newest, the reference opens it in Bookings.
+- The WhatsApp number and the ZilAi notice moved to their own Settings screen on 15 Nov (below).
+- Each read (bookings, day sheets, quotes, enquiries) loads on its own; if one fails, only its own part
+  says "Could not load".
+
+**Bookings** (`AdminBookings.tsx`; rules in `src/lib/admin/booking-views.ts`)
+
+- Tabs with counts, counted from the whole list: All, Awaiting payment, Today, Next 7 days, Part paid,
+  Completed, Cancelled. Today and Next 7 days go by the trip date in Mauritius time. The tab is in the
+  address (`?view=`) and combines with the search and the status, tour, payment and date filters, which
+  all stay. `?q=`, `?status=`, `?pay=`, `?date=` and `?open=<id>` work as before. The Awaiting payment
+  count is the same number as Today's card (one function, and a test that says so).
+- The order is said on screen ("Sorted by trip date, soonest first"). All and the status tabs open
+  newest booking first; Today, Next 7 days and Part paid open soonest trip first. The column headers
+  are buttons and say their order to a screen reader.
+- The detail sits beside the table when the screen is at least 1100px wide, with its row highlighted,
+  and slides over the list below that. Esc closes it (not while something is saving) and focus goes
+  back to the row. Everything in it is kept: pickup and transfer facts, the items with every extra
+  charge, "Balance still to collect", the payment schedule with "Send reminder now", payments with
+  provider references and events, change of tour, the private note, mark completed, cancel, mark
+  refunded, reset guest link and erase customer data, each with its confirmation word for word.
+- New: WhatsApp and Email buttons for the guest. WhatsApp shows only when the phone has a country code;
+  the email link only for a well-formed address. Neither carries a pre-written message or any link.
+
+**Calendar** (`AdminCalendar.tsx`, `calendar/*`)
+
+- Restyled, not rewritten: the period as a 22px title with a sentence under it ("19 departures and 96
+  guests this week. 2 need attention."), Month and Week as the shared switch, the shared buttons, and
+  the figures, type chips and "Only what needs attention" in the new colours. Every behaviour stays.
+- "Print run sheet" on the day sheet (and "Print" on Today's run sheet): one day on A4, black on white,
+  readable without colour. Per departure: time, tour and option, and each party with guests, pickup
+  place and time, room, phone, child seats, extras, route, flights and notes. Quote lines, rentals and
+  return legs are included; a called-off departure says so. Payment is printed only for someone with
+  `money.revenue`. It uses the browser's own print; nothing is sent anywhere.
+- `/admin/calendar?day=2026-11-14&line=…` opens that day, on that line (the links from Today).
+
+**Changed with the owner on 15 Nov**
+
+The owner looked at the first build and asked for changes. All of them are in this phase:
+
+- Today's layout. The run sheet and Latest bookings stack on the left; Needs you and Money in stack on
+  the right, each column its own height, so a short run sheet no longer leaves a blank area.
+- Quiet days take one line, not an empty box (`quietDays` in `today/rules.ts`). Nothing today: one
+  line. Nothing today or tomorrow: one sentence, and the next departures later this week stand in
+  their place ("The next 3, and 2 more", with "Open calendar"), or nothing more when the week is empty.
+  "Print" shows only when today has departures; the Calendar's "Print run sheet" likewise only on a
+  day with something on it. Money in with nothing taken in the period (and nothing before) shows one
+  line instead of an empty chart, with its period switch kept. Needs you with nothing to do shows one
+  line with a tick.
+- Today's look, after the owner asked for components from 21st.dev and obsidianui.dev. The figure
+  cards follow ObsidianUI's analytics dashboard: a tinted icon, the figure rolling into place digit by
+  digit, a change pill only where a real comparison exists (Taken, last 7 days, against the 7 days
+  before), and a small trend line only where a real series exists (Taken: the 7 daily totals;
+  Departures, next 7 days: one point per day, `departuresByDay`). A figure of 0 is set in grey.
+  Cards and panels rise in one after another; with reduced motion nothing moves and the figures are
+  simply there. The trend line is adapted from ObsidianUI (MIT; its notice is kept in
+  `today/Sparkline.tsx`). The rolling figure (`today/RollingNumber.tsx`) and the entrance
+  (`.bmt-rise` in `globals.css`) are written here with CSS, not copied.
+- Nothing new was installed. ObsidianUI's components need the `motion` animation library and other
+  packages, and any package lands in the edge bundle, which cannot be built on this machine. Nothing
+  was taken from 21st.dev: its connector here is not signed in (it needs a fresh key from
+  21st.dev/mcp), and each of its components carries its own author's licence.
+- Latest bookings: the guest's initials, guest and tour first, then the reference (with where the
+  booking came from), trip date, total, and payment and status as two chips in one column. The guest
+  column takes whatever width is left, so the table never scrolls sideways. `GuestAvatar.tsx` is
+  shared with Bookings (the same guest has the same colour on both).
+- A new **Settings** screen (`/admin/settings`, in the Admin group of the sidebar) holds the WhatsApp
+  number and the ZilAi notice, moved from the bottom of Today. Its menu entry has no permission of
+  its own, so everyone who saw the two cards on Today sees it.
+- The sidebar has more room between the logo and Today, and folds to a 68px rail of icons ("Hide
+  menu"), each still named on hover and to a screen reader. The choice is remembered in this browser.
+  Its foot holds Search, Hide menu, View site, Sign out and the signed-in person. The phone drawer is
+  unchanged. Groups that open and close were tried and taken out again at the owner's request; the
+  groups are plain labels as before.
+- Bookings: the search and the four filters sit in one row on top of the table; each guest has their
+  initials; payment and status are one column of two chips; Booked shows "via Web" (or the source)
+  under the date. While a booking is open beside it, the table drops to four columns (guest with the
+  reference, trip date with tour and guests, total, payment and status), so it fits without scrolling.
+  Closing the detail puts focus back on that booking's reference even when the table has changed
+  shape. The line under the title says "Nothing is waiting for payment." when nothing is.
+- Two faults found in the browser once the sandbox had a departure: a run-sheet row's chip was drawn
+  outside its row on a wide screen (every cell is now placed for both layouts), and on a phone the
+  chip squeezed the tour name (it now sits under the name). A tab opened in the background showed its
+  figures as 0 until looked at; a short timer now makes sure the real figure is there.
+- `Panel` (phase 0, `ui.tsx`) gained an optional `style`, which Today uses for the order of the
+  entrance. Nothing else in phase 0's pieces changed apart from the sidebar above (`AdminShell.tsx`).
+- On a phone the figure cards' labels wrap onto a second line rather than being cut off; on a wide
+  screen each stays on one line.
+- The owner saw the finished Today on 15 Nov and confirmed the direction ("Yes, finish").
+- "Not authorised" on reload, fixed at the owner's request. On every reload of a back-office screen
+  the Owner saw "Not authorised" for about a quarter of a second (measured: exactly while the profile
+  request was out). `AuthProvider` turns `loading` off as soon as the session is known, one request
+  before the profile, which holds the role, arrives; `AdminGuard` judged the still-empty profile as
+  "not an admin". `AuthProvider` now also says whether the signed-in person's profile is still
+  being read (`profileLoading`, from `profilePending`, which goes by whose read last finished so a
+  late answer for someone else cannot end it), and the gate shows "Loading…" until it is. Nothing
+  else reads the new field, so the public site is unchanged. Tested in
+  `tests/unit/admin-guard.test.ts` (the gate's five states and `profilePending`); after the fix,
+  three reloads (Today, Bookings, Calendar) went straight from "Loading…" to the screen.
+
+**Left out, and why**
+
+- Invoice PDF in the Bookings detail: the invoice route reads the sign-in from the request header, so a
+  plain link would be refused. It needs a small download step written for it.
+- Today / Tomorrow / This week switch on Today: the run sheet already shows today and tomorrow, and the
+  week is the Calendar's.
+- "Card payment failed" rows in Needs you: nothing today says which failed payments were never retried,
+  so the row could not be told apart from noise. Failed payments are in Bookings (payment filter
+  "Failed").
+- A "Nudge" per quote in Needs you: one row counts the waiting quotes and opens Quotes, where the
+  per-quote sends are.
+- "Load more" under the Bookings table: the list shows every booking, as before.
+- Calendar: no Day view, no drag to move, no "All tours" filter (none exists today), no legend of
+  coloured dots.
+
+**Different from the mock-ups**
+
+- The Bookings table keeps the Booked and Source columns, and Today's latest bookings keep Status.
+- The Calendar keeps its figures row and its type chips, which the mock-up does not show.
+- "Taken, last 7 days" rather than "Taken this week": the figure is the last 7 days.
+- "Private note" is the note's label (it was "Internal note"); "Reset guest link" now comes before
+  "Erase customer data".
+- Confirmations are still the browser's own confirm box.
+
+**Other changes**
+
+- Departures today and in the next 7 days now use the Calendar's rule (one per departure, paid guests
+  only). The old cards counted bookings, unpaid ones included, so these figures can read lower than
+  before.
+- On the Calendar a party reads "Part paid" where it read "Deposit paid", only while a balance is
+  really owed, and "Failed" where it read "Payment failed". The balance line shows only when the party
+  is part paid. Its WhatsApp button now needs a country code (it used to guess from 7 digits).
+- The assistant now calls the screens "Today" and "Enquiries".
+- `whatsappNumber` moved to `src/lib/admin/contact-links.ts` (still exported from `quotes/whatsapp.ts`),
+  beside the email, phone and WhatsApp link helpers that Bookings and the Calendar share.
+- The change-of-tour panel uses the shared buttons; its main button is teal-dark. The Calendar's time,
+  move and call-off buttons, today's markers and grey text were brought to AA (bright teal and amber
+  with white text failed). `PaymentSchedule.tsx`'s "next" chip and error text likewise.
+- `useDock.ts` holds the width and top-bar hooks Bookings and the Calendar both use.
+- `dashboard.ts` gained the "period before" buckets for the chart; nothing else in it changed.
+- New tests: `tests/unit/admin-booking-views.test.ts`, `admin-contact-links.test.ts`,
+  `admin-today-rules.test.ts` (with the quiet-day sentence, `quietDays` and `departuresByDay`),
+  `admin-run-sheet.test.ts`, chip cases in `booking-facts.test.ts`, the period-before case in
+  `admin-dashboard.test.ts`, and `tests/integration/admin-calendar-pay-view.test.ts` (PGlite: the
+  Calendar's return-leg read gives "Part paid" for a deposit booking, and a customer reads nothing).
+  `admin-permissions.test.ts` now expects the Settings entry in each menu and has a test that every
+  back-office member gets it. No existing test was changed in meaning.
+
+**Verified**
+
+- On this machine, on 15 Nov after the last change (the sign-in fix included): typecheck, lint, format
+  check and the full test suite with coverage (4,155 tests in 386 files) pass. `next build` passed on 14 Nov but was not run
+  again after the 15 Nov changes, because the owner's dev server was running from this folder (a build
+  would break it). CI's edge-bundle step has not run (nothing is pushed).
+- In the browser on the sandbox, signed in as the sandbox Owner, 15 Nov:
+  - Today at 1440px with real data (a departure tomorrow, a new booking awaiting payment): no sideways
+    scroll; the Latest bookings table fits its card exactly; the chip sits in its row; the trend line
+    shows on Departures, next 7 days; Money in and Needs you render. At 375px: no sideways scroll, the
+    run-sheet row stacks with the tour name at full width, and the order is run sheet, Needs you,
+    Money in, Latest bookings.
+  - Bookings at 1440px: the filters sit in one row; opening a booking docks it and the four-column
+    table fits; Esc closes it and focus returns to the reference. At 375px: no sideways scroll, inputs
+    and selects are 16px, the detail is a modal dialog, Esc closes it and focus returns.
+  - Calendar: `?day=2026-11-15` opens the docked day sheet; "Print run sheet" is hidden on 15 Nov
+    (nothing on) and shown on 16 Nov (one departure). Week view: the title ("9–15 November 2026"),
+    its sentence, the switch and the figures render. At 375px: no sideways scroll, no input under
+    16px; tapping 16 Nov opens the day sheet as a full-screen modal dialog with "Print run sheet",
+    and Esc closes it with focus back on that day.
+  - Today at 375px after the last change: every figure card's label reads in full.
+  - Settings shows both cards. The sidebar folds to the rail, stays folded after a reload, and
+    unfolds.
+
+**Not verified**
+
+- The printed run sheet on paper, with or without departures.
+- The trend line and change pill on "Taken, last 7 days" with real money: the sandbox has taken
+  nothing, so that card shows its grey 0.
+- The Calendar's Week view with departures in it (the sandbox week of 9–15 Nov is empty).
+- No irreversible button was pressed anywhere.
+
+**Open for the owner**
+
+- Before pushing: stop the dev server and run `npm run build` once (or let CI's edge-bundle step be
+  the judge), and print one day's run sheet.
+- Settings is offered to every back-office member, as the two cards were on Today. For someone in a
+  content role the database refuses the saves. Say if it should be hidden from them.
+- The Calendar's attention flag says "Unpaid" where Today and Bookings say "Awaiting payment" (the
+  flag predates this phase and was left as it was).
+- If the profile read itself fails (a network hiccup), the profile stays empty and the gate still
+  says "Not authorised", until a reload. It could say "Could not check your access" with a retry
+  instead; left as it was.
+- With a day open beside it, the Calendar's Week view scrolls sideways inside its own box and
+  Sunday is out of sight until scrolled. That is how the week grid already worked (it keeps a 896px
+  minimum width); this phase left it as it was.
+- Invoice PDF in the Bookings detail needs a small download step (see "Left out").
+- Whether to add rows for card payments that failed and were never retried, once something records
+  that.
 
 The gate, before calling any phase done:
 
