@@ -2,7 +2,8 @@
 
 Status: mock-ups published 14 Nov 2026. Phases 0 and 1 are built, committed and pushed as `1dd63efc` on
 14 Nov 2026. Phase 2 (Today, Bookings, Calendar) was built the same day, reworked with the owner on
-15 Nov 2026, and is uncommitted in the working tree (see each phase's result below). Phases 3 to 5
+15 Nov 2026, and pushed as `67b4f7e1` and `4a70710a` (the sign-in fix). The booking panel, from the
+owner's own mock-up, was built on 15 Nov and pushed on 16 Nov (see each result below). Phases 3 to 5
 are not started.
 
 ## Where the mock-ups are
@@ -322,7 +323,10 @@ below for now: a `wa.me` link, no Business API.
 - Follow-up (it existed before): if a new quote has been saved and is still open when the assistant
   hands over another enquiry, the drafter does not pick it up until the quote is closed.
 
-### Phase 2 result (built 14 Nov 2026, reworked with the owner 15 Nov, uncommitted in the working tree)
+### Phase 2 result (built 14 Nov 2026, reworked with the owner 15 Nov, shipped in `67b4f7e1` and `4a70710a`)
+
+The Bookings detail described here (docked beside the table at 1100px and up) was replaced the same
+day by the booking panel; see "Booking panel" after this phase.
 
 Today (`/admin`), Bookings and Calendar, on phase 0's shared pieces. Same routes and the same
 permissions as before, plus one new screen, Settings (see "Changed with the owner on 15 Nov"). No
@@ -560,6 +564,86 @@ The owner looked at the first build and asked for changes. All of them are in th
 - Invoice PDF in the Bookings detail needs a small download step (see "Left out").
 - Whether to add rows for card payments that failed and were never retried, once something records
   that.
+
+### Booking panel (built 15 Nov 2026 from the owner's mock-up, pushed 16 Nov)
+
+The owner shared a mock-up of a booking opened as a floating panel ("Admin — booking drawer" in the
+design artifact https://claude.ai/artifact/8LJMSqiSbFDLwV6J7BUYkX) and asked for the same in our colours
+and type, with every button the old detail had, and any improvement worth making. No migration, no SQL,
+no new API route, and no change to pricing, booking creation, payment settlement, refunds, cancelling
+or rescheduling.
+
+**What it is** (`src/components/admin/bookings/BookingDrawer.tsx`; rules in `bookings/rules.ts`)
+
+- Clicking a booking opens it in a panel over the list. On a wide screen it floats on the right (680px
+  wide, rounded, 12px from the edges) with the list dimmed behind it; on a phone it fills the screen.
+  It replaces the detail that docked beside the table, and with it the four-column table: the table is
+  always the full one now.
+- Header: the reference with a copy button, the guest's initials and name, "Booked … · via Web", the
+  payment and status chips, and three tabs: Overview, Payment, Notes. Top right: "94 of 123", Previous
+  and Next (through the list as it is filtered and sorted, staying on the same tab), and Close.
+- Overview: first, what needs doing, as tiles: a refund to record, a balance still to collect (with the
+  next date), a pickup still to be arranged on an upcoming trip. Then the trip (each item with its
+  date, time and guests, every extra charge, the total and "Balance still to collect"), the private
+  note if there is one, change of tour, pickup and drop-off, transfer details, child seats and route,
+  and the guest with email, phone, a Call button and "Their N other bookings", which closes the panel
+  and shows those bookings in the list.
+- Payment: Total, Paid and one more figure (To refund, Refunded, Still to collect, Not paid yet, or a
+  Balance of €0) on a dark band; a refund waiting to be recorded, with "Mark refunded" for whoever may
+  record refunds and a line saying the owner records it for everyone else; the payment schedule with
+  "Send reminder now"; each payment with its events as a timeline and its provider references.
+- Notes: the private note, with "Not saved yet" until it is saved. Leaving the booking with a note not
+  saved (Close, Esc, the dimmed list, Previous, Next, "Their other bookings") asks first.
+- Footer: WhatsApp and Email as before, More, and one main button when there is an obvious next step:
+  "Review refund" (opens Payment) on a refund waiting, or "Mark as completed" once a confirmed trip's
+  last day has passed.
+- More: Download invoice (paid bookings), Download e-voucher (airport transfers, confirmed or paid),
+  Mark as completed, Mark refunded, Reset guest link, then Cancel booking and Erase customer data in
+  red. Each appears only where the old detail offered it, and every confirmation is the old one word
+  for word. The menu works from the keyboard (arrows, Home, End, Esc closes only the menu).
+- `?open=<id>&tab=payment` opens a booking on a tab.
+
+**New, beyond the old detail**
+
+- Download invoice and e-voucher (`downloadBookingPdf` in `src/lib/admin/bookings.ts`): fetches the
+  existing PDF routes with the sign-in in the request header and saves the file. This is the "small
+  download step" left out of phase 2.
+- Previous and Next, the tabs, copying the reference, Call, "Their other bookings", the tiles, the main
+  button, and the question before an unsaved note is lost.
+
+**Kept as it was**: every fact and action of the old detail (phase 2's Bookings list above), with the
+same confirmations. The balance is read only through `paymentView`, so a booking nobody has paid reads
+"Not paid yet", never a debt. Erased guests, who share one placeholder address, are never counted as
+each other's "other bookings".
+
+**Tests**: `tests/unit/admin-booking-drawer.test.ts` (23: tabs, tiles, the money band, the main
+button, payment event colours, the other-bookings count, Previous and Next).
+
+**Verified**, 15 Nov, on the sandbox signed in as the sandbox Owner, with no button pressed that writes:
+
+- 800px wide: a paid tour booking (Overview; the More menu, where Esc closes only the menu; Payment's
+  band and timeline). A refund waiting: the tile, "Review refund" opening Payment, "Total €86 · Paid
+  €86 · To refund €86", and no main button on Payment. Previous and Next keep the tab and the keyboard
+  focus (at the end of the list focus moves to Previous rather than being lost). Closing puts focus
+  back on the row.
+- A note typed and not saved: leaving the booking asks, and so does "Their other bookings"; answering
+  no keeps the panel open, yes moves on (the note was never saved). "Their 25 other bookings" then shows 26 rows, all the
+  same guest.
+- An airport transfer: Transfer details show and More offers "Download e-voucher". The voucher route
+  returns a PDF for staff and refuses a tour (409); the invoice route returns a PDF for a paid booking
+  (both fetched in the browser, not saved).
+- 375px: the panel fills the screen and nothing runs past its edge. The trip's Date tile showed "15
+  Aug 20…" until it was given more of the row; it now reads in full. Payment and Notes read well.
+- Typecheck, lint, format check and the full test suite with coverage pass on this machine. On 16 Nov
+  the same, plus `next build`, passed in a clean copy of the commit (the last commit with only this
+  panel's files on top, none of another session's unfinished edits).
+
+**Not verified**
+
+- Saving a file from the menu (the routes were checked, the save step was not).
+- Any button that writes: Mark refunded, Mark as completed, Cancel, Reset guest link, Erase, Save note,
+  Send reminder.
+- The edge bundle, which only CI can build (its result is in the release, not here).
 
 The gate, before calling any phase done:
 

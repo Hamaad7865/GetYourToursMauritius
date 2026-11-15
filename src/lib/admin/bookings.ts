@@ -761,6 +761,40 @@ export async function resetGuestBookingLink(ref: string): Promise<void> {
   if (!res.ok) throw new Error('Could not reset the guest link.');
 }
 
+/**
+ * Download a booking's invoice PDF, or an airport transfer's e-voucher, for staff.
+ *
+ * The same routes the guest's confirmation page uses (/api/v1/bookings/:ref/invoice|voucher): they read
+ * the booking as the caller, and RLS lets staff read every booking. They read the sign-in from the
+ * Authorization header, so a plain link would be refused: fetch with the token, then save the file.
+ * The route's own refusal ("available once the payment is confirmed", "not an airport transfer") is
+ * passed on as the error.
+ */
+export async function downloadBookingPdf(ref: string, kind: 'invoice' | 'voucher'): Promise<void> {
+  const { data } = await getBrowserSupabase().auth.getSession();
+  const accessToken = data.session?.access_token ?? null;
+  const res = await fetch(`/api/v1/bookings/${encodeURIComponent(ref)}/${kind}`, {
+    headers: accessToken ? { authorization: `Bearer ${accessToken}` } : {},
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => null)) as { error?: { message?: string } } | null;
+    throw new Error(
+      body?.error?.message ??
+        (kind === 'invoice'
+          ? 'Could not download the invoice.'
+          : 'Could not download the voucher.'),
+    );
+  }
+  const url = URL.createObjectURL(await res.blob());
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${kind}-${ref}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 /** Save the internal staff note on a booking. */
 export async function saveBookingNotes(id: string, notes: string): Promise<void> {
   const { error } = await getBrowserSupabase()
