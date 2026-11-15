@@ -565,7 +565,7 @@ The owner looked at the first build and asked for changes. All of them are in th
 - Whether to add rows for card payments that failed and were never retried, once something records
   that.
 
-### Booking panel (built 15 Nov 2026 from the owner's mock-up, pushed 16 Nov)
+### Booking panel (built 15 Nov 2026 from the owner's mock-up, live 15 Nov in `41fd3576`)
 
 The owner shared a mock-up of a booking opened as a floating panel ("Admin — booking drawer" in the
 design artifact https://claude.ai/artifact/8LJMSqiSbFDLwV6J7BUYkX) and asked for the same in our colours
@@ -643,7 +643,99 @@ button, payment event colours, the other-bookings count, Previous and Next).
 - Saving a file from the menu (the routes were checked, the save step was not).
 - Any button that writes: Mark refunded, Mark as completed, Cancel, Reset guest link, Erase, Save note,
   Send reminder.
-- The edge bundle, which only CI can build (its result is in the release, not here).
+- The edge bundle, which only CI can build. (CI and the release for `41fd3576` then passed, and live
+  health reported that commit on 15 Nov 20:41 UTC.)
+
+### Quotes redesign (built 16 Nov 2026 from the owner's mock-up, not pushed yet)
+
+The owner sent the Quotes mock-up (`project/Quotes.dc.html` in the same design artifact) with "Also
+make the quote like this", then: don't just follow it, adjust it and use the best components you can
+find. No migration, no SQL, no new API route, no new package (anything installed ships in the edge
+bundle), and no change to how quotes are priced, sent or paid.
+
+**Files**: `src/components/admin/quotes/QuoteWorklist.tsx` (the list), `QuoteDrawer.tsx` (the panel,
+new), rules in `quotes/worklist.ts`. The panel frame (dimmed list, floating card, Previous / Next /
+Close, Esc, focus kept inside, page scroll locked) moved out of `BookingDrawer.tsx` into
+`src/components/admin/SidePanel.tsx`, so the booking and quote panels are the same frame.
+
+**The list**
+
+- Five stage cards across the top are the tabs: Waiting for payment, Balance to collect, Drafts to
+  finish, Expired unpaid, Done. Each shows its count and one line ("€250.00 sent, still valid",
+  "€105.00 still owed", "1 paid"; an empty stage says "Nothing owed", "None paid yet" and so on, never
+  "€0.00"). The count is the length of that stage's list (a test holds them equal). The chosen card is
+  dark. Arrows, Home and End move between them. With no stage in the address, the page opens on the
+  first stage with something in it. On a phone the cards are one row you swipe, instead of three rows
+  of cut-off cards.
+- The stage's list has its title, what it holds and how it is sorted ("Sent and still valid ·
+  expires soonest first"), a search box and a Sort menu. Each stage has its own sorts and default
+  (Waiting: expires soonest; Balance: trip date; Expired: most recently expired; Drafts and Done:
+  newest).
+- A row: initials, name and reference, what the quote is for, a date tile for the first trip day
+  (coral once it has passed, "No date" when there is none), the status (a balance shows "€105 of €350
+  paid" with a bar), a warning line when it matters ("Expires tomorrow", "trip date passed"), the
+  amount, the stage's one action (Send again, Send balance link, Finish, Duplicate) and a chevron. The
+  whole row opens the panel.
+- A search that finds nothing in this stage says where it does match ("1 in Drafts to finish") as
+  buttons that go there. Done shows 25 at a time.
+- The address remembers the stage, the sort (when it is not the default) and the open quote:
+  `?stage=balance&sort=amount&quote=<id>`.
+
+**The panel** (opens over the list, like a booking)
+
+- Header: the status chip, the reference with a copy button, initials, name, email and phone; "2 of
+  14", Previous and Next through the list as filtered, and Close.
+- A dark band with the figure that matters for this stage: the quote total and how long it is still
+  valid, or for a balance what is paid and still owed, with a bar.
+- Progress in four steps: Created, Sent, Checkout, Paid (a withdrawn or expired quote stops at its
+  step and says so in words for screen readers).
+- What's in it: each line with its date and guests, any transfer under it, and the total. "See the
+  day in Calendar" when it has a date.
+- Details: trip dates, sent, valid until with the days left, payment plan, room, language, the
+  booking it became, created. Then the message to the guest and, for whoever may see it, the private
+  note.
+- When the same guest has paid a later quote, a gold note says so with "Open {ref}" and "Withdraw".
+- Footer: WhatsApp, Email, More (Duplicate, Send balance link, Reinstate, then Withdraw in red, each
+  only where it applies), Edit, and the one main button for the stage: Send again, Send balance link,
+  Finish quote, Duplicate, or Open booking. Every confirmation is the old one word for word.
+- Edit opens the full editor; coming back opens the same quote's panel again.
+
+**Where it differs from the mock-up, and why**
+
+- No "Sent, not opened". We do not record when a guest opens a quote, so the panel would be guessing.
+  It uses the stages the list already uses.
+- No "Copy link" on its own. The guest's link exists only in the answer to a send; it is shown, with
+  a copy button, straight after Send again, as before.
+- A fifth card, Done (paid, withdrawn or closed), so every quote is in exactly one stage.
+- "Valid until" is counted on the same day as the send button's own check, so the list never says a
+  quote is still valid when sending it would be refused. Trip dates are Mauritius days.
+- Our type (Plus Jakarta Sans) and colours (ink, teal, gold, coral) instead of the mock-up's.
+- The step bars follow the Origin UI stepper on 21st.dev, rebuilt by hand. Its code could not be
+  fetched: the 21st.dev connector needs a new key from https://21st.dev/mcp.
+
+**Tests**: `tests/unit/admin-quote-stages.test.ts` (24: stages, counts equal to lists, card lines,
+days left on the send route's day, the date tile, row notes and amounts, sorting, progress, the panel
+figure, the main button) and `tests/unit/admin-quote-worklist.test.ts` (28, unchanged).
+
+**Verified**, 16 Nov, on the sandbox signed in as the sandbox Owner, with no button pressed that sends
+or writes:
+
+- 1440px: the cards, the list, the date tiles and notes. Stage tabs from the keyboard (arrows, Home,
+  End), each updating the address. A search from an empty stage offering "1 in Waiting for payment"
+  and "1 in Drafts to finish", which go there.
+- The panel: opened by clicking a name and from a `?quote=` link; Previous and Next with focus kept
+  (at the end of the list it moves to Previous); Esc closes it and puts focus back on the row; the
+  More menu from the keyboard (Esc closes only the menu). A link to a quote that does not exist opens
+  nothing and breaks nothing.
+- Edit, then Back in the editor without saving, returns to the same quote's panel on the same stage.
+- 375px: the panel fills the screen; the stage cards swipe, the chosen one is scrolled into view, the
+  labels read in full and nothing runs past the page edge. (A first version let each card's hidden
+  screen-reader text widen the page to 743px; the row now contains it.)
+- The booking panel again, on the shared frame: Previous and Next keep the tab, an unsaved note stops
+  both Next and Esc, and focus returns to the row.
+
+**Not verified**: any button that sends or writes (Send again, WhatsApp, Send balance link, Duplicate,
+Withdraw, Reinstate); `next build` and the edge bundle.
 
 The gate, before calling any phase done:
 

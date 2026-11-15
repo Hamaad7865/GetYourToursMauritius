@@ -7,7 +7,13 @@ import type {
   QuoteStatus,
 } from '@/lib/admin/quotes';
 import type { StatusTone } from '@/components/admin/ui';
-import { convertedBookingKind, emptyQuoteForm, sendRefusal } from '@/components/admin/quotes/state';
+import { mauDay } from '@/lib/admin/format';
+import {
+  convertedBookingKind,
+  emptyQuoteForm,
+  eurFromMinor,
+  sendRefusal,
+} from '@/components/admin/quotes/state';
 import { searchKey } from '@/components/admin/quotes/suggest';
 
 /**
@@ -35,7 +41,7 @@ export const WORK_GROUPS: ReadonlyArray<{ id: QuoteWorkGroup; title: string; met
   { id: 'waiting', title: 'Waiting for payment', meta: 'Sent and still valid' },
   { id: 'balance', title: 'Balance to collect', meta: 'Deposit paid, the rest is still owed' },
   { id: 'draft', title: 'Drafts to finish', meta: 'Not sent yet' },
-  { id: 'expired', title: 'Expired without paying', meta: 'Past their valid-until date' },
+  { id: 'expired', title: 'Expired unpaid', meta: 'Past their valid-until date' },
   { id: 'done', title: 'Done', meta: 'Paid, withdrawn or closed' },
 ];
 
@@ -305,4 +311,376 @@ export function guestInitials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   const letters = parts.length > 1 ? [parts[0]![0], parts[parts.length - 1]![0]] : [parts[0]?.[0]];
   return letters.filter(Boolean).join('').toUpperCase() || '?';
+}
+
+/* ───────────────────────────────────────────────────────────────────────────────────────────────
+ * THE WORKLIST'S STAGES, ROWS AND PANEL (the owner's mock-up, 16 Nov 2026)
+ *
+ * The groups above became tabs: five stage cards, one list at a time, each with its own order and a
+ * note per row (days left, the trip date, what is owed), and a panel that opens on a row. Two clocks,
+ * on purpose: VALIDITY is counted on the UTC day, like `isPastValidity` and the send route, so a row
+ * never says "1 day left" on a quote the route already refuses; the TRIP DATE is a Mauritius day
+ * (`mauDay`), so an early-morning transfer is not shown on the day before.
+ * ─────────────────────────────────────────────────────────────────────────────────────────────── */
+
+/** `?stage=` → a stage, or null for anything else. */
+export function parseQuoteStage(value: string | null): QuoteWorkGroup | null {
+  return WORK_GROUPS.some((g) => g.id === value) ? (value as QuoteWorkGroup) : null;
+}
+
+/** The stage to open on: the first, in working order, with anything in it. */
+export function defaultQuoteStage(
+  groups: Record<QuoteWorkGroup, readonly unknown[]>,
+): QuoteWorkGroup {
+  return WORK_GROUPS.find((g) => g.id !== 'done' && groups[g.id].length > 0)?.id ?? 'done';
+}
+
+export interface StageCard {
+  id: QuoteWorkGroup;
+  label: string;
+  /** Always the stage's list length (with no search typed). */
+  count: number;
+  sub: string;
+}
+
+/** The five cards on top. Each count is its list's length, so a card never promises rows it lacks. */
+export function stageCards(
+  groups: Record<QuoteWorkGroup, ReadonlyArray<StageInput & { totalMinor: number }>>,
+  today: string = quoteTodayUtc(),
+): StageCard[] {
+  const all = WORK_GROUPS.flatMap((g) => [...groups[g.id]]);
+  const totals = worklistTotals(all, today);
+  const empty = (g: QuoteWorkGroup) => groups[g].length === 0;
+  const sub: Record<QuoteWorkGroup, string> = {
+    waiting: empty('waiting')
+      ? 'Nothing waiting'
+      : `${eurFromMinor(totals.waiting.totalMinor)} sent, still valid`,
+    balance: empty('balance')
+      ? 'Nothing owed'
+      : `${eurFromMinor(totals.balance.owedMinor)} still owed`,
+    draft: empty('draft') ? 'Nothing to finish' : 'Not sent yet',
+    expired: empty('expired') ? 'None lapsed' : 'Past their valid-until date',
+    done: totals.paid === 0 ? 'None paid yet' : `${totals.paid} paid`,
+  };
+  return WORK_GROUPS.map((g) => ({
+    id: g.id,
+    label: g.title,
+    count: groups[g.id].length,
+    sub: sub[g.id],
+  }));
+}
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/** "25 Nov" for a yyyy-mm-dd day, without any clock or time zone in the way. */
+export function dayMonth(day: string): string {
+  const [, m, d] = day.slice(0, 10).split('-');
+  return `${Number(d)} ${MONTHS[Number(m) - 1] ?? ''}`;
+}
+
+function dayNumber(day: string): number {
+  const [y, m, d] = day.slice(0, 10).split('-').map(Number);
+  return Date.UTC(y ?? 0, (m ?? 1) - 1, d ?? 1) / 86_400_000;
+}
+
+/** Whole days from `from` to `to` (both yyyy-mm-dd): 0 = the same day, negative = before. */
+export function daysBetween(from: string, to: string): number {
+  return Math.round(dayNumber(to) - dayNumber(from));
+}
+
+/** Days still to go on a quote's validity: 0 = today is the last valid day, negative = expired. */
+export function validDaysLeft(validUntil: string, today: string = quoteTodayUtc()): number {
+  return daysBetween(today, validUntil);
+}
+
+export interface RowNote {
+  text: string;
+  /** Needs doing soon: shown in coral. */
+  urgent: boolean;
+}
+
+/** How long a sent quote can still be paid, in words. */
+export function validityNote(validUntil: string, today: string = quoteTodayUtc()): RowNote {
+  const left = validDaysLeft(validUntil, today);
+  if (left < 0) return { text: `Expired ${dayMonth(validUntil)}`, urgent: true };
+  if (left === 0) return { text: 'Last valid day today', urgent: true };
+  if (left === 1) return { text: 'Expires tomorrow', urgent: true };
+  if (left <= 3) return { text: `Expires in ${left} days`, urgent: true };
+  return { text: `Valid to ${dayMonth(validUntil)} · ${left} days left`, urgent: false };
+}
+
+/** The same countdown without the date, for a place that already shows the date beside it. */
+export function validityCountdown(validUntil: string, today: string = quoteTodayUtc()): RowNote {
+  const left = validDaysLeft(validUntil, today);
+  if (left > 3) return { text: `${left} days left`, urgent: false };
+  return left < 0 ? { text: 'Expired', urgent: true } : validityNote(validUntil, today);
+}
+
+export interface TripTile {
+  /** "25" */
+  day: string;
+  /** "Dec" */
+  month: string;
+  /** The Mauritius day, yyyy-mm-dd. */
+  date: string;
+  /** The trip's first day is behind us. */
+  past: boolean;
+}
+
+/** The date tile on a row: the quote's earliest line date, as a Mauritius day. */
+export function tripTile(firstDate: string | null | undefined, todayMu: string): TripTile | null {
+  if (!firstDate) return null;
+  const date = mauDay(firstDate);
+  const [day = '', month = ''] = dayMonth(date).split(' ');
+  return { day, month, date, past: date < todayMu };
+}
+
+interface NoteInput extends StageInput {
+  createdAt: string;
+  sentAt: string | null;
+}
+
+/** The small line under a row's chip: what the owner needs to know about time. */
+export function quoteRowNote(
+  row: NoteInput,
+  stage: QuoteStage,
+  trip: TripTile | null,
+  today: string,
+  todayMu: string,
+): RowNote {
+  switch (stage.group) {
+    case 'waiting': {
+      const v = validityNote(row.validUntil, today);
+      return trip?.past ? { text: `${v.text} · trip date passed`, urgent: true } : v;
+    }
+    case 'balance': {
+      if (!trip) return { text: 'No trip date', urgent: false };
+      const d = daysBetween(todayMu, trip.date);
+      if (d < 0) return { text: 'Trip date passed — collect now', urgent: true };
+      if (d === 0) return { text: 'Trip today', urgent: true };
+      if (d === 1) return { text: 'Trip tomorrow', urgent: true };
+      return { text: `Trip in ${d} days`, urgent: false };
+    }
+    case 'draft':
+      return { text: `Started ${dayMonth(mauDay(row.createdAt))}`, urgent: false };
+    case 'expired':
+      return {
+        text: `Expired ${dayMonth(row.validUntil)}${row.sentAt ? ` · sent ${dayMonth(mauDay(row.sentAt))}` : ''}`,
+        urgent: false,
+      };
+    case 'done':
+      return {
+        text: row.sentAt
+          ? `Sent ${dayMonth(mauDay(row.sentAt))}`
+          : `Created ${dayMonth(mauDay(row.createdAt))}`,
+        urgent: false,
+      };
+  }
+}
+
+/** The figure on a row's right, and the word under it. Null minor: nothing priced yet. */
+export function quoteRowAmount(
+  row: StageInput & { totalMinor: number; sentAt: string | null },
+  stage: QuoteStage,
+): { minor: number | null; sub: string } {
+  if (stage.group === 'balance' && stage.balanceOwedMinor !== null) {
+    return { minor: stage.balanceOwedMinor, sub: 'owed' };
+  }
+  switch (stage.group) {
+    case 'waiting':
+      return {
+        minor: row.totalMinor,
+        sub: row.sentAt ? `Sent ${dayMonth(mauDay(row.sentAt))}` : '',
+      };
+    case 'draft':
+      return row.totalMinor > 0
+        ? { minor: row.totalMinor, sub: 'drafted' }
+        : { minor: null, sub: 'nothing priced' };
+    case 'expired':
+      return { minor: row.totalMinor, sub: 'not paid' };
+    default:
+      if (stage.label === 'Paid') {
+        return { minor: row.booking?.totalMinor ?? row.totalMinor, sub: 'paid' };
+      }
+      return { minor: row.totalMinor, sub: stage.label === 'Withdrawn' ? 'withdrawn' : 'not paid' };
+  }
+}
+
+export type QuoteSort = 'expires' | 'trip' | 'amount' | 'newest' | 'expired-recent';
+
+export const SORT_LABELS: Record<QuoteSort, string> = {
+  expires: 'Expires soonest',
+  trip: 'Trip date',
+  amount: 'Amount',
+  newest: 'Newest',
+  'expired-recent': 'Recently expired',
+};
+
+/** The orders each stage offers; the first is the one it opens in. */
+export const STAGE_SORTS: Record<QuoteWorkGroup, readonly QuoteSort[]> = {
+  waiting: ['expires', 'trip', 'amount', 'newest'],
+  balance: ['trip', 'amount', 'newest'],
+  draft: ['newest', 'trip', 'amount'],
+  expired: ['expired-recent', 'trip', 'amount', 'newest'],
+  done: ['newest', 'trip', 'amount'],
+};
+
+/** What each stage says about its list under its title. */
+export const STAGE_HINTS: Record<QuoteWorkGroup, string> = {
+  waiting: 'Sent and still valid',
+  balance: 'Deposit paid, the rest is still owed',
+  draft: 'Started but not sent yet',
+  expired: 'Past their valid-until date · worth a follow-up',
+  done: 'Paid, withdrawn or closed',
+};
+
+/** `?sort=` → one of the stage's orders, or its first. */
+export function parseQuoteSort(value: string | null, stage: QuoteWorkGroup): QuoteSort {
+  const allowed = STAGE_SORTS[stage];
+  return allowed.includes(value as QuoteSort) ? (value as QuoteSort) : allowed[0]!;
+}
+
+type SortRow = { id: string; createdAt: string; validUntil: string };
+
+/**
+ * One stage's rows in the chosen order. `tripDate` and `amount` come from the screen (the line dates
+ * and the row's figure). Rows with no trip date go last; ties keep the newest first.
+ */
+export function sortQuotes<T extends SortRow>(
+  rows: readonly T[],
+  sort: QuoteSort,
+  by: { tripDate: (row: T) => string | null; amount: (row: T) => number },
+): T[] {
+  const newest = (a: T, b: T) => Date.parse(b.createdAt) - Date.parse(a.createdAt);
+  const cmp: Record<QuoteSort, (a: T, b: T) => number> = {
+    expires: (a, b) => a.validUntil.localeCompare(b.validUntil),
+    'expired-recent': (a, b) => b.validUntil.localeCompare(a.validUntil),
+    amount: (a, b) => by.amount(b) - by.amount(a),
+    newest: () => 0,
+    trip: (a, b) => {
+      const x = by.tripDate(a);
+      const y = by.tripDate(b);
+      if (x === y) return 0;
+      if (!x) return 1;
+      if (!y) return -1;
+      return Date.parse(x) - Date.parse(y);
+    },
+  };
+  return [...rows].sort((a, b) => cmp[sort](a, b) || newest(a, b));
+}
+
+export type StepState = 'done' | 'current' | 'todo' | 'stopped';
+
+export interface ProgressStep {
+  label: string;
+  when: string;
+  state: StepState;
+}
+
+/** Created → Sent → Checkout → Paid, as far as this quote got, with the day each step happened. */
+export function quoteProgress(row: NoteInput, stage: QuoteStage): ProgressStep[] {
+  const short = (iso: string) => dayMonth(mauDay(iso));
+  const created: ProgressStep = { label: 'Created', when: short(row.createdAt), state: 'done' };
+  const sent: ProgressStep = row.sentAt
+    ? { label: 'Sent', when: short(row.sentAt), state: 'done' }
+    : stage.group === 'draft'
+      ? { label: 'Sent', when: 'Not yet', state: 'current' }
+      : { label: 'Sent', when: '—', state: 'todo' };
+
+  let checkout: ProgressStep;
+  if (row.convertedAt) {
+    checkout = { label: 'Checkout', when: short(row.convertedAt), state: 'done' };
+  } else if (row.status === 'cancelled') {
+    checkout = { label: 'Withdrawn', when: '', state: 'stopped' };
+  } else if (stage.group === 'expired') {
+    checkout = { label: 'Expired', when: dayMonth(row.validUntil), state: 'stopped' };
+  } else if (stage.group === 'waiting') {
+    checkout = { label: 'Checkout', when: 'Not started', state: 'current' };
+  } else {
+    checkout = { label: 'Checkout', when: '—', state: 'todo' };
+  }
+
+  let paid: ProgressStep;
+  if (stage.label === 'Paid') {
+    paid = { label: 'Paid', when: 'In full', state: 'done' };
+  } else if (stage.group === 'balance') {
+    paid = {
+      label: 'Paid',
+      when: `Deposit in · ${eurFromMinor(stage.balanceOwedMinor ?? 0)} owed`,
+      state: 'current',
+    };
+  } else if (stage.label === 'Booking closed') {
+    paid = { label: 'Paid', when: 'Never', state: 'stopped' };
+  } else if (row.convertedAt && stage.group === 'waiting') {
+    paid = { label: 'Paid', when: 'Waiting', state: 'current' };
+  } else {
+    paid = { label: 'Paid', when: '—', state: 'todo' };
+  }
+
+  return [created, sent, checkout, paid];
+}
+
+export interface PanelMoney {
+  label: string;
+  minor: number;
+  sub: string;
+  /** Balance stage only: how much of the booking is paid. */
+  bar: { paidMinor: number; totalMinor: number } | null;
+}
+
+/** The panel's dark band: the one figure that matters at this stage, and a line under it. */
+export function quotePanelMoney(
+  row: StageInput & { totalMinor: number },
+  stage: QuoteStage,
+  today: string = quoteTodayUtc(),
+): PanelMoney {
+  if (stage.group === 'balance' && stage.balanceOwedMinor !== null && stage.paidMinor !== null) {
+    const total = row.booking?.totalMinor ?? row.totalMinor;
+    return {
+      label: 'Still owed',
+      minor: stage.balanceOwedMinor,
+      sub: `${eurFromMinor(stage.paidMinor)} of ${eurFromMinor(total)} paid`,
+      bar: { paidMinor: stage.paidMinor, totalMinor: total },
+    };
+  }
+  const plain = (label: string, sub: string, minor = row.totalMinor): PanelMoney => ({
+    label,
+    minor,
+    sub,
+    bar: null,
+  });
+  switch (stage.group) {
+    case 'waiting':
+      return plain('Quote total', validityNote(row.validUntil, today).text);
+    case 'draft':
+      return plain('Drafted total', 'Not sent yet');
+    case 'expired':
+      return plain('Quote total', `Expired ${dayMonth(row.validUntil)} without being paid`);
+    default:
+      if (stage.label === 'Paid') {
+        return plain('Paid', 'Accepted and paid', row.booking?.totalMinor ?? row.totalMinor);
+      }
+      if (stage.label === 'Withdrawn') {
+        return plain('Quote total', 'Withdrawn: its link no longer opens');
+      }
+      return plain('Quote total', 'The booking closed without being paid');
+  }
+}
+
+/** The one main action for a quote, by stage. Null: nothing obvious to do next. */
+export type QuotePrimary = 'resend' | 'balance' | 'finish' | 'duplicate' | 'booking';
+
+export function quotePrimary(
+  row: StageInput & Pick<QuoteRow, 'id' | 'bookingId'>,
+  today: string = quoteTodayUtc(),
+): QuotePrimary | null {
+  const stage = quoteStage(row, today);
+  const actions = rowActions(row, today);
+  if (actions.balance) return 'balance';
+  if (actions.resend) return 'resend';
+  if (stage.group === 'draft') return 'finish';
+  if (stage.group === 'expired') return 'duplicate';
+  if (stage.label === 'Paid' && row.bookingId) return 'booking';
+  if (stage.group === 'done') return 'duplicate';
+  return null;
 }
