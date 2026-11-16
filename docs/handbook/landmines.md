@@ -680,6 +680,17 @@ fixed-height column grid under `src/components` for it — don't delete the row 
 classNames", and don't work around the guard by giving a new gallery its height some other way.
 Owners can upload photos in any orientation; the layout, not the upload, must absorb it.
 
+### Never put `sr-only` on a `<table>` — wrap the table in `<div className="sr-only">`
+
+`sr-only` hides text by making its box 1px × 1px with `overflow: hidden`. A table ignores all three: it
+always grows to fit its cells, and a table box is not clipped by `overflow`. So an "sr-only" table is
+still full size, merely invisible, positioned where it would have sat. The Today chart's hidden table
+(`RevenueChart.tsx`, about 225 × 190 px) hung below the bottom of the back office, so the page scrolled
+past its own shell: the sticky sidebar slid up off the logo and a white band showed underneath (owner's
+screenshot, 16 Nov 2026). It only happened with real money in the chart, so the empty sandbox never
+showed it. A `<div className="sr-only">` around the table is a real 1px box that holds it in, and a
+screen reader still reads the table. `tests/unit/sr-only-table.test.ts` fails the build on the old way.
+
 ---
 
 ## Everything else

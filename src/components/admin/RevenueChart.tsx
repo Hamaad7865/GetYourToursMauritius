@@ -296,26 +296,31 @@ export function RevenueChart({ revenue }: { revenue: RevenueByPeriod }) {
               )}
             </div>
 
-            {/* The same figures as a table, for a screen reader. */}
-            <table className="sr-only">
-              <caption>Money in, {meta.sub.toLowerCase()}</caption>
-              <thead>
-                <tr>
-                  <th scope="col">Period</th>
-                  <th scope="col">Taken</th>
-                  {hasBefore && <th scope="col">The period before</th>}
-                </tr>
-              </thead>
-              <tbody>
-                {points.map((p, i) => (
-                  <tr key={i}>
-                    <th scope="row">{p.label}</th>
-                    <td>{euro(p.value)}</td>
-                    {hasBefore && <td>{euro(series.previous[i] ?? 0)}</td>}
+            {/* The same figures as a table, for a screen reader. `sr-only` sits on a div around it,
+                never on the table: a table ignores the 1px size and the overflow clip, so it stayed
+                full size below the chart and made the whole back office scroll past its own shell
+                (tests/unit/sr-only-table.test.ts). */}
+            <div className="sr-only">
+              <table>
+                <caption>Money in, {meta.sub.toLowerCase()}</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Period</th>
+                    <th scope="col">Taken</th>
+                    {hasBefore && <th scope="col">The period before</th>}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {points.map((p, i) => (
+                    <tr key={i}>
+                      <th scope="row">{p.label}</th>
+                      <td>{euro(p.value)}</td>
+                      {hasBefore && <td>{euro(series.previous[i] ?? 0)}</td>}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </>
         )}
       </div>

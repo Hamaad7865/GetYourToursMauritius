@@ -646,7 +646,7 @@ button, payment event colours, the other-bookings count, Previous and Next).
 - The edge bundle, which only CI can build. (CI and the release for `41fd3576` then passed, and live
   health reported that commit on 15 Nov 20:41 UTC.)
 
-### Quotes redesign (built 16 Nov 2026 from the owner's mock-up, not pushed yet)
+### Quotes redesign (built from the owner's mock-up, live 16 Nov 2026 in `e82f2948`)
 
 The owner sent the Quotes mock-up (`project/Quotes.dc.html` in the same design artifact) with "Also
 make the quote like this", then: don't just follow it, adjust it and use the best components you can
@@ -735,7 +735,8 @@ or writes:
   both Next and Esc, and focus returns to the row.
 
 **Not verified**: any button that sends or writes (Send again, WhatsApp, Send balance link, Duplicate,
-Withdraw, Reinstate); `next build` and the edge bundle.
+Withdraw, Reinstate). (`next build` passed in a clean copy of the commit; CI's edge bundle and the
+release for `e82f2948` then passed, and live health reported that commit on 16 Nov 00:02 UTC.)
 
 The gate, before calling any phase done:
 
