@@ -273,3 +273,41 @@ describe('listNeighbours', () => {
     expect(listNeighbours(['a', 'b'], null)).toEqual({ prev: null, next: null, index: -1 });
   });
 });
+
+describe('a booking made from a multi-line quote', () => {
+  /** A quote line: no tour, just its own dates (Mauritius midnight when the quote gave no time). */
+  const line = (start: string, end: string | null = null) => ({
+    description: 'Private driver',
+    startsAt: `${start}T00:00:00+04:00`,
+    endsAt: end ? `${end}T00:00:00+04:00` : null,
+    quantity: 1,
+    subtotalEur: 90,
+    transportFareEur: 0,
+    transportPickupLabel: null,
+    transportDropoffLabel: null,
+  });
+
+  it('can be marked completed once its last quote line has passed', () => {
+    const past = booking({ items: [], customItems: [line('2026-11-10'), line('2026-11-12')] });
+    expect(drawerPrimary(past, { canRefund: true, today: TODAY, tab: 'overview' })).toEqual({
+      kind: 'complete',
+      label: 'Mark as completed',
+    });
+    // A rental that is still out (its return day is after today) is not finished yet.
+    const out = booking({ items: [], customItems: [line('2026-11-10', '2026-11-18')] });
+    expect(drawerPrimary(out, { canRefund: true, today: TODAY, tab: 'overview' })).toBeNull();
+  });
+
+  it('dates the pickup tile from its first quote line', () => {
+    const b = booking({
+      items: [],
+      customItems: [line('2026-11-21'), line('2026-11-19')],
+      pickupLocation: null,
+      pickupPending: true,
+    });
+    const tile = drawerAttention(b, { canRefund: true, today: TODAY }).find(
+      (a) => a.id === 'pickup',
+    );
+    expect(tile?.detail).toBe('Trip 19 Nov');
+  });
+});

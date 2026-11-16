@@ -12,6 +12,7 @@ import {
   type BookingRow,
   type BookingStatus,
   type PaymentView,
+  bookingLineDays,
 } from '@/lib/admin/bookings';
 import {
   BOOKING_VIEWS,
@@ -62,12 +63,26 @@ function addDays(day: string, n: number): string {
 const FILTER_SELECT = SELECT_CLS.replace('w-full', 'w-auto');
 
 /** The Date cell: when the guest is collected — a transfer's own pickup time or a tour's start time,
- *  never the day-slot's placeholder clock, and the day alone when there is no time. See `serviceWhen`. */
+ *  never the day-slot's placeholder clock, and the day alone when there is no time. See `serviceWhen`.
+ *  A booking whose lines run over several days (a multi-line quote: a tour, then a rental, then a
+ *  transfer) adds the last of them underneath, and how many dates there are when it is more than two. */
 function ServiceWhenCell({ booking }: { booking: BookingRow }) {
   const when = serviceWhen(booking);
   if (!when) return <>—</>;
   const day = fmtDateShort(when.at);
-  return <>{when.time ? `${day} · ${when.time}` : day}</>;
+  const head = when.time ? `${day} · ${when.time}` : day;
+  const days = bookingLineDays(booking);
+  const last = days[days.length - 1];
+  if (!last || last <= when.day) return <>{head}</>;
+  return (
+    <>
+      {head}
+      <span className="block text-[11.5px] font-normal text-ink-soft">
+        to {fmtDateShort(`${last}T12:00:00+04:00`)}
+        {days.length > 2 ? ` · ${days.length} dates` : ''}
+      </span>
+    </>
+  );
 }
 
 // The status filter stays beside the tabs (a link such as ?status=confirmed still lands here).

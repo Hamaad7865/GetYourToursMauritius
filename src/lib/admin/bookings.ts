@@ -3,6 +3,7 @@ import { getBrowserSupabase } from '@/lib/supabase/browser';
 import { readAll, uniqueById } from '@/lib/admin/read-all';
 import { occurrenceDepartureTime } from '@/lib/catalogue/departure-time';
 import { balanceIsOutstanding } from '@/lib/quotes/deposit';
+import { mauDay } from '@/lib/admin/format';
 
 /* Admin booking reads + lifecycle writes. Staff/admin RLS (`*_staff` policies) grants full
  * read on bookings/booking_items/payments and full write on bookings, so the authenticated
@@ -343,6 +344,8 @@ interface RawBooking extends RawTransferFields {
   }> | null;
   booking_custom_items: Array<{
     description: string;
+    starts_at: string | null;
+    ends_at: string | null;
     quantity: number;
     subtotal_minor: number;
     position: number;
@@ -371,7 +374,7 @@ const BOOKING_SELECT = `
   ),
   booking_supplements ( name, qty, total_minor, position ),
   booking_custom_items (
-    description, quantity, subtotal_minor, position,
+    description, starts_at, ends_at, quantity, subtotal_minor, position,
     transport_fare_minor, transport_pickup_label, transport_dropoff_label
   ),
   booking_installments ( seq, due_on, label, amount_minor )
@@ -415,6 +418,8 @@ function mapBooking(raw: RawBooking): BookingRow {
     .sort((a, b) => a.position - b.position)
     .map((line) => ({
       description: line.description,
+      startsAt: line.starts_at ?? null,
+      endsAt: line.ends_at ?? null,
       quantity: line.quantity,
       subtotalEur: line.subtotal_minor / 100,
       transportFareEur: (line.transport_fare_minor ?? 0) / 100,
@@ -443,7 +448,15 @@ function mapBooking(raw: RawBooking): BookingRow {
     createdAt: raw.created_at,
     items,
     activityTitle: items[0]?.activityTitle ?? '—',
-    startsAt: items[0]?.startsAt ?? null,
+    // A quote booking may have no tour line at all (custom, rental and transfer lines only): its date
+    // is then its earliest quote line's, so the list, the filters and the assistant still have one.
+    startsAt:
+      items[0]?.startsAt ??
+      customItems
+        .map((c) => c.startsAt)
+        .filter((x): x is string => Boolean(x))
+        .sort((a, b) => Date.parse(a) - Date.parse(b))[0] ??
+      null,
     departureTime: items[0]?.departureTime ?? null,
     guests,
     netPaidEur: netPaidMinor / 100,
@@ -498,6 +511,10 @@ function mapBooking(raw: RawBooking): BookingRow {
 export interface BookingCustomItemRow {
   /** What was sold, in the words the guest read on the quote. NOT NULL in the schema. */
   description: string;
+  /** When the line happens, as the quote set it (Mauritius midnight when no time was given), and when
+   *  it ends (a rental's return). Null when the quote line had no date. */
+  startsAt: string | null;
+  endsAt: string | null;
   quantity: number;
   subtotalEur: number;
   /** The line's OWN round-trip transfer add-on (EUR) and where it collects from — the same per-line
@@ -514,6 +531,28 @@ export interface BookingChargeLine {
   /** A round-trip transfer that rides on the line above it — the drawer indents it, like the invoice's
    *  nested add-on. Absent on ordinary charge lines. */
   isAddon?: boolean;
+  /** A dated quote line's own dates, for the drawer to print under it. Absent on every other line
+   *  (and on an undated quote line). Never part of the label: the label must match the invoice's. */
+  startsAt?: string;
+  endsAt?: string | null;
+}
+
+/**
+ * Every Mauritius day a booking's lines fall on, distinct and in order: tour lines by their
+ * departure, quote lines by their own dates (a rental's return day too). A booking made from a
+ * multi-line quote spans several; the list shows the first and the last.
+ */
+export function bookingLineDays(b: {
+  items: ReadonlyArray<{ startsAt: string | null }>;
+  customItems?: ReadonlyArray<{ startsAt: string | null; endsAt: string | null }>;
+}): string[] {
+  const days = new Set<string>();
+  for (const it of b.items) if (it.startsAt) days.add(mauDay(it.startsAt));
+  for (const c of b.customItems ?? []) {
+    if (c.startsAt) days.add(mauDay(c.startsAt));
+    if (c.endsAt) days.add(mauDay(c.endsAt));
+  }
+  return [...days].sort();
 }
 
 function round2(n: number): number {
@@ -554,6 +593,7 @@ export function bookingExtraCharges(booking: BookingRow): BookingChargeLine[] {
     lines.push({
       label: line.quantity > 1 ? `${label} (${line.quantity})` : label,
       amountEur: round2(line.subtotalEur),
+      ...(line.startsAt ? { startsAt: line.startsAt, endsAt: line.endsAt } : {}),
     });
     if (line.transportFareEur > 0) {
       lines.push({

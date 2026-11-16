@@ -18,11 +18,12 @@ import {
   type BookingDetail,
   type BookingStatus,
   type PaymentState,
+  bookingLineDays,
 } from '@/lib/admin/bookings';
 import { mailtoHref, telHref, whatsappChatHref } from '@/lib/admin/contact-links';
 import { balanceIsOutstanding } from '@/lib/quotes/deposit';
 import { childSeatsCost } from '@/lib/services/pricing';
-import { eur, fmtDate, fmtDateTime, titleCase } from '@/lib/admin/format';
+import { eur, fmtDate, fmtDateTime, fmtTime, mauDay, titleCase } from '@/lib/admin/format';
 import { BookingChangePanel } from '@/components/admin/BookingChangePanel';
 import {
   BookingStatusChip,
@@ -305,7 +306,9 @@ function BookingBody({
   const attention = drawerAttention(b, { canRefund, today });
   const primary = drawerPrimary(b, { canRefund, today, tab });
   const whens = itemWhens(b);
-  const firstDay = whens.find((w) => w !== null)?.day ?? null;
+  // The calendar link's day: the first tour line's, else (a quote booking with no tour line) the first
+  // quote line's.
+  const firstDay = whens.find((w) => w !== null)?.day ?? bookingLineDays(b)[0] ?? null;
 
   const copyRef = () => {
     void navigator.clipboard
@@ -590,7 +593,16 @@ function BookingBody({
                           charge.isAddon ? 'ml-3 border-l-2 border-line pl-2.5' : ''
                         }`}
                       >
-                        <span className="text-ink-muted">{charge.label}</span>
+                        <span className="min-w-0">
+                          <span className="block text-ink-muted">{charge.label}</span>
+                          {/* A quote line's own date (a rental's return too), so a booking made
+                              from a multi-line quote says when each part happens. */}
+                          {charge.startsAt && (
+                            <span className="block text-[12px] font-semibold text-ink">
+                              {quoteLineWhen(charge.startsAt, charge.endsAt ?? null)}
+                            </span>
+                          )}
+                        </span>
                         <span className="shrink-0 font-semibold text-ink">
                           {eur(charge.amountEur)}
                         </span>
@@ -968,4 +980,13 @@ function MoneyBand({ booking }: { booking: BookingDetail }) {
       </dl>
     </div>
   );
+}
+
+/** "18 Nov 2026", "18 Nov 2026, 09:30" when the quote set a time, or "18 – 21 Nov 2026" for a rental's
+ *  span. A quote line with no time sits at Mauritius midnight, which is never printed as a time. */
+function quoteLineWhen(startsAt: string, endsAt: string | null): string {
+  const time = fmtTime(startsAt);
+  const start = time === '00:00' ? fmtDate(startsAt) : `${fmtDate(startsAt)}, ${time}`;
+  if (!endsAt || mauDay(endsAt) === mauDay(startsAt)) return start;
+  return `${fmtDate(startsAt)} – ${fmtDate(endsAt)}`;
 }

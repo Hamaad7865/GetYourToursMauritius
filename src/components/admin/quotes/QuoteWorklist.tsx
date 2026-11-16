@@ -56,6 +56,7 @@ import {
   parseQuoteStage,
   quotePrimary,
   quoteRowAmount,
+  lastSentText,
   quoteRowNote,
   quoteStage,
   sortQuotes,
@@ -712,6 +713,9 @@ function QuoteRowItem({
           <p className="truncate text-[12.5px] text-ink-soft">
             {summary ? whatText(summary) : row.customerEmail}
           </p>
+          {lastSentText(row.sentAt) && (
+            <p className="truncate text-[12px] text-ink-soft">{lastSentText(row.sentAt)}</p>
+          )}
           {paidLater && (
             <p className="relative z-[1] mt-1 inline-flex max-w-full flex-wrap items-center gap-x-1 rounded-md bg-gold-tint px-2 py-0.5 text-[11.5px] font-semibold text-gold-dark">
               Guest already paid

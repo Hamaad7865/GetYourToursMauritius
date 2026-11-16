@@ -7,7 +7,7 @@ import type {
   QuoteStatus,
 } from '@/lib/admin/quotes';
 import type { StatusTone } from '@/components/admin/ui';
-import { mauDay } from '@/lib/admin/format';
+import { fmtTime, mauDay } from '@/lib/admin/format';
 import {
   convertedBookingKind,
   emptyQuoteForm,
@@ -487,6 +487,18 @@ export function quoteRowNote(
   }
 }
 
+/**
+ * "Last sent 14 Nov, 10:32" (Mauritius time) for a quote that has been emailed, or null for one that
+ * never has. `sent_at` is rewritten on every send (the send route stamps it each time, a resend
+ * included), so it is the LATEST send, not the first.
+ */
+export function lastSentText(sentAt: string | null): string | null {
+  if (!sentAt) return null;
+  const at = new Date(sentAt);
+  if (Number.isNaN(at.getTime())) return null;
+  return `Last sent ${dayMonth(mauDay(sentAt))}, ${fmtTime(sentAt)}`;
+}
+
 /** The figure on a row's right, and the word under it. Null minor: nothing priced yet. */
 export function quoteRowAmount(
   row: StageInput & { totalMinor: number; sentAt: string | null },
@@ -497,10 +509,8 @@ export function quoteRowAmount(
   }
   switch (stage.group) {
     case 'waiting':
-      return {
-        minor: row.totalMinor,
-        sub: row.sentAt ? `Sent ${dayMonth(mauDay(row.sentAt))}` : '',
-      };
+      // The send date is on the row's own "Last sent" line now, with its time.
+      return { minor: row.totalMinor, sub: 'quoted' };
     case 'draft':
       return row.totalMinor > 0
         ? { minor: row.totalMinor, sub: 'drafted' }

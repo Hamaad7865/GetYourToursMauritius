@@ -1,4 +1,9 @@
-import { paymentView, type BookingDetail, type BookingStatus } from '@/lib/admin/bookings';
+import {
+  bookingLineDays,
+  paymentView,
+  type BookingDetail,
+  type BookingStatus,
+} from '@/lib/admin/bookings';
 import { eur, fmtDateShort, serviceWhen, type ServiceWhen } from '@/lib/admin/format';
 import { nextInstallment } from '@/lib/admin/installments';
 import { resolvePickup } from '@/components/admin/BookingFacts';
@@ -46,7 +51,9 @@ export type DrawerBooking = Pick<
   | 'transfer'
   | 'pickupTime'
   | 'items'
->;
+> &
+  // Optional so a fixture without quote lines still type-checks; a real BookingDetail always has it.
+  Partial<Pick<BookingDetail, 'customItems'>>;
 
 /** When each line of the booking happens, in line order (null for a line with no date). */
 export function itemWhens(b: Pick<DrawerBooking, 'items' | 'transfer' | 'pickupTime'>) {
@@ -60,12 +67,30 @@ export function itemWhens(b: Pick<DrawerBooking, 'items' | 'transfer' | 'pickupT
   );
 }
 
-/** The booking's first and last service day, from its lines. */
+/** The booking's first and last service day, from its lines: tour lines first (they carry a pickup
+ *  or departure time), then a quote booking's own dated lines (custom, rental), which may be all it
+ *  has. Without those, a quote booking had no trip date: no "Mark as completed", no date on the
+ *  "Pickup to be arranged" tile. */
 function serviceSpan(b: DrawerBooking): { first: ServiceWhen | null; lastDay: string | null } {
   const whens = itemWhens(b).filter((w): w is ServiceWhen => w !== null);
-  if (whens.length === 0) return { first: null, lastDay: null };
+  const days = bookingLineDays(b);
+  if (whens.length === 0 && days.length === 0) return { first: null, lastDay: null };
   const sorted = [...whens].sort((x, y) => Date.parse(x.at) - Date.parse(y.at));
-  return { first: sorted[0]!, lastDay: sorted[sorted.length - 1]!.day };
+  const tourFirst = sorted[0] ?? null;
+  const firstDay = days[0] ?? null;
+  // A quote line earlier than every tour line is the trip's start (day only: it has no pickup time).
+  const first =
+    tourFirst && (!firstDay || tourFirst.day <= firstDay)
+      ? tourFirst
+      : { at: `${firstDay}T12:00:00+04:00`, day: firstDay!, time: null };
+  const lastTour = sorted[sorted.length - 1]?.day ?? null;
+  const lastLine = days[days.length - 1] ?? null;
+  const lastDay =
+    [lastTour, lastLine]
+      .filter((d): d is string => d !== null)
+      .sort()
+      .pop() ?? null;
+  return { first, lastDay };
 }
 
 /** One of the tiles at the top of the Overview: something on this booking that needs doing. */

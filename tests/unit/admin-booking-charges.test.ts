@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bookingExtraCharges } from '@/lib/admin/bookings';
+import { bookingExtraCharges, bookingLineDays } from '@/lib/admin/bookings';
 import type { BookingCustomItemRow, BookingItemRow, BookingRow } from '@/lib/admin/bookings';
 
 function item(over: Partial<BookingItemRow> = {}): BookingItemRow {
@@ -23,6 +23,8 @@ function item(over: Partial<BookingItemRow> = {}): BookingItemRow {
 function customItem(over: Partial<BookingCustomItemRow> = {}): BookingCustomItemRow {
   return {
     description: 'Round-trip transfer · Dolphin swim',
+    startsAt: null,
+    endsAt: null,
     quantity: 1,
     subtotalEur: 60,
     transportFareEur: 0,
@@ -307,5 +309,48 @@ describe('bookingExtraCharges', () => {
       }),
     );
     expect(charges).toEqual([{ label: 'Door-to-door transport', amountEur: 30 }]);
+  });
+});
+
+describe('the dates of a multi-line quote booking', () => {
+  it('carries each dated quote line’s dates, without touching the invoice label', () => {
+    const charges = bookingExtraCharges(
+      booking({
+        totalEur: 150,
+        items: [],
+        customItems: [
+          customItem({
+            description: 'Car rental',
+            subtotalEur: 90,
+            startsAt: '2026-11-20T00:00:00+04:00',
+            endsAt: '2026-11-23T00:00:00+04:00',
+          }),
+          customItem({ description: 'Guide', subtotalEur: 60 }),
+        ],
+      }),
+    );
+    expect(charges).toEqual([
+      {
+        label: 'Car rental',
+        amountEur: 90,
+        startsAt: '2026-11-20T00:00:00+04:00',
+        endsAt: '2026-11-23T00:00:00+04:00',
+      },
+      { label: 'Guide', amountEur: 60 },
+    ]);
+  });
+
+  it('lists every day the lines fall on, in Mauritius time, once each', () => {
+    expect(
+      bookingLineDays({
+        items: [{ startsAt: '2026-11-19T08:00:00Z' }],
+        customItems: [
+          // 22:30 UTC on the 19th is already the 20th in Mauritius.
+          { startsAt: '2026-11-19T22:30:00Z', endsAt: '2026-11-22T06:00:00Z' },
+          { startsAt: '2026-11-19T10:00:00Z', endsAt: null },
+        ],
+      }),
+    ).toEqual(['2026-11-19', '2026-11-20', '2026-11-22']);
+    expect(bookingLineDays({ items: [{ startsAt: null }] })).toEqual([]);
   });
 });

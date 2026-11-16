@@ -16,7 +16,7 @@ import {
   type QuoteRow,
 } from '@/lib/admin/quotes';
 import { mailtoHref } from '@/lib/admin/contact-links';
-import { fmtDate, mauDay } from '@/lib/admin/format';
+import { fmtDate, fmtDateTime, mauDay } from '@/lib/admin/format';
 import { GuestAvatar } from '@/components/admin/GuestAvatar';
 import {
   CopyIcon,
@@ -552,7 +552,7 @@ function QuoteBody({
                     ? '…'
                     : 'No date yet'}
               </Fact>
-              <Fact label="Sent">{row.sentAt ? fmtDate(row.sentAt) : 'Not yet'}</Fact>
+              <Fact label="Last sent">{row.sentAt ? fmtDateTime(row.sentAt) : 'Not yet'}</Fact>
               <Fact label="Valid until">
                 {fmtDate(`${row.validUntil}T12:00:00+04:00`)}
                 {stage.group === 'waiting' && (

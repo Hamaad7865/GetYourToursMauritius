@@ -12,6 +12,7 @@ import {
   quoteProgress,
   quoteRowAmount,
   quoteRowNote,
+  lastSentText,
   quoteStage,
   rowSendRefusal,
   sortQuotes,
@@ -356,5 +357,14 @@ describe('the panel', () => {
     expect(
       quotePrimary(row({ ...converted, booking: booking({ status: 'payment_pending' }) }), TODAY),
     ).toBeNull();
+  });
+});
+
+describe('when a quote was last sent', () => {
+  it('reads the latest send in Mauritius time, and says nothing for an unsent quote', () => {
+    // 06:32 UTC is 10:32 in Mauritius.
+    expect(lastSentText('2026-11-14T06:32:00.000Z')).toBe('Last sent 14 Nov, 10:32');
+    expect(lastSentText(null)).toBeNull();
+    expect(lastSentText('not a date')).toBeNull();
   });
 });
