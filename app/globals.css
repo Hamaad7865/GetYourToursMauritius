@@ -118,6 +118,23 @@
     background-color: rgb(255 255 255 / 0.28);
   }
 
+  /* The same slim thumb for the back office's screen card, which scrolls from lg (AdminShell): a
+     Windows default track would run down the inside of the rounded card as a grey slab. */
+  .bo-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--color-ink) / 0.22) transparent;
+  }
+  .bo-scroll::-webkit-scrollbar {
+    width: 8px;
+  }
+  .bo-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .bo-scroll::-webkit-scrollbar-thumb {
+    background-color: rgb(var(--color-ink) / 0.22);
+    border-radius: 999px;
+  }
+
   /* Soft staggered entrance for showcase tiles/cards (transform+opacity only). */
   @keyframes fadeUp {
     from {
@@ -813,6 +830,148 @@
   .ai-spark-btn:focus-visible .ai-spark-icon {
     transform: rotate(90deg) scale(1.1);
   }
+
+  /* ── Belle Mare AI, the side chat (built from the owner's mock-up, Nov 2026) ─────────────────
+     A dark card in the brand's own night teal and sunset gold. The pointer effects run on CSS
+     variables the panel writes on its body (`--mx`/`--my` in px for the glow, `--nx`/`--ny`/
+     `--near` for the orb), so moving the mouse re-renders nothing. All of it stops under reduced
+     motion (see the block at the end of this file). */
+  .bmai-dots {
+    background-image: radial-gradient(circle, rgba(255, 255, 255, 0.075) 0.6px, transparent 1px);
+    background-size: 10px 10px;
+    background-position: 5px 5px;
+  }
+  /* The gold dots and the wash under the pointer, shown only while it is over the panel. */
+  .bmai-glow-dots {
+    background-image: radial-gradient(circle, rgba(255, 222, 160, 0.95) 0.8px, transparent 1.2px);
+    background-size: 10px 10px;
+    background-position: 5px 5px;
+    -webkit-mask-image: radial-gradient(
+      64px circle at var(--mx, -999px) var(--my, -999px),
+      #000 0%,
+      rgba(0, 0, 0, 0.5) 40%,
+      transparent 80%
+    );
+    mask-image: radial-gradient(
+      64px circle at var(--mx, -999px) var(--my, -999px),
+      #000 0%,
+      rgba(0, 0, 0, 0.5) 40%,
+      transparent 80%
+    );
+  }
+  .bmai-glow-wash {
+    background: radial-gradient(
+      110px circle at var(--mx, -999px) var(--my, -999px),
+      rgba(244, 184, 96, 0.045),
+      transparent 70%
+    );
+  }
+  .bmai-glow-dots,
+  .bmai-glow-wash {
+    opacity: 0;
+    transition: opacity 0.5s;
+  }
+  [data-pointer='on'] > .bmai-glow-dots,
+  [data-pointer='on'] > .bmai-glow-wash {
+    opacity: 1;
+  }
+  @keyframes bmaiBob {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-5px);
+    }
+  }
+  .bmai-orb {
+    animation: bmaiBob 7s ease-in-out infinite;
+  }
+  .bmai-orb-layer {
+    transition:
+      transform 0.9s cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 0.9s;
+    will-change: transform;
+  }
+  /* "Thinking…" in a slow gold sheen. */
+  .bmai-sheen {
+    background-image: linear-gradient(90deg, #8fa5a3 20%, #ffe2b0 45%, #f4b860 55%, #8fa5a3 80%);
+    background-size: 220% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: aiSheen 2.2s linear infinite;
+  }
+  /* The suggestion cards: a gold edge and icon on hover. */
+  .bmai-sug {
+    transition:
+      border-color 0.25s,
+      background-color 0.25s;
+  }
+  .bmai-sug:hover,
+  .bmai-sug:focus-visible {
+    border-color: rgba(244, 184, 96, 0.38);
+    background-color: #122225;
+  }
+  .bmai-sug:hover .bmai-sug-icon,
+  .bmai-sug:focus-visible .bmai-sug-icon {
+    color: #f4b860;
+    border-color: rgba(244, 184, 96, 0.3);
+  }
+  .bmai-icon-btn {
+    color: #8fa5a3;
+    transition:
+      background-color 0.2s,
+      color 0.2s;
+  }
+  .bmai-icon-btn:hover,
+  .bmai-icon-btn:focus-visible,
+  .bmai-icon-btn[aria-expanded='true'] {
+    background-color: rgba(255, 255, 255, 0.06);
+    color: #fff;
+  }
+  .bmai-chip {
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #dce7e5;
+    transition:
+      border-color 0.2s,
+      color 0.2s,
+      background-color 0.2s;
+  }
+  .bmai-chip:hover:not(:disabled),
+  .bmai-chip:focus-visible {
+    border-color: rgba(244, 184, 96, 0.45);
+    color: #fff;
+  }
+  .bmai-chip-on {
+    border-color: rgba(244, 184, 96, 0.55);
+    background-color: rgba(244, 184, 96, 0.12);
+    color: #ffe2b0;
+  }
+  .bmai-send-btn {
+    background-color: #f4b860;
+    color: #2a1a06;
+    transition:
+      background-color 0.2s,
+      transform 0.12s;
+  }
+  .bmai-send-btn:hover:not(:disabled) {
+    background-color: #ffc978;
+  }
+  .bmai-send-btn:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+  /* Focus rings that show on the dark card. */
+  .bmai-panel :focus-visible {
+    outline: 2px solid #f4b860;
+    outline-offset: 2px;
+  }
+  .bmai-panel textarea:focus-visible {
+    outline: none;
+  }
+  .bmai-panel ::selection {
+    background: rgba(244, 184, 96, 0.35);
+  }
 }
 
 /* Honour reduced-motion: no entrance animation, no smooth scroll. */
@@ -926,6 +1085,31 @@
     opacity: 1 !important;
   }
   .ai-suggestion:hover {
+    transform: none !important;
+  }
+  /* Belle Mare AI: the orb holds still (no bob, no parallax), the pointer glow is gone, and the
+     "thinking" sheen settles to plain readable gold. Transform AND opacity are reset so nothing is
+     left mid-animation. */
+  .bmai-orb,
+  .bmai-orb-layer {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+  }
+  .bmai-glow-dots,
+  .bmai-glow-wash {
+    display: none !important;
+  }
+  .bmai-sheen {
+    animation: none !important;
+    background: none !important;
+    color: #f4b860 !important;
+    -webkit-text-fill-color: #f4b860 !important;
+  }
+  .bmai-send-btn,
+  .bmai-send-btn:active:not(:disabled) {
+    transition: none !important;
     transform: none !important;
   }
   /* Apply keeps its gradient and its colour feedback; it loses the sweep and the press-scale. */

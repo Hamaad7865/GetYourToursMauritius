@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { scriptedModel } from '../helpers/scripted-model';
 import {
+  STEP_CAP,
   buildAssistantTools,
   runAdminAssistant,
+  stepLabels,
   type AssistantGrants,
   type AssistantPort,
   type AssistantTour,
@@ -343,6 +345,79 @@ describe('the caller’s sections decide which proposals the model is offered', 
     expect(quotes.prompt).toContain('draft_quote_from_email');
   });
 
+  describe('the panel’s Ask / Do switch', () => {
+    const turn = async (mode: 'ask' | 'do' | undefined, path = '/admin/quotes') => {
+      const { model, seenTools, seenPrompts } = scriptedModel([{ text: 'ok' }]);
+      await runAdminAssistant(
+        ctx,
+        makePort(),
+        {
+          messages: [{ role: 'user', content: 'hi' }],
+          page: { path, screen: 'Somewhere' },
+          grants: ALL,
+          mode,
+        },
+        model,
+      );
+      return { tools: seenTools[0]!.slice().sort(), prompt: seenPrompts.join(' ') };
+    };
+
+    it('Ask offers the read tools only, even to the Owner', async () => {
+      const ask = await turn('ask');
+      expect(ask.tools).toEqual(READ_ONLY);
+      // The quotes nudge must not name a tool the model was not given…
+      expect(ask.prompt).not.toContain('draft_quote_from_email');
+      // …and the model is told how the operator gets the drafting back.
+      expect(ask.prompt).toContain('switch the panel to Do');
+    });
+
+    it('Do offers what the sections allow, exactly as before the switch existed', async () => {
+      const doTurn = await turn('do');
+      expect(doTurn.tools).toEqual([...READ_ONLY, ...TOUR_TOOLS, QUOTE_TOOL].sort());
+      expect(doTurn.prompt).toContain('draft_quote_from_email');
+      expect(doTurn.prompt).not.toContain('ASK mode');
+    });
+
+    it('no mode at all is Do, so an older client keeps its proposals', async () => {
+      expect((await turn(undefined)).tools).toEqual((await turn('do')).tools);
+    });
+
+    it('Do never widens past the sections', async () => {
+      const { model, seenTools } = scriptedModel([{ text: 'ok' }]);
+      await runAdminAssistant(
+        ctx,
+        makePort(),
+        {
+          messages: [{ role: 'user', content: 'hi' }],
+          grants: { tours: false, quotes: false },
+          mode: 'do',
+        },
+        model,
+      );
+      expect(seenTools[0]!.slice().sort()).toEqual(READ_ONLY);
+    });
+
+    it('a proposal tool called in Ask mode anyway proposes nothing', async () => {
+      const { model } = scriptedModel([
+        {
+          calls: [
+            {
+              toolName: 'draft_quote_from_email',
+              input: { label: 'Draft', caveat: 'Check it', email: 'Hello, 2 adults on 20 Nov' },
+            },
+          ],
+        },
+      ]);
+      const result = await runAdminAssistant(
+        ctx,
+        makePort(),
+        { messages: [{ role: 'user', content: 'quote this' }], grants: ALL, mode: 'ask' },
+        model,
+      );
+      expect(result.actions).toEqual([]);
+    });
+  });
+
   it('a model that calls a withheld tool anyway gets the soft landing and proposes nothing', async () => {
     const { model } = scriptedModel([
       {
@@ -406,7 +481,7 @@ describe('runAdminAssistant', () => {
       messages: [{ role: 'user', content: 'hello' }],
       grants: ALL,
     });
-    expect(result).toEqual({ available: false, reply: null, actions: [] });
+    expect(result).toEqual({ available: false, reply: null, actions: [], steps: [] });
   });
 
   it('grounds the prompt in today, the rules, the screen and what is on it', async () => {
@@ -432,6 +507,28 @@ describe('runAdminAssistant', () => {
     expect(seen).toContain('draft_quote_from_email');
   });
 
+  it('says what it looked at, from the tools it actually called', async () => {
+    const { model } = scriptedModel([
+      {
+        calls: [
+          { toolName: 'lookup_booking', input: { ref: 'bmt8c894b1f4a100' } },
+          { toolName: 'activity_departures', input: { slug: 'catamaran', date: '2026-11-20' } },
+        ],
+      },
+      { text: 'It runs at 08:45.' },
+    ]);
+    const result = await runAdminAssistant(
+      ctx,
+      makePort(),
+      { messages: [{ role: 'user', content: 'when?' }], grants: ALL },
+      model,
+    );
+    expect(result.steps).toEqual([
+      'Looked up booking BMT8C894B1F4A100',
+      'Checked departures on 20 Nov',
+    ]);
+  });
+
   it('never leaves a blank bubble when the model answers with tools only', async () => {
     const { model } = scriptedModel([{ text: '' }]);
     const result = await runAdminAssistant(
@@ -441,5 +538,64 @@ describe('runAdminAssistant', () => {
       model,
     );
     expect(result.reply).toBeTruthy();
+  });
+});
+
+describe('stepLabels — the chips over a reply', () => {
+  const call = (toolName: string, input: unknown = {}) => ({ toolCalls: [{ toolName, input }] });
+
+  it('says each tool once, in order, in plain words', () => {
+    expect(
+      stepLabels([
+        call('search_catalogue', { query: 'catamaran' }),
+        call('tour_pricing', { slug: 'x', guests: 2 }),
+        call('tour_pricing', { slug: 'y', guests: 4 }),
+        call('transfer_fare', { activitySlug: 'x', guests: 2 }),
+      ]),
+    ).toEqual([
+      'Searched tours for “catamaran”',
+      'Checked tour prices',
+      'Worked out a transfer fare',
+    ]);
+  });
+
+  it(`stops at ${STEP_CAP}`, () => {
+    const many = [
+      call('search_catalogue'),
+      call('tour_pricing'),
+      call('read_tour'),
+      call('transfer_fare'),
+      call('rental_fleet'),
+    ];
+    expect(stepLabels(many)).toHaveLength(STEP_CAP);
+  });
+
+  it('never puts an address or a long pasted string on screen', () => {
+    expect(stepLabels([call('search_catalogue', { query: 'jane@example.com' })])).toEqual([
+      'Looked through the tours',
+    ]);
+    expect(stepLabels([call('search_catalogue', { query: 'a'.repeat(60) })])).toEqual([
+      'Looked through the tours',
+    ]);
+    // A "reference" that is really something else falls back to the plain label.
+    expect(stepLabels([call('lookup_booking', { ref: 'jane@example.com' })])).toEqual([
+      'Looked up a booking',
+    ]);
+    expect(stepLabels([call('lookup_quote', { ref: 'QTEST01' })])).toEqual([
+      'Looked up quote QTEST01',
+    ]);
+  });
+
+  it('names a departure day only when it is a real ISO day', () => {
+    expect(stepLabels([call('activity_departures', { date: '2026-12-03' })])).toEqual([
+      'Checked departures on 3 Dec',
+    ]);
+    expect(stepLabels([call('activity_departures', { date: 'next Tuesday' })])).toEqual([
+      'Checked departures',
+    ]);
+  });
+
+  it('ignores a tool it does not know, and a step with no calls', () => {
+    expect(stepLabels([{}, call('something_new'), { toolCalls: [] }])).toEqual([]);
   });
 });

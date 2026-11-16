@@ -26,12 +26,22 @@ export const assistantPageContextSchema = z.object({
 });
 export type AssistantPageContext = z.infer<typeof assistantPageContextSchema>;
 
+/**
+ * The panel's Ask / Do switch. In `ask` the model is offered the read tools only, so it can answer
+ * but cannot draft anything; `do` adds the propose_* tools the caller's sections allow. Nothing is
+ * applied in either mode until a person presses Apply. Absent means `do`: that is how the panel
+ * behaved before the switch existed, so an older client keeps working exactly as it did.
+ */
+export const assistantModeSchema = z.enum(['ask', 'do']);
+export type AssistantMode = z.infer<typeof assistantModeSchema>;
+
 export const adminAssistantRequestSchema = z.object({
   messages: z
     .array(assistantMessageSchema)
     .min(1, 'Say something first.')
     .max(24, 'This conversation is too long — start a fresh one.'),
   page: assistantPageContextSchema.nullish(),
+  mode: assistantModeSchema.optional(),
 });
 export type AdminAssistantRequest = z.infer<typeof adminAssistantRequestSchema>;
 
@@ -176,5 +186,10 @@ export const adminAssistantResponseSchema = z.object({
   reply: z.string().nullable(),
   /** Proposed actions, shown as cards under the reply. Nothing is applied without a click. */
   actions: z.array(assistantActionSchema).max(4).default([]),
+  /**
+   * What the assistant looked at to answer, in plain words ("Checked departures on 20 Nov"), from
+   * the tools it actually called. Shown as small chips above the reply. Never carries an email.
+   */
+  steps: z.array(z.string().max(120)).max(6).default([]),
 });
 export type AdminAssistantResponse = z.infer<typeof adminAssistantResponseSchema>;

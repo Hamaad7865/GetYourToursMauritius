@@ -691,6 +691,18 @@ screenshot, 16 Nov 2026). It only happened with real money in the chart, so the 
 showed it. A `<div className="sr-only">` around the table is a real 1px box that holds it in, and a
 screen reader still reads the table. `tests/unit/sr-only-table.test.ts` fails the build on the old way.
 
+### From 1024px the back office scrolls inside the screen's card, not the window
+
+Since 16 Nov 2026 the shell is two cards on the sidebar's dark ground (the screen, and Belle Mare AI
+beside it), as Gmail sets its mail list and Gemini. The screen's card is the scroller
+(`[data-admin-scroll]` in `AdminShell.tsx`), so `window.scrollTo` moves nothing on a desktop: scroll
+that element too (`ActivityForm.selectSection` does both), and size anything "full height" with
+`calc(100dvh - var(--bo-inset, 0px) - …)`, as the calendar's docked day sheet does. Below 1024 the
+window scrolls as before. The shell and the chat column are `overflow-clip`, never `overflow-hidden`:
+an overflow-hidden box can still be scrolled, and focusing the chat's text box while its column was
+still widening slid the whole back office 375px sideways at 1280. Focus inside the chat uses
+`preventScroll`. `tests/unit/assistant-shell-wiring.test.ts` guards both.
+
 ---
 
 ## Everything else

@@ -738,6 +738,122 @@ or writes:
 Withdraw, Reinstate). (`next build` passed in a clean copy of the commit; CI's edge bundle and the
 release for `e82f2948` then passed, and live health reported that commit on 16 Nov 00:02 UTC.)
 
+### Side chat: Belle Mare AI (built and shipped 16 Nov 2026 from the owner's mock-up)
+
+The owner sent `project/AiChat.dc.html` ("Belle Mare AI — side chat") with "Now use this artifact to
+build the new side ai chat". No migration, no SQL, no new package, no new route, and nothing about
+pricing, booking, payment or refunds changed. The one server change is on the existing assistant
+route: an optional `mode` in, `steps` out (`validation/admin-assistant.ts`, `openapi.json`).
+
+**Files**: `src/components/admin/assistant/AssistantPanel.tsx` (rewritten), `AssistantProvider.tsx`
+(mode, the screen switch, card answers, history), `AiOrb.tsx` (new: the orb, its avatar and the
+launcher mark), `BalancesCard.tsx` (new: the balances and departures cards), `useAssistantData.ts`
+(new: the reads), `rules.ts` (new, pure: every figure and word the cards show), `ActionCard.tsx`
+(dark styles only), the launcher and the two-card frame in `AdminShell.tsx`, the `bmai-*` and
+`bo-scroll` styles in `globals.css`, and the chat's open requests taken by `AdminBookings.tsx`,
+`quotes/QuoteWorklist.tsx`, `AdminQuotes.tsx` (the editor) and `AdminCalendar.tsx`. The
+balance-link question moved into `quotes/worklist.ts` (`balanceLinkQuestion`) so the Quotes list, the
+quote panel, Today and the chat ask it in the same words.
+
+**What it does**
+
+- From 1024 the back office is two cards on one dark ground, as Gmail sets its mail list and Gemini
+  side by side (the owner's second screenshot): the screen is a rounded card inset 8px on the
+  sidebar's ink, and the chat is a dark card beside it, 440px (400 below 1280). The owner's first
+  look, a dark card floating on the pale page grey next to an edge-to-edge screen, read as "a
+  component and then a background". The chat still pushes the screen instead of covering it. From
+  1024 the screen's card scrolls, not the window (`data-admin-scroll`; the calendar's docked day
+  sheet subtracts `--bo-inset`). "Widen" (from 1280) takes the chat to 520, 640 from 1536. Below 1024
+  nothing changed: the window scrolls and the chat is a full sheet with a scrim. A closed panel is
+  `inert`.
+- A link in the chat (a balance row's Open, a departure, the Nudge card) closes the chat and hands
+  what to open to the screen through the assistant context, so it opens on the screen you are already
+  on: Bookings, Quotes and the calendar read `?open=` / `?quote=` / `?day=` only on arrival. From
+  another screen the address goes too. A quote asked for while the quote editor is open goes back to
+  the list first, asking before unsaved changes are dropped. A screen's own modal (the booking and
+  quote panels, the pickers, the calendar's day sheet) covers the chat column.
+- On Quotes beside the chat (a 760px screen) a row's reference wraps under the guest's name: on one
+  line the fixed-width reference left the name two letters ("Sh…").
+- Header: the conversation's title (its first question) with a menu of earlier conversations of this
+  visit, New, History, Widen, Close. Esc closes a menu first, then the panel, and only while focus is
+  in the panel; closing hands focus back to the launcher.
+- "Sees Quotes · Balance to collect": what the model is told about the screen. Hide sends no screen at
+  all.
+- Home: the orb (it follows the mouse; still under reduced motion), "Good morning, {first name}." by
+  the Mauritius hour, and up to four cards from live data, only what the role may see: Chase overdue
+  balances (past trips · total owed), Nudge {guest} (a quote that lapses within 3 days; opens it on
+  Quotes), Turn an email into a quote (switches to Do), Today's departures. Plain questions fill the
+  rest.
+- Chase overdue balances answers in the panel, not from the model: Today's own balances, overdue =
+  the trip day has passed, biggest first, with the steps it took ("Checked 2 balances", "Compared
+  trip dates"). Each row is ticked when Today could send it (a reminder for the next installment, or
+  a quote's balance link) and has Open otherwise. One button sends the ticked rows on screen, after
+  one confirmation listing every guest, address and what each gets; they go one by one and each row
+  shows its outcome, with Copy link and WhatsApp after a balance link. "Only over €100" for roles
+  with money. "Show the N trips still to come" lists the rest.
+- Typed questions go to the model in Ask (answers only) or Do (may also draft a quote or a tour
+  change, each still applied with Apply). Each answer shows what it looked at ("Looked up booking
+  BMT…"). `/` lists the panel's actions; `@` picks a booking by reference or name and inserts its
+  reference.
+
+**Where it differs from the mock-up, and why**
+
+- "Send 7 balance links" became "Send N reminders" / "Send N balance links" / "Email N guests", from
+  what each row can really send. A booking with no installment schedule and no quote has no sender
+  today, so it gets Open instead of a checkbox.
+- No "Draft WhatsApps" button: a WhatsApp message needs a link, and only a balance link makes one, so
+  WhatsApp appears on each row once its link exists.
+- No attach button: the route takes text only.
+- "Change" on the Sees row is Hide / Show: the panel only knows the screen it is on.
+- The mode hint keeps "Gemini can make mistakes" and says what Do can and cannot do (it drafts; it
+  does not refund).
+- History is this visit only, in memory: conversations can hold guests' names, so nothing is stored.
+  What a balances card sent is kept on its message, so a conversation brought back from History
+  shows those rows as sent and does not offer them again.
+
+**Tests**: `tests/unit/admin-assistant-panel-rules.test.ts` (24: balances, overdue, what a send does
+and the question it asks, the balances answer, expiring quotes, the home cards by role, departures,
+the greeting, the Sees label, what a chat link opens), `admin-assistant-balances-card.test.ts` (8:
+ticks, the button's words, no money without the permission, the filter, the fold, rows already sent,
+departures links), `admin-assistant.test.ts` (Ask is read tools only, Do never widens past the
+sections, step labels), and `assistant-shell-wiring.test.ts` (inert, Esc scoped to the panel, nothing
+in storage, the two senders only and the confirmation before the loop, open requests through context
+taken by all three screens, the two-card frame with `overflow-clip`, modals above the chat, reduced
+motion).
+
+**Trap found in the browser**: with the shell `overflow-hidden`, opening the chat at 1280 focused its
+text box while the column was still widening, and the browser scrolled the whole back office 375px
+sideways to show it (an overflow-hidden box can still be scrolled). The shell and the chat column are
+`overflow-clip`, and the chat focuses with `preventScroll`.
+
+**Verified**, 16 Nov, on the sandbox signed in as the sandbox Owner:
+
+- 1440px on Quotes: the home view with real cards (2 past trips · €375 owed); Chase overdue balances
+  showing both rows with Open (neither has a sender); the `/` menu, and Esc closing only the menu;
+  `@sheik` picking a booking and inserting its reference; that question answered by the model with
+  the step "Looked up booking BMTDF6AAC32AE092"; New conversation, then History bringing it back;
+  Widen at 520 leaving 688px for Quotes; the pointer glow and orb; the email card switching to Do.
+- 1280px on Bookings: 440 leaves 593px, Widen leaves 513px; the page never scrolls sideways.
+- 375px on Today: a full-width sheet, Widen hidden.
+- Esc pressed on the page leaves the panel open; Esc in the panel closes it and focus returns to the
+  launcher. No console errors.
+- After the fixes: on Bookings, the chat's Open opened that booking's panel and closed the chat, with
+  the address unchanged; from Quotes, Open went to Bookings with the right booking open (55 of 126).
+  With the chat open, a booking opened from the list covers the chat column. The two cards at 1440 and
+  1280 (screen 232 to 832, chat 840 to 1272 at 1280); the screen's card scrolls and a sidebar link
+  brings the next screen back to its top; the calendar's docked day sheet runs from under the top bar
+  to the card's bottom edge while the month scrolls; in the tour editor (1440 × 520) switching section
+  takes the card back to the top; 375px unchanged (the window scrolls).
+
+**Not verified**: pressing a send in the balances card (the sandbox has no balance a sender covers,
+so there was nothing safe to press) and so the sent state surviving History in a browser
+(unit-tested only); the Nudge card and a departure opening on the same screen (the sandbox has no
+quote about to lapse and no departure today); Apply on a drafted quote or tour; the two-card frame on
+every screen (checked on Today, Bookings, Quotes, Calendar and the tour editor); where Back lands on
+a long list (the card starts each new screen at its top, where the browser may before have kept the
+window's place); printing from the back office; and reduced motion in a browser (guarded by the CSS
+test only).
+
 The gate, before calling any phase done:
 
 ```bash

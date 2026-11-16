@@ -212,7 +212,8 @@ function QuoteEditor({
   const [link, setLink] = useState<string | null>(null);
   /** The balance link the last "Send balance link" returned. */
   const [balanceLink, setBalanceLink] = useState<{ url: string; emailed?: boolean } | null>(null);
-  const handoff = useAssistant()?.quoteHandoff ?? null;
+  const assistant = useAssistant();
+  const handoff = assistant?.quoteHandoff ?? null;
   const [drafterOpen, setDrafterOpen] = useState(() => startWithDrafter || Boolean(handoff));
   // Once opened, the drafter stays mounted (only hidden), so closing it keeps the pasted text and
   // cannot strand the `drafting` flag that holds Save and Send.
@@ -232,6 +233,24 @@ function QuoteEditor({
       setDrafterMounted(true);
     }
   }, [handoff]);
+
+  // Belle Mare AI asked to open a quote in the list: go back to the worklist, which takes the request
+  // and opens the quote's panel. Unsaved changes are not dropped without asking.
+  const openRequest = assistant?.openRequest ?? null;
+  const takeOpenRequest = assistant?.takeOpenRequest;
+  const leave = useRef({ onClose, dirty });
+  leave.current = { onClose, dirty };
+  useEffect(() => {
+    if (openRequest?.kind !== 'quote' || !takeOpenRequest) return;
+    if (
+      leave.current.dirty &&
+      !window.confirm('Leave this quote? Your unsaved changes will be lost.')
+    ) {
+      takeOpenRequest('quote');
+      return;
+    }
+    leave.current.onClose();
+  }, [openRequest, takeOpenRequest]);
 
   const reload = useCallback(async (quoteId: string): Promise<QuoteFormValues> => {
     const detail = await loadQuote(quoteId);

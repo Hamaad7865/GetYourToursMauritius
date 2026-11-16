@@ -8,7 +8,7 @@ import { useAuth } from '@/components/auth/AuthProvider';
 import { useDialog } from '@/lib/a11y/useDialog';
 import { Logo } from '@/components/site/Logo';
 import { AdminBell } from '@/components/admin/AdminBell';
-import { AiSparkButton } from '@/components/admin/quotes/AiSpark';
+import { OrbMark } from '@/components/admin/assistant/AiOrb';
 import { AssistantProvider, useAssistant } from '@/components/admin/assistant/AssistantProvider';
 import { avatar } from '@/lib/admin/dashboard';
 import {
@@ -74,11 +74,33 @@ export function AdminShell({ children }: { children: ReactNode }) {
   );
 }
 
-/** The launcher, in the top bar of every admin screen. Staff only — it reads guests and money. */
+/**
+ * The launcher, in the top bar of every admin screen. Staff only — it reads guests and money.
+ * The name shows from sm; below that the mark alone, with the same words as its accessible name.
+ */
 function AssistantLauncher() {
   const assistant = useAssistant();
   if (!assistant) return null;
-  return <AiSparkButton label="Ask Gemini" expanded={assistant.open} onClick={assistant.toggle} />;
+  return (
+    <button
+      type="button"
+      onClick={assistant.toggle}
+      aria-expanded={assistant.open}
+      data-assistant-launcher
+      aria-label="Belle Mare AI"
+      title="Belle Mare AI"
+      className={`inline-flex h-9 shrink-0 items-center gap-2 rounded-full border px-2.5 text-[12.5px] font-semibold transition-colors motion-reduce:transition-none sm:pr-3.5 ${
+        assistant.open
+          ? 'border-[#0A1517] bg-[#0A1517] text-white'
+          : 'border-line bg-white text-ink hover:border-[#F4B860]/70 hover:bg-[#FFF8EC]'
+      }`}
+    >
+      <OrbMark size={18} />
+      <span className="hidden sm:inline" aria-hidden="true">
+        Belle Mare AI
+      </span>
+    </button>
+  );
 }
 
 function AdminShellInner({ children }: { children: ReactNode }) {
@@ -88,6 +110,12 @@ function AdminShellInner({ children }: { children: ReactNode }) {
   const [drawer, setDrawer] = useState(false);
   const [search, setSearch] = useState('');
   const searchRef = useRef<HTMLInputElement>(null);
+  // From lg the screen's card scrolls, not the window, so a new screen must start at its top: the
+  // router only resets the window.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: 0 });
+  }, [pathname]);
   // The desktop sidebar folds to an icon rail ("Hide menu"). Read after mount, not in useState: the
   // server render has no storage, and the two renders must match. `animate` stays off until then so a
   // folded sidebar does not visibly slide shut on every page load.
@@ -156,7 +184,10 @@ function AdminShellInner({ children }: { children: ReactNode }) {
   return (
     // The ground is the page grey every white card sits on. The base text size is set on the main
     // column below, not here, so the assistant panel (a sibling of it) keeps its own typography.
-    <div className="flex min-h-dvh bg-ground text-ink">
+    // From lg the shell is one dark ground (the sidebar's ink) holding two cards, the screen and the
+    // Belle Mare AI column, each inset by `--bo-inset` (as Gmail sets its mail list and Gemini side by
+    // side): the window no longer scrolls, the screen's card does.
+    <div className="flex min-h-dvh bg-ground text-ink [--bo-inset:0px] lg:h-dvh lg:overflow-clip lg:bg-ink lg:[--bo-inset:1rem] print:h-auto print:overflow-visible print:bg-white">
       {/* ===== Desktop sidebar ===== */}
       <aside
         className={`sticky top-0 hidden h-dvh shrink-0 flex-col bg-ink lg:flex print:hidden ${
@@ -213,7 +244,11 @@ function AdminShellInner({ children }: { children: ReactNode }) {
       {/* ===== Main column =====
           13px medium with tabular figures is the back office's base text (bo.css `.app`); a screen's
           own sizes still win. */}
-      <div className="flex min-w-0 flex-1 flex-col text-[13px] font-medium tabular-nums">
+      <div
+        ref={scrollRef}
+        data-admin-scroll
+        className="bo-scroll flex min-w-0 flex-1 flex-col bg-ground text-[13px] font-medium tabular-nums lg:my-2 lg:mr-2 lg:h-[calc(100dvh-var(--bo-inset))] lg:overflow-y-auto lg:rounded-[18px] print:m-0 print:h-auto print:overflow-visible print:rounded-none"
+      >
         {/* Top bar. `data-admin-topbar` is read by the calendar to dock its day panel under it. */}
         <header
           data-admin-topbar

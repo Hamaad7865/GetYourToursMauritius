@@ -17,6 +17,7 @@ import {
   tourContentPatchInputSchema,
   type AssistantAction,
   type AssistantMessage,
+  type AssistantMode,
   type AssistantPageContext,
 } from '@/lib/validation/admin-assistant';
 
@@ -440,11 +441,26 @@ export function buildAssistantTools(
   };
 }
 
+/** Nothing to propose: what Ask mode offers everyone, whatever their sections. */
+const NO_PROPOSALS: AssistantGrants = { tours: false, quotes: false };
+
+/**
+ * What the model is actually offered this turn. Ask mode withholds every propose_* tool, so the
+ * model can read and answer but has nothing to draft with; Do mode offers what the caller's sections
+ * allow. The panel's switch is a convenience, not the security boundary — that is still the
+ * sections (and, for any write, Apply under the person's own session).
+ */
+export function offeredGrants(grants: AssistantGrants, mode: AssistantMode): AssistantGrants {
+  return mode === 'ask' ? NO_PROPOSALS : grants;
+}
+
 function systemPrompt(
   today: string,
   page: AssistantPageContext | null | undefined,
   grants: AssistantGrants,
+  mode: AssistantMode,
 ): string {
+  const offered = offeredGrants(grants, mode);
   const parts = [
     `You are the assistant inside the Belle Mare Tours back office (a Mauritius tour operator), helping STAFF with tours, quotes, bookings, transfers and rentals. Today is ${today} (Mauritius).`,
     '',
@@ -452,13 +468,17 @@ function systemPrompt(
     '- Any figure — a price, a fare, a total, an availability — MUST come from a tool result in this conversation. NEVER invent, estimate or remember one. If the tools return nothing, say what is missing instead.',
     '- Asked what a tour costs, call tour_pricing (it needs no date). A sightseeing tour is priced PER VEHICLE for the bracket that fits the party, not per person — quote that exact total and name the vehicle. If tour_pricing returns `unavailable`, say the price is not configured and stop; do not substitute a number from anywhere else.',
     '- Prices are in EUR unless a tool says otherwise.',
-    grants.tours || grants.quotes
-      ? '- You never change anything directly. To DO something, call a propose_* tool: the operator gets a card and presses Apply. Say plainly that you have proposed it and what they still need to do.'
-      : '- You never change anything directly, and you have nothing to propose for this person: answer questions only.',
-    grants.tours
-      ? '- You can write tour CONTENT (titles, summaries, descriptions, highlights, inclusions). You cannot set prices, options, capacity or publish anything — a tour you create is a draft to be priced by a human.'
-      : '- This person’s role does not include Tours, so you cannot create or change a tour for them. If they ask, say so and tell them to ask the owner; you may still read and describe tours.',
-    grants.quotes
+    mode === 'ask'
+      ? '- The panel is in ASK mode: answer questions only. You cannot draft or change anything in this mode. If the operator wants you to draft a quote or create or change a tour, tell them to switch the panel to Do and ask again.'
+      : offered.tours || offered.quotes
+        ? '- You never change anything directly. To DO something, call a propose_* tool: the operator gets a card and presses Apply. Say plainly that you have proposed it and what they still need to do.'
+        : '- You never change anything directly, and you have nothing to propose for this person: answer questions only.',
+    mode === 'ask'
+      ? ''
+      : grants.tours
+        ? '- You can write tour CONTENT (titles, summaries, descriptions, highlights, inclusions). You cannot set prices, options, capacity or publish anything — a tour you create is a draft to be priced by a human.'
+        : '- This person’s role does not include Tours, so you cannot create or change a tour for them. If they ask, say so and tell them to ask the owner; you may still read and describe tours.',
+    mode === 'ask' || grants.quotes
       ? ''
       : '- This person’s role does not include Quotes, so you cannot draft a quote from a pasted enquiry. If they ask, say so and tell them to ask the owner.',
     '- To copy content between tours, read_tour the source first and reuse its real text, not a paraphrase.',
@@ -466,24 +486,119 @@ function systemPrompt(
     '- Answer in short plain text (no markdown headings or tables). Be concrete: name the tour, the departure time, the tier, the figure.',
   ];
   if (page) {
+    const onQuotes = page.path.startsWith('/admin/quotes');
     parts.push(
       '',
       `The operator is on the ${page.screen} screen (${page.path}).`,
-      grants.quotes && page.path.startsWith('/admin/quotes')
+      offered.quotes && onQuotes
         ? 'If they paste a customer enquiry here, offer draft_quote_from_email without being asked.'
-        : grants.tours && page.path.startsWith('/admin/activities')
+        : offered.tours && page.path.startsWith('/admin/activities')
           ? 'Tour work is likely: prefer propose_new_tour / propose_tour_update when they ask for content.'
-          : '',
+          : mode === 'ask' && grants.quotes && onQuotes
+            ? 'If they paste a customer enquiry here, tell them to switch the panel to Do so you can turn it into a quote.'
+            : '',
     );
     if (page.detail?.trim()) parts.push('On screen right now:', page.detail.trim());
   }
   return parts.filter(Boolean).join('\n');
 }
 
+/* ---------------------------------------------------------------------------------------------- */
+/* Step labels — what the assistant looked at, in the operator's words                             */
+/* ---------------------------------------------------------------------------------------------- */
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+/** A booking or quote reference: letters and digits only, so nothing else can ride into a label. */
+const REF = /^[A-Za-z0-9-]{4,32}$/;
+/** Up to this many chips; the rest of a long turn is not worth the room. */
+export const STEP_CAP = 4;
+
+/** One tool call, as the AI SDK's step results report it. */
+interface CalledTool {
+  toolName: string;
+  input?: unknown;
+}
+
+function field(input: unknown, key: string): string {
+  if (!input || typeof input !== 'object') return '';
+  const value = (input as Record<string, unknown>)[key];
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+/** "20 Nov" from "2026-11-20"; null for anything that is not a real ISO day. */
+function shortDay(iso: string): string | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!m) return null;
+  const month = MONTHS[Number(m[2]) - 1];
+  return month ? `${Number(m[3])} ${month}` : null;
+}
+
+function labelFor({ toolName, input }: CalledTool): string | null {
+  switch (toolName) {
+    case 'search_catalogue': {
+      const query = field(input, 'query');
+      // A search term is the model's own words. Anything that looks like an address, or is long,
+      // falls back to the plain label rather than putting it on screen.
+      return query && query.length <= 40 && !query.includes('@')
+        ? `Searched tours for “${query}”`
+        : 'Looked through the tours';
+    }
+    case 'tour_pricing':
+      return 'Checked tour prices';
+    case 'read_tour':
+      return 'Read a tour';
+    case 'activity_departures': {
+      const day = shortDay(field(input, 'date'));
+      return day ? `Checked departures on ${day}` : 'Checked departures';
+    }
+    case 'transfer_fare':
+      return 'Worked out a transfer fare';
+    case 'lookup_booking': {
+      const ref = field(input, 'ref');
+      return REF.test(ref) ? `Looked up booking ${ref.toUpperCase()}` : 'Looked up a booking';
+    }
+    case 'lookup_quote': {
+      const ref = field(input, 'ref');
+      return REF.test(ref) ? `Looked up quote ${ref.toUpperCase()}` : 'Looked up a quote';
+    }
+    case 'rental_fleet':
+      return 'Read the rental fleet';
+    case 'propose_new_tour':
+      return 'Drafted a new tour';
+    case 'propose_tour_update':
+      return 'Drafted changes to a tour';
+    case 'draft_quote_from_email':
+      return 'Read the pasted enquiry';
+    default:
+      return null;
+  }
+}
+
+/**
+ * The chips over a reply: each tool the model called, in order, as a short plain sentence, each
+ * said once, at most {@link STEP_CAP}. Built only from the tool's NAME and a few vetted inputs (an
+ * ISO day, a reference), so a pasted email or a guest's address can never reach the screen this way.
+ */
+export function stepLabels(
+  steps: ReadonlyArray<{ toolCalls?: ReadonlyArray<CalledTool> }>,
+): string[] {
+  const out: string[] = [];
+  for (const step of steps) {
+    for (const call of step.toolCalls ?? []) {
+      const label = labelFor(call);
+      if (label && !out.includes(label)) out.push(label);
+      if (out.length === STEP_CAP) return out;
+    }
+  }
+  return out;
+}
+
 export interface AssistantTurnResult {
   available: boolean;
   reply: string | null;
   actions: AssistantAction[];
+  /** What it looked at, for the chips over the reply — see {@link stepLabels}. */
+  steps: string[];
 }
 
 export async function runAdminAssistant(
@@ -494,13 +609,16 @@ export async function runAdminAssistant(
     page?: AssistantPageContext | null;
     /** What this caller's role may be offered — see AssistantGrants. */
     grants: AssistantGrants;
+    /** The panel's Ask / Do switch; absent means Do, as before the switch existed. */
+    mode?: AssistantMode;
   },
   // Injectable so the chat can be tested with a scripted model; defaults to the real Gemini.
   modelOverride?: LanguageModel | null,
 ): Promise<AssistantTurnResult> {
   const model = modelOverride !== undefined ? modelOverride : plannerModel(ctx);
-  if (!model) return { available: false, reply: null, actions: [] };
+  if (!model) return { available: false, reply: null, actions: [], steps: [] };
 
+  const mode: AssistantMode = input.mode ?? 'do';
   const actions: AssistantAction[] = [];
   const messages: ModelMessage[] = input.messages.map((m) => ({
     role: m.role,
@@ -509,13 +627,18 @@ export async function runAdminAssistant(
 
   // Widened to ToolSet on purpose: the optional (grant-dependent) keys of the precise type would
   // otherwise leak `undefined` into every typed tool call the loop reports back.
-  const tools: ToolSet = buildAssistantTools(port, (a) => actions.push(a), input.grants);
+  const tools: ToolSet = buildAssistantTools(
+    port,
+    (a) => actions.push(a),
+    offeredGrants(input.grants, mode),
+  );
 
   let text: string;
+  let steps: string[] = [];
   try {
     const result = await generateText({
       model,
-      system: systemPrompt(ctx.now().toISOString().slice(0, 10), input.page, input.grants),
+      system: systemPrompt(ctx.now().toISOString().slice(0, 10), input.page, input.grants, mode),
       messages,
       tools,
       // Enough for search → read → propose in one question; mirrors runPlannerTurn's cap.
@@ -525,6 +648,7 @@ export async function runAdminAssistant(
     const fault = toolExecutionFault(result.steps);
     if (fault !== undefined) throw fault;
     text = result.text;
+    steps = stepLabels(result.steps);
   } catch (err) {
     // The same backstop runPlannerTurn carries, and this file is why it is worth having twice: the
     // lint rule and the clamps above close every KNOWN way a model argument can be malformed, but
@@ -549,5 +673,6 @@ export async function runAdminAssistant(
         : 'I looked that up but have nothing to add — try asking more specifically.'),
     // Cap matches the response schema; a runaway loop cannot flood the panel with cards.
     actions: actions.slice(0, 4),
+    steps,
   };
 }

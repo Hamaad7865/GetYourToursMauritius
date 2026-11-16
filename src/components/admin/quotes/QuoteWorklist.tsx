@@ -37,6 +37,7 @@ import { listNeighbours } from '@/components/admin/bookings/rules';
 import { GeminiSpark } from '@/components/admin/quotes/AiSpark';
 import { FreshLink } from '@/components/admin/quotes/FreshLink';
 import { QuoteDrawer } from '@/components/admin/quotes/QuoteDrawer';
+import { useAssistant } from '@/components/admin/assistant/AssistantProvider';
 import { eurFromMinor, refusalMessage } from '@/components/admin/quotes/state';
 import { balanceWhatsAppText, quoteWhatsAppText } from '@/components/admin/quotes/whatsapp';
 import {
@@ -47,6 +48,7 @@ import {
   defaultQuoteStage,
   groupQuotes,
   lineSummaries,
+  balanceLinkQuestion,
   matchesQuoteSearch,
   paidLaterFlags,
   parseQuoteSort,
@@ -247,6 +249,25 @@ export function QuoteWorklist({
     writeParams({ quote: id });
   }
 
+  // Belle Mare AI asks for a quote through its context: `?quote=` is read once, on arrival, so the
+  // chat's link to a quote while already on this screen would open nothing.
+  const assistant = useAssistant();
+  const openRequest = assistant?.openRequest ?? null;
+  const takeOpenRequest = assistant?.takeOpenRequest;
+  useEffect(() => {
+    if (!openRequest || !takeOpenRequest) return;
+    const r = takeOpenRequest('quote');
+    if (!r) return;
+    const s = parseQuoteStage(r.stage);
+    if (s) {
+      setStage(s);
+      setSort(STAGE_SORTS[s][0]!);
+      setAllDone(false);
+    }
+    setOpenId(r.id);
+    writeParams(s ? { stage: s, sort: null, quote: r.id } : { quote: r.id });
+  }, [openRequest, takeOpenRequest]);
+
   function closePanel() {
     const back = openId;
     setOpenId(null);
@@ -291,11 +312,7 @@ export function QuoteWorklist({
   }
 
   function sendBalance(row: QuoteRow) {
-    if (
-      !window.confirm(
-        `Email a balance payment link for quote ${row.ref} to ${row.customerEmail}? A balance link sent earlier stops working; the guest’s quote link is not affected.`,
-      )
-    ) {
+    if (!window.confirm(balanceLinkQuestion(row.ref, row.customerEmail))) {
       return;
     }
     void run(`balance:${row.id}`, async () => {
@@ -675,7 +692,9 @@ function QuoteRowItem({
       <div className="col-span-3 flex min-w-0 items-center gap-3 lg:col-span-1">
         <GuestAvatar name={row.customerName} />
         <div className="min-w-0">
-          <p className="flex min-w-0 items-baseline gap-2">
+          {/* The reference wraps under the name when both do not fit (the screen beside Belle Mare
+              AI is ~760px): kept on one line, the fixed-width reference left the name two letters. */}
+          <p className="flex min-w-0 flex-wrap items-baseline gap-x-2">
             <button
               type="button"
               onClick={onOpen}

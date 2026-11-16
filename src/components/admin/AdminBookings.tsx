@@ -40,6 +40,7 @@ import {
 } from '@/components/admin/ui';
 import { GuestAvatar } from '@/components/admin/GuestAvatar';
 import { BookingDrawer } from '@/components/admin/bookings/BookingDrawer';
+import { useAssistant } from '@/components/admin/assistant/AssistantProvider';
 import {
   listNeighbours,
   otherBookingCount,
@@ -370,6 +371,19 @@ export function AdminBookings() {
     triggerRef.current = null;
     setSelectedId(null);
   }, []);
+  // Belle Mare AI asks for a booking through its context, not the address: `?open=` is read once, on
+  // arrival, so a link to this screen from the chat while already on it would open nothing.
+  const assistant = useAssistant();
+  const openRequest = assistant?.openRequest ?? null;
+  const takeOpenRequest = assistant?.takeOpenRequest;
+  useEffect(() => {
+    if (!openRequest || !takeOpenRequest) return;
+    const r = takeOpenRequest('booking');
+    if (!r) return;
+    triggerRef.current = null;
+    setDrawerTab('overview');
+    setSelectedId(r.id);
+  }, [openRequest, takeOpenRequest]);
   // After the panel has gone and the table is back in its full layout, focus that row's button.
   useEffect(() => {
     if (selectedId !== null || !focusBackRef.current) return;

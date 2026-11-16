@@ -388,6 +388,15 @@ export function daysBetween(from: string, to: string): number {
   return Math.round(dayNumber(to) - dayNumber(from));
 }
 
+/**
+ * The question asked before a quote's balance link is emailed, everywhere one can be sent (the
+ * Quotes list and panel, Today, the side chat). One wording, because it carries the warning that
+ * matters: sending a new balance link stops the earlier one working.
+ */
+export function balanceLinkQuestion(ref: string, email: string): string {
+  return `Email a balance payment link for quote ${ref} to ${email}? A balance link sent earlier stops working; the guest’s quote link is not affected.`;
+}
+
 /** Days still to go on a quote's validity: 0 = today is the last valid day, negative = expired. */
 export function validDaysLeft(validUntil: string, today: string = quoteTodayUtc()): number {
   return daysBetween(today, validUntil);

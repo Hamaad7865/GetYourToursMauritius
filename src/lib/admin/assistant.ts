@@ -10,6 +10,7 @@ import type {
   AdminAssistantResponse,
   AssistantAction,
   AssistantMessage,
+  AssistantMode,
   AssistantPageContext,
   TourContentPatch,
 } from '@/lib/validation/admin-assistant';
@@ -41,10 +42,14 @@ async function session(): Promise<{ accessToken: string } | null> {
   }
 }
 
-/** One turn of the assistant. The route is stateless — the panel owns the conversation. */
+/**
+ * One turn of the assistant. The route is stateless — the panel owns the conversation. `mode` is
+ * the panel's Ask / Do switch: Ask is offered no proposal tools at all.
+ */
 export async function askAdminAssistant(
   messages: AssistantMessage[],
   page: AssistantPageContext | null,
+  mode: AssistantMode = 'do',
 ): Promise<AdminAssistantResponse> {
   const staff = await session();
   const res = await fetch('/api/v1/admin/assistant', {
@@ -53,7 +58,7 @@ export async function askAdminAssistant(
       'content-type': 'application/json',
       ...(staff ? { authorization: `Bearer ${staff.accessToken}` } : {}),
     },
-    body: JSON.stringify({ messages, page }),
+    body: JSON.stringify({ messages, page, mode }),
   });
   const body = (await res.json().catch(() => null)) as {
     ok?: boolean;

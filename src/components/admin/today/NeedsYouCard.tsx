@@ -11,6 +11,7 @@ import { sendInstallmentReminder } from '@/lib/admin/bookings';
 import { sendBalanceLink, type QuoteRow } from '@/lib/admin/quotes';
 import { euro } from '@/lib/admin/dashboard';
 import type { NeedRow, NeedsYou } from '@/components/admin/today/rules';
+import { balanceLinkQuestion } from '@/components/admin/quotes/worklist';
 
 type SendState =
   | { status: 'sending' }
@@ -71,11 +72,7 @@ export function NeedsYouCard({
 
   async function balanceLink(row: NeedRow, quote: QuoteRow) {
     // The Quotes screen's own question, word for word.
-    if (
-      !window.confirm(
-        `Email a balance payment link for quote ${quote.ref} to ${quote.customerEmail}? A balance link sent earlier stops working; the guest’s quote link is not affected.`,
-      )
-    ) {
+    if (!window.confirm(balanceLinkQuestion(quote.ref, quote.customerEmail))) {
       return;
     }
     set(row.key, { status: 'sending' });

@@ -14649,6 +14649,13 @@
                       "path",
                       "screen"
                     ]
+                  },
+                  "mode": {
+                    "type": "string",
+                    "enum": [
+                      "ask",
+                      "do"
+                    ]
                   }
                 },
                 "required": [
@@ -14927,12 +14934,22 @@
                           },
                           "maxItems": 4,
                           "default": []
+                        },
+                        "steps": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "maxLength": 120
+                          },
+                          "maxItems": 6,
+                          "default": []
                         }
                       },
                       "required": [
                         "available",
                         "reply",
-                        "actions"
+                        "actions",
+                        "steps"
                       ]
                     },
                     "meta": {

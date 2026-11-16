@@ -268,10 +268,10 @@ bookings were going out fine.
 
 **Two models, split by who is waiting.** Both are built in `src/lib/services/planner-agent.ts`:
 
-| Function         | Used by                                   | Default                          | Variable                          |
-| ---------------- | ----------------------------------------- | -------------------------------- | --------------------------------- |
-| `visitorModel()` | ZilAi's planning turns, place insights    | `gemini-3.8-flash`, low thinking | `GOOGLE_GENERATIVE_AI_FAST_MODEL` |
-| `plannerModel()` | Admin assistant, email→quote, the SEO fix | `gemini-3.1-pro-preview`         | `GOOGLE_GENERATIVE_AI_MODEL`      |
+| Function         | Used by                                 | Default                          | Variable                          |
+| ---------------- | --------------------------------------- | -------------------------------- | --------------------------------- |
+| `visitorModel()` | ZilAi's planning turns, place insights  | `gemini-3.8-flash`, low thinking | `GOOGLE_GENERATIVE_AI_FAST_MODEL` |
+| `plannerModel()` | Belle Mare AI (admin), email→quote, SEO | `gemini-3.1-pro-preview`         | `GOOGLE_GENERATIVE_AI_MODEL`      |
 
 A visitor is watching a spinner, so ZilAi runs on the fast pair. **The speed is the pair, not the
 model**: on the same test loop Pro took 17.7 s, Pro at low thinking 12.8 s, Flash 19.1 s and Flash at
@@ -291,6 +291,18 @@ Under SDK v5 a failed tool no longer throws out of `generateText`: the error is 
 which will happily write a polite reply over a real outage. `src/lib/ai/tool-faults.ts` re-raises a
 tool that threw while running, so it still reaches `error_logs`; a malformed call from the model is
 left for the model to correct.
+
+**Belle Mare AI is the back office's side chat** (`src/components/admin/assistant/`, route
+`/api/v1/admin/assistant`). The route only reads. A proposal (a drafted quote, a tour change) comes
+back as a card and is applied in the browser, under the operator's own session, when they press
+Apply. The panel sends `mode`: `ask` offers the model the read tools only, `do` adds the proposal
+tools the caller's sections allow, and a request without it counts as `do` (how the panel worked
+before the switch). The answer carries `steps`, short labels of what the model looked at, built from
+the tool name and checked inputs only, never from free text. Two answers never reach the model:
+"chase the balances" and "today's departures" are worked out in the browser from the reads Today
+makes (`assistant/rules.ts`), and a balance is sent only through Today's two senders (the installment
+reminder and a quote's balance link), after one confirmation that names every guest. Conversations
+are kept in memory for the visit and never stored, because they can hold guests' names.
 
 **ZilAi is site-wide.** The "Plan with AI" pill in the header opens it as a modal sheet from the left
 on any public page; once it commits a plan, a results canvas (day cards beside the map) fills the

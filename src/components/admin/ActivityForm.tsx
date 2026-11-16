@@ -197,7 +197,9 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
     // replaceState, not push: switching panes is not a navigation, and Back should leave the editor
     // rather than walk every pane the owner looked at.
     window.history.replaceState(null, '', url);
+    // From lg the back office scrolls inside the screen's card, not the window (AdminShell).
     window.scrollTo({ top: 0 });
+    document.querySelector<HTMLElement>('[data-admin-scroll]')?.scrollTo({ top: 0 });
   }
 
   async function save(e: React.FormEvent) {

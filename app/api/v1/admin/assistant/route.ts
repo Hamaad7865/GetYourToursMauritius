@@ -362,15 +362,17 @@ export const POST = apiHandler(async (req) => {
     },
   };
 
-  const { available, reply, actions } = await runAdminAssistant(ctx, port, {
+  const { available, reply, actions, steps } = await runAdminAssistant(ctx, port, {
     messages: body.messages,
     page: body.page,
     // The assistant section alone does not entitle a role to the tour-writing or quote-drafting tools:
     // the browser applies those proposals as the member, so they are only offered with the section.
     grants: assistantGrants(access),
+    // The panel's Ask / Do switch. Ask withholds every proposal tool; Do offers what `grants` allows.
+    mode: body.mode,
   });
 
-  const response: AdminAssistantResponse = { available, reply, actions };
+  const response: AdminAssistantResponse = { available, reply, actions, steps };
   return jsonOk(response);
 });
 

@@ -94,6 +94,43 @@ describe('the panel pushes the content instead of covering it', () => {
   it('keeps the honest disclaimer', () => {
     expect(panel).toContain('Gemini can make mistakes');
   });
+
+  it('is out of the tab order when closed, and Esc acts only while focus is in it', () => {
+    expect(panel).toContain('inert={!open}');
+    // A window-wide Esc listener closed the panel from anywhere, even mid-way through a quote form.
+    expect(code('src/components/admin/assistant/AssistantPanel.tsx')).not.toMatch(
+      /window\.addEventListener\('keydown'/,
+    );
+    expect(panel).toContain('onKeyDown={onPanelKeyDown}');
+  });
+
+  it('keeps conversations in memory only — they can hold guests’ names', () => {
+    for (const file of [
+      'src/components/admin/assistant/AssistantPanel.tsx',
+      'src/components/admin/assistant/AssistantProvider.tsx',
+      'src/components/admin/assistant/BalancesCard.tsx',
+      'src/components/admin/assistant/useAssistantData.ts',
+    ]) {
+      expect(code(file)).not.toMatch(/localStorage|sessionStorage|indexedDB/);
+    }
+  });
+});
+
+describe('the balances card sends only what Today could, after one confirmation', () => {
+  const card = code('src/components/admin/assistant/BalancesCard.tsx');
+
+  it('uses the two existing senders and nothing else', () => {
+    expect(card).toContain('sendInstallmentReminder(');
+    expect(card).toContain('sendBalanceLink(');
+    expect(card).not.toMatch(/fetch\(/);
+  });
+
+  it('asks before the first send, naming every guest', () => {
+    const confirmAt = card.indexOf('window.confirm(sendQuestion(');
+    expect(confirmAt).toBeGreaterThan(-1);
+    // The confirmation comes before the loop that sends.
+    expect(confirmAt).toBeLessThan(card.indexOf('for (const row of list)'));
+  });
 });
 
 describe('the quote hand-off survives being applied on the quotes screen itself', () => {
@@ -124,6 +161,45 @@ describe('the quote hand-off survives being applied on the quotes screen itself'
     expect(code('src/components/admin/quotes/DraftFromEmail.tsx')).not.toContain('sessionStorage');
   });
 
+  it('the chat opens a booking, quote or day through context, so it works on that same screen', () => {
+    // Bookings, Quotes and the calendar read `?open=` / `?quote=` / `?day=` once, on arrival: a link
+    // from the chat to the screen already showing did nothing. The panel hands the target over
+    // instead, and never reloads the page to force it.
+    const panel = code('src/components/admin/assistant/AssistantPanel.tsx');
+    expect(panel).toContain('a.requestOpen(target)');
+    expect(panel).not.toContain('window.location');
+    for (const [file, kind] of [
+      ['src/components/admin/AdminBookings.tsx', 'booking'],
+      ['src/components/admin/quotes/QuoteWorklist.tsx', 'quote'],
+      ['src/components/admin/AdminCalendar.tsx', 'day'],
+    ] as const) {
+      const src = code(file);
+      expect(src).toContain(`takeOpenRequest('${kind}')`);
+      expect(src).toMatch(/\}, \[openRequest, takeOpenRequest/);
+    }
+  });
+
+  it('from lg the screen and the chat are two cards on one dark ground, as in Gmail', () => {
+    const shell = code('src/components/admin/AdminShell.tsx');
+    // The screen's card scrolls, not the window; the calendar's docked day sheet subtracts the inset.
+    expect(shell).toContain('data-admin-scroll');
+    expect(shell).toContain('lg:overflow-y-auto lg:rounded-[18px]');
+    expect(code('src/components/admin/AdminCalendar.tsx')).toContain('var(--bo-inset, 0px)');
+    // CLIP, not hidden: an overflow-hidden box can still be scrolled, and focusing the chat's text box
+    // while its column was still widening slid the whole back office sideways (seen at 1280px).
+    expect(shell).toContain('lg:overflow-clip');
+    expect(shell).not.toContain('lg:overflow-hidden');
+    const panel = code('src/components/admin/assistant/AssistantPanel.tsx');
+    expect(panel).toContain('transform-gpu overflow-clip');
+    expect(panel).not.toMatch(/inputRef\.current\?\.focus\(\)/);
+  });
+
+  it('a screen’s modal covers the chat column instead of opening beneath it', () => {
+    // From lg the chat is an in-flow column; with z-[61] it sat above the booking and quote panels
+    // (z-50) and the calendar's day sheet (z-[60]) and hid their right edge.
+    expect(source('src/components/admin/assistant/AssistantPanel.tsx')).toContain('lg:z-auto');
+  });
+
   it('navigating to the page you are already on is guarded, since push would be a no-op', () => {
     const card = source('src/components/admin/assistant/ActionCard.tsx');
     expect(card).toMatch(/pathname !== href\.split\('\?'\)\[0\]/);
@@ -143,6 +219,8 @@ describe('the animations respect reduced motion', () => {
       '.ai-suggestion',
       '.ai-chip',
       '.ai-spark-float',
+      '.bmai-orb',
+      '.bmai-orb-layer',
     ]) {
       expect(reduced).toContain(cls);
     }

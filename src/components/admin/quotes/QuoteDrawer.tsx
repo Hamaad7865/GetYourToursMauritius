@@ -36,6 +36,7 @@ import {
   whatsappNumber,
 } from '@/components/admin/quotes/whatsapp';
 import {
+  balanceLinkQuestion,
   dayMonth,
   quotePanelMoney,
   quotePrimary,
@@ -197,11 +198,7 @@ function QuoteBody({
   }
 
   function sendBalance() {
-    if (
-      !window.confirm(
-        `Email a balance payment link for quote ${row.ref} to ${row.customerEmail}? A balance link sent earlier stops working; the guest’s quote link is not affected.`,
-      )
-    ) {
+    if (!window.confirm(balanceLinkQuestion(row.ref, row.customerEmail))) {
       return;
     }
     void act('balance', async () => {

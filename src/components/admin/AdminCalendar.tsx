@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAdminAccess } from '@/components/admin/AdminAccessProvider';
+import { useAssistant } from '@/components/admin/assistant/AssistantProvider';
 import { can } from '@/lib/admin/permissions';
 import { mauDay } from '@/lib/admin/format';
 import { useDialog } from '@/lib/a11y/useDialog';
@@ -249,6 +250,19 @@ export function AdminCalendar() {
     },
     [follow],
   );
+
+  // Belle Mare AI's departures open their line through its context: the address is read once, on
+  // arrival, so the chat's link while already on the calendar would otherwise open nothing.
+  const assistant = useAssistant();
+  const openRequest = assistant?.openRequest ?? null;
+  const takeOpenRequest = assistant?.takeOpenRequest;
+  useEffect(() => {
+    if (!openRequest || !takeOpenRequest) return;
+    const r = takeOpenRequest('day');
+    if (!r) return;
+    openedOnce.current = true;
+    openDay(r.day, r.line ?? undefined, true);
+  }, [openRequest, takeOpenRequest, openDay]);
 
   const shiftDay = useCallback(
     (dir: number) => {
@@ -589,7 +603,8 @@ export function AdminCalendar() {
         <aside
           aria-label="Day"
           className="sticky w-[440px] shrink-0 self-start border-l border-line"
-          style={{ top: topbar, height: `calc(100dvh - ${topbar}px)` }}
+          // Inside the screen's card from lg (inset by --bo-inset), flush under its top bar.
+          style={{ top: topbar, height: `calc(100dvh - var(--bo-inset, 0px) - ${topbar}px)` }}
         >
           {panel}
         </aside>

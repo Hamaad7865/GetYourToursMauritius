@@ -80,18 +80,18 @@ const Check = () => (
 function PatchPreview({ patch }: { patch: TourContentPatch }) {
   const entries = Object.entries(patch) as Array<[keyof TourContentPatch, unknown]>;
   return (
-    <dl className="mt-2.5 flex flex-col gap-2 border-t border-ink/[0.07] pt-2.5">
+    <dl className="mt-2.5 flex flex-col gap-2 border-t border-white/[0.07] pt-2.5">
       {entries.map(([key, value]) => (
         <div key={key}>
-          <dt className="text-[10.5px] font-bold uppercase tracking-wide text-ink-muted/80">
+          <dt className="text-[10.5px] font-bold uppercase tracking-wide text-[#7E9593]">
             {FIELD_LABEL[key] ?? key}
           </dt>
-          <dd className="mt-0.5 text-[12.5px] leading-relaxed text-ink/85">
+          <dd className="mt-0.5 text-[12.5px] leading-relaxed text-[#DCE7E5]">
             {Array.isArray(value) ? (
               <ul className="flex flex-col gap-0.5">
                 {value.map((item, i) => (
                   <li key={i} className="flex gap-1.5">
-                    <span aria-hidden="true" className="text-ink-muted/60">
+                    <span aria-hidden="true" className="text-[#7E9593]">
                       •
                     </span>
                     <span>{String(item)}</span>
@@ -160,8 +160,8 @@ export function ActionCard({ action }: { action: AssistantAction }) {
 
   if (done) {
     return (
-      <div className="ai-card-in rounded-xl border border-teal/30 bg-teal/[0.06] p-3">
-        <p className="flex items-start gap-2 text-[12.5px] font-semibold leading-relaxed text-teal-dark">
+      <div className="ai-card-in rounded-xl border border-[#3FB5AC]/30 bg-[#3FB5AC]/[0.08] p-3">
+        <p className="flex items-start gap-2 text-[12.5px] font-semibold leading-relaxed text-[#7FD3CB]">
           <span className="mt-0.5">
             <Check />
           </span>
@@ -171,7 +171,7 @@ export function ActionCard({ action }: { action: AssistantAction }) {
           <button
             type="button"
             onClick={reopen}
-            className="mt-2 rounded-lg bg-teal px-3 py-1.5 text-[12px] font-bold text-white transition-colors hover:bg-teal-dark"
+            className="mt-2 rounded-lg bg-[#3FB5AC] px-3 py-1.5 text-[12px] font-bold text-[#06181A] transition-colors hover:bg-[#7FD3CB]"
           >
             Open it
           </button>
@@ -181,22 +181,22 @@ export function ActionCard({ action }: { action: AssistantAction }) {
   }
 
   return (
-    <div className="ai-card-in overflow-hidden rounded-xl border border-ink/15 bg-white shadow-sm">
+    <div className="ai-card-in overflow-hidden rounded-xl border border-white/[0.08] bg-[#111F22]">
       <div className="flex items-start gap-2 px-3 pt-3">
-        <span className="mt-0.5 text-[#9B72CB]">
+        <span className="mt-0.5 text-[#F4B860]">
           <Sparkle />
         </span>
-        <p className="flex-1 text-[13px] font-bold leading-snug text-ink">{action.label}</p>
+        <p className="flex-1 text-[13px] font-bold leading-snug text-white">{action.label}</p>
       </div>
 
       <div className="px-3 pb-3">
         {action.kind === 'update_tour' && (
-          <p className="mt-1 text-[12px] text-ink-muted">
-            on <span className="font-semibold text-ink/80">{action.activityTitle}</span>
+          <p className="mt-1 text-[12px] text-[#8FA5A3]">
+            on <span className="font-semibold text-[#DCE7E5]">{action.activityTitle}</span>
           </p>
         )}
         {action.kind === 'draft_quote_from_email' && (
-          <p className="mt-1 line-clamp-3 whitespace-pre-wrap text-[12px] leading-relaxed text-ink-muted">
+          <p className="mt-1 line-clamp-3 whitespace-pre-wrap text-[12px] leading-relaxed text-[#8FA5A3]">
             {action.email.slice(0, 240)}
             {action.email.length > 240 ? '…' : ''}
           </p>
@@ -208,7 +208,7 @@ export function ActionCard({ action }: { action: AssistantAction }) {
               type="button"
               onClick={() => setExpanded((v) => !v)}
               aria-expanded={expanded}
-              className="mt-1.5 text-[12px] font-semibold text-[#4285F4] transition-opacity hover:opacity-75"
+              className="mt-1.5 text-[12px] font-semibold text-[#7FD3CB] transition-colors hover:text-white"
             >
               {expanded ? 'Hide details' : `Show what changes (${changeCount})`}
             </button>
@@ -216,10 +216,10 @@ export function ActionCard({ action }: { action: AssistantAction }) {
           </>
         )}
 
-        <p className="mt-2 text-[11.5px] leading-relaxed text-ink-muted">{action.caveat}</p>
+        <p className="mt-2 text-[11.5px] leading-relaxed text-[#8FA5A3]">{action.caveat}</p>
 
         {error && (
-          <p role="alert" className="mt-2 text-[12px] font-semibold text-coral">
+          <p role="alert" className="mt-2 text-[12px] font-semibold text-[#FF9C8A]">
             {error}
           </p>
         )}
@@ -229,12 +229,12 @@ export function ActionCard({ action }: { action: AssistantAction }) {
             type="button"
             onClick={() => void apply()}
             disabled={busy}
-            className="ai-apply-btn mt-2.5 w-full rounded-lg px-3 py-2 text-[12.5px] font-bold text-white disabled:opacity-60"
+            className="bmai-send-btn mt-2.5 w-full rounded-lg px-3 py-2 text-[12.5px] font-bold disabled:opacity-60"
           >
             {busy ? 'Applying…' : 'Apply'}
           </button>
         ) : (
-          <p className="mt-2.5 text-[12px] font-semibold leading-relaxed text-ink-muted">
+          <p className="mt-2.5 text-[12px] font-semibold leading-relaxed text-[#8FA5A3]">
             Your role doesn’t include {needs.name} — ask the owner to apply this.
           </p>
         )}
