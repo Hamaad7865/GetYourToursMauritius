@@ -474,7 +474,7 @@ export const HANDWRITTEN_POSTS: (PostContent & { datePublished: string; dateModi
           paragraphs: [
             '**New Year, 1 and 2 January:** two public holidays after the loudest night of the year. Families visit relatives and fill the public beaches. Read [Christmas and New Year in Mauritius](/blog/christmas-and-new-year-in-mauritius) for what happens and what closes.',
             '**Thaipoosam Cavadee:** a Tamil festival and a public holiday, expected in late January 2027; the government confirms the date each year. After days of fasting, devotees walk to the temples carrying the _cavadee_, a wooden arch decorated with flowers and pots of milk, and some pierce their cheeks or tongue with fine needles. Processions start early in the morning.',
-            '**Just after January:** Abolition of Slavery on Monday 1 February, and the Chinese Spring Festival on Saturday 6 February 2027, with dragon dances and firecrackers in Port Louis’s Chinatown. Banks and offices close on these public holidays; message us if you want a trip on one of them.',
+            '**Just after January:** Abolition of Slavery on Monday 1 February, and the Chinese Spring Festival on Saturday 6 February 2027, with dragon dances and firecrackers in Port Louis’s Chinatown. Banks and offices close on these public holidays; message us if you want a trip on one of them. Staying on? Read [Mauritius in February](/blog/mauritius-in-february).',
           ],
         },
         {
@@ -525,6 +525,120 @@ export const HANDWRITTEN_POSTS: (PostContent & { datePublished: string; dateModi
         {
           q: 'Do I need to book tours in advance in January?',
           a: 'Book two to three weeks ahead for the first days of January, which are still part of the festive rush. After that, a few days ahead is usually enough. Most trips can be cancelled free of charge until the day before.',
+        },
+      ],
+    },
+    {
+      // Written 2026-11-16 for "île Maurice en février" (68 impressions at #39 on the best-time guide,
+      // Aug–Nov 2026) and "mauritius in february" (#42 on /blog), with no page of their own: the same
+      // pattern the January guide closed in October. Planned in December and January by French families
+      // (winter school holidays, dates from onisep.fr) and by people escaping the northern winter.
+      // January keeps January, the cyclone guide keeps the cyclone classes, Grand Bassin keeps the
+      // pilgrimage. Maha Shivaratri is lunar and not yet gazetted: keep it "expected". Check every date
+      // and price again before February 2028.
+      slug: 'mauritius-in-february',
+      datePublished: '2026-11-16',
+      title: 'Mauritius in February 2027: Weather, Cyclones and What to Book',
+      metaTitle: 'Mauritius in February 2027: Weather, Rain & What to Do',
+      metaDescription:
+        'Mauritius in February 2027: hot summer weather, rain and cyclone advice, the sea, Chinese New Year and Maha Shivaratri, and tour prices, from a local operator.',
+      excerpt:
+        'February is the last full month of high summer in Mauritius: a 28 °C sea, quiet hotels and the wettest weeks of the year. Here is what the weather really does, which festivals fall in 2027, and what to book.',
+      readMins: 7,
+      heroImageUrl: '/blog/best-waterfalls-in-mauritius.webp',
+      sections: [
+        {
+          heading: 'February 2027 at a glance',
+          paragraphs: [
+            '**Weather:** hot and humid. Coastal highs of 30 to 31 °C, nights around 23 to 24 °C, and the sea at its warmest, around 28 °C.',
+            '**Rain:** February and March are usually the wettest months, with heavy afternoon showers over the hills and much less on the west coast.',
+            '**Daylight:** still long days. The sun rises around 06:00 and sets around 18:50.',
+            '**Public holidays:** Abolition of Slavery on Monday 1 February and the Chinese Spring Festival on Saturday 6 February. Maha Shivaratri is expected on Saturday 6 March 2027, with the pilgrimage in the days before.',
+            '**French school holidays:** zone C from 6 to 22 February 2027, zone A from 13 February to 1 March, and zone B from 20 February to 8 March.',
+            '**Cyclones:** February is, with January, the peak of the season. Most weeks pass without a warning, but keep one day free.',
+          ],
+        },
+        {
+          heading: 'What the weather is like in February',
+          paragraphs: [
+            'February is still high summer. The days are hot and sticky, the winds are light, and the lagoons are as warm as they get all year, so you can snorkel for an hour without feeling cold.',
+            'It is also the wettest stretch of the year. Rain usually comes as a short, heavy shower or an afternoon thunderstorm that builds over the hills and then clears, and mornings are often bright. The central plateau around Curepipe gets by far the most rain. The west coast, from Flic en Flac to Le Morne, is the driest, and the north is drier than the east.',
+            'On the east coast near [Belle Mare](/belle-mare), showers come in off the sea and move on, and most pass in under an hour. That is why our boat trips leave early: the morning is usually the calmest, clearest part of the day.',
+            'The sun is fierce. Use reef-safe sunscreen, wear a hat and a rash vest, and drink plenty of water. Mosquitoes are more active in the wet season, so pack repellent for the evenings.',
+          ],
+        },
+        {
+          heading: 'Cyclones in February: what really happens',
+          paragraphs: [
+            'Cyclone season runs from November to April, and January and February are the months with the most cyclones in the south-west Indian Ocean. Many summers pass without a cyclone warning in Mauritius, but a storm in the region can still bring a day or two of wind, rough sea and heavy rain.',
+            'The Mauritius Meteorological Services issue warnings in four classes, with several days of forecasts before a storm arrives. When a warning is in force, boats stay in harbour, and at Class III offices, banks and most of the island close until it is lifted. Our [cyclone season guide](/blog/mauritius-cyclone-season) explains each class and what to do.',
+            'If we cancel a trip because of the weather or the sea, you choose between a free new date and a full refund. Most of our trips can also be cancelled free of charge until the day before. Book boat trips early in your stay so a lost day can be moved, and check that your travel insurance covers weather delays.',
+          ],
+        },
+        {
+          heading: 'Is February a good time to visit Mauritius?',
+          paragraphs: [
+            'Yes, if you want heat and the warmest sea of the year while Europe is in winter. February is low season for most hotels, so prices are often well below Christmas and you can book most trips only a few days ahead. Expect more French families from mid-February, during their winter school holidays.',
+            'The trade-off is rain and the chance of a cyclone. If a dry, breezy holiday matters most, May to November will suit you better; read our guide to the [best time to visit Mauritius](/blog/best-time-to-visit-mauritius). Travelling a little earlier? See [Mauritius in January](/blog/mauritius-in-january).',
+            'Plan with the weather, not against it: boat trips in the morning and early in your stay, sightseeing and museums on the showery days, and one day kept free.',
+          ],
+        },
+        {
+          heading: 'Festivals and holidays in February',
+          paragraphs: [
+            '**Abolition of Slavery, Monday 1 February:** a public holiday marking the end of slavery in 1835, with ceremonies at Le Morne, the mountain where escaped slaves took refuge and now a UNESCO World Heritage site.',
+            '**Chinese Spring Festival, Saturday 6 February 2027:** the Chinese New Year, with dragon and lion dances, firecrackers and red lanterns in Port Louis’s Chinatown. Families share the sticky rice “wax cake” (_gâteau la cire_), and many Chinese-run shops close for a few days.',
+            '**Maha Shivaratri, expected Saturday 6 March 2027:** the government confirms the date each year. In the days before, hundreds of thousands of pilgrims dressed in white walk from all over the island to the sacred lake of [Grand Bassin](/blog/grand-bassin-guide), carrying decorated arches called _kanwars_. Roads in the centre and south are slow that week, so tell us your dates and we’ll plan your south tour around them. Banks and offices close on public holidays; message us if you want a trip on one of them.',
+          ],
+        },
+        {
+          heading: 'What to book in February, with prices',
+          paragraphs: [
+            'Calm mornings and the warmest sea of the year make February a month for the water, with a plan for the showery days. Prices are from our live booking pages in November 2026:',
+            '**Île aux Cerfs by catamaran:** about 7 hours with the waterfall, snorkelling and a barbecue lunch on board, [from €55 per person](/activities/catamaran-cruise-ile-aux-cerfs).',
+            '**Swimming with dolphins:** an early-morning trip into Tamarin Bay on the sheltered, drier west coast, [from €45 per person](/activities/swimming-with-dolphins).',
+            '**Under the sea:** the [Blue Safari submarine and subscooter](/activities/blue-safari-submarine-subscooter) from €125, or the [underwater sea walk](/activities/underwater-sea-walk-excursion) from €40. Rain on the surface makes little difference a few metres down: what counts is the wind and the swell, and the operator decides on the morning.',
+            '**Waterfalls at their fullest:** February rain fills the falls at Chamarel and in the Black River Gorges. See them, and Grand Bassin, on the [south tour](/activities/south-tour-mauritius), from €90 for the car with a driver.',
+            '**A showery-day tour by private car:** the [Port Louis city tour](/activities/port-louis-city-tour), with Chinatown at its liveliest around the Spring Festival, the market and the Caudan Waterfront, or the [tea tasting tour](/activities/tea-tasting-tour) to Bois Chéri, each from €90 for the car with a driver. More ideas in [things to do in Mauritius when it rains](/blog/things-to-do-in-mauritius-when-it-rains).',
+            '**From the air:** on a clear morning, the [seaplane over the underwater waterfall](/activities/seaplane), from €205 per person.',
+          ],
+        },
+        {
+          heading: 'Arriving in February',
+          paragraphs: [
+            'The airport is in the south-east, near Mahébourg. Belle Mare is about 50 minutes away by road and Grand Baie about 75. Our [airport transfers](/airport-transfers) start from €40 per car, at a fixed price agreed when you book.',
+            'If a cyclone warning is in force when you land, flights and roads can be delayed. Keep your driver’s number and your flight number handy, and message us: we track the flight and wait for you.',
+          ],
+        },
+        {
+          heading: 'Packing and practical tips',
+          paragraphs: [
+            'Pack light, breathable clothes, a light rain jacket or a small umbrella, a hat, reef-safe sunscreen and insect repellent. A dry bag keeps your phone safe on boat days and in sudden showers.',
+            'Book the trips you care about most for the first half of your stay, and in the morning. If the weather moves one, you still have days to rebook.',
+            'Want help planning your days? Message us on WhatsApp with your dates and where you’re staying, and we’ll suggest a plan for the weather that week.',
+          ],
+        },
+      ],
+      faq: [
+        {
+          q: 'Is February a good time to visit Mauritius?',
+          a: 'Yes, if you like heat and a warm sea. February has the warmest water of the year, low-season hotel prices and quiet beaches. It is also one of the wettest months and the peak of cyclone season, so keep a day free.',
+        },
+        {
+          q: 'What is the weather like in Mauritius in February?',
+          a: 'Expect coastal highs of 30 to 31 °C, nights around 23 to 24 °C and a sea of about 28 °C. Rain falls as heavy, short showers, mostly in the afternoon and over the central plateau. The west coast is the driest.',
+        },
+        {
+          q: 'Does it rain a lot in Mauritius in February?',
+          a: 'February is one of the wettest months, but rain usually comes in short, heavy showers rather than all day. Many days start sunny before clouds build over the hills, and the west coast gets far less rain than the centre and the east.',
+        },
+        {
+          q: 'Is February cyclone season in Mauritius?',
+          a: 'Yes. Cyclone season runs from November to April, and January and February are the riskiest months. Warnings come days ahead, boats stay in harbour while one is in force, and if we cancel a trip you choose a free new date or a full refund.',
+        },
+        {
+          q: 'When are the festivals in Mauritius in February 2027?',
+          a: 'Abolition of Slavery is on Monday 1 February and the Chinese Spring Festival on Saturday 6 February 2027. Maha Shivaratri is expected on Saturday 6 March, with the pilgrimage to Grand Bassin in the last days of February and the first days of March.',
         },
       ],
     },
@@ -1045,7 +1159,7 @@ export const HANDWRITTEN_POSTS_FR: Record<string, PostTranslation> = {
         paragraphs: [
           '**Nouvel An, 1er et 2 janvier :** deux jours fériés après la nuit la plus bruyante de l’année. Les familles rendent visite à leurs proches et remplissent les plages publiques. Lisez [Noël et Nouvel An à l’île Maurice](/fr/blog/christmas-and-new-year-in-mauritius) pour savoir ce qui se passe et ce qui ferme.',
           '**Thaipoosam Cavadee :** une fête tamoule et un jour férié, attendu fin janvier 2027 ; le gouvernement en confirme la date chaque année. Après des jours de jeûne, les fidèles marchent jusqu’aux temples en portant le _cavadee_, une arche en bois décorée de fleurs et de pots de lait, et certains se percent les joues ou la langue de fines aiguilles. Les processions commencent tôt le matin.',
-          '**Juste après janvier :** l’Abolition de l’esclavage le lundi 1er février, et la fête du Printemps chinois le samedi 6 février 2027, avec danses du dragon et pétards dans le Chinatown de Port-Louis. Les banques et les bureaux ferment ces jours fériés ; écrivez-nous si vous voulez une sortie l’un de ces jours.',
+          '**Juste après janvier :** l’Abolition de l’esclavage le lundi 1er février, et la fête du Printemps chinois le samedi 6 février 2027, avec danses du dragon et pétards dans le Chinatown de Port-Louis. Les banques et les bureaux ferment ces jours fériés ; écrivez-nous si vous voulez une sortie l’un de ces jours. Vous restez plus longtemps ? Lisez [l’île Maurice en février](/fr/blog/mauritius-in-february).',
         ],
       },
       {
@@ -1096,6 +1210,106 @@ export const HANDWRITTEN_POSTS_FR: Record<string, PostTranslation> = {
       {
         q: 'Faut-il réserver ses excursions à l’avance en janvier ?',
         a: 'Réservez deux à trois semaines à l’avance pour les premiers jours de janvier, qui font encore partie du rush des fêtes. Ensuite, quelques jours avant suffisent en général. La plupart des sorties s’annulent gratuitement jusqu’à la veille.',
+      },
+    ],
+  },
+  'mauritius-in-february': {
+    title: 'L’île Maurice en février 2027 : météo, cyclones et que réserver',
+    excerpt:
+      'Février, c’est le dernier mois de plein été à Maurice : une mer à 28 °C, des hôtels calmes et les semaines les plus pluvieuses de l’année. Voici ce que fait vraiment la météo, les fêtes de 2027 et ce qu’il faut réserver.',
+    sections: [
+      {
+        heading: 'Février 2027 en un coup d’œil',
+        paragraphs: [
+          '**Météo :** chaud et humide. Maximales de 30 à 31 °C sur la côte, nuits autour de 23–24 °C, et la mer à son plus chaud, autour de 28 °C.',
+          '**Pluie :** février et mars sont en général les mois les plus arrosés, avec de fortes averses l’après-midi sur les hauteurs et bien moins sur la côte ouest.',
+          '**Ensoleillement :** encore de longues journées. Le soleil se lève vers 6 h et se couche vers 18 h 50.',
+          '**Jours fériés :** l’Abolition de l’esclavage le lundi 1er février et la fête du Printemps chinois le samedi 6 février. Maha Shivaratri est attendu le samedi 6 mars 2027, avec le pèlerinage dans les jours qui précèdent.',
+          '**Vacances scolaires d’hiver :** zone C du 6 au 22 février 2027, zone A du 13 février au 1er mars, zone B du 20 février au 8 mars.',
+          '**Cyclones :** février est, avec janvier, le cœur de la saison. La plupart des semaines passent sans avis, mais gardez une journée libre.',
+        ],
+      },
+      {
+        heading: 'Quel temps fait-il en février ?',
+        paragraphs: [
+          'Février, c’est encore le plein été. Les journées sont chaudes et moites, le vent est faible et les lagons atteignent leur température la plus haute : on peut faire du snorkeling une heure sans avoir froid.',
+          'C’est aussi la période la plus pluvieuse de l’année. La pluie tombe en général en averse courte et forte, ou en orage qui se forme sur les hauteurs l’après-midi avant de se dissiper, et les matinées sont souvent lumineuses. Le plateau central, autour de Curepipe, est de loin la région la plus arrosée. La côte ouest, de Flic en Flac au Morne, est la plus sèche, et le nord est plus sec que l’est.',
+          'Sur la côte est, près de [Belle Mare](/fr/belle-mare), les averses arrivent de la mer et repartent, et la plupart passent en moins d’une heure. C’est pour cela que nos sorties en mer partent tôt : la matinée est en général le moment le plus calme et le plus dégagé de la journée.',
+          'Le soleil tape fort. Utilisez une crème solaire respectueuse des coraux, portez un chapeau et un lycra, et buvez beaucoup d’eau. Les moustiques sont plus actifs pendant la saison humide : prévoyez un répulsif pour les soirées.',
+        ],
+      },
+      {
+        heading: 'Les cyclones en février : ce qui se passe vraiment',
+        paragraphs: [
+          'La saison cyclonique va de novembre à avril, et janvier et février sont les mois où les cyclones sont les plus fréquents dans le sud-ouest de l’océan Indien. Beaucoup d’étés passent sans avis de cyclone à Maurice, mais une tempête dans la région peut tout de même apporter un ou deux jours de vent, de mer agitée et de fortes pluies.',
+          'Les services météorologiques de Maurice émettent des avis en quatre classes, avec plusieurs jours de prévisions avant l’arrivée d’une tempête. Tant qu’un avis est en vigueur, les bateaux restent au port, et en classe III les bureaux, les banques et la plupart de l’île ferment jusqu’à sa levée. Notre [guide de la saison cyclonique](/fr/blog/mauritius-cyclone-season) explique chaque classe et que faire.',
+          'Si nous annulons une sortie à cause de la météo ou de l’état de la mer, vous choisissez entre une nouvelle date sans frais et un remboursement intégral. La plupart de nos sorties s’annulent aussi gratuitement jusqu’à la veille. Placez les sorties en mer au début du séjour pour pouvoir les reporter, et vérifiez que votre assurance voyage couvre les retards liés à la météo.',
+        ],
+      },
+      {
+        heading: 'Février est-il une bonne période pour partir à l’île Maurice ?',
+        paragraphs: [
+          'Oui, si vous cherchez la chaleur et la mer la plus chaude de l’année pendant l’hiver européen. Février est la basse saison pour la plupart des hôtels : les prix sont souvent bien en dessous de ceux de Noël, et la plupart des sorties se réservent quelques jours avant. Attendez-vous à plus de familles françaises à partir de la mi-février, pendant les vacances d’hiver.',
+          'La contrepartie, c’est la pluie et le risque de cyclone. Si des vacances sèches et ventées comptent avant tout, mai à novembre vous conviendront mieux ; lisez notre guide [quand partir à l’île Maurice](/fr/blog/best-time-to-visit-mauritius). Vous partez un peu plus tôt ? Consultez [l’île Maurice en janvier](/fr/blog/mauritius-in-january).',
+          'Organisez-vous avec la météo, pas contre elle : les sorties en mer le matin et en début de séjour, les visites et les musées les jours d’averses, et une journée libre.',
+        ],
+      },
+      {
+        heading: 'Fêtes et jours fériés en février',
+        paragraphs: [
+          '**Abolition de l’esclavage, lundi 1er février :** un jour férié qui marque la fin de l’esclavage en 1835, avec des cérémonies au Morne, la montagne où se réfugiaient les esclaves marrons, aujourd’hui inscrite au patrimoine mondial de l’UNESCO.',
+          '**Fête du Printemps chinois, samedi 6 février 2027 :** le Nouvel An chinois, avec danses du dragon et du lion, pétards et lanternes rouges dans le Chinatown de Port-Louis. Les familles partagent le _gâteau la cire_, un gâteau de riz gluant, et beaucoup de commerces chinois ferment quelques jours.',
+          '**Maha Shivaratri, attendu le samedi 6 mars 2027 :** le gouvernement en confirme la date chaque année. Dans les jours qui précèdent, des centaines de milliers de pèlerins vêtus de blanc marchent de toute l’île jusqu’au lac sacré de [Grand Bassin](/fr/blog/grand-bassin-guide), en portant des arches décorées appelées _kanwars_. Les routes du centre et du sud sont lentes cette semaine-là : donnez-nous vos dates et nous organiserons votre circuit sud en conséquence. Les banques et les bureaux ferment les jours fériés ; écrivez-nous si vous voulez une sortie l’un de ces jours.',
+        ],
+      },
+      {
+        heading: 'Que réserver en février, avec les prix',
+        paragraphs: [
+          'Des matinées calmes et la mer la plus chaude de l’année font de février un mois pour l’eau, avec un plan pour les jours d’averses. Les prix sont ceux de nos pages de réservation en novembre 2026 :',
+          '**L’île aux Cerfs en catamaran :** environ 7 heures avec la cascade, le snorkeling et un déjeuner barbecue à bord, [à partir de 55 € par personne](/fr/activities/catamaran-cruise-ile-aux-cerfs).',
+          '**Nager avec les dauphins :** une sortie tôt le matin dans la baie de Tamarin, sur la côte ouest, abritée et plus sèche, [à partir de 45 € par personne](/fr/activities/swimming-with-dolphins).',
+          '**Sous la mer :** le [sous-marin et le subscooter Blue Safari](/fr/activities/blue-safari-submarine-subscooter) à partir de 125 €, ou la [marche sous-marine](/fr/activities/underwater-sea-walk-excursion) à partir de 40 €. La pluie en surface change peu de chose à quelques mètres de profondeur : ce qui compte, c’est le vent et la houle, et l’opérateur décide le matin même.',
+          '**Les cascades au plus fort :** les pluies de février gonflent les chutes de Chamarel et des gorges de Rivière Noire. Admirez-les, ainsi que Grand Bassin, sur le [circuit sud](/fr/activities/south-tour-mauritius), à partir de 90 € la voiture avec chauffeur.',
+          '**Une visite en voiture privée les jours d’averses :** la [visite de Port-Louis](/fr/activities/port-louis-city-tour), avec un Chinatown très animé autour de la fête du Printemps, le marché et le Caudan Waterfront, ou la [visite avec dégustation de thé](/fr/activities/tea-tasting-tour) à Bois Chéri, chacune à partir de 90 € la voiture avec chauffeur. D’autres idées dans [que faire à l’île Maurice quand il pleut](/fr/blog/things-to-do-in-mauritius-when-it-rains).',
+          '**Vu du ciel :** par une matinée dégagée, l’[hydravion au-dessus de la cascade sous-marine](/fr/activities/seaplane), à partir de 205 € par personne.',
+        ],
+      },
+      {
+        heading: 'Arriver en février',
+        paragraphs: [
+          'L’aéroport se trouve au sud-est, près de Mahébourg. Belle Mare est à environ 50 minutes de route et Grand Baie à environ 75. Nos [transferts aéroport](/fr/airport-transfers) commencent à 40 € par voiture, à un prix fixe convenu à la réservation.',
+          'Si un avis de cyclone est en vigueur à votre arrivée, les vols et les routes peuvent prendre du retard. Gardez à portée de main le numéro de votre chauffeur et votre numéro de vol, et écrivez-nous : nous suivons le vol et nous vous attendons.',
+        ],
+      },
+      {
+        heading: 'Bagages et conseils pratiques',
+        paragraphs: [
+          'Prévoyez des vêtements légers et respirants, une veste de pluie légère ou un petit parapluie, un chapeau, une crème solaire respectueuse des coraux et un répulsif. Un sac étanche protège votre téléphone les jours de bateau et sous les averses soudaines.',
+          'Placez les sorties qui comptent le plus pour vous dans la première moitié du séjour, et le matin. Si la météo en décale une, vous avez encore des jours pour la reporter.',
+          'Besoin d’aide pour organiser vos journées ? Écrivez-nous sur WhatsApp avec vos dates et votre hébergement, et nous vous proposerons un programme adapté à la météo de la semaine.',
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: 'Février est-il une bonne période pour partir à l’île Maurice ?',
+        a: 'Oui, si vous aimez la chaleur et une mer chaude. Février offre l’eau la plus chaude de l’année, des prix d’hôtel de basse saison et des plages calmes. C’est aussi l’un des mois les plus pluvieux et le cœur de la saison cyclonique : gardez une journée libre.',
+      },
+      {
+        q: 'Quel temps fait-il à l’île Maurice en février ?',
+        a: 'Comptez 30 à 31 °C en journée sur la côte, des nuits autour de 23–24 °C et une mer à environ 28 °C. La pluie tombe en averses courtes et fortes, surtout l’après-midi et sur le plateau central. La côte ouest est la plus sèche.',
+      },
+      {
+        q: 'Pleut-il beaucoup à l’île Maurice en février ?',
+        a: 'Février est l’un des mois les plus pluvieux, mais la pluie tombe en général en averses courtes et fortes plutôt que toute la journée. Beaucoup de journées commencent au soleil avant que les nuages ne se forment sur les hauteurs, et la côte ouest reçoit bien moins de pluie que le centre et l’est.',
+      },
+      {
+        q: 'Février est-il en saison cyclonique à Maurice ?',
+        a: 'Oui. La saison cyclonique va de novembre à avril, et janvier et février sont les mois les plus exposés. Les avis sont émis plusieurs jours à l’avance, les bateaux restent au port tant qu’un avis est en vigueur, et si nous annulons une sortie, vous choisissez une nouvelle date sans frais ou un remboursement intégral.',
+      },
+      {
+        q: 'Quelles sont les fêtes à l’île Maurice en février 2027 ?',
+        a: 'L’Abolition de l’esclavage tombe le lundi 1er février et la fête du Printemps chinois le samedi 6 février 2027. Maha Shivaratri est attendu le samedi 6 mars, avec le pèlerinage vers Grand Bassin dans les derniers jours de février et les premiers jours de mars.',
       },
     ],
   },

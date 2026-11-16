@@ -152,6 +152,12 @@ export const POST_META_FR: Record<
     metaDescription:
       'L’île Maurice en janvier 2027 : chaleur, pluie et cyclones, mer, Cavadee et Nouvel An, prix des excursions. Conseils d’un opérateur local.',
   },
+  // "ile maurice en fevrier" — 68 impressions at #39 on the best-time guide (Aug–Nov 2026), no page.
+  'mauritius-in-february': {
+    metaTitle: 'Île Maurice en février 2027 : météo, cyclones et que faire',
+    metaDescription:
+      'L’île Maurice en février 2027 : chaleur, pluie et cyclones, mer à 28 °C, Nouvel An chinois, Maha Shivaratri et prix des excursions, par un opérateur local.',
+  },
   'things-to-do-in-mauritius-when-it-rains': {
     metaTitle: 'Que faire à l’île Maurice quand il pleut ?',
     metaDescription:
@@ -187,8 +193,8 @@ export const POST_META_FR: Record<
 export const RELATED_POSTS: Record<string, string[]> = {
   'best-time-to-visit-mauritius': [
     'mauritius-in-december',
-    'christmas-and-new-year-in-mauritius',
     'mauritius-in-january',
+    'mauritius-in-february',
   ],
   'mauritius-in-november': [
     'mauritius-in-december',
@@ -202,9 +208,15 @@ export const RELATED_POSTS: Record<string, string[]> = {
     'private-vs-shared-catamaran-mauritius',
   ],
   'mauritius-in-january': [
+    'mauritius-in-february',
     'things-to-do-in-mauritius-when-it-rains',
     'mauritius-cyclone-season',
-    'christmas-and-new-year-in-mauritius',
+  ],
+  // The wet-season pair plus the pilgrimage the guide sends readers to.
+  'mauritius-in-february': [
+    'mauritius-in-january',
+    'mauritius-cyclone-season',
+    'grand-bassin-guide',
   ],
   'things-to-do-in-mauritius-when-it-rains': [
     'mauritius-in-january',

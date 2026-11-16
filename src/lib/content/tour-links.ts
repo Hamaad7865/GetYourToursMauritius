@@ -141,6 +141,12 @@ export const POST_TOURS: Readonly<Record<string, readonly string[]>> = {
     'blue-safari-submarine-subscooter',
     'tea-tasting-tour',
   ],
+  // February: the warmest sea in the morning, the waterfalls and Grand Bassin, a city day in the rain.
+  'mauritius-in-february': [
+    'catamaran-cruise-ile-aux-cerfs',
+    'south-tour-mauritius',
+    'port-louis-city-tour',
+  ],
   'things-to-do-in-mauritius-when-it-rains': [
     'port-louis-city-tour',
     'tea-tasting-tour',
