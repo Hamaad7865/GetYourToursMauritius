@@ -33,7 +33,7 @@ import {
 import { mauritiusDayKey } from '@/lib/admin/calendar';
 import { fmtDateShort } from '@/lib/admin/format';
 import { Ic, ICON } from './parts';
-import { buttonClass } from '@/components/admin/ui';
+import { buttonClass, AdminSelect } from '@/components/admin/ui';
 
 // The shared buttons (src/components/admin/ui.tsx): white on teal-dark is 7.71:1; bright teal failed.
 const BTN = buttonClass('ghost');
@@ -487,7 +487,7 @@ export function CallOffEditor({
       <p className="text-[14px] font-semibold text-[#8a1c12]">Call off this departure?</p>
       <label className="flex flex-col gap-1 text-[12.5px] font-semibold text-[#3d2a28]">
         Why?
-        <select
+        <AdminSelect
           value={reason}
           onChange={(e) => setReason(e.target.value as CallOffReason)}
           className="h-[34px] cursor-pointer rounded-lg border border-line bg-white px-2.5 text-[13px] font-medium text-ink outline-none focus:border-coral-dark focus:ring-[3px] focus:ring-coral-dark/20"
@@ -497,7 +497,7 @@ export function CallOffEditor({
               {r.label}
             </option>
           ))}
-        </select>
+        </AdminSelect>
       </label>
       <p className="text-[13px] leading-[1.5] text-[#5b3a36]">
         {willEmail > 0 ? (

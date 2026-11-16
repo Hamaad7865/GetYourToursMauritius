@@ -20,6 +20,7 @@ import {
   INPUT_CLS,
   BTN_PRIMARY,
   BTN_GHOST,
+  AdminLoading,
 } from '@/components/admin/ui';
 
 const CATEGORY_HINT = 'scooter · economy · family · suv · van';
@@ -279,7 +280,7 @@ export function AdminRentalFleet() {
 
       <div className="space-y-4">
         {fleet === null ? (
-          <p className="text-sm text-ink-muted">Loading…</p>
+          <AdminLoading />
         ) : fleet.length === 0 ? (
           <p className="text-sm text-ink-muted">
             {canPrices ? 'No vehicles yet — add one below.' : 'No vehicles yet.'}

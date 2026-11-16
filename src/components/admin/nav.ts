@@ -111,13 +111,13 @@ export const ADMIN_NAV: NavItem[] = [
     permission: 'section.content',
     group: 'Catalogue',
   },
-  // The Pricing page holds the fares AND the charge-currency card; either permission opens it, and the
-  // page shows only the half that permission covers.
+  // The Pricing page holds the fares. The charge-currency card (MUR/EUR and the rate) moved to Settings
+  // on the owner's request (16 Nov 2026), where it shows to whoever holds money.currency.
   {
     href: '/admin/vehicle-pricing',
     label: 'Pricing',
     icon: IconWallet,
-    permission: ['money.prices', 'money.currency'],
+    permission: 'money.prices',
     group: 'Catalogue',
   },
   {

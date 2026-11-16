@@ -47,6 +47,7 @@ import {
   Tabs,
   buttonClass,
   type StatusTone,
+  AdminLoading,
 } from '@/components/admin/ui';
 import {
   IconCalendar,
@@ -290,7 +291,7 @@ function BookingBody({
               {error}
             </p>
           ) : (
-            <p className="text-ink-soft">Loading…</p>
+            <AdminLoading />
           )}
         </div>
       </>

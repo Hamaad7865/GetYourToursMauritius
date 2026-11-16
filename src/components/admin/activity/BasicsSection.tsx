@@ -4,6 +4,7 @@ import { Field, Section, inputClass } from '@/components/admin/fields';
 import type { CategoryItem } from '@/lib/categories/categories';
 import type { ActivityFormValues } from '@/lib/admin/activity-write';
 import type { PaneProps } from './sections';
+import { AdminSelect } from '@/components/admin/ui';
 
 export function BasicsSection({
   v,
@@ -41,7 +42,7 @@ export function BasicsSection({
           />
         </Field>
         <Field label="Category" required>
-          <select
+          <AdminSelect
             className={inputClass}
             value={v.category}
             onChange={(e) => set('category', e.target.value)}
@@ -55,20 +56,20 @@ export function BasicsSection({
                 </option>
               ),
             )}
-          </select>
+          </AdminSelect>
         </Field>
         <Field label="Type">
-          <select
+          <AdminSelect
             className={inputClass}
             value={v.type}
             onChange={(e) => set('type', e.target.value as ActivityFormValues['type'])}
           >
             <option value="activity">Activity</option>
             <option value="transport">Transport / transfer</option>
-          </select>
+          </AdminSelect>
         </Field>
         <Field label="Status">
-          <select
+          <AdminSelect
             className={inputClass}
             value={v.status}
             onChange={(e) => set('status', e.target.value as ActivityFormValues['status'])}
@@ -77,7 +78,7 @@ export function BasicsSection({
               Published (visible on the site)
             </option>
             <option value="draft">Draft (hidden)</option>
-          </select>
+          </AdminSelect>
         </Field>
         <Field label="Location">
           <input

@@ -23,6 +23,8 @@ import {
   INPUT_CLS,
   SELECT_CLS,
   TEXTAREA_CLS,
+  AdminLoading,
+  AdminSelect,
 } from '@/components/admin/ui';
 import {
   CONTENT_PERMISSIONS,
@@ -394,7 +396,7 @@ function RolesTab({
           </p>
         </Card>
         {roles === null ? (
-          <p className="text-sm text-ink-muted">Loading…</p>
+          <AdminLoading />
         ) : (
           roles.map((r) => {
             const count = memberCount.get(r.id) ?? 0;
@@ -713,7 +715,7 @@ function RoleSelect({
   pending?: boolean;
 }) {
   return (
-    <select
+    <AdminSelect
       className={
         pending
           ? `${SELECT_CLS.replace('border-[#E2E7EA]', 'border-teal')} ring-1 ring-teal`
@@ -732,14 +734,14 @@ function RoleSelect({
           {r.name}
         </option>
       ))}
-    </select>
+    </AdminSelect>
   );
 }
 
 /**
  * One person in the Team list. The role box only CHOOSES — nothing is saved until "Change" is clicked.
- * A focused closed <select> changes value on ArrowUp/ArrowDown and on type-ahead (Windows especially),
- * so saving on change would let a stray key make someone an Owner.
+ * Choosing is not saving, even though AdminSelect (unlike a native select) only commits on Enter or a
+ * click: a stray choice must never make someone an Owner, so the explicit "Change" step stays.
  */
 function MemberRow({
   m,
@@ -1003,7 +1005,7 @@ function TeamTab({
           </div>
         )}
         {team === null ? (
-          <p className="text-sm text-ink-muted">Loading…</p>
+          <AdminLoading />
         ) : (
           <ul className="divide-y divide-[#EEF1F3]">
             {team.map((m) => (

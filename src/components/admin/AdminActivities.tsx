@@ -16,6 +16,7 @@ import {
   IconMenu,
   IconChevron,
 } from '@/components/ui/icons';
+import { AdminSelect } from '@/components/admin/ui';
 
 interface Row {
   id: string;
@@ -287,7 +288,7 @@ export function AdminActivities() {
                 </button>
               ))}
             </div>
-            <select
+            <AdminSelect
               value={category}
               onChange={(e) => setCategory(e.target.value)}
               aria-label="Filter by category"
@@ -299,7 +300,7 @@ export function AdminActivities() {
                   {c}
                 </option>
               ))}
-            </select>
+            </AdminSelect>
           </div>
 
           {filtered.length === 0 ? (

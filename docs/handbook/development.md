@@ -200,6 +200,31 @@ commit, and run `node scripts/i18n-scan.mjs` (or `npm test`, which includes the 
 nothing's missing. Full system — `useT()`/`getT()`/`translate()`, the per-field coalesce rule, content
 allowlists, what's deliberately left English: [localisation.md](localisation.md).
 
+### Change the back office's look or motion
+
+Every admin screen gets its controls from `src/components/admin/ui.tsx`: buttons, inputs, cards,
+tabs, chips, KPIs, tables. Change a piece there and all the screens change with it. Don't restyle it on
+one screen. The pieces that move live in `ui-motion.tsx` (a `'use client'` module) and are re-exported
+from `ui.tsx`, so screens keep a single import. `ui.tsx` itself must stay hook-free, because the tour
+editor's server pages import `AdminHeading` and the `BTN_*` class strings from it.
+
+The motion is ported from [EasyUI](https://easyui.site) (MIT, copy-paste React + framer-motion),
+re-skinned in the brand tokens. Never paste an EasyUI component as-is:
+
+- **Tailwind v3 here, v4 there.** v4-only classes (`shadow-xs`, `bg-linear-*`, `outline-hidden`,
+  `bg-(--x)`) and EasyUI's own colour names (`bg-surface`, `text-text-primary`) generate **no CSS**. Map
+  every colour to our tokens (teal-dark for text and fills, coral-dark for problems: the AA rules at the
+  top of `ui.tsx`).
+- **Don't run `npx shadcn add`.** There's no `components.json`, and it would rewrite `globals.css` for v4.
+- **Springs come from `motion-tokens.ts`.** Every moving piece reads `useReducedMotion()` and uses
+  `INSTANT` under it, so an indicator still lands in the right place, it just doesn't travel.
+- **framer-motion stays admin-only.** `src/components/ui/DatePicker.tsx` is shared with the public
+  checkout, so its admin-only gliding highlight is plain CSS behind a `/admin` path check. Don't import
+  framer-motion into anything a public page renders.
+- `tests/unit/admin-ui-pieces.test.ts` pins what a screen reader gets (`aria-pressed`, link tabs with
+  `aria-current`, `role="alert"`/`"status"`). An indicator goes **after** the label, behind it
+  (`isolate` + `-z-10`), so the label stays the button's first child.
+
 ---
 
 ## Testing

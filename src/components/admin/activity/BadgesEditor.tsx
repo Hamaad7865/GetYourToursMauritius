@@ -4,6 +4,7 @@ import { IconX } from '@/components/ui/icons';
 import { BADGE_ICONS, badgeIcon } from '@/components/ui/badge-icons';
 import { inputClass } from '@/components/admin/fields';
 import type { BadgeInput } from '@/lib/catalogue/badges';
+import { AdminSelect } from '@/components/admin/ui';
 
 export function BadgesEditor({
   badges,
@@ -31,7 +32,7 @@ export function BadgesEditor({
                   ) : (
                     <span className="h-9 w-9 shrink-0 rounded-lg bg-ink/[0.04]" aria-hidden />
                   )}
-                  <select
+                  <AdminSelect
                     className={inputClass}
                     value={badge.icon}
                     onChange={(e) => update(i, { icon: e.target.value })}
@@ -43,7 +44,7 @@ export function BadgesEditor({
                         {b.label}
                       </option>
                     ))}
-                  </select>
+                  </AdminSelect>
                 </div>
                 <input
                   className={inputClass}

@@ -11,6 +11,7 @@ import {
   type ReactNode,
 } from 'react';
 import { useAuth } from '@/components/auth/AuthProvider';
+import { AdminLoading } from '@/components/admin/ui';
 import { reportClientError } from '@/lib/client-error-report';
 import { loadMyAccess } from '@/lib/admin/team';
 import { NO_ACCESS, type AdminAccess } from '@/lib/admin/permissions';
@@ -112,7 +113,9 @@ export function AdminAccessProvider({ children }: { children: ReactNode }) {
 
   if (!value) {
     return (
-      <div className="grid min-h-[60vh] place-items-center text-sm text-ink-muted">Loading…</div>
+      <div className="grid min-h-[60vh] place-items-center">
+        <AdminLoading />
+      </div>
     );
   }
   return <AccessContext.Provider value={value}>{children}</AccessContext.Provider>;

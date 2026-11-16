@@ -18,7 +18,7 @@ import {
   yearMonth,
   type CalLine,
 } from '@/lib/admin/calendar-view';
-import { AdminError, buttonClass } from '@/components/admin/ui';
+import { AdminError, buttonClass, AdminLoading } from '@/components/admin/ui';
 import { PrintRunSheetButton } from '@/components/admin/RunSheetPrint';
 import { BookingMovePicker, CallOffEditor, MoveDepartureEditor, TimeEditor } from './editors';
 import { CustomPartyBlock, DeparturePartyBlock, ReturnLegPartyBlock } from './PartyBlock';
@@ -213,9 +213,7 @@ export function DayPanel({
               <AdminError>{error}</AdminError>
             </div>
           )}
-          {loading && lines.length === 0 && (
-            <p className="py-8 text-center text-[13.5px] text-ink-muted">Loading…</p>
-          )}
+          {loading && lines.length === 0 && <AdminLoading className="py-8 text-center" />}
           {lines.map((l) => (
             <LineCard
               key={l.key}

@@ -23,6 +23,8 @@ import {
   SELECT_CLS,
   BTN_PRIMARY,
   BTN_GHOST,
+  AdminLoading,
+  AdminSelect,
 } from '@/components/admin/ui';
 
 const EMPTY: PlannerPlaceInput = {
@@ -137,7 +139,7 @@ export function AdminPlannerPlaces() {
               />
             </Field>
             <Field label="Category">
-              <select
+              <AdminSelect
                 className={SELECT_CLS}
                 value={form.category}
                 onChange={(e) => set('category', e.target.value)}
@@ -147,10 +149,10 @@ export function AdminPlannerPlaces() {
                     {c}
                   </option>
                 ))}
-              </select>
+              </AdminSelect>
             </Field>
             <Field label="Region">
-              <select
+              <AdminSelect
                 className={SELECT_CLS}
                 value={form.region}
                 onChange={(e) => set('region', e.target.value)}
@@ -160,7 +162,7 @@ export function AdminPlannerPlaces() {
                     {r}
                   </option>
                 ))}
-              </select>
+              </AdminSelect>
             </Field>
             <Field label="Ideal duration (min)">
               <input
@@ -227,7 +229,7 @@ export function AdminPlannerPlaces() {
 
       <div className="overflow-hidden rounded-2xl border border-[#EAEEF0] bg-white">
         {rows === null ? (
-          <p className="p-5 text-sm text-ink-muted">Loading…</p>
+          <AdminLoading className="p-5" rows={4} />
         ) : rows.length === 0 ? (
           <p className="p-5 text-sm text-ink-muted">No places yet.</p>
         ) : (

@@ -1,6 +1,6 @@
 'use client';
 
-import { Card, Field, INPUT_CLS, SELECT_CLS } from '@/components/admin/ui';
+import { Card, Field, INPUT_CLS, SELECT_CLS, AdminSelect } from '@/components/admin/ui';
 import type { DocumentClientRecord } from '@/lib/admin/documents';
 import type { ClientForm, DocumentFormValues } from './state';
 
@@ -60,7 +60,7 @@ export function ClientPane({
       {clients.length > 0 && (
         <div className="mb-4 border-b border-[#EEF1F3] pb-4">
           <Field label="Use a saved client" hint="Fills the fields below — edit anything after.">
-            <select
+            <AdminSelect
               value={form.clientId ?? ''}
               onChange={(e) => pick(e.target.value)}
               className={SELECT_CLS}
@@ -71,7 +71,7 @@ export function ClientPane({
                   {c.name}
                 </option>
               ))}
-            </select>
+            </AdminSelect>
           </Field>
         </div>
       )}

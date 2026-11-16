@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import type { CSSProperties } from 'react';
 import { TODAY_LIFT } from '@/components/admin/today/MetricCard';
-import { Panel, ProgressBar, StatusChip, buttonClass } from '@/components/admin/ui';
+import { Panel, ProgressBar, StatusChip, buttonClass, AdminLoading } from '@/components/admin/ui';
 import { PrintRunSheetButton } from '@/components/admin/RunSheetPrint';
 import { shortDay } from '@/lib/admin/calendar-view';
 import type { DayEntry } from '@/lib/admin/calendar';
@@ -219,7 +219,7 @@ export function RunSheetCard({
           Could not load today’s departures. The rest of this page still works; try reloading.
         </p>
       ) : entries === null ? (
-        <p className="px-4 py-6 text-center text-ink-soft">Loading…</p>
+        <AdminLoading className="px-4 py-6 text-center" />
       ) : (
         <>
           {todayRows.length > 0 ? (

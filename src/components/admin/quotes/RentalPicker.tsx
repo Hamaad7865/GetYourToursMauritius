@@ -1,8 +1,17 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 import { useDialog } from '@/lib/a11y/useDialog';
-import { BTN_GHOST, BTN_PRIMARY, Field, INPUT_CLS, SELECT_CLS } from '@/components/admin/ui';
+import { INSTANT, spring } from '@/components/admin/motion-tokens';
+import {
+  BTN_GHOST,
+  BTN_PRIMARY,
+  Field,
+  INPUT_CLS,
+  SELECT_CLS,
+  AdminSelect,
+} from '@/components/admin/ui';
 import { IconX } from '@/components/ui/icons';
 import { mauDay } from '@/lib/admin/format';
 import { loadRentalFleet, type RentalVehicleInput } from '@/lib/admin/rental';
@@ -38,6 +47,7 @@ export function RentalPicker({
   initialSlug?: string;
 }) {
   const dialogRef = useDialog(true, onClose);
+  const reduce = useReducedMotion();
   const [fleet, setFleet] = useState<RentalVehicleInput[] | null>(null);
   const [slug, setSlug] = useState(initialSlug);
   const [pickup, setPickup] = useState(() => mauDay(new Date()));
@@ -85,14 +95,21 @@ export function RentalPicker({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
-      <button
+      <motion.button
         type="button"
         aria-label="Close the rental picker"
         onClick={onClose}
+        initial={reduce ? false : { opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={reduce ? INSTANT : { duration: 0.2, ease: 'easeOut' }}
         className="absolute inset-0 bg-ink/40"
       />
-      <div
+      {/* EasyUI settle-modal (easyui.site, MIT): the sheet rises a touch and settles, not a plain fade. */}
+      <motion.div
         ref={dialogRef}
+        initial={reduce ? false : { opacity: 0, y: 16, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={reduce ? INSTANT : spring.responsive}
         role="dialog"
         aria-modal="true"
         aria-label="Add a rental to this quote"
@@ -121,14 +138,18 @@ export function RentalPicker({
           )}
 
           <Field label="Vehicle">
-            <select value={slug} onChange={(e) => setSlug(e.target.value)} className={SELECT_CLS}>
+            <AdminSelect
+              value={slug}
+              onChange={(e) => setSlug(e.target.value)}
+              className={SELECT_CLS}
+            >
               <option value="">{fleet ? 'Choose a vehicle…' : 'Loading…'}</option>
               {(fleet ?? []).map((v) => (
                 <option key={v.slug} value={v.slug}>
                   {v.name} — {eurFromMinor(eurToCents(v.dailyRateEur))} / day
                 </option>
               ))}
-            </select>
+            </AdminSelect>
           </Field>
 
           {fleet && fleet.length === 0 && !error && (
@@ -199,7 +220,7 @@ export function RentalPicker({
             </button>
           </span>
         </footer>
-      </div>
+      </motion.div>
     </div>
   );
 }

@@ -1,6 +1,8 @@
 'use client';
 
 import type { CSSProperties, ReactNode } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
+import { INSTANT, spring } from '@/components/admin/motion-tokens';
 import { LINE_TYPES, type LineType } from '@/lib/admin/calendar-view';
 
 /* Small shared pieces of the operations calendar: its icons (the prototype's own strokes, which the
@@ -103,39 +105,68 @@ export interface ToastState {
   showDay?: () => void;
 }
 
-/** The dark confirmation toast, bottom centre, with Undo / Show day when there is something to do. */
-export function Toast({ toast, onDismiss }: { toast: ToastState; onDismiss: () => void }) {
+/**
+ * The dark confirmation toast, bottom centre, with Undo / Show day when there is something to do.
+ * EasyUI's velocity-toast (easyui.site, MIT): it arrives with a little speed and settles, and a thin
+ * line drains along its foot over its life, so the owner can see how long Undo has left. `durationMs`
+ * must match the caller's own timer (AdminCalendar clears it after 6.5s); the caller keys each toast by
+ * its id, so a new one enters fresh.
+ */
+export function Toast({
+  toast,
+  onDismiss,
+  durationMs = 6500,
+}: {
+  toast: ToastState;
+  onDismiss: () => void;
+  durationMs?: number;
+}) {
+  const reduce = useReducedMotion();
   return (
-    <div
-      role="status"
-      aria-live="polite"
-      className="fixed bottom-[88px] left-1/2 z-[80] flex max-w-[calc(100vw-32px)] -translate-x-1/2 items-center gap-2.5 rounded-xl bg-ink py-2.5 pl-[18px] pr-2.5 text-[13.5px] text-white shadow-[0_18px_40px_-12px_rgba(8,30,33,0.55)] lg:bottom-7"
-    >
-      <span className="min-w-0">{toast.message}</span>
-      {toast.showDay && (
-        <button
-          type="button"
-          onClick={() => {
-            toast.showDay?.();
-            onDismiss();
-          }}
-          className="h-[30px] shrink-0 rounded-lg px-3 text-[13px] font-semibold text-white hover:bg-white/10"
-        >
-          Show day
-        </button>
-      )}
-      {toast.undo && (
-        <button
-          type="button"
-          onClick={() => {
-            toast.undo?.();
-            onDismiss();
-          }}
-          className="h-[30px] shrink-0 rounded-lg bg-white/[0.12] px-3 text-[13px] font-bold text-[#7ee0d8] hover:bg-white/20"
-        >
-          Undo
-        </button>
-      )}
+    <div className="fixed bottom-[88px] left-1/2 z-[80] max-w-[calc(100vw-32px)] -translate-x-1/2 lg:bottom-7">
+      <motion.div
+        role="status"
+        aria-live="polite"
+        initial={reduce ? false : { opacity: 0, y: 28, scale: 0.94 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={reduce ? INSTANT : spring.responsive}
+        className="relative flex items-center gap-2.5 overflow-hidden rounded-xl bg-ink py-2.5 pl-[18px] pr-2.5 text-[13.5px] text-white shadow-[0_18px_40px_-12px_rgba(8,30,33,0.55)]"
+      >
+        <span className="min-w-0">{toast.message}</span>
+        {toast.showDay && (
+          <button
+            type="button"
+            onClick={() => {
+              toast.showDay?.();
+              onDismiss();
+            }}
+            className="h-[30px] shrink-0 rounded-lg px-3 text-[13px] font-semibold text-white hover:bg-white/10"
+          >
+            Show day
+          </button>
+        )}
+        {toast.undo && (
+          <button
+            type="button"
+            onClick={() => {
+              toast.undo?.();
+              onDismiss();
+            }}
+            className="h-[30px] shrink-0 rounded-lg bg-white/[0.12] px-3 text-[13px] font-bold text-[#7ee0d8] hover:bg-white/20"
+          >
+            Undo
+          </button>
+        )}
+        {!reduce && (
+          <motion.span
+            aria-hidden="true"
+            className="absolute inset-x-0 bottom-0 h-0.5 origin-left bg-[#7ee0d8]/70"
+            initial={{ scaleX: 1 }}
+            animate={{ scaleX: 0 }}
+            transition={{ duration: durationMs / 1000, ease: 'linear' }}
+          />
+        )}
+      </motion.div>
     </div>
   );
 }

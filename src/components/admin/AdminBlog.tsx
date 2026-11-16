@@ -20,6 +20,7 @@ import {
   BTN_GHOST,
   INPUT_CLS,
   TEXTAREA_CLS,
+  AdminLoading,
 } from '@/components/admin/ui';
 import { IconPlus, IconX } from '@/components/ui/icons';
 import { RichBodyField } from '@/components/admin/RichBodyField';
@@ -471,7 +472,7 @@ export function AdminBlog() {
         </button>
       </div>
       {!items ? (
-        <p className="text-sm text-ink-muted">Loading…</p>
+        <AdminLoading />
       ) : items.length === 0 ? (
         <p className="rounded-xl border border-[#EAEEF0] bg-white p-5 text-sm text-ink-muted">
           No database posts yet. The blog currently shows the 10 built-in articles — anything you

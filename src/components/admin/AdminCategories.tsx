@@ -22,6 +22,8 @@ import {
   SELECT_CLS,
   BTN_PRIMARY,
   BTN_GHOST,
+  AdminLoading,
+  AdminSelect,
 } from '@/components/admin/ui';
 
 const EMPTY: CategoryInput = { name: '', imageUrl: '', status: 'active' };
@@ -115,14 +117,14 @@ export function AdminCategories() {
               />
             </Field>
             <Field label="Visibility">
-              <select
+              <AdminSelect
                 value={form.status}
                 onChange={(e) => setForm({ ...form, status: e.target.value as CategoryStatus })}
                 className={SELECT_CLS}
               >
                 <option value="active">Active (shown on the site)</option>
                 <option value="hidden">Hidden</option>
-              </select>
+              </AdminSelect>
             </Field>
           </div>
           <div className="mt-4 flex gap-2">
@@ -143,7 +145,7 @@ export function AdminCategories() {
 
       <div className="overflow-hidden rounded-2xl border border-[#EAEEF0] bg-white">
         {rows === null ? (
-          <p className="p-6 text-sm text-ink-muted">Loading…</p>
+          <AdminLoading className="p-6" rows={4} />
         ) : rows.length === 0 ? (
           <p className="p-6 text-sm text-ink-muted">
             No categories yet. Click “New category” to add one.

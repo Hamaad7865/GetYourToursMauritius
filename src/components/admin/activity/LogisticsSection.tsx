@@ -3,6 +3,7 @@
 import { Field, Section, inputClass } from '@/components/admin/fields';
 import { departureClock } from '@/lib/catalogue/departure-time';
 import type { PaneProps } from './sections';
+import { AdminSelect } from '@/components/admin/ui';
 
 /** What bookings will print for this start time, read exactly as they read it — so a typo like
  *  "Morning" or "9-ish" is caught here, not on a guest's invoice. */
@@ -61,7 +62,7 @@ export function LogisticsSection({ v, set }: PaneProps) {
           <DepartureReadout text={v.startWindow} />
         </Field>
         <Field label="Home region (transport add-on)">
-          <select
+          <AdminSelect
             className={inputClass}
             value={v.region}
             onChange={(e) => set('region', e.target.value)}
@@ -72,7 +73,7 @@ export function LogisticsSection({ v, set }: PaneProps) {
             <option value="East">East</option>
             <option value="West">West</option>
             <option value="Central">Central</option>
-          </select>
+          </AdminSelect>
           <p className="mt-1.5 text-[12px] text-ink-muted">
             The activity’s boarding region. For per-person / per-group activities with hotel pickup,
             the door-to-door transport fee scales with how far the customer’s pickup is from this

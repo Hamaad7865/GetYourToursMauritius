@@ -17,7 +17,7 @@ import {
   WEEKDAY_LABELS,
 } from '@/lib/admin/option-weekdays';
 import { IconChevron } from '@/components/ui/icons';
-import { AdminHeading, BTN_PRIMARY } from '@/components/admin/ui';
+import { AdminHeading, BTN_PRIMARY, AdminLoading } from '@/components/admin/ui';
 
 /** Surface the real message from an Error or a Supabase/PostgREST error object (which isn't an
  *  Error instance), so failures aren't masked by a generic fallback. */
@@ -276,7 +276,7 @@ export function AvailabilityEditor({ activityId }: { activityId: string }) {
       <AdminHeading title="Availability" subtitle={title || 'Loading…'} />
 
       {loading ? (
-        <p className="text-sm text-ink-muted">Loading…</p>
+        <AdminLoading />
       ) : options.length === 0 ? (
         <div className="max-w-xl rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3.5 text-sm text-ink">
           This activity has no booking options yet. Add an option with a price in{' '}

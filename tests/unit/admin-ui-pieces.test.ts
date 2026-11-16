@@ -1,8 +1,10 @@
 import { createElement as h } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
+import { splitFigure } from '@/components/admin/ui-motion';
 import {
   AdminError,
+  AdminLoading,
   BTN_GHOST,
   BTN_PRIMARY,
   Checklist,
@@ -212,6 +214,44 @@ describe('ListRow, Kpi and SplitView', () => {
       'aria-label="Latest bookings"',
     );
     expect(html(h(Panel, { title: 'Latest bookings', children: 'x' }))).toContain('<h2');
+  });
+});
+
+describe('the EasyUI motion layer keeps its words', () => {
+  it('splits a KPI figure so only the number counts up', () => {
+    expect(splitFigure('€1,234.50')).toEqual({
+      prefix: '€',
+      value: 1234.5,
+      decimals: 2,
+      grouped: true,
+      suffix: '',
+    });
+    expect(splitFigure('4')).toMatchObject({ prefix: '', value: 4, decimals: 0, grouped: false });
+    expect(splitFigure('12 guests')).toMatchObject({ value: 12, suffix: ' guests' });
+    expect(splitFigure('—')).toBeNull();
+  });
+
+  it('renders the final KPI figure on the server, before anything counts', () => {
+    expect(html(h(Kpi, { label: 'Value', value: '€1,234.50' }))).toContain('€1,234.50');
+    expect(html(h(Kpi, { label: 'Value', value: '—' }))).toContain('—');
+  });
+
+  it('announces loading in words, its dots and skeleton rows hidden', () => {
+    const out = html(h(AdminLoading, { rows: 2 }));
+    expect(out).toMatch(/^<div role="status"/);
+    expect(out).toContain('Loading…');
+    expect(
+      out.match(/<span aria-hidden="true" class="relative block overflow-hidden/g),
+    ).toHaveLength(2);
+  });
+
+  it('keeps a rolling chip label readable as plain text', () => {
+    expect(html(h(StatusChip, { tone: 'ok', pulse: true, children: 'Paid' }))).toContain('Paid');
+  });
+
+  it('keeps the stretch switch thumb decorative', () => {
+    const out = html(h(Switch, { checked: true, onChange: noop, label: 'Live' }));
+    expect(out).toContain('<span aria-hidden="true"');
   });
 });
 

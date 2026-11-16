@@ -4,6 +4,7 @@ import { Field, Section, inputClass } from '@/components/admin/fields';
 import { OptionsEditor } from './OptionsEditor';
 import type { ActivityFormValues } from '@/lib/admin/activity-write';
 import type { PaneProps } from './sections';
+import { AdminSelect } from '@/components/admin/ui';
 
 /** Hidden from anyone who may not edit prices — the content role (RLS blocks the tables) or a team
  *  role without Edit prices & fares. */
@@ -15,7 +16,7 @@ export function PricingSection({ v, set }: PaneProps) {
     >
       <div className="flex flex-col gap-5">
         <Field label="Pricing">
-          <select
+          <AdminSelect
             className={inputClass}
             value={v.pricingMode}
             onChange={(e) =>
@@ -25,7 +26,7 @@ export function PricingSection({ v, set }: PaneProps) {
             <option value="per_person">Per person (price × people)</option>
             <option value="per_group">Per group (one price per group of N)</option>
             <option value="vehicle">Sightseeing vehicle (flat per-vehicle price)</option>
-          </select>
+          </AdminSelect>
           <p className="mt-1.5 text-[12px] text-ink-muted">
             {v.pricingMode === 'vehicle'
               ? 'Sightseeing vehicle pricing is global, one flat price per vehicle: Sedan €70 / SUV €85 (1–4), Family car €85 (5–6), Van €125 (7–14), Coaster €225 (15–25), capped at 25. Applies to every vehicle-priced tour — no per-tour tiers. Change it in the sightseeing_pricing table.'

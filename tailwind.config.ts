@@ -62,6 +62,13 @@ const config: Config = {
       borderRadius: {
         card: '18px',
       },
+      // Back office: the skeleton's light sweep (EasyUI skeleton), in src/components/admin/ui-motion.tsx.
+      keyframes: {
+        'bo-sweep': { '100%': { transform: 'translateX(100%)' } },
+      },
+      animation: {
+        'bo-sweep': 'bo-sweep 1.4s ease-in-out infinite',
+      },
       maxWidth: {
         shell: '1200px',
       },

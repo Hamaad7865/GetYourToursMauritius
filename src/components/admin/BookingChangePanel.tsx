@@ -31,7 +31,7 @@ import {
   type QuoteDeparture,
 } from '@/lib/admin/quote-catalogue';
 import { eur, fmtDate, fmtDateTime } from '@/lib/admin/format';
-import { SELECT_CLS, INPUT_CLS, buttonClass } from '@/components/admin/ui';
+import { SELECT_CLS, INPUT_CLS, buttonClass, AdminSelect } from '@/components/admin/ui';
 
 interface Props {
   bookingId: string;
@@ -246,7 +246,7 @@ export function BookingChangePanel({
           )}
           <label className="block">
             <span className="text-[12px] font-semibold text-ink-muted">Tour</span>
-            <select
+            <AdminSelect
               value={activityId}
               onChange={(e) => setActivityId(e.target.value)}
               className={`mt-1 ${SELECT_CLS}`}
@@ -258,7 +258,7 @@ export function BookingChangePanel({
                   {a.status === 'published' ? '' : ` (${a.status})`}
                 </option>
               ))}
-            </select>
+            </AdminSelect>
           </label>
 
           <label className="block">
@@ -279,7 +279,7 @@ export function BookingChangePanel({
           {departures.length > 0 && (
             <label className="block">
               <span className="text-[12px] font-semibold text-ink-muted">Departure</span>
-              <select
+              <AdminSelect
                 value={occurrenceId}
                 onChange={(e) => setOccurrenceId(e.target.value)}
                 className={`mt-1 ${SELECT_CLS}`}
@@ -291,7 +291,7 @@ export function BookingChangePanel({
                     {d.departureTime ? `, ${d.departureTime}` : ''}
                   </option>
                 ))}
-              </select>
+              </AdminSelect>
             </label>
           )}
 

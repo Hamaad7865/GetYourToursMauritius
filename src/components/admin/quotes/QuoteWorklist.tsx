@@ -19,6 +19,7 @@ import {
   SELECT_CLS,
   StatusChip,
   buttonClass,
+  AdminSelect,
 } from '@/components/admin/ui';
 import { IconCheck, IconChevron, IconPlus, IconSearch, IconX } from '@/components/ui/icons';
 import { mauDay } from '@/lib/admin/format';
@@ -508,7 +509,7 @@ export function QuoteWorklist({
           </div>
           <label className="flex items-center gap-2 text-[12.5px] text-ink-soft">
             Sort
-            <select
+            <AdminSelect
               value={order}
               onChange={(e) => selectSort(e.target.value as QuoteSort)}
               className={`${SELECT_CLS} w-auto`}
@@ -518,7 +519,7 @@ export function QuoteWorklist({
                   {SORT_LABELS[s]}
                 </option>
               ))}
-            </select>
+            </AdminSelect>
           </label>
         </div>
 

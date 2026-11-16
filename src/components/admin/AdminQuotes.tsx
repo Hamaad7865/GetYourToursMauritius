@@ -19,6 +19,7 @@ import {
   StatusChip,
   TEXTAREA_CLS,
   buttonClass,
+  AdminSelect,
 } from '@/components/admin/ui';
 import { IconArrowRight, IconX } from '@/components/ui/icons';
 import { fmtDate, fmtDateTime } from '@/lib/admin/format';
@@ -683,7 +684,7 @@ function QuoteEditor({
                     label="Language"
                     hint="Of this offer — and of the guest’s confirmation email and VAT invoice after they pay."
                   >
-                    <select
+                    <AdminSelect
                       value={values.locale}
                       onChange={(e) => set('locale', e.target.value === 'fr' ? 'fr' : 'en')}
                       disabled={locked}
@@ -691,7 +692,7 @@ function QuoteEditor({
                     >
                       <option value="en">English</option>
                       <option value="fr">Français</option>
-                    </select>
+                    </AdminSelect>
                   </Field>
                   <Field
                     label="Hotel room number"

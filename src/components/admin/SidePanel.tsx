@@ -9,7 +9,15 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
 } from 'react';
+import {
+  AnimatePresence,
+  motion,
+  useDragControls,
+  useReducedMotion,
+  type PanInfo,
+} from 'framer-motion';
 import { buttonClass } from '@/components/admin/ui';
+import { INSTANT, spring } from '@/components/admin/motion-tokens';
 import { IconChevron, IconX } from '@/components/ui/icons';
 
 /* THE BACK OFFICE'S SIDE PANEL: the frame a booking or a quote opens in, over its list.
@@ -18,7 +26,16 @@ import { IconChevron, IconX } from '@/components/ui/icons';
  * the page behind holds still, and Previous / Next step through the list as it is shown without
  * closing. What the panel shows is the caller's; it is keyed by the item, so stepping starts it fresh
  * while the frame, and the button just pressed, stay put. Also here: the panel's white card, its
- * "More" menu and the copy icon, so the two panels look the same. */
+ * "More" menu and the copy icon, so the two panels look the same.
+ *
+ * Motion is EasyUI's (easyui.site, MIT): the panel springs in like its `sheet` and can be dragged back
+ * off to the right by its grip (a pointer convenience only: Close and Escape stay the way out, and a
+ * drag asks `mayLeave` like they do); the More menu grows from its button like `origin-dropdown`, with
+ * one highlight gliding between its actions. */
+
+/** How far (px) or how fast (px/s) a drag to the right must go before it closes the panel. */
+const DRAG_CLOSE_DISTANCE = 140;
+const DRAG_CLOSE_VELOCITY = 650;
 
 export const PANEL_CARD_H = 'text-[11.5px] font-semibold uppercase tracking-[0.06em] text-ink-soft';
 export const PANEL_FOCUS_RING =
@@ -56,6 +73,13 @@ export function SidePanel({
   children,
 }: SidePanelProps) {
   const panelRef = useRef<HTMLElement>(null);
+  const reduce = useReducedMotion();
+  const dragControls = useDragControls();
+  const onDragEnd = (_: unknown, info: PanInfo) => {
+    // Short of the threshold, or refused by mayLeave, the drag constraints spring it back.
+    if (info.offset.x > DRAG_CLOSE_DISTANCE || info.velocity.x > DRAG_CLOSE_VELOCITY)
+      requestClose();
+  };
   const requestClose = useCallback(() => {
     if (mayLeave()) onClose();
   }, [mayLeave, onClose]);
@@ -126,21 +150,44 @@ export function SidePanel({
 
   return (
     <div className="fixed inset-0 z-50">
-      <button
+      <motion.button
         type="button"
         aria-label={`Close ${noun} details`}
         tabIndex={-1}
         onClick={requestClose}
-        className="bmt-fade-in absolute inset-0 cursor-default bg-ink/40"
+        initial={reduce ? false : { opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={reduce ? INSTANT : { duration: 0.2, ease: 'easeOut' }}
+        className="absolute inset-0 cursor-default bg-ink/40"
       />
-      <section
+      <motion.section
         ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className="bmt-drawer-in absolute inset-0 flex flex-col overflow-hidden bg-white shadow-[-24px_0_60px_-20px_rgba(10,46,54,0.45)] outline-none sm:inset-y-3 sm:left-auto sm:right-3 sm:w-[min(680px,calc(100%-24px))] sm:rounded-2xl"
+        initial={reduce ? false : { opacity: 0, x: 48 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={reduce ? INSTANT : spring.responsive}
+        drag={reduce ? false : 'x'}
+        dragControls={dragControls}
+        dragListener={false}
+        dragConstraints={{ left: 0, right: 0 }}
+        dragElastic={{ left: 0, right: 0.7 }}
+        dragMomentum={false}
+        onDragEnd={onDragEnd}
+        className="absolute inset-0 flex flex-col overflow-hidden bg-white shadow-[-24px_0_60px_-20px_rgba(10,46,54,0.45)] outline-none sm:inset-y-3 sm:left-auto sm:right-3 sm:w-[min(680px,calc(100%-24px))] sm:rounded-2xl"
       >
+        {!reduce && (
+          <span
+            aria-hidden="true"
+            title="Drag right to close"
+            onPointerDown={(e) => dragControls.start(e)}
+            className="group absolute inset-y-0 left-0 z-[3] hidden w-3 cursor-grab touch-none items-center justify-center active:cursor-grabbing sm:flex"
+          >
+            <span className="h-10 w-1 rounded-full bg-line transition-colors group-hover:bg-[#9DAEB2] motion-reduce:transition-none" />
+          </span>
+        )}
         <div className="absolute right-3 top-3 z-[2] flex items-center gap-1.5 sm:right-5 sm:top-4">
           {position && (
             <>
@@ -179,7 +226,7 @@ export function SidePanel({
           </button>
         </div>
         {children}
-      </section>
+      </motion.section>
     </div>
   );
 }
@@ -254,9 +301,13 @@ export function MoreMenu({
   disabled: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  /** The action the gliding highlight sits on (hovered or focused), or null. */
+  const [hi, setHi] = useState<string | null>(null);
+  const reduce = useReducedMotion();
   const wrapRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuId = useId();
+  const highlightId = `bo-more-${menuId}`;
   const shown = groups.filter((g) => g.length > 0);
 
   useEffect(() => {
@@ -322,41 +373,58 @@ export function MoreMenu({
           className={`transition-transform motion-reduce:transition-none ${open ? '' : 'rotate-180'}`}
         />
       </button>
-      {open && (
-        <div
-          id={menuId}
-          role="menu"
-          aria-label="More actions"
-          className="absolute bottom-full right-0 z-10 mb-2 w-[240px] max-w-[calc(100vw-32px)] overflow-hidden rounded-xl border border-line bg-white py-1.5 shadow-[0_16px_40px_-12px_rgba(10,46,54,0.35)]"
-        >
-          {shown.map((group, gi) => (
-            <div
-              key={gi}
-              role="group"
-              className={gi > 0 ? 'mt-1.5 border-t border-line-soft pt-1.5' : ''}
-            >
-              {group.map((a) => (
-                <button
-                  key={a.id}
-                  type="button"
-                  role="menuitem"
-                  tabIndex={-1}
-                  onClick={() => {
-                    setOpen(false);
-                    triggerRef.current?.focus();
-                    a.onSelect();
-                  }}
-                  className={`flex w-full items-center px-3.5 py-2 text-left text-[13px] font-medium outline-none hover:bg-line-soft focus:bg-line-soft ${
-                    a.danger ? 'text-coral-dark' : 'text-ink'
-                  }`}
-                >
-                  {a.label}
-                </button>
-              ))}
-            </div>
-          ))}
-        </div>
-      )}
+      <AnimatePresence onExitComplete={() => setHi(null)}>
+        {open && (
+          <motion.div
+            id={menuId}
+            role="menu"
+            aria-label="More actions"
+            initial={reduce ? false : { opacity: 0, scale: 0.92, y: 6 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={reduce ? { opacity: 0, transition: INSTANT } : { opacity: 0, scale: 0.96, y: 4 }}
+            transition={reduce ? INSTANT : spring.responsive}
+            onMouseLeave={() => setHi(null)}
+            className="absolute bottom-full right-0 z-10 mb-2 w-[240px] max-w-[calc(100vw-32px)] origin-bottom-right overflow-hidden rounded-xl border border-line bg-white px-1.5 py-1.5 shadow-[0_16px_40px_-12px_rgba(10,46,54,0.35)]"
+          >
+            {shown.map((group, gi) => (
+              <div
+                key={gi}
+                role="group"
+                className={gi > 0 ? 'mt-1.5 border-t border-line-soft pt-1.5' : ''}
+              >
+                {group.map((a) => (
+                  <button
+                    key={a.id}
+                    type="button"
+                    role="menuitem"
+                    tabIndex={-1}
+                    onMouseEnter={() => setHi(a.id)}
+                    onFocus={() => setHi(a.id)}
+                    onClick={() => {
+                      setOpen(false);
+                      triggerRef.current?.focus();
+                      a.onSelect();
+                    }}
+                    className={`relative isolate flex w-full items-center rounded-lg px-2.5 py-2 text-left text-[13px] font-medium outline-none ${
+                      a.danger ? 'text-coral-dark' : 'text-ink'
+                    }`}
+                  >
+                    {a.label}
+                    {hi === a.id && (
+                      <motion.span
+                        aria-hidden="true"
+                        layoutId={highlightId}
+                        transition={reduce ? INSTANT : spring.snappy}
+                        className={`absolute inset-0 -z-10 rounded-lg ${a.danger ? 'bg-coral-tint' : 'bg-line-soft'}`}
+                      />
+                    )}
+                  </button>
+                ))}
+              </div>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

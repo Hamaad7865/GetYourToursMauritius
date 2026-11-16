@@ -10,7 +10,13 @@ import {
   saveRedirect,
   type RedirectRow,
 } from '@/lib/admin/seo-content';
-import { AdminHeading, AdminError, BTN_PRIMARY, INPUT_CLS } from '@/components/admin/ui';
+import {
+  AdminHeading,
+  AdminError,
+  BTN_PRIMARY,
+  INPUT_CLS,
+  AdminLoading,
+} from '@/components/admin/ui';
 
 const LIVE_PATHS = new Set(SEO_PAGES.map((p) => p.path));
 
@@ -102,7 +108,7 @@ export function AdminRedirects() {
       </section>
 
       {!rows ? (
-        <p className="text-sm text-ink-muted">Loading…</p>
+        <AdminLoading />
       ) : rows.length === 0 ? (
         <p className="rounded-xl border border-[#EAEEF0] bg-white p-5 text-sm text-ink-muted">
           No redirects yet.

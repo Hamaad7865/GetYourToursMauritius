@@ -1,6 +1,6 @@
 'use client';
 
-import { Card, Field, INPUT_CLS, SELECT_CLS, BTN_GHOST } from '@/components/admin/ui';
+import { Card, Field, INPUT_CLS, SELECT_CLS, BTN_GHOST, AdminSelect } from '@/components/admin/ui';
 import { IconPlus } from '@/components/ui/icons';
 import { CURRENCY_LABEL, CURRENCY_SYMBOL, formatMinor } from '@/lib/documents/money';
 import type { VatMode } from '@/lib/documents/model';
@@ -40,7 +40,7 @@ export function LinesEditor({
       <Card title="Currency & VAT">
         <div className="grid gap-4 sm:grid-cols-3">
           <Field label="Currency">
-            <select
+            <AdminSelect
               value={form.currency}
               onChange={(e) =>
                 onChange({ currency: e.target.value as DocumentFormValues['currency'] })
@@ -52,10 +52,10 @@ export function LinesEditor({
                   {CURRENCY_LABEL[c]}
                 </option>
               ))}
-            </select>
+            </AdminSelect>
           </Field>
           <Field label="VAT treatment">
-            <select
+            <AdminSelect
               value={form.vatMode}
               onChange={(e) => onChange({ vatMode: e.target.value as VatMode })}
               className={SELECT_CLS}
@@ -65,7 +65,7 @@ export function LinesEditor({
                   {VAT_MODE_LABEL[m]}
                 </option>
               ))}
-            </select>
+            </AdminSelect>
           </Field>
           {form.vatMode !== 'none' && (
             <Field label="VAT rate %">

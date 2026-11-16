@@ -3,7 +3,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { getBrowserSupabase } from '@/lib/supabase/browser';
-import { AdminError, AdminHeading, BTN_GHOST, BTN_PRIMARY, Card } from '@/components/admin/ui';
+import {
+  AdminError,
+  AdminHeading,
+  BTN_GHOST,
+  BTN_PRIMARY,
+  Card,
+  AdminLoading,
+} from '@/components/admin/ui';
 import { IconPlus, IconSearch } from '@/components/ui/icons';
 import { fmtDateShort } from '@/lib/admin/format';
 import { CURRENCY_SYMBOL, formatMinor } from '@/lib/documents/money';
@@ -250,7 +257,7 @@ function DocumentList({
             </div>
           </div>
         )}
-        {rows === null && <p className="p-6 text-sm text-ink-muted">Loading…</p>}
+        {rows === null && <AdminLoading className="p-6" rows={4} />}
       </div>
     </div>
   );
@@ -303,7 +310,7 @@ function DocumentEditor({
       .finally(() => setLoading(false));
   }, [id, reload]);
 
-  if (loading) return <p className="text-sm text-ink-muted">Loading…</p>;
+  if (loading) return <AdminLoading />;
   if (!form) {
     return (
       <div>

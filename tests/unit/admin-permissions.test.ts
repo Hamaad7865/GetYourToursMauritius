@@ -419,7 +419,7 @@ describe('the page guard', () => {
     expect(navFor(NO_ACCESS)).toEqual([]);
   });
 
-  it('opens Pricing for either half of it, and for neither it stays shut', () => {
+  it('opens Pricing for the fares permission only; the currency card lives in Settings', () => {
     const currencyOnly = buildAccess({
       role: 'staff',
       teamRoleId: 'r',
@@ -431,7 +431,8 @@ describe('the page guard', () => {
       permissions: ['money.prices'],
     });
     const neither = buildAccess({ role: 'staff', teamRoleId: 'r', permissions: ['money.refunds'] });
-    expect(pageAllowedFor(currencyOnly, '/admin/vehicle-pricing')).toBe(true);
+    expect(pageAllowedFor(currencyOnly, '/admin/vehicle-pricing')).toBe(false);
+    expect(pageAllowedFor(currencyOnly, '/admin/settings')).toBe(true);
     expect(pageAllowedFor(pricesOnly, '/admin/vehicle-pricing')).toBe(true);
     expect(pageAllowedFor(neither, '/admin/vehicle-pricing')).toBe(false);
   });

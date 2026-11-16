@@ -1,8 +1,17 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 import { useDialog } from '@/lib/a11y/useDialog';
-import { BTN_GHOST, BTN_PRIMARY, Field, INPUT_CLS, SELECT_CLS } from '@/components/admin/ui';
+import { INSTANT, spring } from '@/components/admin/motion-tokens';
+import {
+  BTN_GHOST,
+  BTN_PRIMARY,
+  Field,
+  INPUT_CLS,
+  SELECT_CLS,
+  AdminSelect,
+} from '@/components/admin/ui';
 import { IconX } from '@/components/ui/icons';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { fmtDate, mauDay } from '@/lib/admin/format';
@@ -44,6 +53,7 @@ export function TourPicker({
   initialActivityId?: string;
 }) {
   const dialogRef = useDialog(true, onClose);
+  const reduce = useReducedMotion();
   const [activities, setActivities] = useState<QuotableActivity[] | null>(null);
   const [activityId, setActivityId] = useState(initialActivityId);
   const [day, setDay] = useState(() => mauDay(new Date()));
@@ -122,14 +132,21 @@ export function TourPicker({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
-      <button
+      <motion.button
         type="button"
         aria-label="Close the tour picker"
         onClick={onClose}
+        initial={reduce ? false : { opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={reduce ? INSTANT : { duration: 0.2, ease: 'easeOut' }}
         className="absolute inset-0 bg-ink/40"
       />
-      <div
+      {/* EasyUI settle-modal (easyui.site, MIT): the sheet rises a touch and settles, not a plain fade. */}
+      <motion.div
         ref={dialogRef}
+        initial={reduce ? false : { opacity: 0, y: 16, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={reduce ? INSTANT : spring.responsive}
         role="dialog"
         aria-modal="true"
         aria-label="Add a tour to this quote"
@@ -159,7 +176,7 @@ export function TourPicker({
 
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Tour">
-              <select
+              <AdminSelect
                 value={activityId}
                 onChange={(e) => setActivityId(e.target.value)}
                 className={SELECT_CLS}
@@ -171,7 +188,7 @@ export function TourPicker({
                     {a.status === 'published' ? '' : ` (${a.status})`}
                   </option>
                 ))}
-              </select>
+              </AdminSelect>
             </Field>
             <Field label="Date">
               <DatePicker value={day} onChange={setDay} className={INPUT_CLS} />
@@ -282,7 +299,7 @@ export function TourPicker({
             </button>
           </span>
         </footer>
-      </div>
+      </motion.div>
     </div>
   );
 }

@@ -30,8 +30,7 @@ import {
   type AirportFareInput,
   type HotelTransferFareInput,
 } from '@/lib/admin/vehicle-pricing';
-import { AdminHeading, AdminError, BTN_PRIMARY } from '@/components/admin/ui';
-import { PaymentCurrencyCard } from '@/components/admin/PaymentCurrencyCard';
+import { AdminHeading, AdminError, BTN_PRIMARY, AdminLoading } from '@/components/admin/ui';
 
 const BAND_LABEL: Record<ZoneBand, string> = {
   same: 'Same region (short drive)',
@@ -89,7 +88,6 @@ function EuroField({
 export function AdminVehiclePricing() {
   const access = useAdminAccess();
   const canPrices = can(access, 'money.prices');
-  const canCurrency = can(access, 'money.currency');
   const [sight, setSight] = useState<SightseeingPricingInput | null>(null);
   const [planner, setPlanner] = useState<PlannerPricingInput | null>(null);
   const [bands, setBands] = useState<TransportBandInput[] | null>(null);
@@ -160,27 +158,16 @@ export function AdminVehiclePricing() {
     }
   }
 
-  if (!canPrices && !canCurrency) return <p className="text-sm text-coral">Access denied.</p>;
+  if (!canPrices) return <p className="text-sm text-coral">Access denied.</p>;
 
   return (
     <div>
       <AdminHeading
-        title={canPrices ? 'Vehicle pricing' : 'Pricing'}
-        subtitle={
-          canPrices
-            ? 'Flat per-vehicle prices. The fitting vehicle is chosen by party size; the price is server-authoritative.'
-            : 'How customers’ cards are charged.'
-        }
+        title="Vehicle pricing"
+        subtitle="Flat per-vehicle prices. The fitting vehicle is chosen by party size; the price is server-authoritative."
       />
 
       {error && <AdminError>{error}</AdminError>}
-
-      {/* How customers' cards are charged — MUR/EUR + the owner-set rate. Loads and saves itself. */}
-      {canCurrency && (
-        <div className="mb-[18px]">
-          <PaymentCurrencyCard />
-        </div>
-      )}
 
       {canPrices && (
         <>
@@ -237,7 +224,7 @@ export function AdminVehiclePricing() {
                 </div>
               </div>
             ) : (
-              <p className="mt-4 text-sm text-ink-muted">Loading…</p>
+              <AdminLoading className="mt-4" />
             )}
           </section>
 
@@ -307,7 +294,7 @@ export function AdminVehiclePricing() {
                 </div>
               </div>
             ) : (
-              <p className="mt-4 text-sm text-ink-muted">Loading…</p>
+              <AdminLoading className="mt-4" />
             )}
           </section>
 
@@ -375,7 +362,7 @@ export function AdminVehiclePricing() {
                 </div>
               </div>
             ) : (
-              <p className="mt-4 text-sm text-ink-muted">Loading…</p>
+              <AdminLoading className="mt-4" />
             )}
 
             {pairs && pairs.length > 0 && (
@@ -546,7 +533,7 @@ export function AdminVehiclePricing() {
                 </div>
               </div>
             ) : (
-              <p className="mt-4 text-sm text-ink-muted">Loading…</p>
+              <AdminLoading className="mt-4" />
             )}
           </section>
 
@@ -665,7 +652,7 @@ export function AdminVehiclePricing() {
                 </div>
               </div>
             ) : (
-              <p className="mt-4 text-sm text-ink-muted">Loading…</p>
+              <AdminLoading className="mt-4" />
             )}
           </section>
         </>

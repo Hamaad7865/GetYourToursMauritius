@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { loadLeads, setLeadStatus, type LeadRow, type LeadStatus } from '@/lib/admin/leads';
 import { avatar } from '@/lib/admin/dashboard';
 import { mailtoHref } from '@/lib/admin/contact-links';
+import { AdminLoading, AdminSelect } from '@/components/admin/ui';
 
 function errMessage(err: unknown, fallback: string): string {
   if (err instanceof Error) return err.message;
@@ -117,7 +118,7 @@ export function AdminLeads() {
       )}
 
       {loading ? (
-        <p className="text-sm text-ink-muted">Loading…</p>
+        <AdminLoading />
       ) : shown.length === 0 ? (
         <div className="rounded-2xl border border-[#EAEEF0] bg-white px-6 py-14 text-center">
           <div className="text-[15px] font-bold text-ink">
@@ -200,7 +201,7 @@ export function AdminLeads() {
                         <label className="sr-only" htmlFor={`status-${lead.id}`}>
                           Status for {lead.name}
                         </label>
-                        <select
+                        <AdminSelect
                           id={`status-${lead.id}`}
                           value={lead.status}
                           onChange={(e) => changeStatus(lead.id, e.target.value as LeadStatus)}
@@ -211,7 +212,7 @@ export function AdminLeads() {
                               {s}
                             </option>
                           ))}
-                        </select>
+                        </AdminSelect>
                       </td>
                     </tr>
                   );

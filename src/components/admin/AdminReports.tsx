@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { loadReport, eur2, type ReportData } from '@/lib/admin/reports';
 import { csvCell } from '@/lib/admin/csv';
 import { IconWallet, IconDownload, IconInfo } from '@/components/ui/icons';
+import { AdminLoading, AdminSelect } from '@/components/admin/ui';
 
 function titleCaseSource(s: string): string {
   return s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
@@ -182,7 +183,7 @@ export function AdminReports() {
           <label className="sr-only" htmlFor="report-year">
             Report year
           </label>
-          <select
+          <AdminSelect
             id="report-year"
             value={year}
             onChange={(e) => setYear(Number(e.target.value))}
@@ -193,7 +194,7 @@ export function AdminReports() {
                 {y}
               </option>
             ))}
-          </select>
+          </AdminSelect>
           <button
             type="button"
             disabled={!data || data.totals.bookings === 0}
@@ -238,7 +239,7 @@ export function AdminReports() {
           {error}
         </p>
       )}
-      {loading && !data && <p className="py-16 text-center text-sm text-ink-muted">Loading…</p>}
+      {loading && !data && <AdminLoading className="py-16 text-center" />}
 
       {data && (
         <div className="flex flex-col gap-5">

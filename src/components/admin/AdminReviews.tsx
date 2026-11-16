@@ -9,6 +9,7 @@ import {
   type GoogleReviewsResult,
 } from '@/lib/admin/reviews';
 import { IconStar } from '@/components/ui/icons';
+import { AdminLoading } from '@/components/admin/ui';
 
 function errMessage(err: unknown, fallback: string): string {
   if (err instanceof Error) return err.message;
@@ -144,7 +145,7 @@ export function AdminReviews() {
         </div>
         {error && <p className="mb-3 text-sm text-coral">{error}</p>}
         {loading ? (
-          <p className="text-sm text-ink-muted">Loading…</p>
+          <AdminLoading />
         ) : shown.length === 0 ? (
           <p className="text-sm text-ink-muted">Nothing here yet.</p>
         ) : (
@@ -199,7 +200,7 @@ export function AdminReviews() {
           Fetched fresh from Google each time you open this page — not stored.
         </p>
         {googleError && <p className="text-sm text-coral">{googleError}</p>}
-        {!google && !googleError && <p className="text-sm text-ink-muted">Loading…</p>}
+        {!google && !googleError && <AdminLoading />}
         {google && (
           <>
             <p className="mb-3 text-sm text-ink/80">

@@ -9,6 +9,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
 } from 'react';
+import { usePathname } from 'next/navigation';
 import { monthCells } from '@/lib/calendar/month';
 import { nominalDayKey } from '@/lib/services/day-key';
 import { formatLocaleDate } from '@/lib/i18n/format';
@@ -25,7 +26,15 @@ import { IconCalendar, IconChevronLeft, IconChevronRight } from '@/components/ui
  *
  * Drills day → month → year (click the header title) so a far-back date like a birthday is a couple of
  * clicks, not hundreds. Keyboard: arrows move the day, Enter picks, Esc closes, PageUp/Dn change month.
+ *
+ * In the back office (any /admin route) one highlight GLIDES between days as the pointer or the arrow
+ * keys move, the way EasyUI's date-picker does (easyui.site, MIT). It is plain CSS (a positioned
+ * circle with a transform transition), not framer-motion, on purpose: the public checkout and booking
+ * widgets render this same picker, and must not pull the animation library into their bundles.
  */
+
+/** The day grid's geometry, for the gliding highlight: a 36px circle per cell, 40px rows, 2px gap. */
+const DAY_ROW_PITCH = 42;
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -86,6 +95,9 @@ export function DatePicker({
   const [view, setView] = useState(() => new Date());
   // The keyboard-focused day within the grid; follows the selection/today when the panel opens.
   const [activeKey, setActiveKey] = useState('');
+  // Back office only: the day under the pointer, where the gliding highlight sits (else activeKey).
+  const admin = usePathname()?.startsWith('/admin') ?? false;
+  const [hoverKey, setHoverKey] = useState<string | null>(null);
 
   const wrapRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -305,7 +317,7 @@ export function DatePicker({
             </div>
 
             {mode === 'day' && (
-              <div ref={gridRef} onKeyDown={onGridKeyDown}>
+              <div ref={gridRef} onKeyDown={onGridKeyDown} onMouseLeave={() => setHoverKey(null)}>
                 <div className="grid grid-cols-7 text-center">
                   {WEEKDAYS.map((w) => (
                     <span
@@ -316,7 +328,31 @@ export function DatePicker({
                     </span>
                   ))}
                 </div>
-                <div className="grid grid-cols-7 gap-y-0.5 text-center">
+                <div className="relative grid grid-cols-7 gap-y-0.5 text-center">
+                  {admin &&
+                    (() => {
+                      // The one highlight: on the hovered day, else the keyboard cursor; never on
+                      // the selected day (it has its own fill) or a disabled one.
+                      const cells = monthCells(viewY, viewM);
+                      const target = hoverKey ?? activeKey;
+                      const at = cells.findIndex((c) => c && nominalDayKey(c) === target);
+                      const show = at >= 0 && target !== value && !dayDisabled(target);
+                      return (
+                        <span
+                          aria-hidden="true"
+                          className={`pointer-events-none absolute left-0 top-0.5 grid w-[calc(100%/7)] place-items-center transition-[transform,opacity] duration-200 ease-out motion-reduce:transition-none ${
+                            show ? 'opacity-100' : 'opacity-0'
+                          }`}
+                          style={{
+                            transform: `translate(${(Math.max(at, 0) % 7) * 100}%, ${
+                              Math.floor(Math.max(at, 0) / 7) * DAY_ROW_PITCH
+                            }px)`,
+                          }}
+                        >
+                          <span className="h-9 w-9 rounded-full bg-teal/10" />
+                        </span>
+                      );
+                    })()}
                   {monthCells(viewY, viewM).map((cell, i) => {
                     if (!cell) return <span key={`e${i}`} />;
                     const key = nominalDayKey(cell);
@@ -340,7 +376,8 @@ export function DatePicker({
                         aria-label={fullDate}
                         aria-pressed={isSelected}
                         onClick={() => commit(key)}
-                        className="flex items-center justify-center py-0.5"
+                        onMouseEnter={admin ? () => setHoverKey(key) : undefined}
+                        className="relative flex items-center justify-center py-0.5"
                       >
                         <span
                           className={`grid h-9 w-9 place-items-center rounded-full text-[13px] tabular-nums transition ${
@@ -349,10 +386,10 @@ export function DatePicker({
                               : disabled
                                 ? 'font-medium text-ink/25'
                                 : isActive
-                                  ? 'bg-teal/10 font-bold text-teal-dark ring-1 ring-inset ring-teal/40'
+                                  ? `${admin ? '' : 'bg-teal/10'} font-bold text-teal-dark ring-1 ring-inset ring-teal/40`
                                   : isToday
                                     ? 'font-bold text-teal-dark ring-1 ring-inset ring-teal/30'
-                                    : 'font-medium text-ink hover:bg-teal/10'
+                                    : `font-medium text-ink ${admin ? '' : 'hover:bg-teal/10'}`
                           }`}
                         >
                           {cell.getDate()}

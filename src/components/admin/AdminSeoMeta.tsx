@@ -12,6 +12,7 @@ import {
   BTN_GHOST,
   INPUT_CLS,
   TEXTAREA_CLS,
+  AdminLoading,
 } from '@/components/admin/ui';
 import { Counter, SerpPreview, TITLE_BUDGET, DESC_BUDGET } from '@/components/admin/SerpPreview';
 
@@ -284,7 +285,7 @@ export function AdminSeoMeta({ groups }: { groups: SeoPageGroup[] }) {
       </div>
 
       {!overrides ? (
-        <p className="text-sm text-ink-muted">Loading…</p>
+        <AdminLoading />
       ) : visible.length === 0 ? (
         <p className="text-sm text-ink-muted">No pages match that filter.</p>
       ) : (

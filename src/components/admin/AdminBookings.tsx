@@ -37,6 +37,7 @@ import {
   Td,
   Tr,
   buttonClass,
+  AdminSelect,
 } from '@/components/admin/ui';
 import { GuestAvatar } from '@/components/admin/GuestAvatar';
 import { BookingDrawer } from '@/components/admin/bookings/BookingDrawer';
@@ -469,7 +470,7 @@ export function AdminBookings() {
                 className={`${INPUT_CLS} bg-[#FAFBFB] pl-8 focus:bg-white`}
               />
             </div>
-            <select
+            <AdminSelect
               value={status}
               onChange={(e) => setStatus(e.target.value as 'all' | BookingStatus)}
               aria-label="Filter by status"
@@ -480,8 +481,8 @@ export function AdminBookings() {
                   {f.label}
                 </option>
               ))}
-            </select>
-            <select
+            </AdminSelect>
+            <AdminSelect
               value={tour}
               onChange={(e) => setTour(e.target.value)}
               aria-label="Filter by tour"
@@ -493,8 +494,8 @@ export function AdminBookings() {
                   {t}
                 </option>
               ))}
-            </select>
-            <select
+            </AdminSelect>
+            <AdminSelect
               value={pay}
               onChange={(e) => setPay(e.target.value as 'all' | PaymentView)}
               aria-label="Filter by payment"
@@ -505,8 +506,8 @@ export function AdminBookings() {
                   {f.label}
                 </option>
               ))}
-            </select>
-            <select
+            </AdminSelect>
+            <AdminSelect
               value={dateF}
               onChange={(e) => setDateF(e.target.value as DateFilter)}
               aria-label="Filter by date"
@@ -517,7 +518,7 @@ export function AdminBookings() {
                   {f.label}
                 </option>
               ))}
-            </select>
+            </AdminSelect>
             {filtersActive && (
               <button type="button" onClick={clearFilters} className={buttonClass('quiet', 'sm')}>
                 <IconX width={13} height={13} aria-hidden="true" /> Clear filters
