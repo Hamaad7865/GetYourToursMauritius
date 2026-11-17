@@ -12,6 +12,17 @@ invariants that have caused real incidents). Fixing a bug rather than building? 
 [`docs/handbook/debugging.md`](docs/handbook/debugging.md). This file is only a pointer + the rules you
 break on day one.
 
+## Finding code — check the graph first
+
+If `graphify-out/graph.json` exists (local only, gitignored), use it to locate code **before** wide
+`grep`/`Glob` sweeps: `graphify query "<question>" --budget 600`, `graphify explain "api_book()"`,
+`graphify path "Checkout.tsx" "append_payment_event()"`. It covers the TS/JS code **and** the SQL
+migrations — each SQL function node points at its _winning_ (last-in-filename-order) body, with
+TS → SQL `rpc` and `.from('table')` edges. The graph only says _where_; the handbook and landmines still
+say _how_, and you still read a file before editing it. It goes stale: after big features or new
+migrations, refresh it (code-only `--update`, then `graphify-out/tools/sql_extract.py` → `merge_sql.py`
+→ `relabel.py`).
+
 ## What this is
 
 Belle Mare Tours — a production tour-booking platform for Mauritius: SEO catalogue, online booking +
