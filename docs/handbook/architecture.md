@@ -88,6 +88,9 @@ This is the sequence to have in your head. Files in order:
 11 cron (*/2) → /api/v1/internal/notifications/drain → invoice PDF → Resend → customer + owner
 ```
 
+The drain also decides what not to send: a `booking_expired` row is left `cancelled` when the same address
+already has a later booking (`dropIfBookedAgain`), the rule `api_enqueue_checkout_recovery` uses.
+
 ### The three invariants that make this safe
 
 **(a) Zero-trust pricing.** No price ever crosses the wire from the browser. `api_book` takes

@@ -15,7 +15,7 @@ import type { PGlite } from '@electric-sql/pglite';
  * `throw error` themselves). Only the operations the helpers actually use are implemented.
  */
 
-type Filter = { col: string; op: 'eq' | 'in' | 'is' | 'gte' | 'ilike'; val: unknown };
+type Filter = { col: string; op: 'eq' | 'in' | 'is' | 'gt' | 'gte' | 'ilike'; val: unknown };
 type RowMode = 'many' | 'single' | 'maybeSingle';
 type Result = { data: unknown; error: unknown; count?: number | null };
 /** PostgREST's `select(cols, { count, head })`: `count` asks for the row count, `head` drops the rows. */
@@ -81,6 +81,10 @@ class QueryBuilder implements PromiseLike<Result> {
     this.filters.push({ col, op: 'is', val });
     return this;
   }
+  gt(col: string, val: unknown): this {
+    this.filters.push({ col, op: 'gt', val });
+    return this;
+  }
   gte(col: string, val: unknown): this {
     this.filters.push({ col, op: 'gte', val });
     return this;
@@ -132,6 +136,7 @@ class QueryBuilder implements PromiseLike<Result> {
       // `is` takes a literal, never a parameter: `col is $1` is not valid SQL.
       if (f.op === 'is') return `${f.col} is ${f.val === null ? 'null' : String(f.val)}`;
       params.push(f.val);
+      if (f.op === 'gt') return `${f.col} > $${params.length}`;
       if (f.op === 'gte') return `${f.col} >= $${params.length}`;
       if (f.op === 'ilike') return `${f.col} ilike $${params.length}`;
       if (f.op === 'eq') return `${f.col} = $${params.length}`;

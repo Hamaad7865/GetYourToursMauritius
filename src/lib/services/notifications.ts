@@ -22,6 +22,7 @@ import { isLocale } from '@/lib/i18n/config';
 import { renderPickupConfirmedEmail, renderPickupReminderEmail } from '@/lib/email/pickup';
 import { renderGuestLinkEmail } from '@/lib/email/guest-link';
 import { guestBookingUrl } from './guest';
+import { guestEmailKey } from '@/lib/guest/email-key';
 import {
   renderInstallmentReminderEmail,
   renderOwnerInstallmentOverdueEmail,
@@ -579,6 +580,45 @@ async function attachGuestBookingUrl(
 }
 
 /**
+ * "Your reservation wasn't paid in time" is the wrong news for someone who has already booked again:
+ * leaving the payment step releases the old booking, and the newer one may well be paid. Same test as
+ * api_enqueue_checkout_recovery: any later booking under this address, in any status. Asked at send
+ * time and never waited for, so someone who comes back after this still gets the email, which is what
+ * brings some of them back. The row is left `cancelled`, so it never reads as sent.
+ */
+async function dropIfBookedAgain(
+  ctx: ServiceContext,
+  message: NotificationMessage & { bookingId: string | null },
+): Promise<boolean> {
+  const emailKey = guestEmailKey(message.recipient);
+  if (!ctx.admin || !message.bookingId || !emailKey) return false;
+
+  const { data: expired, error } = await ctx.admin
+    .from('bookings')
+    .select('created_at')
+    .eq('id', message.bookingId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!expired) return false;
+
+  const { data: later, error: laterError } = await ctx.admin
+    .from('bookings')
+    .select('customer_email')
+    .gt('created_at', expired.created_at)
+    // `ilike` only narrows the read. `_` and `%` are wildcards there, so the exact compare below decides.
+    .ilike('customer_email', emailKey);
+  if (laterError) throw laterError;
+  if (!(later ?? []).some((b) => guestEmailKey(b.customer_email) === emailKey)) return false;
+
+  const { error: cancelError } = await ctx.admin
+    .from('notification_outbox')
+    .update({ status: 'cancelled', last_error: 'customer booked again' })
+    .eq('id', message.id);
+  if (cancelError) throw cancelError;
+  return true;
+}
+
+/**
  * The dated installment reminder — the one enrich step that is ASYNC, because the durable link's token
  * is a deterministic HMAC recomputed here (never persisted in the outbox). The SQL enqueuer supplies the
  * quote ref + booking id + seq; the token binds the booking id + seq, and the renderer builds the /open
@@ -639,7 +679,8 @@ export interface DrainResult {
  *
  * A `booking_confirmation` is enriched first (Step: invoice/receipt) into a fully pre-rendered HTML
  * message with the PDF attached; every other template flows through the provider's own template
- * rendering unchanged.
+ * rendering unchanged. `processed` counts a row dropped by {@link dropIfBookedAgain}; `sent` and
+ * `failed` do not.
  */
 export async function drainNotifications(
   ctx: ServiceContext,
@@ -656,6 +697,9 @@ export async function drainNotifications(
   let failed = 0;
   for (const message of messages) {
     try {
+      if (message.template === 'booking_expired' && (await dropIfBookedAgain(ctx, message))) {
+        continue;
+      }
       resolveOwnerRecipient(message);
       if (BOOKING_LINK_TEMPLATES.has(message.template)) await attachGuestBookingUrl(ctx, message);
       if (
