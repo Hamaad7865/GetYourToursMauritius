@@ -184,6 +184,9 @@ describe('the quote hand-off survives being applied on the quotes screen itself'
     // The screen's card scrolls, not the window; the calendar's docked day sheet subtracts the inset.
     expect(shell).toContain('data-admin-scroll');
     expect(shell).toContain('lg:overflow-y-auto lg:rounded-[18px]');
+    // The card is POSITIONED, so `sr-only` (absolute) text inside it is laid out against the card,
+    // not the page: Today's chart table otherwise grew the window 179px past the card (seen 18 Nov).
+    expect(shell).toMatch(/data-admin-scroll\s+className="[^"]*\blg:relative\b/);
     expect(code('src/components/admin/AdminCalendar.tsx')).toContain('var(--bo-inset, 0px)');
     // CLIP, not hidden: an overflow-hidden box can still be scrolled, and focusing the chat's text box
     // while its column was still widening slid the whole back office sideways (seen at 1280px).

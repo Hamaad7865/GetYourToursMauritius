@@ -243,11 +243,14 @@ function AdminShellInner({ children }: { children: ReactNode }) {
 
       {/* ===== Main column =====
           13px medium with tabular figures is the back office's base text (bo.css `.app`); a screen's
-          own sizes still win. */}
+          own sizes still win. `lg:relative` makes the card the containing block for every
+          `absolute` child with no positioned ancestor (the `sr-only` chart tables): without it they
+          are placed against the page, escape both this scroll and the shell's clip, and make the
+          WINDOW scroll past the card into a blank strip. */}
       <div
         ref={scrollRef}
         data-admin-scroll
-        className="bo-scroll flex min-w-0 flex-1 flex-col bg-ground text-[13px] font-medium tabular-nums lg:my-2 lg:mr-2 lg:h-[calc(100dvh-var(--bo-inset))] lg:overflow-y-auto lg:rounded-[18px] print:m-0 print:h-auto print:overflow-visible print:rounded-none"
+        className="bo-scroll flex min-w-0 flex-1 flex-col bg-ground text-[13px] font-medium tabular-nums lg:relative lg:my-2 lg:mr-2 lg:h-[calc(100dvh-var(--bo-inset))] lg:overflow-y-auto lg:rounded-[18px] print:m-0 print:h-auto print:overflow-visible print:rounded-none"
       >
         {/* Top bar. `data-admin-topbar` is read by the calendar to dock its day panel under it. */}
         <header
