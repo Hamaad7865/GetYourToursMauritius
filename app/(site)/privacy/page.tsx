@@ -8,7 +8,7 @@ import { localeAlternates } from '@/lib/i18n/routing';
 
 export const runtime = 'edge';
 
-const UPDATED = '21 July 2026';
+const UPDATED = '7 November 2026';
 
 const DEFAULT_METADATA: Metadata = {
   // absolute: the title already names the brand — stop the root "%s | Belle Mare Tours" template doubling it.
@@ -108,9 +108,12 @@ export default async function PrivacyPage() {
                 see in plain text (handled by our authentication provider).
               </>,
               <>
-                <strong>Trip planner</strong> — if you use the AI road-trip planner, your messages
-                are sent to our AI provider to generate suggestions for that session. We don&apos;t
-                use them to build a marketing profile of you.
+                <strong>Trip planner</strong> — if you use the AI road-trip planner (ZilAi), your
+                messages are sent to Google&apos;s Gemini AI to generate suggestions for that
+                session. Google may keep these messages and use them to improve its own products,
+                and people at Google may read them, so please don&apos;t type personal details such
+                as your name, contact details or booking references into the chat. We don&apos;t use
+                your messages to build a marketing profile of you.
               </>,
               <>
                 <strong>Device location</strong> — only if you choose to share it. When you tap
@@ -189,7 +192,9 @@ export default async function PrivacyPage() {
               <>
                 <strong>Google</strong> — powers maps and location search, and the AI road-trip
                 planner. Location searches and planner messages are processed by Google to return
-                results. If you share your device location, we send those coordinates to Google to
+                results. Planner messages may also be used by Google for its own purpose of
+                improving its products, under Google&apos;s own terms (see &quot;Trip planner&quot;
+                above). If you share your device location, we send those coordinates to Google to
                 turn them into a readable address.
               </>,
               <>
