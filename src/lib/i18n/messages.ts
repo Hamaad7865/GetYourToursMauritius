@@ -788,6 +788,10 @@ export const fr: Record<string, string> = {
   'Meet at {location}': 'Rendez-vous à {location}',
   'Add your pickup address, or choose “I don’t know yet”.':
     'Ajoutez votre adresse de prise en charge, ou choisissez « Je ne sais pas encore ».',
+  'We couldn’t find “{place}” on the map. Pick your hotel from the suggestions or drag the pin to it — or choose “I don’t know yet”.':
+    'Nous n’avons pas trouvé « {place} » sur la carte. Choisissez votre hôtel dans les suggestions ou déplacez l’épingle jusqu’à lui — ou choisissez « Je ne sais pas encore ».',
+  'We couldn’t find “{place}” on the map. Check the spelling, or choose “I don’t know yet” and send us your pickup later.':
+    'Nous n’avons pas trouvé « {place} » sur la carte. Vérifiez l’orthographe, ou choisissez « Je ne sais pas encore » et envoyez-nous votre lieu de prise en charge plus tard.',
   'Your airport transfer': 'Votre transfert aéroport',
   'Tell us your trip — we’ll meet you at SSR International Airport and take you door to door.':
     'Indiquez-nous votre trajet — nous vous accueillons à l’aéroport international SSR et vous conduisons de porte à porte.',

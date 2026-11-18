@@ -33,10 +33,14 @@ export function PickupDropoffMap({
   pickupPlaceholder = 'Hotel name or address',
   dropoffPlaceholder = 'Drop-off address',
   pickupDescribedBy,
+  pickupCoords = null,
 }: {
   pickupValue: string;
   onPickupChange: (address: string) => void;
   onPickupCoords: (coords: { lat: number; lng: number } | null) => void;
+  // The parent's current pickup point. When it's set from OUTSIDE the map (checkout resolving typed
+  // text on Next, or a prefill), the coral pin moves there, and a remounted map starts there.
+  pickupCoords?: { lat: number; lng: number } | null;
   showDropoff: boolean;
   dropoffValue: string;
   onDropoffChange: (address: string) => void;
@@ -68,6 +72,8 @@ export function PickupDropoffMap({
   onDropoffChangeRef.current = onDropoffChange;
   const onDropoffCoordsRef = useRef(onDropoffCoords);
   onDropoffCoordsRef.current = onDropoffCoords;
+  const pickupCoordsRef = useRef(pickupCoords);
+  pickupCoordsRef.current = pickupCoords;
   // Holds the live fitToMarkers + drop-off autocomplete from the setup effect, so the toggle effect
   // can drive bounds-fit and (re)bind the drop-off input when it mounts/unmounts.
   const fitRef = useRef<(() => void) | null>(null);
@@ -79,9 +85,10 @@ export function PickupDropoffMap({
   useEffect(() => {
     if (status !== 'ready' || !mapElRef.current || !pickupInputRef.current) return;
 
+    const start = pickupCoordsRef.current;
     const map = new google.maps.Map(mapElRef.current, {
-      center: BELLE_MARE,
-      zoom: 11,
+      center: start ?? BELLE_MARE,
+      zoom: start ? 15 : 11,
       mapId: MAP_ID,
       mapTypeControl: false,
       streetViewControl: false,
@@ -92,7 +99,7 @@ export function PickupDropoffMap({
 
     const pickupMarker = new google.maps.marker.AdvancedMarkerElement({
       map,
-      position: BELLE_MARE,
+      position: start ?? BELLE_MARE,
       gmpDraggable: true,
       title: 'Pickup location',
       content: pinElement({ color: PICKUP_COLOR, glyph: 'P' }),
@@ -278,6 +285,24 @@ export function PickupDropoffMap({
       dropoffAcRef.current = null;
     };
   }, [status]);
+
+  // Follow a pickup point set from outside the map. A point the map itself reported is already where
+  // the marker is, so this is a no-op for drags, clicks and suggestion picks.
+  useEffect(() => {
+    const map = mapRef.current;
+    const marker = pickupMarkerRef.current;
+    if (!map || !marker || !pickupCoords) return;
+    const cur = toLatLng(marker.position);
+    if (
+      cur &&
+      Math.abs(cur.lat - pickupCoords.lat) < 1e-7 &&
+      Math.abs(cur.lng - pickupCoords.lng) < 1e-7
+    )
+      return;
+    marker.position = pickupCoords;
+    map.panTo(pickupCoords);
+    map.setZoom(15);
+  }, [pickupCoords, status]);
 
   // React to the showDropoff toggle: reveal/hide the drop-off marker, bind its input's autocomplete
   // the first time the input mounts, and refit the map bounds.

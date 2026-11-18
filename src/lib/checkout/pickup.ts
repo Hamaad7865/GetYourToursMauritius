@@ -31,6 +31,22 @@ export function canAdvanceStep1(s: Step1State): boolean {
   return s.address.trim().length > 0;
 }
 
+/**
+ * Must the typed pickup be turned into a map pin before step ① advances? Only for tours whose
+ * transport add-on is priced from the pickup's coordinates (per_person / per_group with pickup):
+ * api_book charges it ONLY when coords arrive, and silently charges €0 otherwise. Typed text with no
+ * pin used to slip through (BMTB1FD2E9A58637, 18 Nov 2026 — €30 never charged). Vehicle tours and
+ * transfers price the drive differently, and "I don't know yet" is a deliberate no-address booking.
+ */
+export function needsPickupPin(s: {
+  transportPriced: boolean;
+  wantsPickup: boolean;
+  tbd: boolean;
+  hasCoords: boolean;
+}): boolean {
+  return s.transportPriced && s.wantsPickup && !s.tbd && !s.hasCoords;
+}
+
 /** Step ① defaults to "yes, pickup" when the activity supports pickup, a fee was already computed,
  *  or an upstream entry point pre-filled a pickup address. */
 export function defaultWantsPickup(input: {

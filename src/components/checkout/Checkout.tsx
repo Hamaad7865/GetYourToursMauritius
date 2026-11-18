@@ -26,7 +26,10 @@ import { useBottomBarOffset } from '@/lib/ui/useBottomBarOffset';
 import { transfers, type Transfer } from '@/lib/content/transfers';
 import { useGoogleMaps } from '@/lib/maps/useGoogleMaps';
 import type { TransportBands, RegionDistances } from '@/lib/validation/tours';
-import { canAdvanceStep1, isVehiclePriced } from '@/lib/checkout/pickup';
+import { canAdvanceStep1, isVehiclePriced, needsPickupPin } from '@/lib/checkout/pickup';
+import { resolvePickupText } from '@/lib/checkout/resolve-pickup';
+import { nominatimPin } from '@/lib/maps/osm-pin';
+import { geocode } from '@/lib/maps/geocode';
 import { reportClientError } from '@/lib/client-error-report';
 import { sendFunnelEvent } from '@/lib/checkout/funnel-beacon';
 import { AUTH_RESULT_EVENT } from '@/lib/auth/auth-result';
@@ -77,6 +80,14 @@ import { DATE_TIME_INPUT } from '@/components/ui/date-input';
 import { DatePicker } from '@/components/ui/DatePicker';
 
 const STEPS = ['Trip & pickup', 'Contact', 'Payment'];
+
+// A browser can't set User-Agent (and trying adds a CORS preflight): a plain GET, identified by Referer.
+const browserFetch = ((url: string, init?: RequestInit) =>
+  fetch(url, { signal: init?.signal })) as typeof fetch;
+const PICKUP_RESOLVERS = {
+  nominatim: (q: string) => nominatimPin(q, browserFetch),
+  google: (q: string) => geocode(q),
+};
 
 // Stable ids for the disabled-CTA gate hints, so a related input's aria-describedby always points at
 // the same element (the hint is an aria-live region that announces WHY the Next/Pay CTA is disabled).
@@ -229,6 +240,9 @@ export function Checkout({
   const when = params.get('when') ?? '';
   const guests = params.get('guests') ?? '';
   const unit = params.get('unit') ?? '';
+  // The widget's pickup-capability flag (per_person/per_group with pickup) — known on first render, so
+  // the "typed pickup needs a pin" check holds even if the activity fetch below is slow or fails.
+  const pickupCapParam = params.get('pickupcap') === '1';
   // Sightseeing vehicle mode only: the SUV upgrade flag. The server re-resolves the price regardless.
   const suv = params.get('suv') === '1';
   // Child seats chosen (first free, €6 each extra). Clamp to [0,25] AND to the party (qty): the server
@@ -507,6 +521,12 @@ export function Checkout({
   // Resolved pickup coordinates — drive the region-based transport fee the server charges. Prefilled
   // from the widget's stash (below) or captured when the customer picks a place / drags the pin here.
   const [pickupCoords, setPickupCoords] = useState<{ lat: number; lng: number } | null>(null);
+  // The typed pickup text that couldn't be found on the map when the customer pressed Next — shown as
+  // a hint until they change it, pick a suggestion, drag the pin, or choose "I don't know yet".
+  const [pickupNotFound, setPickupNotFound] = useState<string | null>(null);
+  // Whether the pickup map (suggestions + draggable pin) is on screen — the not-found hint only offers
+  // "pick a suggestion / drag the pin" when it is.
+  const mapsReady = useGoogleMaps() === 'ready';
   // Drop-off — mirrors the booking widget's `dropoffSame` (default true = same point as pickup). When
   // the customer turns it OFF, the single map reveals a distinct drop-off input + a second pin, and a
   // distinct drop-off is sent on the booking. The text/coords are captured from that map. A planner
@@ -971,18 +991,47 @@ export function Checkout({
   // as a pickup, since the driver needs to reach the customer to arrange it. A transfer always needs one
   // (the driver meets/collects the traveller). No pickup → optional.
   const phoneRequired = isAirport || isHotelTransfer || wantsPickup;
+  // The "couldn't find it on the map" hint stays only while the failed text is still what's typed and
+  // nothing has since placed a pin.
+  const showPickupNotFound =
+    pickupNotFound != null &&
+    pickupNotFound === pickupLoc &&
+    wantsPickup &&
+    !tbd &&
+    pickupCoords == null;
   const guestEmailValid = GUEST_EMAIL_SHAPE.test(guestEmail.trim());
   // A guest has no account to fall back on: the name goes on the booking, and the email is the way back.
   const guestDetailsComplete = !guestMode || (name.trim().length > 0 && guestEmailValid);
   const canAdvanceDetails = guestDetailsComplete && (!phoneRequired || phone.trim().length > 0);
   const guestEmailFix = guestMode ? suggestEmailFix(guestEmail) : null;
 
-  function continueFromTransport() {
+  async function continueFromTransport() {
     // Authoritative gate: pickup wanted needs an address (or "I don't know yet"). The CTA is also
     // disabled, but guard here so a keyboard/programmatic advance can't skip step ①.
-    if (!canAdvance) return;
+    if (!canAdvance || busy) return;
     setBusy(true);
     setError(null);
+    // A typed pickup with no pin would book with NO transport add-on (api_book prices it from coords
+    // only). Resolve the text to a pin here; if nothing finds it, keep the customer on step ①.
+    if (
+      !isAirport &&
+      !isHotelTransfer &&
+      needsPickupPin({
+        transportPriced: (fares != null || pickupCapParam) && !isVehicleTour,
+        wantsPickup,
+        tbd,
+        hasCoords: pickupCoords != null,
+      })
+    ) {
+      const pin = await resolvePickupText(pickupLoc, PICKUP_RESOLVERS);
+      if (!pin) {
+        setPickupNotFound(pickupLoc);
+        setBusy(false);
+        return;
+      }
+      setPickupCoords(pin);
+    }
+    setPickupNotFound(null);
     window.setTimeout(() => {
       setBusy(false);
       // Always land on step ② — signed in shows the personal-details form, signed out shows the
@@ -1550,7 +1599,8 @@ export function Checkout({
             onDropoffCoords={setDropoffCoords}
             pickupPlaceholder={t('Hotel name or address')}
             dropoffPlaceholder={t('Drop-off location')}
-            pickupDescribedBy={!canAdvance ? PICKUP_HINT_ID : undefined}
+            pickupCoords={pickupCoords}
+            pickupDescribedBy={!canAdvance || showPickupNotFound ? PICKUP_HINT_ID : undefined}
           />
           {/* Toggle below the map — same point as the pickup by default. Unchecking reveals the
               drop-off input + a second pin on the SAME map above. */}
@@ -2101,7 +2151,17 @@ export function Checkout({
                       ? t('Choose your hotel (or pick “My hotel isn’t listed”).')
                       : t('Add the flight number, date and time for your trip.')
                     : t('Add your pickup address, or choose “I don’t know yet”.')
-                  : ''}
+                  : showPickupNotFound
+                    ? mapsReady
+                      ? t(
+                          'We couldn’t find “{place}” on the map. Pick your hotel from the suggestions or drag the pin to it — or choose “I don’t know yet”.',
+                          { place: pickupLoc.trim() },
+                        )
+                      : t(
+                          'We couldn’t find “{place}” on the map. Check the spelling, or choose “I don’t know yet” and send us your pickup later.',
+                          { place: pickupLoc.trim() },
+                        )
+                    : ''}
               </p>
             </section>
           )}

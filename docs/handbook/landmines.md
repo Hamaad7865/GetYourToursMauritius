@@ -160,6 +160,26 @@ on that status change and applies the change request (moves the booking, emails 
 checking the request's age. The sweep only looks at rows touched in the last 3 hours, so the change it
 applies is one the guest has just paid for. A capture you find weeks later needs a decision first.
 
+### A pickup without coordinates is charged no transport — silently
+
+**Production 2026-11-18, `BMTB1FD2E9A58637`.** The guest typed "Anelia Resort & Spa" into the pickup
+box and never picked it from the suggestions. Checkout let them through (step ① only asked for _some_
+text), so `api_book` got the pickup with no `pickupLat`/`pickupLng`. Its transport block runs **only**
+when coordinates arrive: no coords means `transport_minor = 0`, no error and no log. The live price line
+showed €0 too, so the reconciliation gate had nothing to catch. The fee was €30. Three earlier bookings
+(26 Sep, 10 Nov ×2) missed €30–€65 the same way.
+
+The guard is in the browser: on Next, `continueFromTransport` resolves typed pickup text to a pin
+(`resolvePickupText`: stored place table → OSM Nominatim from the browser → Google Geocoder) for any
+coordinate-priced tour (`needsPickupPin`, gated on the fare tables **or** the URL's `pickupcap=1`). If
+nothing finds it, the guest stays on step ① and must pick a suggestion, drag the pin, or choose "I don't
+know yet". Don't relax that gate back to "has text", and don't gate it on `fares` alone: that fetch is
+async and can fail.
+
+**Still open:** `api_book` itself accepts a pickup string with no coords. A stale checkout tab or a
+direct API caller (the future mobile app) can still book at €0. Closing it is a migration, not a UI change.
+"I don't know yet" bookings (`pickup_pending`) also carry no fee by design.
+
 ### A guest's JWT is a valid JWT
 
 Guest checkout means anyone can get an `authenticated` token with no email, so **"has a JWT" no longer
