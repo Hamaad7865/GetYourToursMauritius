@@ -129,3 +129,55 @@ describe('every other activity is untouched', () => {
     expect(itinerarySentToApiBook()).toBeNull();
   });
 });
+
+describe('pickup coordinates are checked on the server', () => {
+  it.each([
+    {
+      pickupLocation: 'Anelia Resort & Spa',
+    },
+    {
+      pickupLocation: 'Anelia Resort & Spa',
+      pickupLat: -20.2869,
+    },
+    {
+      pickupLat: -20.2869,
+      pickupLng: 57.3637,
+    },
+  ])('refuses incomplete pickup data for a per-person/per-group tour', async (pickup) => {
+    stub({ pricingMode: 'per_group', itinerary: null });
+
+    await expect(createBooking(ctx, input({ itinerary: CLIENT_ROUTE, ...pickup }))).rejects.toThrow(
+      /address and a map location/i,
+    );
+    expect(rpc.mock.calls.some((c) => c[1] === 'api_book')).toBe(false);
+  });
+
+  it('allows a complete pickup and checks the authoritative mode even with a client route', async () => {
+    stub({ pricingMode: 'per_person', itinerary: HOLD_ROUTE });
+
+    await createBooking(
+      ctx,
+      input({
+        itinerary: CLIENT_ROUTE,
+        pickupLocation: 'Anelia Resort & Spa',
+        pickupLat: -20.2869,
+        pickupLng: 57.3637,
+      }),
+    );
+
+    expect(rpc.mock.calls.some((c) => c[1] === 'api_hold_route')).toBe(true);
+    expect(rpc.mock.calls.some((c) => c[1] === 'api_book')).toBe(true);
+  });
+
+  it('allows "I don’t know yet" without treating it as an unpriced pickup', async () => {
+    stub({ pricingMode: 'per_person', itinerary: null });
+    await createBooking(ctx, input({ itinerary: null, pickupPending: true }));
+    expect(rpc.mock.calls.some((c) => c[1] === 'api_book')).toBe(true);
+  });
+
+  it('does not require pins for a vehicle-priced tour', async () => {
+    stub({ pricingMode: 'vehicle', itinerary: null });
+    await createBooking(ctx, input({ itinerary: null, pickupLocation: 'Anelia Resort & Spa' }));
+    expect(rpc.mock.calls.some((c) => c[1] === 'api_book')).toBe(true);
+  });
+});

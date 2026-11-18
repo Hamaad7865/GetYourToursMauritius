@@ -81,8 +81,40 @@ export async function listMyBookings(
 const hasStops = (route: CustomItinerary | undefined): boolean =>
   Array.isArray(route) && route.length > 0;
 
+const hasPickupLocation = (input: CreateBookingInput): boolean =>
+  typeof input.pickupLocation === 'string' && input.pickupLocation.trim().length > 0;
+
+const hasPickupCoordinates = (input: CreateBookingInput): boolean =>
+  input.pickupLat != null || input.pickupLng != null;
+
+const hasPickupFacts = (input: CreateBookingInput): boolean =>
+  hasPickupLocation(input) || hasPickupCoordinates(input);
+
+function assertPickupIsComplete(
+  input: CreateBookingInput,
+  pricingMode: string | null | undefined,
+): void {
+  if (pricingMode !== 'per_person' && pricingMode !== 'per_group') return;
+
+  const pending = input.pickupPending === true;
+  const address = hasPickupLocation(input);
+  const lat = input.pickupLat != null;
+  const lng = input.pickupLng != null;
+  const complete = address && lat && lng;
+  const any = address || lat || lng;
+
+  if ((pending && any) || (!pending && any && !complete)) {
+    throw new ValidationError('A pickup needs an address and a map location');
+  }
+}
+
+interface ResolvedBookingInputs {
+  itinerary: CustomItinerary;
+  pricingMode: string | null;
+}
+
 /**
- * Decide the route this booking will carry, and refuse to create one that cannot be delivered.
+ * Resolve the server-owned facts needed before a booking is sent to api_book.
  *
  * The client's copy WINS when it has one — the customer may have reordered or swapped stops after
  * the spot was held, and the hold's copy is a snapshot of the older day. The hold is the fallback,
@@ -96,11 +128,15 @@ const hasStops = (route: CustomItinerary | undefined): boolean =>
  * should never reach it. Refusing beats confirming — an error the customer can retry is recoverable,
  * a paid trip nobody can drive is not. Every other pricing mode keeps working with no route at all.
  */
-async function resolveCustomRoute(
+async function resolveBookingInputs(
   ctx: ServiceContext,
   input: CreateBookingInput,
-): Promise<CustomItinerary> {
-  if (hasStops(input.itinerary)) return input.itinerary;
+): Promise<ResolvedBookingInputs> {
+  // A routeful booking normally needs no hold lookup. Pickup facts are the exception: the occurrence's
+  // pricing mode is authoritative, and it decides whether missing coordinates would under-price a tour.
+  if (hasStops(input.itinerary) && !hasPickupFacts(input)) {
+    return { itinerary: input.itinerary, pricingMode: null };
+  }
 
   const ctxData = await callRpc(ctx, 'api_hold_route', {
     occurrenceId: input.occurrenceId,
@@ -115,14 +151,18 @@ async function resolveCustomRoute(
     .array(z.object({ title: z.string() }).passthrough())
     .catch([])
     .parse(parsed.itinerary ?? []) as NonNullable<CustomItinerary>;
-  if (fromHold.length > 0) return fromHold;
+  const itinerary = hasStops(input.itinerary)
+    ? input.itinerary
+    : fromHold.length > 0
+      ? fromHold
+      : (input.itinerary ?? null);
 
-  if (parsed.pricingMode === 'vehicle_custom') {
+  if (!hasStops(itinerary) && parsed.pricingMode === 'vehicle_custom') {
     throw new ValidationError(
       'This custom trip has no route on it, so we cannot book it — please rebuild your day in the planner and try again.',
     );
   }
-  return input.itinerary ?? null;
+  return { itinerary, pricingMode: parsed.pricingMode ?? null };
 }
 
 export async function createBooking(
@@ -131,7 +171,8 @@ export async function createBooking(
   actorUserId?: string | null,
 ): Promise<Booking> {
   const idempotencyKey = input.idempotencyKey ?? crypto.randomUUID();
-  const itinerary = await resolveCustomRoute(ctx, input);
+  const { itinerary, pricingMode } = await resolveBookingInputs(ctx, input);
+  assertPickupIsComplete(input, pricingMode);
   const data = await callRpc(ctx, 'api_book', {
     actorUserId: actorUserId ?? null,
     occurrenceId: input.occurrenceId,

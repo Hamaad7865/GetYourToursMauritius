@@ -176,9 +176,13 @@ nothing finds it, the guest stays on step ① and must pick a suggestion, drag t
 know yet". Don't relax that gate back to "has text", and don't gate it on `fares` alone: that fetch is
 async and can fail.
 
-**Still open:** `api_book` itself accepts a pickup string with no coords. A stale checkout tab or a
-direct API caller (the future mobile app) can still book at €0. Closing it is a migration, not a UI change.
-"I don't know yet" bookings (`pickup_pending`) also carry no fee by design.
+The TypeScript booking service repeats the rule at the trusted server boundary. Before calling
+`api_book`, `createBooking()` reads the occurrence's pricing mode through `api_hold_route`; for
+`per_person` / `per_group` tours, a request with pickup facts must carry the address **and both
+coordinates**, or it gets a validation 400. `pickupPending` is the one intentional exception, and it
+must carry no address or coordinates — the late-pickup flow charges the supplement before it applies
+the address. Vehicle-priced tours and transfers keep their existing non-coordinate fare logic. A stale
+checkout tab or a future mobile client cannot undercharge transport through the booking API.
 
 ### Duplicating a quote must copy every line field, not just the price
 

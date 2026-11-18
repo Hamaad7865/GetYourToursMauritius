@@ -180,6 +180,29 @@ describe('/api/v1 routes', () => {
     expect(bad.status).toBe(400);
   });
 
+  it('POST /bookings rejects a coordinate-priced pickup without a map pin', async () => {
+    const token = await mintToken();
+    const res = await bookingsPost(
+      new Request('http://localhost/api/v1/bookings', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          occurrenceId,
+          party: { 'Private group': 1 },
+          itinerary: null,
+          pickupLocation: 'Anelia Resort & Spa',
+          customer: { name: 'Unpinned Pickup', email: 'unpinned@example.com' },
+          idempotencyKey: 'route-book-incomplete-pickup',
+        }),
+      }),
+    );
+
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error.code).toBe('validation_error');
+    expect(body.error.message).toMatch(/address and a map location/i);
+  });
+
   it('GET /bookings/:ref requires authentication', async () => {
     const res = await bookingGet(new Request('http://localhost/x'), {
       params: Promise.resolve({ ref: 'BMT-XXXX' }),
