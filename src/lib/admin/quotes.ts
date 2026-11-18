@@ -1203,8 +1203,14 @@ export async function duplicateQuote(id: string): Promise<string> {
     currency: 'EUR',
     locale: source.locale === 'fr' ? 'fr' : 'en',
     depositBps: source.depositBps,
+    paymentMode: source.paymentMode,
+    roomOrCabin: source.roomOrCabin,
     // `loadQuote` returns the lines ordered by `position`, and `quoteItemRows` re-derives position
     // from this array's index — so the copy keeps the owner's order.
+    //
+    // EVERY `QuoteItemInput` field, not just the price. The transfer fare is part of the total
+    // (`quoteTotalMinor` sums it), so a copy that leaves it out re-prices the offer downward with
+    // nothing on screen to say so — in prod a €545 quote was duplicated into a €450 one and paid.
     items: source.items.map((item) => ({
       kind: item.kind,
       sessionOccurrenceId: item.sessionOccurrenceId,
@@ -1216,6 +1222,11 @@ export async function duplicateQuote(id: string): Promise<string> {
       rentalVehicleSlug: item.rentalVehicleSlug,
       quantity: item.quantity,
       unitAmountMinor: item.unitAmountMinor,
+      guests: item.guests,
+      pickupLabel: item.pickupLabel,
+      transportPickupLabel: item.transportPickupLabel,
+      transportDropoffLabel: item.transportDropoffLabel,
+      transportFareMinor: item.transportFareMinor,
     })),
   });
 }

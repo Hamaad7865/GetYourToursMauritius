@@ -104,6 +104,7 @@ function quoteFixture(converted: boolean, booking: PublicQuoteBooking | null): P
         quantity: 2,
         unitAmountMinor: 5500,
         subtotalMinor: 11000,
+        transportFareMinor: 0,
       },
       {
         position: 1,
@@ -114,6 +115,7 @@ function quoteFixture(converted: boolean, booking: PublicQuoteBooking | null): P
         quantity: 1,
         unitAmountMinor: 12000,
         subtotalMinor: 12000,
+        transportFareMinor: 0,
       },
     ],
     // This fixture is a DEPOSIT quote (the default plan); the per_date schedule is exercised separately.
@@ -202,6 +204,46 @@ describe('public quote page rendering', () => {
     expect(text).toContain('Marie Dupont');
     expect(text).toContain('Catamaran cruise, 23 Aug');
     expect(payButtons).toHaveLength(1);
+  });
+
+  it('itemises a line’s attached transfer, so the printed lines add up to the printed total', async () => {
+    // Prod, Nov 2026: a quote of EUR 450.00 in lines + EUR 95.00 of transfers printed "Total EUR
+    // 545.00" under five lines summing to EUR 450.00 — the transfers were in the total, not on the page.
+    const { text } = await render({
+      overrides: {
+        totalMinor: 29500,
+        items: [
+          {
+            position: 0,
+            description: 'Catamaran cruise, 23 Aug',
+            priceLabel: null,
+            startsAt: null,
+            endsAt: null,
+            quantity: 2,
+            unitAmountMinor: 5500,
+            subtotalMinor: 11000,
+            transportFareMinor: 6500,
+          },
+          {
+            position: 1,
+            description: 'Private guide, full day',
+            priceLabel: null,
+            startsAt: null,
+            endsAt: null,
+            quantity: 1,
+            unitAmountMinor: 12000,
+            subtotalMinor: 12000,
+            transportFareMinor: 0,
+          },
+        ],
+      },
+    });
+
+    expect(text).toContain('Round-trip transfer');
+    expect(text, 'the transfer fare is missing from the itemisation').toContain('EUR 65.00');
+    expect(text).toContain('EUR 295.00');
+    // Exactly one transfer row — a line without one renders none.
+    expect(text.match(/Round-trip transfer/g)).toHaveLength(1);
   });
 
   it('sends a locale-prefixed request back to the canonical path instead of 404ing', async () => {

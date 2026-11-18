@@ -180,6 +180,22 @@ async and can fail.
 direct API caller (the future mobile app) can still book at €0. Closing it is a migration, not a UI change.
 "I don't know yet" bookings (`pickup_pending`) also carry no fee by design.
 
+### Duplicating a quote must copy every line field, not just the price
+
+**Production 2026-11-16, `Q288E49C99F65` → `QB4AA8ACEB673`.** A €545 quote (€450 of lines plus €95 of
+round-trip transfers) failed at payment. Staff pressed Duplicate and sent the copy 23 seconds later. The
+copy came out at €450 and was paid as `BMTAE48E4D8907CC`: €95 short, and with no hotel pickup on its
+lines. `duplicateQuote` copied each line's quantity and unit price but not `transportFareMinor`, the
+transfer pickup/drop-off, `guests` or `pickupLabel`. It also dropped the quote's `paymentMode` and
+`roomOrCabin`. The total is re-derived from the lines, so nothing on screen flagged the loss.
+
+When `QuoteItemInput` or `QuoteInput` gains a field, add it to `duplicateQuote` too. The test
+"copies each line's transfer fare…" in `tests/integration/admin-quotes.test.ts` pins the current set.
+
+Fixed the same day: the guest's `/quotes/{ref}` page never itemised a line's transfer
+(`PublicQuoteLine` had no fare), so it printed "Total €545" under lines that added up to €450. The quote
+email already listed the transfer.
+
 ### A guest's JWT is a valid JWT
 
 Guest checkout means anyone can get an `authenticated` token with no email, so **"has a JWT" no longer

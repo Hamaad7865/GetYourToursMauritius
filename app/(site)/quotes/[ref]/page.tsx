@@ -151,22 +151,31 @@ export default async function QuotePage({
             {quote.items.map((line) => {
               const when = lineWhen(line);
               return (
-                <li
-                  key={line.position}
-                  className="flex items-start justify-between gap-4 border-b border-ink/10 py-3"
-                >
-                  <div>
-                    <p className="text-sm font-medium text-ink">{lineLabel(line)}</p>
-                    {when && <p className="mt-0.5 text-[12.5px] text-ink-muted">{when}</p>}
-                    {line.quantity > 1 && (
-                      <p className="mt-0.5 text-[12.5px] text-ink-muted">
-                        {line.quantity} × {money(quote.currency, line.unitAmountMinor)}
-                      </p>
-                    )}
+                <li key={line.position} className="border-b border-ink/10 py-3">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-ink">{lineLabel(line)}</p>
+                      {when && <p className="mt-0.5 text-[12.5px] text-ink-muted">{when}</p>}
+                      {line.quantity > 1 && (
+                        <p className="mt-0.5 text-[12.5px] text-ink-muted">
+                          {line.quantity} × {money(quote.currency, line.unitAmountMinor)}
+                        </p>
+                      )}
+                    </div>
+                    <p className="whitespace-nowrap text-sm text-ink">
+                      {money(quote.currency, line.subtotalMinor)}
+                    </p>
                   </div>
-                  <p className="whitespace-nowrap text-sm text-ink">
-                    {money(quote.currency, line.subtotalMinor)}
-                  </p>
+                  {/* The transfer is part of the total, so it is itemised under its line as the email
+                      does — otherwise the lines add up to less than the Total printed below them. */}
+                  {line.transportFareMinor > 0 && (
+                    <div className="mt-1 flex items-start justify-between gap-4 pl-3 text-[12.5px] text-ink-muted">
+                      <p>Round-trip transfer</p>
+                      <p className="whitespace-nowrap">
+                        {money(quote.currency, line.transportFareMinor)}
+                      </p>
+                    </div>
+                  )}
                 </li>
               );
             })}

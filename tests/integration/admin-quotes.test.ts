@@ -1062,6 +1062,51 @@ describe('admin quote service (RLS + real schema)', () => {
     expect(sourceLink.tokenHash).toBe('stored-hash-of-the-emailed-token');
   });
 
+  it('copies each line’s transfer fare and run-sheet facts, so the copy charges what the source did', async () => {
+    // Prod, 16 Nov 2026: a €545 quote (€450 of lines + €95 of attached transfers) failed at payment,
+    // was duplicated to re-offer it, and the copy came out at €450 — the transfers silently gone, the
+    // guest charged €95 short. The copy must carry every priced and run-sheet field of every line.
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    const sourceId = await saveQuote({
+      ...GUEST,
+      roomOrCabin: 'Room 214',
+      paymentMode: 'per_date',
+      items: [
+        {
+          kind: 'custom',
+          description: 'Catamaran cruise',
+          quantity: 2,
+          unitAmountMinor: 7500,
+          guests: 2,
+          pickupLabel: 'Seasense Boutique Hotel',
+          transportPickupLabel: 'Seasense Boutique Hotel',
+          transportDropoffLabel: 'Seasense Boutique Hotel',
+          transportFareMinor: 6500,
+        },
+        { kind: 'custom', description: 'Airport arrival', quantity: 1, unitAmountMinor: 5000 },
+      ],
+    });
+
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    const copyId = await duplicateQuote(sourceId);
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    const copy = await loadQuote(copyId);
+    const source = await loadQuote(sourceId);
+
+    expect(Number(source!.totalMinor)).toBe(26500);
+    expect(Number(copy!.totalMinor), 'the copy dropped the attached transfer fare').toBe(26500);
+    const pick = (item: NonNullable<typeof copy>['items'][number]) => [
+      item.guests,
+      item.pickupLabel,
+      item.transportPickupLabel,
+      item.transportDropoffLabel,
+      item.transportFareMinor,
+    ];
+    expect(copy!.items.map(pick)).toEqual(source!.items.map(pick));
+    expect(copy!.roomOrCabin).toBe('Room 214');
+    expect(copy!.paymentMode, 'a per-date schedule was reset to a single deposit').toBe('per_date');
+  });
+
   it('duplicates a PAID quote, which is the only way to re-offer one', async () => {
     await db.as({ sub: STAFF, role: 'authenticated' });
     const sourceId = await saveQuote({

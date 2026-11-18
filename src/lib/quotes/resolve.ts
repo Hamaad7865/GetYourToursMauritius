@@ -61,6 +61,9 @@ export interface PublicQuoteLine {
   quantity: number;
   unitAmountMinor: number;
   subtotalMinor: number;
+  /** The attached round-trip transfer's fare (0 = none). Part of `totalMinor`, so the page itemises
+   *  it under the line — without it the printed lines fall short of the printed total. */
+  transportFareMinor: number;
 }
 
 /** The offer as the guest may see it. See the PRIVACY note above before adding a field. */
@@ -384,6 +387,7 @@ export async function resolveQuoteForToken(
       quantity: Number(row.quantity ?? 0),
       unitAmountMinor: minor(row.unit_amount_minor),
       subtotalMinor: minor(row.subtotal_minor),
+      transportFareMinor: minor(row.transport_fare_minor),
     })),
     paymentMode: text(data.payment_mode) === 'per_date' ? 'per_date' : 'deposit',
     // The schedule is built from the SAME lines the page renders, grouped exactly as api_convert_quote
