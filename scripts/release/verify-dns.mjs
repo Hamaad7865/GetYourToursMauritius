@@ -28,6 +28,7 @@ async function assertResolves(host) {
 export async function followRedirectChain(startUrl, { maxRedirects = MAX_REDIRECTS } = {}) {
   const chain = [];
   let url = startUrl;
+  assertHttpsUrl(url);
   for (let i = 0; i <= maxRedirects; i++) {
     if (chain.includes(url)) {
       throw new Error(`Redirect loop detected: ${[...chain, url].join(' -> ')}`);
@@ -37,7 +38,9 @@ export async function followRedirectChain(startUrl, { maxRedirects = MAX_REDIREC
     if (res.status >= 300 && res.status < 400) {
       const location = res.headers.get('location');
       if (!location) throw new Error(`${url} returned ${res.status} with no Location header`);
-      url = new URL(location, url).toString();
+      const next = new URL(location, url);
+      assertHttpsUrl(next);
+      url = next.toString();
       if (i === maxRedirects) {
         throw new Error(`Redirect chain exceeded ${maxRedirects} hops: ${chain.join(' -> ')}`);
       }
@@ -46,6 +49,13 @@ export async function followRedirectChain(startUrl, { maxRedirects = MAX_REDIREC
     return { chain, finalUrl: url, finalStatus: res.status, finalHeaders: res.headers };
   }
   throw new Error(`Redirect chain exceeded ${maxRedirects} hops: ${chain.join(' -> ')}`);
+}
+
+function assertHttpsUrl(value) {
+  const url = value instanceof URL ? value : new URL(value);
+  if (url.protocol !== 'https:') {
+    throw new Error(`Insecure URL in redirect chain: ${url.toString()} (HTTPS required)`);
+  }
 }
 
 async function checkCanonicalReachable(canonicalHost) {

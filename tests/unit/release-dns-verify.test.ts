@@ -42,6 +42,24 @@ describe('release/verify-dns followRedirectChain', () => {
     ]);
   });
 
+  it('rejects a non-HTTPS starting URL before fetching it', async () => {
+    const calls = mockFetchSequence([]);
+    await expect(followRedirectChain('http://bellemaretours.com/')).rejects.toThrow(
+      /HTTPS required/,
+    );
+    expect(calls).toEqual([]);
+  });
+
+  it('rejects an HTTPS-to-HTTP downgrade before fetching the insecure target', async () => {
+    const calls = mockFetchSequence([
+      { status: 308, headers: { location: 'http://bellemaretours.com/' } },
+    ]);
+    await expect(followRedirectChain('https://www.bellemaretours.com/')).rejects.toThrow(
+      /HTTPS required/,
+    );
+    expect(calls).toEqual(['https://www.bellemaretours.com/']);
+  });
+
   it('throws on a redirect loop', async () => {
     mockFetchSequence([
       { status: 308, headers: { location: 'https://b.example.com/' } },
