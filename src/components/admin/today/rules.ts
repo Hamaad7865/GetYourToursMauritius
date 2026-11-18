@@ -435,6 +435,11 @@ export function balanceAction(
   quoteByBooking: ReadonlyMap<string, QuoteRow>,
   todayUtc?: string,
 ): NeedAction {
+  // A COMPLETED booking can still owe money (paymentView counts it as part paid), but the reminder and
+  // balance-link routes refuse anything not 'confirmed', so it only gets "Open".
+  if (b.status !== 'confirmed') {
+    return { kind: 'link', href: `/admin/bookings?open=${b.id}`, label: 'Open' };
+  }
   const next = nextInstallment(b.installments);
   if (next) return { kind: 'reminder', ref: b.ref, seq: next.seq, label: next.label };
   const quote = quoteByBooking.get(b.id);

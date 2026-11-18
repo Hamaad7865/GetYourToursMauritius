@@ -60,6 +60,8 @@ import {
 } from '@/components/ui/icons';
 import {
   DRAWER_TABS,
+  canMarkCompleted,
+  completeWarning,
   drawerAttention,
   drawerMoney,
   drawerPrimary,
@@ -317,7 +319,11 @@ function BookingBody({
       .catch(() => setError('Could not copy the reference.'));
   };
 
-  const complete = () => void act('complete', () => setBookingStatus(b.id, 'completed'));
+  const complete = () => {
+    const warning = completeWarning(b);
+    if (warning && !window.confirm(warning)) return;
+    void act('complete', () => setBookingStatus(b.id, 'completed'));
+  };
   const cancel = () => {
     const paid = b.paymentState === 'paid' || b.paymentState === 'partially_refunded';
     const msg = paid
@@ -404,7 +410,7 @@ function BookingBody({
         : []),
     ],
     [
-      ...(b.status === 'confirmed' && primary?.kind !== 'complete'
+      ...(canMarkCompleted(b, today) && primary?.kind !== 'complete'
         ? [{ id: 'complete', label: 'Mark as completed', onSelect: complete }]
         : []),
       ...(canRefund && isRefundable(b)

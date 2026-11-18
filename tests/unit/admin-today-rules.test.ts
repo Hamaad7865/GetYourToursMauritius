@@ -512,6 +512,10 @@ describe('Today — Needs you', () => {
       booking: { status: 'confirmed', totalMinor: 18000, depositMinor: 1800, balanceDueMinor: 0 },
     };
     expect(balanceAction(b, new Map([['q', paid]]))).toMatchObject({ kind: 'link' });
+    // Marked completed with the balance still owed: the balance route would 409, so just open it.
+    expect(balanceAction({ ...b, status: 'completed' }, new Map([['q', q]]))).toMatchObject({
+      kind: 'link',
+    });
   });
 
   it('never offers the quote balance link without section.quotes', () => {

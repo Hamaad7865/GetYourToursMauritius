@@ -190,6 +190,15 @@ export const POST = apiHandler<RouteCtx>(async (req, { params }) => {
   const status = text(booking.status);
   const balanceDueMinor = minor(booking.balance_due_minor);
 
+  if (status === 'completed') {
+    // The deposit DID settle here: staff marked the booking completed while money was still owed.
+    // create_payment's balance branch accepts only 'confirmed', so a link would never be payable.
+    throw new ConflictError(
+      `Quote ${ref}’s booking ${bookingRef} is marked completed, so its balance can no longer be ` +
+        `collected online. If the guest still owes the balance, ask the owner to set the booking back ` +
+        `to confirmed, then send the link again.`,
+    );
+  }
   if (status !== 'confirmed') {
     throw new ConflictError(
       `Quote ${ref}’s booking ${bookingRef} is ${status}, not confirmed — its deposit has not settled, ` +

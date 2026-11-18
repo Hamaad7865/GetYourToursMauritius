@@ -209,9 +209,41 @@ export type DrawerPrimary =
   | null;
 
 /**
+ * Whether "Mark as completed" may be offered at all: a confirmed booking whose LAST service day is
+ * before today (Mauritius days). A trip on its last day, or a multi-day quote with lines still to come,
+ * is still running.
+ *
+ * Completion is one-way from the back office (the trigger has no completed → confirmed path) and it
+ * kills the quote balance link (the balance route and create_payment's balance branch accept only
+ * 'confirmed'). A guest was once completed mid-trip with half the quote unpaid, and the balance link
+ * then 409'd until the status was flipped back in the database. Both the main button and the "More"
+ * menu go through this one check.
+ */
+export function canMarkCompleted(b: DrawerBooking, today: string): boolean {
+  if (b.status !== 'confirmed') return false;
+  const { lastDay } = serviceSpan(b);
+  return lastDay !== null && lastDay < today;
+}
+
+/**
+ * The question asked before completing a booking that still owes money, or null when nothing is owed.
+ * Not a hard block: a balance can be settled off the books (cash to the driver on the day).
+ */
+export function completeWarning(b: DrawerBooking & { ref: string }): string | null {
+  if (paymentView(b) !== 'part_paid') return null;
+  return (
+    `${eur(b.balanceDueEur)} is still owed on ${b.ref}. Marking it completed stops the balance ` +
+    `link from working, and it can't be undone from here. Only do this if the balance was paid ` +
+    `another way. Mark as completed anyway?`
+  );
+}
+
+/**
  * - A refund to record → "Review refund", which opens the Payment tab where it is recorded (none
  *   while that tab is already showing; its own button is right there).
- * - A confirmed booking whose last day has passed → "Mark as completed".
+ * - A confirmed booking whose last day has passed and that owes nothing → "Mark as completed". With a
+ *   balance still owed the next step is collecting it, so completion is only under "More" (with a
+ *   warning).
  * Anything else has no main action; the rest live under "More".
  */
 export function drawerPrimary(
@@ -221,11 +253,8 @@ export function drawerPrimary(
   if (b.status === 'refund_pending' && opts.canRefund) {
     return opts.tab === 'payment' ? null : { kind: 'review-refund', label: 'Review refund' };
   }
-  if (b.status === 'confirmed') {
-    const { lastDay } = serviceSpan(b);
-    if (lastDay !== null && lastDay < opts.today) {
-      return { kind: 'complete', label: 'Mark as completed' };
-    }
+  if (canMarkCompleted(b, opts.today) && paymentView(b) !== 'part_paid') {
+    return { kind: 'complete', label: 'Mark as completed' };
   }
   return null;
 }

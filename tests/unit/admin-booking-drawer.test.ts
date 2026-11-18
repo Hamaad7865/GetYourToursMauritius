@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  canMarkCompleted,
+  completeWarning,
   drawerAttention,
   drawerMoney,
   drawerPrimary,
@@ -32,8 +34,11 @@ function item(day: string | null, departureTime: string | null = '09:00') {
   };
 }
 
-function booking(over: Partial<DrawerBooking> = {}): DrawerBooking {
+function booking(
+  over: Partial<DrawerBooking & { ref: string }> = {},
+): DrawerBooking & { ref: string } {
   return {
+    ref: 'BMTTEST',
     status: 'confirmed',
     paymentState: 'paid',
     totalEur: 110,
@@ -296,6 +301,53 @@ describe('a booking made from a multi-line quote', () => {
     // A rental that is still out (its return day is after today) is not finished yet.
     const out = booking({ items: [], customItems: [line('2026-11-10', '2026-11-18')] });
     expect(drawerPrimary(out, { canRefund: true, today: TODAY, tab: 'overview' })).toBeNull();
+  });
+
+  // Regression: a multi-day quote trip (lines 13 → 22 Nov), half paid, was marked completed from the
+  // "More" menu on 17 Nov while it was still running — and the balance link then 409'd.
+  const midTrip = () =>
+    booking({
+      ref: 'BMTMIDTRIP',
+      items: [],
+      customItems: [
+        line('2026-11-13'),
+        line('2026-11-16'),
+        line('2026-11-18'),
+        line('2026-11-20'),
+        line('2026-11-22'),
+      ],
+      totalEur: 645,
+      depositEur: 322.5,
+      balanceDueEur: 322.5,
+      netPaidEur: 322.5,
+      grossPaidEur: 322.5,
+    });
+
+  it('cannot be completed while any quote line is still to come', () => {
+    expect(canMarkCompleted(midTrip(), '2026-11-17')).toBe(false);
+    expect(
+      drawerPrimary(midTrip(), { canRefund: true, today: '2026-11-17', tab: 'overview' }),
+    ).toBeNull();
+  });
+
+  it('cannot be completed on its last day, only the day after', () => {
+    expect(canMarkCompleted(midTrip(), '2026-11-22')).toBe(false);
+    expect(canMarkCompleted(midTrip(), '2026-11-23')).toBe(true);
+  });
+
+  it('never suggests completion while a balance is owed, and warns if staff choose it', () => {
+    const after = '2026-11-23';
+    expect(drawerPrimary(midTrip(), { canRefund: true, today: after, tab: 'overview' })).toBeNull();
+    const warning = completeWarning(midTrip());
+    expect(warning).toContain('€322.50');
+    expect(warning).toContain('BMTMIDTRIP');
+    expect(warning).toMatch(/balance link/);
+  });
+
+  it('asks nothing extra before completing a booking that owes nothing', () => {
+    const settled = booking({ ref: 'BMTPAID', items: [], customItems: [line('2026-11-10')] });
+    expect(completeWarning(settled)).toBeNull();
+    expect(canMarkCompleted(settled, TODAY)).toBe(true);
   });
 
   it('dates the pickup tile from its first quote line', () => {

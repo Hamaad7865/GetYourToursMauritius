@@ -250,7 +250,9 @@ export function rowActions(
 ): RowActions {
   return {
     resend: row.status === 'sent' && rowSendRefusal(row, today) === null,
-    balance: quoteStage(row, today).group === 'balance',
+    // Only on a CONFIRMED booking: a completed one still sits under "Balance due" (the money is still
+    // owed) but the balance route refuses it, so the button would only ever 409.
+    balance: quoteStage(row, today).group === 'balance' && row.booking?.status === 'confirmed',
   };
 }
 

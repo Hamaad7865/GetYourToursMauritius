@@ -255,6 +255,19 @@ describe('row actions', () => {
     });
     expect(rowActions(owed, TODAY).balance).toBe(true);
     expect(rowActions(row({ ...converted, booking: booking() }), TODAY).balance).toBe(false);
+    // A COMPLETED booking still owes the money (it stays under "Balance due"), but the balance route
+    // refuses it — so no button that can only fail.
+    const completed = row({
+      ...converted,
+      booking: booking({
+        status: 'completed',
+        totalMinor: 18000,
+        depositMinor: 4500,
+        balanceDueMinor: 13500,
+      }),
+    });
+    expect(quoteStage(completed, TODAY).group).toBe('balance');
+    expect(rowActions(completed, TODAY).balance).toBe(false);
   });
 });
 
