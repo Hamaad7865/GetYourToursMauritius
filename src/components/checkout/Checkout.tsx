@@ -56,6 +56,7 @@ import type { ChargeCurrency } from '@/lib/settings/charge-currency';
 import type { GuestCheckoutConfig } from '@/lib/settings/guest-checkout';
 import { getBrowserSupabase } from '@/lib/supabase/browser';
 import { suggestEmailFix } from '@/lib/guest/email-key';
+import { GUEST_EMAIL_SHAPE, missingDetail } from '@/lib/checkout/details-gate';
 import { TurnstileWidget, type TurnstileHandle } from '@/components/checkout/TurnstileWidget';
 import {
   detailsHash,
@@ -93,8 +94,6 @@ const PICKUP_RESOLVERS = {
 // the same element (the hint is an aria-live region that announces WHY the Next/Pay CTA is disabled).
 const PICKUP_HINT_ID = 'checkout-pickup-hint';
 const PHONE_HINT_ID = 'checkout-phone-hint';
-/** Enough to catch a slip before Pay. The server's Zod check is the real one. */
-const GUEST_EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 // The tel input is no longer wrapped by its <label> (the dial-code select sits beside it), so the
 // label points at it by id instead.
 const PHONE_INPUT_ID = 'checkout-phone';
@@ -617,6 +616,12 @@ export function Checkout({
   // Personal-details (step ②) form state. Name + phone seed from the profile once it loads (see the
   // effect below); country defaults to the home market. Email is the account email, shown read-only.
   const [name, setName] = useState('');
+  // Step ② fields, read directly on "Go to payment" (see continueFromDetails).
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const emailInputRef = useRef<HTMLInputElement>(null);
+  const phoneInputRef = useRef<HTMLInputElement>(null);
+  // Set when "Go to payment" was tapped with something missing: the hint turns into an error.
+  const [detailsTried, setDetailsTried] = useState(false);
   const [country, setCountry] = useState<string>(COUNTRIES[0]);
   // The phone is stored as ONE string on the booking, but edited as two controls: a dial-code select
   // and the national digits. `national` — not the composed value — is the input's state, because
@@ -1041,10 +1046,40 @@ export function Checkout({
   }
 
   function continueFromDetails() {
-    // Authoritative gate, mirroring step ①: a pickup booking needs a phone. The CTA is also disabled,
-    // but guard here so a keyboard/programmatic advance can't skip the requirement.
-    if (!canAdvanceDetails) return;
+    // Authoritative gate, mirroring step ①: a pickup booking needs a phone.
+    //
+    // The CTA is NEVER disabled. A disabled button here looked clickable and did nothing (19 Nov
+    // 2026: from 14 Nov no Chrome guest got past this step, and stuck visitors retried 2–3 times then
+    // left). So the tap reads what is actually in the fields — browser autofill can show a value
+    // React state has not seen — and, when something is still missing, says so and puts the cursor
+    // on it instead of doing nothing.
+    const domName = nameInputRef.current?.value ?? name;
+    const domEmail = guestMode ? (emailInputRef.current?.value ?? guestEmail) : guestEmail;
+    const domNational = phoneInputRef.current?.value ?? national;
+    if (domName !== name) setName(domName);
+    if (guestMode && domEmail !== guestEmail) setGuestEmail(domEmail);
+    if (domNational !== national) {
+      phoneTouchedRef.current = true;
+      setNational(domNational);
+    }
+    const missing = missingDetail({
+      guestMode,
+      phoneRequired,
+      name: domName,
+      email: domEmail,
+      phone: composePhone(dialCode, domNational),
+    });
+    if (missing === 'name') return flagMissingDetail(nameInputRef.current);
+    if (missing === 'email') return flagMissingDetail(emailInputRef.current);
+    if (missing === 'phone') return flagMissingDetail(phoneInputRef.current);
+    setDetailsTried(false);
     setStep(3);
+  }
+
+  function flagMissingDetail(el: HTMLInputElement | null) {
+    setDetailsTried(true);
+    el?.focus();
+    el?.scrollIntoView({ block: 'center', behavior: 'smooth' });
   }
 
   // Reconcile the authoritative server total against the total we DISPLAYED. Returns true (and
@@ -2211,6 +2246,7 @@ export function Checkout({
                 <label className="block text-[13px] font-semibold text-ink">
                   {t('Full name')}
                   <input
+                    ref={nameInputRef}
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     autoComplete="name"
@@ -2222,6 +2258,7 @@ export function Checkout({
                   <label className="block text-[13px] font-semibold text-ink">
                     {t('Email address')}
                     <input
+                      ref={emailInputRef}
                       type="email"
                       value={guestEmail}
                       onChange={(e) => setGuestEmail(e.target.value)}
@@ -2297,6 +2334,7 @@ export function Checkout({
                       ariaLabel={t('Country calling code')}
                     />
                     <input
+                      ref={phoneInputRef}
                       id={PHONE_INPUT_ID}
                       value={national}
                       onChange={(e) => {
@@ -2370,17 +2408,20 @@ export function Checkout({
               <button
                 type="button"
                 onClick={continueFromDetails}
-                disabled={!canAdvanceDetails}
-                className="mt-6 hidden items-center justify-center rounded-full bg-teal-dark px-7 py-3 text-sm font-bold text-white hover:bg-teal-dark/90 disabled:cursor-not-allowed disabled:bg-teal-dark/85 lg:flex"
+                className="mt-6 hidden items-center justify-center rounded-full bg-teal-dark px-7 py-3 text-sm font-bold text-white hover:bg-teal-dark/90 lg:flex"
               >
                 {t('Go to payment')}
               </button>
               {/* Stable, always-rendered live region: the phone input's aria-describedby points here,
-                  and the hint is announced when it appears (it explains why "Go to payment" is disabled). */}
+                  and the hint is announced when it appears (it says what "Go to payment" still needs). */}
               <p
                 id={PHONE_HINT_ID}
                 aria-live="polite"
-                className="mt-2 text-[12.5px] text-ink-muted lg:text-[13px]"
+                className={`mt-2 text-[12.5px] lg:text-[13px] ${
+                  detailsTried && !canAdvanceDetails
+                    ? 'font-semibold text-coral-dark'
+                    : 'text-ink-muted'
+                }`}
               >
                 {!guestDetailsComplete
                   ? t('Add your name and email so we can send your confirmation.')
@@ -2569,8 +2610,7 @@ export function Checkout({
           <button
             type="button"
             onClick={continueFromDetails}
-            disabled={!canAdvanceDetails}
-            className="flex w-full items-center justify-center rounded-full bg-teal-dark px-7 py-3.5 text-sm font-bold text-white hover:bg-teal-dark/90 disabled:cursor-not-allowed disabled:bg-teal-dark/85"
+            className="flex w-full items-center justify-center rounded-full bg-teal-dark px-7 py-3.5 text-sm font-bold text-white hover:bg-teal-dark/90"
           >
             {t('Go to payment')}
           </button>
