@@ -349,6 +349,19 @@ describe('the line list', () => {
     const back = quoteInputFromForm(form2);
     expect(back.items[0]!.guests).toBe(2);
     expect(back.roomOrCabin).toBe('Room 8');
+    expect(back.items[0]!.startsAt).toBe(DEPARTURE);
+
+    // A SAVED custom line's date and time stay editable: re-timing it from 09:00 to 10:50 (and moving
+    // the day) must reach the save. The bug was the stored instant winning over the typed fields, so
+    // the second save silently put the first time back.
+    const edited = {
+      ...form2,
+      lines: [{ ...form2.lines[0]!, date: '2026-08-24', time: '10:50' }],
+    };
+    expect(quoteInputFromForm(edited).items[0]!.startsAt).toBe('2026-08-24T06:50:00.000Z');
+    // Clearing the date clears the instant, rather than resurrecting the stored one.
+    const cleared = { ...form2, lines: [{ ...form2.lines[0]!, date: '', time: '' }] };
+    expect(quoteInputFromForm(cleared).items[0]!.startsAt).toBeNull();
   });
 
   it('stores a total the stored lines add up to, whatever the operator typed', () => {

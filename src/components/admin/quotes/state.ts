@@ -442,8 +442,11 @@ export function quoteInputFromForm(form: QuoteFormValues): QuoteInput {
       sessionOccurrenceId: catalogue ? line.sessionOccurrenceId : null,
       activityOptionId: catalogue ? line.activityOptionId : null,
       // A tour line keeps the departure it was quoted against even after an override drops it to a
-      // custom line: it is what the guest recognises, and what the day sheet will read.
-      startsAt: line.startsAt ?? mauritiusInstant(line.date, line.time),
+      // custom line: it is what the guest recognises, and what the day sheet will read. Every other
+      // line's day and time are the operator's own fields — the ONLY source of truth, even once
+      // saved. (`formFromQuote` also seeds `startsAt` on a re-opened custom line; letting that win
+      // here made every edit to a saved line's date or time silently revert on the next save.)
+      startsAt: line.kind === 'catalogue' ? line.startsAt : mauritiusInstant(line.date, line.time),
       rentalVehicleSlug: line.kind === 'rental' ? line.rentalVehicleSlug : null,
       quantity,
       unitAmountMinor,

@@ -2,7 +2,15 @@
 
 import { useEffect, useState, type Dispatch, type SetStateAction } from 'react';
 import { Panel, PANEL_BODY, buttonClass, INPUT_CLS } from '@/components/admin/ui';
-import { IconChevron, IconPlus, IconX } from '@/components/ui/icons';
+import {
+  IconCalendar,
+  IconChevron,
+  IconInfo,
+  IconPin,
+  IconPlus,
+  IconUsers,
+  IconX,
+} from '@/components/ui/icons';
 import { fmtDate } from '@/lib/admin/format';
 import { TourPicker } from '@/components/admin/quotes/TourPicker';
 import { RentalPicker } from '@/components/admin/quotes/RentalPicker';
@@ -17,6 +25,7 @@ import {
 import type { RegionDistanceMap, TransportBandPricing } from '@/lib/services/pricing';
 import type { QuotePickup } from '@/components/admin/quotes/pickup';
 import { DatePicker } from '@/components/ui/DatePicker';
+import { TimePicker } from '@/components/admin/TimePicker';
 import {
   customLineDraft,
   eurFromMinor,
@@ -76,6 +85,16 @@ const KIND_LABEL: Record<string, string> = {
   custom: 'Custom',
   rental: 'Rental',
 };
+
+/** The kind chip's tone: a catalogue tour reads as the brand's own, a rental as a different product. */
+const KIND_TONE: Record<string, string> = {
+  catalogue: 'bg-teal-tint text-teal-dark',
+  custom: 'bg-line-soft text-ink-muted',
+  rental: 'bg-gold-tint text-ink',
+};
+
+/** The small caption above every field on a line — one style, so every column reads the same. */
+const FIELD_LABEL = 'mb-[5px] block text-[11.5px] font-semibold text-ink-soft';
 
 const ICON_BTN =
   'grid h-8 w-8 place-items-center rounded-lg text-ink-muted transition-colors hover:bg-line-soft hover:text-ink disabled:opacity-30 motion-reduce:transition-none';
@@ -149,19 +168,67 @@ export function QuoteLines({
               subtotal !== null &&
               parseEurosToMinor(line.unitText, 'Unit price') !== line.catalogueUnitMinor;
             return (
-              <li key={line.key} className="border-b border-line-soft px-4 py-3">
-                <div className="flex flex-wrap items-start gap-x-3 gap-y-2">
-                  <div className="min-w-0 flex-1 basis-64">
-                    <div className="mb-1.5 flex flex-wrap items-center gap-2">
-                      <span className="rounded-md bg-line-soft px-1.5 py-px text-[11px] font-semibold text-ink-muted">
-                        {KIND_LABEL[line.kind] ?? line.kind}
-                      </span>
-                      {/* The day alone: the slot's clock is a placeholder, and the tour's start time
-                          already rides in the description. */}
-                      {line.kind === 'catalogue' && line.startsAt && (
-                        <span className="text-[12px] text-ink-soft">{fmtDate(line.startsAt)}</span>
-                      )}
-                    </div>
+              <li key={line.key} className="border-b border-line-soft px-4 pb-4 pt-3">
+                {/* Header: which line this is (the refusals name lines by number), what kind, and the
+                    reorder / remove controls — kept off the field rows so the fields line up. */}
+                <div className="mb-2 flex min-h-8 flex-wrap items-center gap-2">
+                  <span className="text-[12px] font-bold tabular-nums text-ink-muted">
+                    Line {n}
+                  </span>
+                  <span
+                    className={`rounded-md px-1.5 py-px text-[11px] font-semibold ${
+                      KIND_TONE[line.kind] ?? 'bg-line-soft text-ink-muted'
+                    }`}
+                  >
+                    {KIND_LABEL[line.kind] ?? line.kind}
+                  </span>
+                  {/* The day alone: the slot's clock is a placeholder, and the tour's start time
+                      already rides in the description. */}
+                  {line.kind === 'catalogue' && line.startsAt && (
+                    <span className="inline-flex items-center gap-1 text-[12px] text-ink-soft">
+                      <IconCalendar width={12} height={12} aria-hidden="true" />
+                      {fmtDate(line.startsAt)}
+                    </span>
+                  )}
+                  {!locked && (
+                    <span className="ml-auto flex items-center">
+                      <button
+                        type="button"
+                        aria-label={`Move line ${n} up`}
+                        disabled={index === 0}
+                        onClick={() => setLines(moveLine(lines, index, -1))}
+                        className={ICON_BTN}
+                      >
+                        <IconChevron width={14} height={14} className="rotate-180" />
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={`Move line ${n} down`}
+                        disabled={index === lines.length - 1}
+                        onClick={() => setLines(moveLine(lines, index, 1))}
+                        className={ICON_BTN}
+                      >
+                        <IconChevron width={14} height={14} />
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={`Remove line ${n}`}
+                        onClick={() => setLines(lines.filter((_, i) => i !== index))}
+                        className={`${ICON_BTN} hover:!bg-coral-tint hover:!text-coral-dark`}
+                      >
+                        <IconX width={14} height={14} />
+                      </button>
+                    </span>
+                  )}
+                </div>
+
+                {/* What and how much. One grid, so the price fields and the total sit in the same
+                    columns on every line; on a phone the description takes the full row. */}
+                <div className="grid grid-cols-[4.5rem_minmax(0,7.5rem)_minmax(0,1fr)] items-end gap-x-2 gap-y-3 sm:grid-cols-[minmax(0,1fr)_4.5rem_7.5rem_6.5rem]">
+                  <label className="col-span-3 block sm:col-span-1">
+                    <span aria-hidden="true" className={FIELD_LABEL}>
+                      Item
+                    </span>
                     <input
                       value={line.description}
                       onChange={(e) => update(index, { description: e.target.value })}
@@ -170,128 +237,126 @@ export function QuoteLines({
                       disabled={locked}
                       className={`${INPUT_CLS} font-semibold`}
                     />
-                  </div>
-                  <div className="flex flex-wrap items-end gap-2">
-                    <label className="block">
-                      <span
-                        aria-hidden="true"
-                        className="mb-[5px] block text-[11.5px] font-semibold text-ink-soft"
-                      >
-                        Qty
-                      </span>
-                      <input
-                        value={line.quantityText}
-                        onChange={(e) => update(index, { quantityText: e.target.value })}
-                        inputMode="numeric"
-                        aria-label={`Line ${n} quantity`}
-                        disabled={locked}
-                        className={`${INPUT_CLS} w-16 text-right`}
-                      />
-                    </label>
-                    <label className="block">
-                      <span
-                        aria-hidden="true"
-                        className="mb-[5px] block text-[11.5px] font-semibold text-ink-soft"
-                      >
-                        Each, €
-                      </span>
-                      <input
-                        value={line.unitText}
-                        onChange={(e) => update(index, { unitText: e.target.value })}
-                        inputMode="decimal"
-                        aria-label={`Line ${n} unit price in euros`}
-                        placeholder="0.00"
-                        disabled={locked}
-                        className={`${INPUT_CLS} w-24 text-right`}
-                      />
-                    </label>
-                    <span className="min-w-[5.5rem] pb-2 text-right text-[13.5px] font-bold text-ink">
+                  </label>
+                  <label className="block">
+                    <span aria-hidden="true" className={FIELD_LABEL}>
+                      Qty
+                    </span>
+                    <input
+                      value={line.quantityText}
+                      onChange={(e) => update(index, { quantityText: e.target.value })}
+                      inputMode="numeric"
+                      aria-label={`Line ${n} quantity`}
+                      disabled={locked}
+                      className={`${INPUT_CLS} text-right tabular-nums`}
+                    />
+                  </label>
+                  <label className="block">
+                    <span aria-hidden="true" className={FIELD_LABEL}>
+                      Each, €
+                    </span>
+                    <input
+                      value={line.unitText}
+                      onChange={(e) => update(index, { unitText: e.target.value })}
+                      inputMode="decimal"
+                      aria-label={`Line ${n} unit price in euros`}
+                      placeholder="0.00"
+                      disabled={locked}
+                      className={`${INPUT_CLS} text-right tabular-nums`}
+                    />
+                  </label>
+                  <div className="text-right">
+                    <span aria-hidden="true" className={FIELD_LABEL}>
+                      Total
+                    </span>
+                    <span className="flex h-9 items-center justify-end text-[14px] font-bold tabular-nums text-ink">
                       {subtotal === null ? '—' : eurFromMinor(subtotal)}
                     </span>
-                    {!locked && (
-                      <span className="flex items-center pb-0.5">
-                        <button
-                          type="button"
-                          aria-label={`Move line ${n} up`}
-                          disabled={index === 0}
-                          onClick={() => setLines(moveLine(lines, index, -1))}
-                          className={ICON_BTN}
-                        >
-                          <IconChevron width={14} height={14} className="rotate-180" />
-                        </button>
-                        <button
-                          type="button"
-                          aria-label={`Move line ${n} down`}
-                          disabled={index === lines.length - 1}
-                          onClick={() => setLines(moveLine(lines, index, 1))}
-                          className={ICON_BTN}
-                        >
-                          <IconChevron width={14} height={14} />
-                        </button>
-                        <button
-                          type="button"
-                          aria-label={`Remove line ${n}`}
-                          onClick={() => setLines(lines.filter((_, i) => i !== index))}
-                          className={`${ICON_BTN} hover:!bg-coral-tint hover:!text-coral-dark`}
-                        >
-                          <IconX width={14} height={14} />
-                        </button>
-                      </span>
-                    )}
                   </div>
                 </div>
 
                 {line.kind === 'catalogue' ? (
-                  <p className="mt-1.5 text-[12px] text-ink-soft">
-                    Priced from the catalogue at {eurFromMinor(line.catalogueUnitMinor ?? 0)} per{' '}
-                    {line.priceLabel || 'guest'}.{' '}
-                    {overridden
-                      ? 'Holds nothing — a changed price reserves no seat.'
-                      : 'Holds a seat on this departure when the guest pays.'}
+                  <p className="mt-2.5 flex items-start gap-1.5 text-[12px] leading-relaxed text-ink-soft">
+                    <IconInfo
+                      width={13}
+                      height={13}
+                      aria-hidden="true"
+                      className="mt-[3px] shrink-0"
+                    />
+                    <span>
+                      Priced from the catalogue at {eurFromMinor(line.catalogueUnitMinor ?? 0)} per{' '}
+                      {line.priceLabel || 'guest'}.{' '}
+                      {overridden
+                        ? 'Holds nothing — a changed price reserves no seat.'
+                        : 'Holds a seat on this departure when the guest pays.'}
+                    </span>
                   </p>
                 ) : locked ? (
-                  <p className="mt-1.5 text-[12px] text-ink-soft">
-                    {line.date
-                      ? `${fmtDate(`${line.date}T12:00:00+04:00`)} ${line.time}`
-                      : 'No date'}
-                    {line.kind === 'custom' && line.guests ? ` · ${line.guests} guests` : ''}
-                    {line.kind === 'custom' && line.pickupLabel
-                      ? ` · pickup ${line.pickupLabel}`
-                      : ''}
+                  <p className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-ink-soft">
+                    <span className="inline-flex items-center gap-1">
+                      <IconCalendar width={12} height={12} aria-hidden="true" />
+                      {line.date
+                        ? `${fmtDate(`${line.date}T12:00:00+04:00`)}${line.time ? `, ${line.time}` : ''}`
+                        : 'No date'}
+                    </span>
+                    {line.kind === 'custom' && line.guests && (
+                      <span className="inline-flex items-center gap-1">
+                        <IconUsers width={12} height={12} aria-hidden="true" />
+                        {line.guests} guests
+                      </span>
+                    )}
+                    {line.kind === 'custom' && line.pickupLabel && (
+                      <span className="inline-flex items-center gap-1">
+                        <IconPin width={12} height={12} aria-hidden="true" />
+                        Pickup {line.pickupLabel}
+                      </span>
+                    )}
                   </p>
                 ) : (
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <DatePicker
-                      value={line.date}
-                      onChange={(v) => update(index, { date: v })}
-                      ariaLabel={`Line ${n} date`}
-                      className={`${INPUT_CLS} w-40`}
-                    />
-                    <input
-                      type="time"
-                      value={line.time}
-                      onChange={(e) => update(index, { time: e.target.value })}
-                      aria-label={`Line ${n} time`}
-                      disabled={locked}
-                      className={`${INPUT_CLS} w-28`}
-                    />
+                  /* When, and for how many: compact, fixed-width fields under the item — a time needs
+                     five characters, not the width of the card. */
+                  <div className="mt-3 flex flex-wrap items-end gap-x-2 gap-y-2">
+                    <div className="w-[10.5rem]">
+                      <span aria-hidden="true" className={FIELD_LABEL}>
+                        Date
+                      </span>
+                      <DatePicker
+                        value={line.date}
+                        onChange={(v) => update(index, { date: v })}
+                        ariaLabel={`Line ${n} date`}
+                        className={INPUT_CLS}
+                      />
+                    </div>
+                    <div className="w-[7.5rem]">
+                      <span aria-hidden="true" className={FIELD_LABEL}>
+                        Time
+                      </span>
+                      <TimePicker
+                        value={line.time}
+                        onChange={(v) => update(index, { time: v })}
+                        ariaLabel={`Line ${n} time`}
+                        className={INPUT_CLS}
+                      />
+                    </div>
                     {line.kind === 'custom' && (
-                      <label className="inline-flex items-center gap-2 text-[12px] font-semibold text-ink-muted">
-                        Guests
+                      <label className="block w-[5.5rem]">
+                        <span aria-hidden="true" className={FIELD_LABEL}>
+                          Guests
+                        </span>
                         <input
                           value={line.guests}
                           onChange={(e) => update(index, { guests: e.target.value })}
                           inputMode="numeric"
                           aria-label={`Line ${n} number of guests`}
                           placeholder="e.g. 2"
-                          disabled={locked}
-                          className={`${INPUT_CLS} w-20 text-right`}
+                          className={`${INPUT_CLS} text-right tabular-nums`}
                         />
                       </label>
                     )}
-                    <span className="text-[12px] text-ink-soft">
+                    <p className="flex basis-full items-center gap-1.5 text-[12px] text-ink-soft sm:ml-auto sm:basis-auto sm:pb-2">
+                      <IconInfo width={13} height={13} aria-hidden="true" className="shrink-0" />
                       Holds nothing — a hand-priced line reserves no capacity.
-                    </span>
+                    </p>
                   </div>
                 )}
 
@@ -304,14 +369,28 @@ export function QuoteLines({
                   </p>
                 )}
 
-                {/* A bespoke tour's run-sheet pickup for the operations calendar. Never money. */}
-                {line.kind === 'custom' && !locked && (
-                  <LinePickup
-                    pickupLabel={line.pickupLabel}
-                    onChange={(label) => update(index, { pickupLabel: label })}
-                    pickup={pickup}
-                    setPickup={setPickup}
-                  />
+                {/* The line's extras. Side by side while they are just "Add …" links; an opened one
+                    (a div) takes the full row. Their own top margins give way to the row's gap. */}
+                {!locked && line.kind !== 'rental' && (
+                  <div className="mt-3 flex flex-wrap items-start gap-x-5 gap-y-2 [&>*]:mt-0 [&>div]:basis-full">
+                    {/* A bespoke tour's run-sheet pickup for the operations calendar. Never money. */}
+                    {line.kind === 'custom' && (
+                      <LinePickup
+                        pickupLabel={line.pickupLabel}
+                        onChange={(label) => update(index, { pickupLabel: label })}
+                        pickup={pickup}
+                        setPickup={setPickup}
+                      />
+                    )}
+                    <LineTransport
+                      line={line}
+                      onChange={(transport) => update(index, { transport })}
+                      pickup={pickup}
+                      setPickup={setPickup}
+                      pricing={pricing}
+                      optionRegions={optionRegions}
+                    />
+                  </div>
                 )}
 
                 {/* A locked line still says what its transfer is — the guest paid for it. */}
@@ -321,17 +400,6 @@ export function QuoteLines({
                     {line.transport.dropoffLabel ? ` to ${line.transport.dropoffLabel}` : ''} ·{' '}
                     {fareLabel(line.transport.fareText)}
                   </p>
-                )}
-
-                {line.kind !== 'rental' && !locked && (
-                  <LineTransport
-                    line={line}
-                    onChange={(transport) => update(index, { transport })}
-                    pickup={pickup}
-                    setPickup={setPickup}
-                    pricing={pricing}
-                    optionRegions={optionRegions}
-                  />
                 )}
               </li>
             );
