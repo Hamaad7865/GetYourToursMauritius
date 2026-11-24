@@ -445,6 +445,10 @@ export interface CapacityUse {
  */
 export function capacityUse(entry: DayEntry): CapacityUse | null {
   if (entry.kind !== 'occurrence') return null;
+  // A pool of 0 is a closed date (Availability → Closed dates): booked guests stay, nothing new sells.
+  if (entry.capacity === 0) {
+    return { used: entry.units, max: 0, label: 'closed to new bookings' };
+  }
   if (entry.guestsPerTrip) {
     const trips = Math.max(1, Math.round(entry.capacity / entry.guestsPerTrip));
     const used = Math.ceil(entry.pax / entry.guestsPerTrip);

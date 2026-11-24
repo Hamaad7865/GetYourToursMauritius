@@ -18,6 +18,7 @@ import {
 } from '@/lib/admin/option-weekdays';
 import { IconChevron } from '@/components/ui/icons';
 import { AdminHeading, BTN_PRIMARY, AdminLoading } from '@/components/admin/ui';
+import { ClosedDatesEditor } from '@/components/admin/ClosedDatesEditor';
 
 /** Surface the real message from an Error or a Supabase/PostgREST error object (which isn't an
  *  Error instance), so failures aren't masked by a generic fallback. */
@@ -527,6 +528,8 @@ export function AvailabilityEditor({ activityId }: { activityId: string }) {
               </div>
             </div>
           )}
+
+          {open && <ClosedDatesEditor activityId={activityId} />}
 
           {notice && <p className="mt-3 text-[13px] font-medium text-emerald-700">{notice}</p>}
           {error && (

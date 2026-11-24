@@ -411,6 +411,12 @@ describe('capacityUse — one "N of M" for Today and the day sheet', () => {
     expect(capacityUse(quoteLine())).toBeNull();
     expect(capacityUse(returnLeg())).toBeNull();
   });
+
+  it('labels a closed date (pool 0) instead of "4 of 0"', () => {
+    expect(capacityUse(departure({ units: 4, capacity: 0, guestsPerTrip: 6 }))!.label).toBe(
+      'closed to new bookings',
+    );
+  });
 });
 
 describe('Today — Needs you', () => {

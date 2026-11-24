@@ -360,6 +360,18 @@ cannot reach the money RPCs.
 Not UTC. This has caused three separate off-by-one-day availability bugs. Copy the pattern from
 `20260718120000_availability_mauritius_tz.sql`.
 
+### A closed date is a slot at capacity 0 — not `status = 'closed'`
+
+Availability → **Closed dates** stops a tour selling specific days by setting those days'
+`session_occurrences.capacity` to 0 (and inserting a 0-capacity slot for a day not materialised yet).
+Guests already booked keep their booking. `status = 'closed'` would not hold: the five-minute cron's
+`materialize_availability` flips every future `closed` slot back to `open`. It never rewrites an existing
+slot's capacity. `set_daily_capacity_atomic` does: it overwrites every upcoming capacity. So always change
+capacity through `setDailyCapacity()` / `clearOptionCapacity()` (`src/lib/admin/availability-write.ts`),
+which put the closed days back afterwards. A hand-run capacity `UPDATE` reopens them. Stop availability
+deletes empty slots, so it clears closed dates. The rules live in TypeScript (`src/lib/admin/closed-dates.ts`),
+with no SQL function.
+
 ### A day-slot's clock time is a placeholder — never print it as a pickup or departure time
 
 `materialize_availability` puts every day-slot at 12:00 Mauritius, and slots made before

@@ -15,7 +15,11 @@ import type { PGlite } from '@electric-sql/pglite';
  * `throw error` themselves). Only the operations the helpers actually use are implemented.
  */
 
-type Filter = { col: string; op: 'eq' | 'in' | 'is' | 'gt' | 'gte' | 'ilike'; val: unknown };
+type Filter = {
+  col: string;
+  op: 'eq' | 'in' | 'is' | 'gt' | 'gte' | 'lt' | 'ilike';
+  val: unknown;
+};
 type RowMode = 'many' | 'single' | 'maybeSingle';
 type Result = { data: unknown; error: unknown; count?: number | null };
 /** PostgREST's `select(cols, { count, head })`: `count` asks for the row count, `head` drops the rows. */
@@ -89,6 +93,10 @@ class QueryBuilder implements PromiseLike<Result> {
     this.filters.push({ col, op: 'gte', val });
     return this;
   }
+  lt(col: string, val: unknown): this {
+    this.filters.push({ col, op: 'lt', val });
+    return this;
+  }
   ilike(col: string, val: string): this {
     this.filters.push({ col, op: 'ilike', val });
     return this;
@@ -138,6 +146,7 @@ class QueryBuilder implements PromiseLike<Result> {
       params.push(f.val);
       if (f.op === 'gt') return `${f.col} > $${params.length}`;
       if (f.op === 'gte') return `${f.col} >= $${params.length}`;
+      if (f.op === 'lt') return `${f.col} < $${params.length}`;
       if (f.op === 'ilike') return `${f.col} ilike $${params.length}`;
       if (f.op === 'eq') return `${f.col} = $${params.length}`;
       // Compared as text so `.in()` works on an enum column: PGlite cannot infer an enum array param.
